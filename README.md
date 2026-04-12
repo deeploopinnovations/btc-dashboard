@@ -6,9 +6,8 @@
 
 ## 🚀 Live Dashboard
 
-**[👉 Click here to open the live dashboard](https://YOUR_USERNAME.github.io/btc-dashboard/)**
+**[👉 Click here to open the live dashboard](https://deeploopinnovations.github.io/btc-dashboard/)**
 
-> Replace `YOUR_USERNAME` with your GitHub username after deploying (see instructions below).
 > The dashboard loads instantly and pulls live data directly from free public APIs.
 
 ---

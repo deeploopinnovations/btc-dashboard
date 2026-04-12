@@ -155,18 +155,25 @@ Display: Dashboard shows live usage in rate limit panel
 IMPORTANT: You will need to create the GitHub repository manually through 
 the GitHub web interface. This takes approximately 2 minutes.
 
-STEP 1: CREATE REPOSITORY ON GITHUB (Manual - 2 minutes)
+STEP 1: CREATE REPOSITORY ON GITHUB
 ────────────────────────────────────────────────────────────────────────────
 
+OPTION A: Web Interface (Recommended - 2 minutes)
+───────────────────────────────────────────────
 1. Open browser and go to: https://github.com/new
 2. Fill in the form:
    Repository name: btc-dashboard
    Description: BTC KRONOS/RANGER Live Options Intelligence Dashboard
    Visibility: ☑ Public (required for GitHub Pages)
 3. Click "Create repository"
-4. You will see the quick setup page with your repo URL
+4. Copy the repository URL shown (will be: https://github.com/YOUR_USERNAME/btc-dashboard)
 
-After creating, your repo URL will be:
+OPTION B: Using Git Commands (If GitHub CLI Not Available)
+──────────────────────────────────────────────────────────
+If you prefer command line without GitHub CLI, use Option A above.
+Creating via web interface is simpler and takes just 2 minutes.
+
+After creating via web interface, your repo URL will be:
 https://github.com/YOUR_USERNAME/btc-dashboard
 
 
@@ -175,16 +182,14 @@ STEP 2: CONNECT LOCAL REPO TO GITHUB
 
 Open PowerShell and run these commands from C:\Users\DELL\BTC_Dashboard:
 
-git remote add origin https://github.com/YOUR_USERNAME/btc-dashboard
-
-Replace YOUR_USERNAME with your actual GitHub username.
+git remote add origin https://github.com/deeploopinnovations/btc-dashboard
 
 Verify it worked:
 git remote -v
 
 Should show:
-origin  https://github.com/YOUR_USERNAME/btc-dashboard (fetch)
-origin  https://github.com/YOUR_USERNAME/btc-dashboard (push)
+origin  https://github.com/deeploopinnovations/btc-dashboard (fetch)
+origin  https://github.com/deeploopinnovations/btc-dashboard (push)
 
 
 STEP 3: RENAME BRANCH TO MAIN AND PUSH
@@ -225,7 +230,7 @@ After push completes successfully:
 STEP 4: ENABLE GITHUB PAGES
 ────────────────────────────────────────────────────────────────────────────
 
-1. Go to: https://github.com/YOUR_USERNAME/btc-dashboard
+1. Go to: https://github.com/deeploopinnovations/btc-dashboard
 2. Click "Settings" (top right of repo page)
 3. Left sidebar: Click "Pages"
 4. Under "Build and deployment" section:
@@ -242,19 +247,19 @@ GitHub will now:
 └─ Enable HTTPS automatically
 
 Deployment status:
-├─ Go to: https://github.com/YOUR_USERNAME/btc-dashboard/deployments
+├─ Go to: https://github.com/deeploopinnovations/btc-dashboard/deployments
 ├─ View live URL: github-pages (click "View deployment")
-└─ Or visit directly: https://YOUR_USERNAME.github.io/btc-dashboard/
+└─ Or visit directly: https://deeploopinnovations.github.io/btc-dashboard/
 
 
 STEP 5: UPDATE README WITH YOUR GITHUB USERNAME
 ────────────────────────────────────────────────────────────────────────────
 
-1. Go to: https://github.com/YOUR_USERNAME/btc-dashboard
+1. Go to: https://github.com/deeploopinnovations/btc-dashboard
 2. Click README.md file
 3. Click the ✏ (edit) button
 4. Find this line: https://YOUR_USERNAME.github.io/btc-dashboard/
-5. Replace YOUR_USERNAME with your actual username
+5. Replace YOUR_USERNAME with: deeploopinnovations
 6. Scroll to bottom and click "Commit changes"
 7. Message: "Update README with live dashboard URL"
 8. Click "Commit changes"
@@ -267,7 +272,7 @@ STEP 6: YOUR LIVE DASHBOARD
 
 Your BTC Dashboard is now live at:
 
-https://YOUR_USERNAME.github.io/btc-dashboard/
+https://deeploopinnovations.github.io/btc-dashboard/
 
 It will:
 ├─ Load instantly from GitHub's global CDN
