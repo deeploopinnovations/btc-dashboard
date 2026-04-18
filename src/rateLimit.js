@@ -1,30 +1,24 @@
 /**
- * rateLimit.js
+ * rateLimit.js (v3)
  * Enforces monthly/daily/hourly API budgets via localStorage.
- * Every API call MUST go through this gatekeeper.
  */
 const RateLimit = (() => {
-  // ── BUDGETS ────────────────────────────────────────────────────────────────
   const BUDGETS = {
-    exa:        { monthly: 1000, daily: 33,  hourly: 1,  label: 'Exa Search'       },
-    cryptoCom:  { monthly: null, daily: null, hourly: 60, label: 'Crypto.com'       },
-    deribit:    { monthly: null, daily: null, hourly: 60, label: 'Deribit Options'  },
-    fearGreed:  { monthly: null, daily: 1,   hourly: 1,  label: 'Fear & Greed'     },
-    bigdata:    { monthly: null, daily: 2,   hourly: 1,  label: 'BigData.com'      },
-    kronos:     { monthly: null, daily: 1,   hourly: 1,  label: 'Kronos AI'        },
-    binance:    { monthly: null, daily: null, hourly: 60, label: 'Binance OHLCV'   },
+    exa:        { monthly: 1000, daily: 33,   hourly: 1,  label: 'Exa Search'     },
+    binance:    { monthly: null, daily: null, hourly: 120, label: 'Binance (public)' },
+    deribit:    { monthly: null, daily: null, hourly: 60,  label: 'Deribit Options' },
+    fearGreed:  { monthly: null, daily: 2,    hourly: 1,  label: 'Fear & Greed'   },
+    kronos:     { monthly: null, daily: 8,    hourly: 2,  label: 'Kronos Demo'    },
+    bigdata:    { monthly: null, daily: 2,    hourly: 1,  label: 'BigData.com'    },
+    cryptoCom:  { monthly: null, daily: null, hourly: 60,  label: 'Crypto.com (deprecated)' },
   };
 
-  const KEY = 'btc_dash_rate_v2';
+  const KEY = 'btc_dash_rate_v3';
 
   function getStore() {
-    try { return JSON.parse(localStorage.getItem(KEY)) || {}; }
-    catch { return {}; }
+    try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; }
   }
-
-  function saveStore(s) {
-    try { localStorage.setItem(KEY, JSON.stringify(s)); } catch {}
-  }
+  function saveStore(s) { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch {} }
 
   function getWindows() {
     const now = new Date();
@@ -35,94 +29,71 @@ const RateLimit = (() => {
     };
   }
 
-  /**
-   * Check if we can call this API.
-   * Returns { allowed: bool, reason: string|null }
-   */
   function canCall(apiKey) {
     const b = BUDGETS[apiKey];
     if (!b) return { allowed: true, reason: null };
-
     const store = getStore();
     const { hourKey, dayKey, monKey } = getWindows();
-
-    const hourlyUsed  = (store[`${apiKey}_h_${hourKey}`]  || 0);
-    const dailyUsed   = (store[`${apiKey}_d_${dayKey}`]   || 0);
-    const monthlyUsed = (store[`${apiKey}_m_${monKey}`]   || 0);
-
+    const hourlyUsed  = store[`${apiKey}_h_${hourKey}`]  || 0;
+    const dailyUsed   = store[`${apiKey}_d_${dayKey}`]   || 0;
+    const monthlyUsed = store[`${apiKey}_m_${monKey}`]   || 0;
     if (b.hourly  !== null && hourlyUsed  >= b.hourly)
-      return { allowed: false, reason: `${b.label}: hourly limit (${b.hourly}/hr) reached. Next call in ${60 - new Date().getUTCMinutes()} min.` };
+      return { allowed: false, reason: `${b.label}: hourly limit (${b.hourly}/hr) reached.` };
     if (b.daily   !== null && dailyUsed   >= b.daily)
-      return { allowed: false, reason: `${b.label}: daily limit (${b.daily}/day) reached. Resets at midnight UTC.` };
+      return { allowed: false, reason: `${b.label}: daily limit (${b.daily}/day) reached.` };
     if (b.monthly !== null && monthlyUsed >= b.monthly)
-      return { allowed: false, reason: `${b.label}: monthly limit (${b.monthly}/mo) reached!` };
-
+      return { allowed: false, reason: `${b.label}: monthly limit (${b.monthly}/mo) reached.` };
     return { allowed: true, reason: null };
   }
 
-  /**
-   * Record a call. Call AFTER successful API response.
-   */
   function record(apiKey) {
     const store = getStore();
     const { hourKey, dayKey, monKey } = getWindows();
-
     store[`${apiKey}_h_${hourKey}`]  = (store[`${apiKey}_h_${hourKey}`]  || 0) + 1;
     store[`${apiKey}_d_${dayKey}`]   = (store[`${apiKey}_d_${dayKey}`]   || 0) + 1;
     store[`${apiKey}_m_${monKey}`]   = (store[`${apiKey}_m_${monKey}`]   || 0) + 1;
-
     saveStore(store);
   }
 
-  /**
-   * Get current usage stats for all APIs
-   */
   function getStats() {
     const store = getStore();
     const { hourKey, dayKey, monKey } = getWindows();
     const stats = {};
     for (const [key, b] of Object.entries(BUDGETS)) {
       stats[key] = {
-        label:        b.label,
-        hourly:       store[`${key}_h_${hourKey}`]  || 0,
-        daily:        store[`${key}_d_${dayKey}`]   || 0,
-        monthly:      store[`${key}_m_${monKey}`]   || 0,
-        hourLimit:    b.hourly,
-        dayLimit:     b.daily,
-        monthLimit:   b.monthly,
+        label:      b.label,
+        hourly:     store[`${key}_h_${hourKey}`]  || 0,
+        daily:      store[`${key}_d_${dayKey}`]   || 0,
+        monthly:    store[`${key}_m_${monKey}`]   || 0,
+        hourLimit:  b.hourly,
+        dayLimit:   b.daily,
+        monthLimit: b.monthly,
       };
     }
     return stats;
   }
 
-  /**
-   * Clean up old keys (> 32 days) to prevent localStorage bloat
-   */
-  function cleanup() {
-    try {
-      const store = getStore();
-      const now = new Date();
-      const cutoff = new Date(now - 32 * 86400000);
-      const toDelete = [];
-      for (const k of Object.keys(store)) {
-        // key format: apiKey_h_YYYY-M-D-H or _d_YYYY-M-D or _m_YYYY-M
-        const parts = k.split('_');
-        if (parts.length < 3) continue;
-        const datePart = parts.slice(2).join('-');
-        const segments = datePart.split('-').map(Number);
-        let date;
-        if (segments.length === 4) date = new Date(Date.UTC(segments[0], segments[1], segments[2]));
-        else if (segments.length === 3) date = new Date(Date.UTC(segments[0], segments[1], segments[2]));
-        else if (segments.length === 2) date = new Date(Date.UTC(segments[0], segments[1], 1));
-        if (date && date < cutoff) toDelete.push(k);
+  // Cleanup old keys
+  try {
+    const store = getStore();
+    const cutoff = Date.now() - 32 * 86400000;
+    const toDel = [];
+    for (const k of Object.keys(store)) {
+      const segs = k.split('_');
+      if (segs.length < 3) continue;
+      // best-effort: drop any key that doesn't match current month
+      const monK = `${new Date().getUTCFullYear()}-${new Date().getUTCMonth()}`;
+      if (!k.includes(monK)) {
+        // keep last 2 months
+        toDel.push(k);
       }
-      toDelete.forEach(k => delete store[k]);
+    }
+    // Keep things small but don't blindly delete everything
+    if (Object.keys(store).length > 200) {
+      toDel.slice(0, 50).forEach(k => delete store[k]);
       saveStore(store);
-    } catch {}
-  }
-
-  // Run cleanup on load
-  cleanup();
+    }
+  } catch {}
 
   return { canCall, record, getStats, BUDGETS };
 })();

@@ -18,44 +18,31 @@
 html{scroll-behavior:smooth}
 body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.6;overflow-x:hidden}
 
-/* NOISE OVERLAY */
 body::before{content:'';position:fixed;inset:0;opacity:0.018;pointer-events:none;z-index:0;
   background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")}
-
-/* GRID BG */
 .grid-bg{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:0.4;
   background-image:linear-gradient(rgba(129,140,248,0.04) 1px,transparent 1px),
     linear-gradient(90deg,rgba(129,140,248,0.04) 1px,transparent 1px);
   background-size:48px 48px}
-
 .wrap{position:relative;z-index:1;max-width:1440px;margin:0 auto;padding:20px 18px}
 
-/* ── HEADER ── */
-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;
-  padding-bottom:16px;border-bottom:1px solid var(--border)}
+/* HEADER */
+header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;padding-bottom:16px;border-bottom:1px solid var(--border)}
 .logo-area{display:flex;align-items:center;gap:14px}
 .logo{font-family:var(--font-mono);font-size:17px;font-weight:700;color:var(--accent);letter-spacing:-0.5px}
 .logo b{color:var(--cyan)}
 .tagline{font-size:10px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-top:2px}
-.live-pill{display:flex;align-items:center;gap:5px;background:rgba(74,222,128,0.08);
-  border:1px solid rgba(74,222,128,0.22);border-radius:20px;padding:3px 10px;
-  font-size:10px;font-family:var(--font-mono);color:var(--green)}
+.live-pill{display:flex;align-items:center;gap:5px;background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.22);border-radius:20px;padding:3px 10px;font-size:10px;font-family:var(--font-mono);color:var(--green)}
 .pulse{width:6px;height:6px;border-radius:50%;background:var(--green);animation:blink 2s infinite}
 @keyframes blink{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.4;transform:scale(1.4)}}
 .header-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .ts{font-family:var(--font-mono);font-size:10px;color:var(--muted)}
-.btn{background:transparent;border:1px solid var(--border2);color:var(--text);
-  font-family:var(--font-mono);font-size:10px;padding:5px 14px;border-radius:6px;
-  cursor:pointer;transition:all .2s;letter-spacing:0.04em}
+.btn{background:transparent;border:1px solid var(--border2);color:var(--text);font-family:var(--font-mono);font-size:10px;padding:5px 14px;border-radius:6px;cursor:pointer;transition:all .2s;letter-spacing:0.04em}
 .btn:hover{background:var(--surface2);border-color:var(--accent);color:var(--accent)}
-.rate-info{font-size:10px;color:var(--muted);background:var(--surface2);
-  border:1px solid var(--border);padding:4px 10px;border-radius:6px;font-family:var(--font-mono)}
+.rate-info{font-size:10px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);padding:4px 10px;border-radius:6px;font-family:var(--font-mono)}
 
-/* ── DIRECTION BANNER ── */
-.dir-banner{border-radius:12px;padding:18px 22px;margin-bottom:18px;
-  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;
-  border:1px solid var(--b-color,rgba(248,113,113,0.3));
-  background:var(--bg-color,rgba(248,113,113,0.05))}
+/* DIRECTION BANNER */
+.dir-banner{border-radius:12px;padding:18px 22px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;border:1px solid var(--b-color,rgba(248,113,113,0.3));background:var(--bg-color,rgba(248,113,113,0.05))}
 .dir-banner.bull{--b-color:rgba(74,222,128,0.3);--bg-color:rgba(74,222,128,0.05)}
 .dir-banner.neu{--b-color:rgba(251,191,36,0.3);--bg-color:rgba(251,191,36,0.05)}
 .dir-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:3px}
@@ -64,7 +51,7 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 .dir-banner.neu .dir-main{color:var(--amber)}
 .dir-bear .dir-main{color:var(--red)}
 .dir-sub{font-size:11px;color:var(--muted);margin-top:2px}
-.conf-row{display:flex;align-items:center;gap:8px;margin-top:8px;max-width:280px}
+.conf-row{display:flex;align-items:center;gap:8px;margin-top:8px;max-width:320px}
 .conf-bg{flex:1;height:3px;background:rgba(255,255,255,0.07);border-radius:2px;overflow:hidden}
 .conf-fill{height:100%;border-radius:2px;transition:width 1.5s ease}
 .conf-pct{font-family:var(--font-mono);font-size:12px;font-weight:700}
@@ -73,42 +60,38 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 .bstat-v{font-family:var(--font-mono);font-size:18px;font-weight:700;line-height:1.1}
 .bstat-l{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-top:2px}
 
-/* ── GRIDS ── */
+/* GRIDS */
 .g4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px;margin-bottom:14px}
 .g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;margin-bottom:14px}
 .g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;margin-bottom:14px}
 @media(max-width:1000px){.g4{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:580px){.g4,.g3,.g2{grid-template-columns:1fr}}
 
-/* ── CARD ── */
+/* CARDS */
 .card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:15px}
-.card-hd{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;
-  margin-bottom:10px;display:flex;align-items:center;gap:5px}
+.card-hd{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px;display:flex;align-items:center;gap:5px}
 .card-hd .d{width:5px;height:5px;border-radius:50%}
 .mv{font-family:var(--font-mono);font-size:24px;font-weight:700;line-height:1.1}
 .ms{font-size:11px;color:var(--muted);margin-top:3px}
 .mc{font-family:var(--font-mono);font-size:11px;margin-top:3px}
 .pos{color:var(--green)}.neg{color:var(--red)}.neu{color:var(--amber)}
 
-/* ── SECTION HDR ── */
-.sh{font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);
-  margin:18px 0 10px;display:flex;align-items:center;gap:8px}
+/* SECTION HDR */
+.sh{font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin:18px 0 10px;display:flex;align-items:center;gap:8px}
 .sh::after{content:'';flex:1;height:1px;background:var(--border)}
-.src-tag{font-size:8px;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);
-  background:var(--surface2);padding:2px 6px;border-radius:3px;margin-left:4px}
+.src-tag{font-size:8px;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);background:var(--surface2);padding:2px 6px;border-radius:3px;margin-left:4px}
 
-/* ── SENTIMENT GAUGES ── */
+/* SENTIMENT GAUGES */
 .sent-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:14px}
 @media(max-width:900px){.sent-grid{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:580px){.sent-grid{grid-template-columns:repeat(2,1fr)}}
-.sent-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;
-  padding:13px;text-align:center}
+.sent-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:13px;text-align:center}
 .sent-lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:7px}
 .gauge-c{position:relative;width:72px;height:36px;margin:0 auto 7px;overflow:hidden}
 .gv{font-family:var(--font-mono);font-size:17px;font-weight:700;line-height:1}
 .gt{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-top:2px}
 
-/* ── SCORE RING ── */
+/* SCORE RING */
 .ring-wrap{display:flex;align-items:center;gap:20px;padding:16px 0}
 .ring{position:relative;width:100px;height:100px;flex-shrink:0}
 .ring svg{transform:rotate(-90deg)}
@@ -120,23 +103,16 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 .pb-bg{height:5px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden}
 .pb-fill{height:100%;border-radius:3px;transition:width 1.4s ease}
 
-/* ── RANGE VISUAL ── */
-.range-vis{background:var(--surface);border:1px solid var(--border);border-radius:10px;
-  padding:18px;margin-bottom:14px}
-.range-track{position:relative;height:44px;background:var(--surface2);
-  border-radius:7px;overflow:visible;margin:22px 0 32px}
-.rz{position:absolute;top:0;bottom:0;border-radius:5px;
-  display:flex;align-items:center;justify-content:center;
-  font-family:var(--font-mono);font-size:10px;font-weight:700}
-.needle{position:absolute;top:-5px;bottom:-5px;width:3px;background:#fff;
-  border-radius:2px;box-shadow:0 0 10px rgba(255,255,255,0.4);transform:translateX(-50%)}
-.pm{position:absolute;bottom:-26px;transform:translateX(-50%);
-  font-family:var(--font-mono);font-size:9px;white-space:nowrap;color:var(--muted)}
+/* RANGE VISUAL */
+.range-vis{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:14px}
+.range-track{position:relative;height:44px;background:var(--surface2);border-radius:7px;overflow:visible;margin:22px 0 32px}
+.rz{position:absolute;top:0;bottom:0;border-radius:5px;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:10px;font-weight:700}
+.needle{position:absolute;top:-5px;bottom:-5px;width:3px;background:#fff;border-radius:2px;box-shadow:0 0 10px rgba(255,255,255,0.4);transform:translateX(-50%)}
+.pm{position:absolute;bottom:-26px;transform:translateX(-50%);font-family:var(--font-mono);font-size:9px;white-space:nowrap;color:var(--muted)}
 .pm.cur{top:-18px;bottom:auto;color:var(--text);font-weight:700}
 
-/* ── STRIKE BOX ── */
-.strike-box{display:grid;grid-template-columns:1fr 1fr;gap:1px;
-  border-radius:10px;overflow:hidden;border:1px solid var(--border);margin-bottom:14px}
+/* STRIKE BOX */
+.strike-box{display:grid;grid-template-columns:1fr 1fr;gap:1px;border-radius:10px;overflow:hidden;border:1px solid var(--border);margin-bottom:14px}
 .sh-half{padding:15px 18px;background:var(--surface)}
 .sh-half.call{border-right:1px solid var(--border)}
 .sh-type{font-size:9px;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:5px}
@@ -144,44 +120,34 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 .sh-dist{font-size:10px;margin-top:3px}
 .sh-note{font-size:10px;color:var(--muted);margin-top:8px;line-height:1.5}
 
-/* ── SIGNAL TABLE ── */
+/* SIGNAL TABLE */
 .sig-tbl{width:100%;border-collapse:collapse}
-.sig-tbl th{text-align:left;padding:7px 11px;font-size:9px;color:var(--muted);
-  text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)}
+.sig-tbl th{text-align:left;padding:7px 11px;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)}
 .sig-tbl td{padding:9px 11px;border-bottom:1px solid var(--border);font-size:12px}
 .sig-tbl tr:last-child td{border-bottom:none}
 .sig-tbl tr:hover td{background:rgba(255,255,255,0.015)}
-.pill{display:inline-block;padding:2px 9px;border-radius:999px;
-  font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em}
+.pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em}
 .p-g{background:rgba(74,222,128,0.1);color:#4ade80;border:1px solid rgba(74,222,128,0.22)}
 .p-r{background:rgba(248,113,113,0.1);color:#f87171;border:1px solid rgba(248,113,113,0.22)}
 .p-a{background:rgba(251,191,36,0.1);color:#fbbf24;border:1px solid rgba(251,191,36,0.22)}
 .p-v{background:rgba(129,140,248,0.1);color:#818cf8;border:1px solid rgba(129,140,248,0.22)}
 .p-b{background:rgba(96,165,250,0.1);color:#60a5fa;border:1px solid rgba(96,165,250,0.22)}
 
-/* ── THETA BAR ── */
+/* THETA / NEWS / INFO */
 .t-bar{display:flex;height:22px;border-radius:6px;overflow:hidden;margin:10px 0}
-.t-seg{display:flex;align-items:center;justify-content:center;
-  font-size:8px;font-weight:700;color:rgba(255,255,255,0.65);overflow:hidden;
-  white-space:nowrap;transition:width 1s}
-
-/* ── NEWS FEED ── */
+.t-seg{display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:rgba(255,255,255,0.65);overflow:hidden;white-space:nowrap;transition:width 1s}
 .ni{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
 .ni:last-child{border-bottom:none}
 .ni-dot{width:7px;height:7px;border-radius:50%;margin-top:4px;flex-shrink:0}
 .ni-hl{font-size:12px;color:var(--text);line-height:1.45;margin-bottom:3px}
 .ni-src{font-size:10px;color:var(--muted)}
-
-/* ── INFO ROW ── */
-.ir{display:flex;justify-content:space-between;padding:6px 0;
-  border-bottom:1px solid var(--border);font-size:12px;gap:10px}
+.ir{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;gap:10px}
 .ir:last-child{border-bottom:none}
 .ir-l{color:var(--muted);flex-shrink:0}
 .ir-v{font-family:var(--font-mono);font-weight:500;text-align:right}
 
-/* ── RATE LIMIT BOX ── */
-.rate-box{background:var(--surface);border:1px solid rgba(251,191,36,0.2);
-  border-radius:10px;padding:15px;margin-bottom:14px}
+/* RATE LIMIT BOX */
+.rate-box{background:var(--surface);border:1px solid rgba(251,191,36,0.2);border-radius:10px;padding:15px;margin-bottom:14px}
 .rl-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}
 .rl-card{background:var(--surface2);border-radius:8px;padding:10px 12px}
 .rl-name{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:5px}
@@ -189,19 +155,30 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 .rl-bar-fill{height:100%;border-radius:3px}
 .rl-nums{display:flex;justify-content:space-between;font-size:9px;font-family:var(--font-mono)}
 
-/* ── FOOTER ── */
-footer{margin-top:28px;padding-top:14px;border-top:1px solid var(--border);
-  display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;
-  font-size:10px;color:var(--muted)}
+/* RETAIL SELLER PANEL */
+.retail-panel{background:var(--surface);border:1px solid rgba(129,140,248,0.25);border-radius:12px;padding:18px;margin-bottom:14px;position:relative;overflow:hidden}
+.retail-panel::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(129,140,248,0.04),transparent 50%);pointer-events:none}
+.rp-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border)}
+.rp-title{font-size:14px;font-weight:700;color:var(--accent);font-family:var(--font-mono)}
+.rp-subtitle{font-size:10px;color:var(--muted)}
+.rp-metric{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;position:relative}
+.rp-l{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px}
+.rp-v{font-family:var(--font-mono);font-size:18px;font-weight:700;line-height:1.1}
+.rp-s{font-size:10px;color:var(--muted);margin-top:3px}
+.rp-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 14px}
+.rp-card.rp-green{border-color:rgba(74,222,128,0.3);background:rgba(74,222,128,0.03)}
+.rp-warn{padding:16px;border-radius:8px;background:rgba(248,113,113,0.06);border:1px solid rgba(248,113,113,0.25);color:var(--text);margin-top:8px}
+.rp-warn.rp-red{background:rgba(248,113,113,0.08);border-color:rgba(248,113,113,0.35)}
+input[type=range]{accent-color:var(--accent)}
 
-/* ── CHART ── */
+/* FOOTER */
+footer{margin-top:28px;padding-top:14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;font-size:10px;color:var(--muted)}
 .ch-wrap{position:relative;width:100%;height:190px}
 
 @media(max-width:700px){
   .strike-box{grid-template-columns:1fr}.sh-half.call{border-right:none;border-bottom:1px solid var(--border)}
   .rl-grid{grid-template-columns:1fr}
-  .banner-stats{gap:12px}
-  .bstat-v{font-size:15px}
+  .banner-stats{gap:12px}.bstat-v{font-size:15px}
 }
 </style>
 </head>
@@ -214,12 +191,12 @@ footer{margin-top:28px;padding-top:14px;border-top:1px solid var(--border);
   <div class="logo-area">
     <div>
       <div class="logo">KRONOS<b>/</b>RANGER</div>
-      <div class="tagline">BTC Live Options Intelligence Dashboard</div>
+      <div class="tagline">BTC Live Options Intelligence Dashboard · v3</div>
     </div>
     <div class="live-pill"><div class="pulse"></div>LIVE</div>
   </div>
   <div class="header-right">
-    <div class="rate-info" id="rateInfo">API: 0/33 today</div>
+    <div class="rate-info" id="rateInfo">Exa: 0/33/day · 0/1/hr</div>
     <div class="ts" id="tsEl"></div>
     <button class="btn" id="refreshBtn" onclick="refreshAll()">↺ REFRESH</button>
   </div>
@@ -228,9 +205,9 @@ footer{margin-top:28px;padding-top:14px;border-top:1px solid var(--border);
 <!-- DIRECTION BANNER -->
 <div class="dir-banner dir-bear" id="dirBanner">
   <div>
-    <div class="dir-lbl">Combined Signal — Kronos + RANGER + Sentiment</div>
-    <div class="dir-main" id="dirMain">BEARISH-NEUTRAL</div>
-    <div class="dir-sub" id="dirSub">Loading signals…</div>
+    <div class="dir-lbl">Combined Signal — Kronos + RANGER + Sentiment + IV/HV20</div>
+    <div class="dir-main" id="dirMain">LOADING…</div>
+    <div class="dir-sub" id="dirSub">Fetching live data from Binance, Deribit, Kronos, Alt.me…</div>
     <div class="conf-row">
       <div class="conf-bg"><div class="conf-fill" id="confFill" style="width:0%;background:var(--red)"></div></div>
       <div class="conf-pct neg" id="confPct">—</div>
@@ -248,7 +225,7 @@ footer{margin-top:28px;padding-top:14px;border-top:1px solid var(--border);
 <!-- PRICE METRICS -->
 <div class="g4">
   <div class="card"><div class="card-hd"><div class="d" style="background:var(--cyan)"></div>Price</div>
-    <div class="mv" id="mPrice">$—</div><div class="mc" id="mChg">—</div><div class="ms">Crypto.com · live</div></div>
+    <div class="mv" id="mPrice">$—</div><div class="mc" id="mChg">—</div><div class="ms">Binance · live</div></div>
   <div class="card"><div class="card-hd"><div class="d" style="background:var(--green)"></div>24H High</div>
     <div class="mv pos" id="mHigh">$—</div><div class="ms" id="mHighPct">—</div></div>
   <div class="card"><div class="card-hd"><div class="d" style="background:var(--red)"></div>24H Low</div>
@@ -257,34 +234,32 @@ footer{margin-top:28px;padding-top:14px;border-top:1px solid var(--border);
     <div class="mv" id="mVol" style="font-size:20px">$—</div><div class="ms" id="mVolNote">—</div></div>
 </div>
 
+<!-- ═══════════ RETAIL SELLER MODE (NEW) ═══════════ -->
+<div class="sh">Retail Seller Mode — $100 · 50× · 1× ATM Straddle + 60× Far-OTM Wings <span class="src-tag">PDF strategy implementation</span></div>
+<div class="retail-panel">
+  <div class="rp-header">
+    <div>
+      <div class="rp-title">⚡ Straddle-Financed OTM Wing Selector</div>
+      <div class="rp-subtitle">Solves for OTM strike where short premium ≥ straddle cost AND touch probability ≤ threshold. Live from Deribit chain.</div>
+    </div>
+    <div style="font-size:9px;color:var(--muted);text-align:right">
+      Method: HV20 → 1-day band → probability scan<br>
+      Research: 90% of days BTC stays within 3× hv20_1d
+    </div>
+  </div>
+  <div id="retailPanel">
+    <div style="padding:30px;text-align:center;color:var(--muted);font-size:12px">Loading retail plan… (needs price + options + HV20)</div>
+  </div>
+</div>
+
 <!-- SENTIMENT -->
-<div class="sh">Sentiment Intelligence <span class="src-tag">Exa · BigData · Kronos · Fear&Greed</span></div>
+<div class="sh">Sentiment Intelligence <span class="src-tag">Kronos · News · F&G · IV/HV20 Regime</span></div>
 <div class="sent-grid">
-  <div class="sent-card">
-    <div class="sent-lbl">News Sentiment</div>
-    <div class="gauge-c"><canvas id="g0" width="72" height="36"></canvas></div>
-    <div class="gv neg" id="sv0">—</div><div class="gt neg" id="st0">Loading</div>
-  </div>
-  <div class="sent-card">
-    <div class="sent-lbl">Kronos Upside</div>
-    <div class="gauge-c"><canvas id="g1" width="72" height="36"></canvas></div>
-    <div class="gv" id="sv1">—</div><div class="gt" id="st1">Loading</div>
-  </div>
-  <div class="sent-card">
-    <div class="sent-lbl">Vol Amplification</div>
-    <div class="gauge-c"><canvas id="g2" width="72" height="36"></canvas></div>
-    <div class="gv" id="sv2">—</div><div class="gt" id="st2">Loading</div>
-  </div>
-  <div class="sent-card">
-    <div class="sent-lbl">Analyst Consensus</div>
-    <div class="gauge-c"><canvas id="g3" width="72" height="36"></canvas></div>
-    <div class="gv" id="sv3">—</div><div class="gt" id="st3">Loading</div>
-  </div>
-  <div class="sent-card">
-    <div class="sent-lbl">Macro Risk</div>
-    <div class="gauge-c"><canvas id="g4" width="72" height="36"></canvas></div>
-    <div class="gv" id="sv4">—</div><div class="gt" id="st4">Loading</div>
-  </div>
+  <div class="sent-card"><div class="sent-lbl">News Sentiment</div><div class="gauge-c"><canvas id="g0" width="72" height="36"></canvas></div><div class="gv neg" id="sv0">—</div><div class="gt neg" id="st0">Loading</div></div>
+  <div class="sent-card"><div class="sent-lbl">Kronos Upside</div><div class="gauge-c"><canvas id="g1" width="72" height="36"></canvas></div><div class="gv" id="sv1">—</div><div class="gt" id="st1">Loading</div></div>
+  <div class="sent-card"><div class="sent-lbl">Vol Amplification</div><div class="gauge-c"><canvas id="g2" width="72" height="36"></canvas></div><div class="gv" id="sv2">—</div><div class="gt" id="st2">Loading</div></div>
+  <div class="sent-card"><div class="sent-lbl">Fear & Greed</div><div class="gauge-c"><canvas id="g3" width="72" height="36"></canvas></div><div class="gv" id="sv3">—</div><div class="gt" id="st3">Loading</div></div>
+  <div class="sent-card"><div class="sent-lbl">IV/HV20 Regime</div><div class="gauge-c"><canvas id="g4" width="72" height="36"></canvas></div><div class="gv" id="sv4">—</div><div class="gt" id="st4">Loading</div></div>
 </div>
 
 <!-- COMPOSITE SCORE + THETA -->
@@ -295,44 +270,31 @@ footer{margin-top:28px;padding-top:14px;border-top:1px solid var(--border);
       <div class="ring">
         <svg width="100" height="100" viewBox="0 0 100 100">
           <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="9"/>
-          <circle cx="50" cy="50" r="40" fill="none" stroke="#f87171" stroke-width="9"
-            stroke-dasharray="251.2" stroke-dashoffset="251.2" id="scoreArc"
-            stroke-linecap="round" style="transition:stroke-dashoffset 1.6s ease"/>
+          <circle cx="50" cy="50" r="40" fill="none" stroke="#f87171" stroke-width="9" stroke-dasharray="251.2" stroke-dashoffset="251.2" id="scoreArc" stroke-linecap="round" style="transition:stroke-dashoffset 1.6s ease"/>
         </svg>
-        <div class="ring-text">
-          <div class="ring-num neg" id="scoreN">—</div>
-          <div class="ring-lbl">/100</div>
-        </div>
+        <div class="ring-text"><div class="ring-num neg" id="scoreN">—</div><div class="ring-lbl">/100</div></div>
       </div>
       <div style="flex:1">
-        <div class="pb"><div class="pb-hd"><span>Bearish</span><span class="neg" id="pbBear">—</span></div>
-          <div class="pb-bg"><div class="pb-fill" id="pbBearF" style="width:0%;background:var(--red)"></div></div></div>
-        <div class="pb"><div class="pb-hd"><span>Bullish</span><span class="pos" id="pbBull">—</span></div>
-          <div class="pb-bg"><div class="pb-fill" id="pbBullF" style="width:0%;background:var(--green)"></div></div></div>
-        <div class="pb"><div class="pb-hd"><span>Macro risk</span><span class="neu" id="pbMacro">—</span></div>
-          <div class="pb-bg"><div class="pb-fill" id="pbMacroF" style="width:0%;background:var(--amber)"></div></div></div>
-        <div class="pb"><div class="pb-hd"><span>Vol confidence</span><span style="color:var(--cyan)" id="pbVol">—</span></div>
-          <div class="pb-bg"><div class="pb-fill" id="pbVolF" style="width:0%;background:var(--cyan)"></div></div></div>
+        <div class="pb"><div class="pb-hd"><span>Bearish</span><span class="neg" id="pbBear">—</span></div><div class="pb-bg"><div class="pb-fill" id="pbBearF" style="width:0%;background:var(--red)"></div></div></div>
+        <div class="pb"><div class="pb-hd"><span>Bullish</span><span class="pos" id="pbBull">—</span></div><div class="pb-bg"><div class="pb-fill" id="pbBullF" style="width:0%;background:var(--green)"></div></div></div>
+        <div class="pb"><div class="pb-hd"><span>Vol Amp</span><span class="neu" id="pbMacro">—</span></div><div class="pb-bg"><div class="pb-fill" id="pbMacroF" style="width:0%;background:var(--amber)"></div></div></div>
+        <div class="pb"><div class="pb-hd"><span>News Score</span><span style="color:var(--cyan)" id="pbVol">—</span></div><div class="pb-bg"><div class="pb-fill" id="pbVolF" style="width:0%;background:var(--cyan)"></div></div></div>
       </div>
     </div>
   </div>
   <div class="card">
     <div class="card-hd"><div class="d" style="background:var(--amber)"></div>Theta Decay — 0DTE (17:30 IST)</div>
     <div class="ch-wrap"><canvas id="thetaC"></canvas></div>
-    <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-top:6px">
-      <span>09:00 IST</span><span id="nowLbl" style="color:var(--accent)">NOW</span><span>17:30 IST</span>
-    </div>
+    <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-top:6px"><span>09:00 IST</span><span id="nowLbl" style="color:var(--accent)">NOW</span><span>17:30 IST</span></div>
   </div>
 </div>
 
 <!-- RANGE VISUAL -->
-<div class="sh">RANGER Range Prediction <span class="src-tag">ATR-7 · IV/HV · DOW multiplier</span></div>
+<div class="sh">RANGER Range Prediction <span class="src-tag">ATR-7 · DOW multiplier · F&G</span></div>
 <div class="range-vis">
   <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:10px">
-    <div>
-      <div class="card-hd" style="margin-bottom:3px"><div class="d" style="background:var(--accent)"></div>Formula</div>
-      <div style="font-size:11px;color:var(--muted)">ATR-7 × (IV/HV)⁰·²⁰ × (Vol/AvgVol)⁰·¹² × DOW⁰·⁰⁵ × FG_Factor</div>
-    </div>
+    <div><div class="card-hd" style="margin-bottom:3px"><div class="d" style="background:var(--accent)"></div>Formula</div>
+      <div style="font-size:11px;color:var(--muted)">ATR-7 × (IV/HV)⁰·²⁰ × (Vol/AvgVol)⁰·¹² × DOW⁰·⁰⁵ × FG_Factor</div></div>
     <div style="display:flex;gap:18px;flex-wrap:wrap">
       <div><div style="font-family:var(--font-mono);font-size:17px;font-weight:700;color:var(--accent)" id="rangerOut">—</div><div class="bstat-l">RANGER raw</div></div>
       <div><div style="font-family:var(--font-mono);font-size:17px;font-weight:700;color:var(--cyan)" id="safeOut">—</div><div class="bstat-l">Safe (×2.2)</div></div>
@@ -351,121 +313,76 @@ footer{margin-top:28px;padding-top:14px;border-top:1px solid var(--border);
 </div>
 
 <!-- STRIKES -->
-<div class="sh">Recommended Strikes — Delta Exchange 17:30 IST Expiry</div>
+<div class="sh">Classic Range-Based Strikes — Delta Exchange 17:30 IST Expiry</div>
 <div class="strike-box">
   <div class="sh-half call">
     <div class="sh-type pos">Sell CALL (OTM)</div>
     <div class="sh-price pos" id="callSt">$—</div>
-    <div class="sh-dist muted" id="callDst"></div>
+    <div class="sh-dist" id="callDst"></div>
     <div class="sh-note">Price must NOT reach here by 17:30 IST · 2× premium = stop loss</div>
   </div>
   <div class="sh-half">
     <div class="sh-type neg">Sell PUT (OTM)</div>
     <div class="sh-price neg" id="putSt">$—</div>
-    <div class="sh-dist muted" id="putDst"></div>
+    <div class="sh-dist" id="putDst"></div>
     <div class="sh-note">Price must NOT fall here by 17:30 IST · 2× premium = stop loss</div>
   </div>
 </div>
 
 <!-- SIGNAL TABLE -->
-<div class="sh">5-Signal Confluence</div>
+<div class="sh">8-Signal Confluence</div>
 <div class="card" style="padding:0;overflow:hidden;margin-bottom:14px">
-  <table class="sig-tbl">
-    <thead><tr><th>Signal</th><th>Source</th><th>Value</th><th>Reading</th><th>Action</th></tr></thead>
-    <tbody id="sigBody"></tbody>
-  </table>
+  <table class="sig-tbl"><thead><tr><th>Signal</th><th>Source</th><th>Value</th><th>Reading</th><th>Action</th></tr></thead><tbody id="sigBody"></tbody></table>
 </div>
 
 <!-- TIMING -->
-<div class="sh">Optimal Entry Timing</div>
+<div class="sh">Optimal Entry Timing <span class="src-tag">Calm window 08:30–12:30 IST</span></div>
 <div class="card" style="margin-bottom:14px">
   <div class="t-bar" id="tBar"></div>
-  <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-top:5px">
-    <span>00:00</span><span>05:30</span><span>08:30</span><span>12:30</span><span>15:00</span><span>17:30</span><span>23:59</span>
-  </div>
+  <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-top:5px"><span>00:00</span><span>05:30</span><span>08:30</span><span>12:30</span><span>15:00</span><span>17:30</span><span>23:59</span></div>
   <div style="display:flex;flex-wrap:wrap;gap:7px;margin-top:11px">
     <span class="pill p-g">Best entry: 10:00–11:30 IST</span>
     <span class="pill p-a">Secondary: 16:30–17:20 IST</span>
     <span class="pill p-r">Expiry: 17:30 IST</span>
-    <span class="pill p-b">Kronos run: 09:00 IST daily</span>
+    <span class="pill p-b">Kronos run: 09:00 UTC daily</span>
   </div>
 </div>
 
 <!-- RANGER INPUTS + CHART -->
-<div class="sh">RANGER Inputs & Price Chart <span class="src-tag">Crypto.com Live</span></div>
+<div class="sh">RANGER Inputs & Price Chart <span class="src-tag">Binance Live</span></div>
 <div class="g2">
-  <div class="card"><div class="card-hd"><div class="d" style="background:var(--accent)"></div>Model Parameters</div>
-    <div id="rangerInputs"></div></div>
-  <div class="card"><div class="card-hd"><div class="d" style="background:var(--cyan)"></div>24H Price (1H candles)</div>
-    <div class="ch-wrap"><canvas id="priceC"></canvas></div></div>
+  <div class="card"><div class="card-hd"><div class="d" style="background:var(--accent)"></div>Model Parameters</div><div id="rangerInputs"></div></div>
+  <div class="card"><div class="card-hd"><div class="d" style="background:var(--cyan)"></div>24H Price (1H candles)</div><div class="ch-wrap"><canvas id="priceC"></canvas></div></div>
 </div>
 
 <!-- RATE LIMIT MANAGER -->
 <div class="sh">API Rate Limit Manager <span class="src-tag">Daily budget tracker</span></div>
 <div class="rate-box">
   <div style="font-size:11px;color:var(--amber);font-weight:500;margin-bottom:4px">Monthly budget enforced — no API will ever be overused</div>
-  <div style="font-size:11px;color:var(--muted)">Auto-refresh: every 60 min for price data · every 60 min for news (1 Exa call/hr max) · Kronos runs once at 09:00 IST</div>
+  <div style="font-size:11px;color:var(--muted)">Binance & Deribit: unlimited public · Alt.me F&G: 1/day · Exa: 1/hr max · Kronos: 1/day via CORS proxy</div>
   <div class="rl-grid" id="rlGrid"></div>
 </div>
 
 <!-- SENTIMENT SOURCES + NEWS -->
 <div class="sh">Sentiment Details <span class="src-tag">Multi-source weighted</span></div>
 <div class="g2">
-  <div class="card"><div class="card-hd"><div class="d" style="background:var(--accent)"></div>Source Weights</div>
-    <div id="sentSrc"></div></div>
-  <div class="card"><div class="card-hd"><div class="d" style="background:var(--amber)"></div>Live News Feed</div>
-    <div id="newsFeed"></div></div>
+  <div class="card"><div class="card-hd"><div class="d" style="background:var(--accent)"></div>Source Weights</div><div id="sentSrc"></div></div>
+  <div class="card"><div class="card-hd"><div class="d" style="background:var(--amber)"></div>Live News Feed</div><div id="newsFeed"></div></div>
 </div>
 
-<!-- HOW TO USE -->
-<div class="sh">How to Deploy & Use This Dashboard</div>
-<div class="card" style="margin-bottom:14px">
-  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px" id="howGrid">
-    <div>
-      <div style="font-size:9px;color:var(--accent);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:7px">Free APIs Used</div>
-      <div style="font-size:11px;color:var(--muted);line-height:1.9">
-        • Crypto.com public (no key)<br>• Deribit options (no key)<br>
-        • Alternative.me Fear/Greed<br>• Exa API (1/hr, free tier)<br>
-        • Binance OHLCV (no key)<br>• BigData.com connector<br>• Kronos HuggingFace (free)
-      </div>
-    </div>
-    <div>
-      <div style="font-size:9px;color:var(--cyan);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:7px">Hosting — GitHub Pages</div>
-      <div style="font-size:11px;color:var(--muted);line-height:1.9">
-        • Push to GitHub repo<br>• Settings → Pages → main branch<br>
-        • Live at: username.github.io/repo<br>• HTTPS auto-provisioned<br>
-        • Global CDN, zero cost<br>• Link in README to access<br>• Auto-deploys on git push
-      </div>
-    </div>
-    <div>
-      <div style="font-size:9px;color:var(--green);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:7px">Rate Limit Strategy</div>
-      <div style="font-size:11px;color:var(--muted);line-height:1.9">
-        • Exa: 1 call/hr = 24/day ≤ 33 limit<br>• Cache all results in localStorage<br>
-        • Price: Crypto.com every 60s (free)<br>• Fear/Greed: once per day<br>
-        • Kronos: once at 09:00 IST<br>• BigData: 2 calls/day<br>• Hard block if budget exceeded
-      </div>
-    </div>
-  </div>
-  <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);font-size:10px;color:var(--muted)">
-    GitHub: <a href="https://github.com/shiyu-coder/Kronos" style="color:var(--accent)">shiyu-coder/Kronos</a> ·
-    HF Model: <a href="https://huggingface.co/NeoQuasar/Kronos-small" style="color:var(--accent)">NeoQuasar/Kronos-small</a> ·
-    Paper: <a href="https://arxiv.org/abs/2508.02739" style="color:var(--accent)">arXiv:2508.02739</a> ·
-    Demo: <a href="https://shiyu-coder.github.io/Kronos-demo/" style="color:var(--accent)">Kronos Live Demo</a>
-  </div>
-</div>
-
+<!-- FOOTER -->
 <footer>
-  <div>Data: Crypto.com · Deribit · Exa · BigData · Kronos (Tsinghua/AAAI 2026) · Alternative.me · Binance</div>
+  <div>Data: Binance · Deribit · Kronos (Tsinghua/AAAI 2026) · Alternative.me · Exa · CryptoPanic</div>
   <div style="display:flex;gap:14px">
-    <span>Free APIs only</span><span>Not financial advice</span>
+    <span>CORS-safe free stack</span><span>Not financial advice</span>
     <span id="ftTs"></span>
   </div>
 </footer>
 
-</div><!-- /wrap -->
+</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="src/config.js"></script>
+<script src="src/config.js" onerror="this.remove()"></script>
 <script src="src/rateLimit.js"></script>
 <script src="src/data.js"></script>
 <script src="src/charts.js"></script>
