@@ -1,98 +1,87 @@
 /**
- * rateLimit.js (v3)
- * Enforces monthly/daily/hourly API budgets via localStorage.
+ * rateLimit.js (v4)
+ * localStorage-tracked budget enforcer. Kronos bumped to 8/day since
+ * we call on every 30-min full refresh (≈48/day would breach free proxies).
  */
 const RateLimit = (() => {
   const BUDGETS = {
-    exa:        { monthly: 1000, daily: 33,   hourly: 1,  label: 'Exa Search'     },
-    binance:    { monthly: null, daily: null, hourly: 120, label: 'Binance (public)' },
-    deribit:    { monthly: null, daily: null, hourly: 60,  label: 'Deribit Options' },
-    fearGreed:  { monthly: null, daily: 2,    hourly: 1,  label: 'Fear & Greed'   },
-    kronos:     { monthly: null, daily: 8,    hourly: 2,  label: 'Kronos Demo'    },
-    bigdata:    { monthly: null, daily: 2,    hourly: 1,  label: 'BigData.com'    },
-    cryptoCom:  { monthly: null, daily: null, hourly: 60,  label: 'Crypto.com (deprecated)' },
+    exa:        { monthly: 1000, daily: 33,   hourly: 1,   label: 'Exa Search'     },
+    binance:    { monthly: null, daily: null, hourly: 180, label: 'Binance public' },
+    deribit:    { monthly: null, daily: null, hourly: 60,  label: 'Deribit options'},
+    fearGreed:  { monthly: null, daily: 2,    hourly: 1,   label: 'Fear & Greed'   },
+    kronos:     { monthly: null, daily: 8,    hourly: 2,   label: 'Kronos demo'    },
   };
 
-  const KEY = 'btc_dash_rate_v3';
+  const KEY = 'btc_rl_v4';
 
   function getStore() {
     try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; }
   }
   function saveStore(s) { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch {} }
 
-  function getWindows() {
-    const now = new Date();
+  function windows() {
+    const n = new Date();
     return {
-      hourKey: `${now.getUTCFullYear()}-${now.getUTCMonth()}-${now.getUTCDate()}-${now.getUTCHours()}`,
-      dayKey:  `${now.getUTCFullYear()}-${now.getUTCMonth()}-${now.getUTCDate()}`,
-      monKey:  `${now.getUTCFullYear()}-${now.getUTCMonth()}`,
+      hourKey: `${n.getUTCFullYear()}-${n.getUTCMonth()}-${n.getUTCDate()}-${n.getUTCHours()}`,
+      dayKey:  `${n.getUTCFullYear()}-${n.getUTCMonth()}-${n.getUTCDate()}`,
+      monKey:  `${n.getUTCFullYear()}-${n.getUTCMonth()}`,
     };
   }
 
   function canCall(apiKey) {
     const b = BUDGETS[apiKey];
     if (!b) return { allowed: true, reason: null };
-    const store = getStore();
-    const { hourKey, dayKey, monKey } = getWindows();
-    const hourlyUsed  = store[`${apiKey}_h_${hourKey}`]  || 0;
-    const dailyUsed   = store[`${apiKey}_d_${dayKey}`]   || 0;
-    const monthlyUsed = store[`${apiKey}_m_${monKey}`]   || 0;
-    if (b.hourly  !== null && hourlyUsed  >= b.hourly)
-      return { allowed: false, reason: `${b.label}: hourly limit (${b.hourly}/hr) reached.` };
-    if (b.daily   !== null && dailyUsed   >= b.daily)
-      return { allowed: false, reason: `${b.label}: daily limit (${b.daily}/day) reached.` };
-    if (b.monthly !== null && monthlyUsed >= b.monthly)
-      return { allowed: false, reason: `${b.label}: monthly limit (${b.monthly}/mo) reached.` };
+    const s = getStore();
+    const w = windows();
+    const h = s[`${apiKey}_h_${w.hourKey}`] || 0;
+    const d = s[`${apiKey}_d_${w.dayKey}`] || 0;
+    const m = s[`${apiKey}_m_${w.monKey}`] || 0;
+    if (b.hourly !== null && h >= b.hourly)
+      return { allowed: false, reason: `${b.label}: hourly (${b.hourly}/hr) reached` };
+    if (b.daily !== null && d >= b.daily)
+      return { allowed: false, reason: `${b.label}: daily (${b.daily}/day) reached` };
+    if (b.monthly !== null && m >= b.monthly)
+      return { allowed: false, reason: `${b.label}: monthly (${b.monthly}) reached` };
     return { allowed: true, reason: null };
   }
 
   function record(apiKey) {
-    const store = getStore();
-    const { hourKey, dayKey, monKey } = getWindows();
-    store[`${apiKey}_h_${hourKey}`]  = (store[`${apiKey}_h_${hourKey}`]  || 0) + 1;
-    store[`${apiKey}_d_${dayKey}`]   = (store[`${apiKey}_d_${dayKey}`]   || 0) + 1;
-    store[`${apiKey}_m_${monKey}`]   = (store[`${apiKey}_m_${monKey}`]   || 0) + 1;
-    saveStore(store);
+    const s = getStore();
+    const w = windows();
+    s[`${apiKey}_h_${w.hourKey}`] = (s[`${apiKey}_h_${w.hourKey}`] || 0) + 1;
+    s[`${apiKey}_d_${w.dayKey}`]  = (s[`${apiKey}_d_${w.dayKey}`]  || 0) + 1;
+    s[`${apiKey}_m_${w.monKey}`]  = (s[`${apiKey}_m_${w.monKey}`]  || 0) + 1;
+    saveStore(s);
   }
 
   function getStats() {
-    const store = getStore();
-    const { hourKey, dayKey, monKey } = getWindows();
-    const stats = {};
-    for (const [key, b] of Object.entries(BUDGETS)) {
-      stats[key] = {
+    const s = getStore();
+    const w = windows();
+    const out = {};
+    for (const [k, b] of Object.entries(BUDGETS)) {
+      out[k] = {
         label:      b.label,
-        hourly:     store[`${key}_h_${hourKey}`]  || 0,
-        daily:      store[`${key}_d_${dayKey}`]   || 0,
-        monthly:    store[`${key}_m_${monKey}`]   || 0,
+        hourly:     s[`${k}_h_${w.hourKey}`] || 0,
+        daily:      s[`${k}_d_${w.dayKey}`]  || 0,
+        monthly:    s[`${k}_m_${w.monKey}`]  || 0,
         hourLimit:  b.hourly,
         dayLimit:   b.daily,
         monthLimit: b.monthly,
       };
     }
-    return stats;
+    return out;
   }
 
-  // Cleanup old keys
+  // Garbage-collect old keys (keep current month only)
   try {
-    const store = getStore();
-    const cutoff = Date.now() - 32 * 86400000;
-    const toDel = [];
-    for (const k of Object.keys(store)) {
-      const segs = k.split('_');
-      if (segs.length < 3) continue;
-      // best-effort: drop any key that doesn't match current month
-      const monK = `${new Date().getUTCFullYear()}-${new Date().getUTCMonth()}`;
-      if (!k.includes(monK)) {
-        // keep last 2 months
-        toDel.push(k);
-      }
+    const s = getStore();
+    const cur = `${new Date().getUTCFullYear()}-${new Date().getUTCMonth()}`;
+    let changed = false;
+    for (const k of Object.keys(s)) {
+      // keep any key that references current month/day/hour
+      if (!k.includes(cur)) { delete s[k]; changed = true; }
     }
-    // Keep things small but don't blindly delete everything
-    if (Object.keys(store).length > 200) {
-      toDel.slice(0, 50).forEach(k => delete store[k]);
-      saveStore(store);
-    }
+    if (changed) saveStore(s);
   } catch {}
 
   return { canCall, record, getStats, BUDGETS };
