@@ -1,6 +1,13 @@
 {
   "items": [
     {
+      "headline": "MicroStrategy Stock Sees $6 Million in Bullish Bets Despite the 40 % Crash",
+      "url": "https://finance.yahoo.com/markets/stocks/articles/microstrategy-stock-sees-6-million-093118204.html",
+      "src": "finance.yahoo.com",
+      "date": "20260612T194500Z",
+      "sent": "neu"
+    },
+    {
       "headline": "Bitcoin Could Drop Another 20 % To $48 , 000 In Worst Case Scenario , Bitwise Exec Says",
       "url": "https://www.benzinga.com/crypto/cryptocurrency/26/06/53168558/bitcoin-could-drop-another-20-to-48000-in-worst-case-scenario-bitwise-exec-says",
       "src": "benzinga.com",
@@ -90,16 +97,9 @@
       "src": "memeburn.com",
       "date": "20260612T103000Z",
       "sent": "neg"
-    },
-    {
-      "headline": "MEXC Review 2026 : Features , Assets , and Platform Security",
-      "url": "https://memeburn.com/mexc-review/",
-      "src": "memeburn.com",
-      "date": "20260612T103000Z",
-      "sent": "neu"
     }
   ],
-  "ts": 1781287508135,
+  "ts": 1781296668119,
   "source": "GDELT",
-  "_updatedMs": 1781287508135
+  "_updatedMs": 1781296668119
 }
