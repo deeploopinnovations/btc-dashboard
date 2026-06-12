@@ -52,11 +52,17 @@ const UI = (() => {
     set('heroConf', Math.round(decision.confidence) + '%');
     const bar = $('heroConfBar');
     if (bar) {
-      bar.style.width = '0%';
       const color = decision.verdictClass === 'go' ? 'var(--green)'
                   : decision.verdictClass === 'cau' ? 'var(--amber)' : 'var(--red)';
       bar.style.background = color;
-      setTimeout(() => bar.style.width = decision.confidence + '%', 120);
+      // v4.1: stale-closure fix — rapid consecutive updateHero calls (slider
+      // drags) used to queue overlapping 120ms timeouts, each re-animating
+      // from 0% with a possibly outdated confidence value. Cancel the prior
+      // timer and read the latest value inside the callback.
+      bar.style.width = '0%';
+      clearTimeout(bar._animTimer);
+      bar._targetConf = decision.confidence;
+      bar._animTimer = setTimeout(() => { bar.style.width = bar._targetConf + '%'; }, 120);
     }
 
     setH('heroReasons', (decision.reasons || []).map(r =>
@@ -398,11 +404,18 @@ const UI = (() => {
     const el = $('newsFeed');
     if (!el) return;
     const items = news?.items || [];
-    const header = `<div style="font-size:10px;color:var(--muted);margin-bottom:8px">Source: ${news?.source || 'offline'} · ${items.length} items</div>`;
+    // v4.1: surface data provenance — ● fresh · ◐ snapshot · ○ stale/offline
+    const fr = news?._freshness || 'offline';
+    const glyph = fr === 'fresh' ? '●' : fr.includes('snapshot') ? '◐' : '○';
+    const glyphColor = fr === 'fresh' || fr === 'fresh-snapshot' ? 'var(--green)'
+                     : fr === 'stale-snapshot' ? 'var(--amber)' : 'var(--red)';
+    const ageMin = news?.ts ? Math.round((Date.now() - news.ts) / 60000) : null;
+    const ageStr = ageMin != null ? ` · ${ageMin < 1 ? 'just now' : ageMin + 'm ago'}` : '';
+    const header = `<div style="font-size:10px;color:var(--muted);margin-bottom:8px"><span style="color:${glyphColor}" title="${escape(fr)}">${glyph}</span> Source: ${escape(news?.source || 'offline')} · ${items.length} items${ageStr}</div>`;
     if (!items.length) { el.innerHTML = header + '<div style="font-size:11px;color:var(--muted)">No news loaded.</div>'; return; }
     el.innerHTML = header + items.slice(0, 8).map(item => {
       const dot = item.sent === 'pos' ? 'var(--green)' : item.sent === 'neg' ? 'var(--red)' : 'var(--amber)';
-      const link = item.url ? `<a href="${escape(item.url)}" target="_blank" rel="noopener">` : '<div>';
+      const link = item.url ? `<a href="${escape(item.url)}" target="_blank" rel="noopener noreferrer">` : '<div>';
       const end  = item.url ? `</a>` : '</div>';
       return `<div class="ni">
         <div class="ni-dot" style="background:${dot}"></div>

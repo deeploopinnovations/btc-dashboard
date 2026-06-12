@@ -3,6 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- v4.1: CSP. GitHub Pages can't send headers, so a meta tag is the best
+     available control. connect-src is broad (https:) because the CORS-proxy
+     chain + free APIs span many hosts; script-src is the part that matters:
+     only self + cdnjs, no inline event handlers would be ideal but the page
+     uses oninput= on sliders, hence 'unsafe-inline' for now. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https:; frame-src 'none'; object-src 'none'; base-uri 'self'">
 <title>BTC Options Desk · KRONOS / HV20 / Retail Seller v4</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>₿</text></svg>">
 <style>
@@ -119,6 +125,12 @@ body::before{content:'';position:fixed;inset:0;opacity:0.02;pointer-events:none;
 .session-seg{font-size:8px;font-weight:500;color:rgba(255,255,255,.8);display:flex;align-items:center;justify-content:center;position:relative}
 .session-now{position:relative;width:2px;background:#fff;border-radius:2px;animation:pulse-now 1.8s infinite;z-index:2}
 @keyframes pulse-now{0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,.5)}50%{box-shadow:0 0 8px 3px rgba(255,255,255,.3)}}
+/* a11y: skip link + honor user motion preference */
+.skip-link{position:absolute;left:-9999px;top:0;background:var(--surface,#161b28);color:#fff;padding:8px 14px;border-radius:6px;z-index:999}
+.skip-link:focus{left:10px;top:10px}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
+}
 
 /* ═══════════ REGIME DIAL ═══════════ */
 .regime-dial-wrap{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:14px}
@@ -246,23 +258,25 @@ footer a:hover{color:var(--accent)}
 </head>
 <body>
 <div class="grid-bg"></div>
-<div class="wrap">
+<a href="#heroCard" class="skip-link">Skip to main decision card</a>
+<main class="wrap">
 
 <!-- ════════ TOP BAR ════════ -->
-<div class="topbar">
+<header class="topbar">
   <div class="brand">
     <div>
-      <div class="brand-logo">KRONOS<b>/</b>HV20 · <span style="color:var(--cyan)">RETAIL</span></div>
+      <h1 class="brand-logo">KRONOS<b>/</b>HV20 · <span style="color:var(--cyan)">RETAIL</span></h1>
       <div class="brand-sub">BTC Options Decision Desk · v4</div>
     </div>
     <div class="live-pill"><div class="pulse"></div>LIVE</div>
   </div>
   <div class="topbar-right">
+    <a href="options.html" class="pill-sm" style="text-decoration:none;color:#5b8cff;border:1px solid rgba(91,140,255,.35);border-radius:6px;padding:2px 8px" aria-label="Open Option-Selling Desk">⚖ OPTIONS DESK</a>
     <span id="kronosBadge" class="pill-sm muted">Kronos: —</span>
     <span id="clockIST" class="pill-sm muted">—</span>
-    <button class="btn" onclick="refreshAll()">↺ REFRESH</button>
+    <button class="btn" onclick="refreshAll()" aria-label="Refresh all data">↺ REFRESH</button>
   </div>
-</div>
+</header>
 
 <!-- ════════ HERO DECISION CARD ════════ -->
 <div class="hero nt" id="heroCard">
@@ -271,7 +285,7 @@ footer a:hover{color:var(--accent)}
       <div class="verdict-icon" id="heroIcon">…</div>
       <div class="verdict-text">
         <div class="verdict-label">Today's Recommendation</div>
-        <div class="verdict-main" id="heroVerdict">LOADING…</div>
+        <div class="verdict-main" id="heroVerdict" aria-live="polite" role="status">LOADING…</div>
         <div class="verdict-sub" id="heroSub">Fetching Binance, Deribit, Kronos, alternative.me, funding…</div>
       </div>
     </div>
@@ -381,15 +395,15 @@ footer a:hover{color:var(--accent)}
     <div class="rc-controls">
       <div class="rcc-slider">
         <div class="rcc-label">SHORT LOTS <b id="rpLotsOut">60</b></div>
-        <input type="range" id="rpLots" min="20" max="100" step="5" value="60" oninput="document.getElementById('rpLotsOut').textContent=this.value; onRetailSliderChange()">
+        <input type="range" id="rpLots" min="20" max="100" step="5" value="60" aria-label="Short lots" oninput="document.getElementById('rpLotsOut').textContent=this.value; onRetailSliderChange()">
       </div>
       <div class="rcc-slider">
         <div class="rcc-label">MAX TOUCH PROB <b id="rpTouchOut">10%</b></div>
-        <input type="range" id="rpTouch" min="0.03" max="0.20" step="0.01" value="0.10" oninput="document.getElementById('rpTouchOut').textContent=(parseFloat(this.value)*100).toFixed(0)+'%'; onRetailSliderChange()">
+        <input type="range" id="rpTouch" min="0.03" max="0.20" step="0.01" value="0.10" aria-label="Maximum touch probability" oninput="document.getElementById('rpTouchOut').textContent=(parseFloat(this.value)*100).toFixed(0)+'%'; onRetailSliderChange()">
       </div>
       <div class="rcc-slider">
         <div class="rcc-label">SAFETY FACTOR <b id="rpSafetyOut">1.15×</b></div>
-        <input type="range" id="rpSafety" min="1.0" max="1.5" step="0.05" value="1.15" oninput="document.getElementById('rpSafetyOut').textContent=(parseFloat(this.value)).toFixed(2)+'×'; onRetailSliderChange()">
+        <input type="range" id="rpSafety" min="1.0" max="1.5" step="0.05" value="1.15" aria-label="Safety factor multiplier" oninput="document.getElementById('rpSafetyOut').textContent=(parseFloat(this.value)).toFixed(2)+'×'; onRetailSliderChange()">
       </div>
     </div>
   </div>
@@ -469,9 +483,11 @@ footer a:hover{color:var(--accent)}
   </div>
 </footer>
 
-</div>
+</main>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"
+        integrity="sha384-dug+JxfBvklEQdJ4AYuBBAIScUz0bVN73xpy273gcAwHjb3qI0fXmuYNaNfdyYJG"
+        crossorigin="anonymous"></script>
 <script src="src/config.js" onerror="this.remove()"></script>
 <script src="src/rateLimit.js"></script>
 <script src="src/data.js"></script>

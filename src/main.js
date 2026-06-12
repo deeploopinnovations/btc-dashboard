@@ -12,7 +12,22 @@ let state = {
   regime: null, retailPlan: null, funding: null, session: null, decision: null,
 };
 
+// v4.1: in-flight guard. The 30-min interval and a slow proxy chain (4 proxies
+// × 9 s timeouts on several endpoints) can overlap; overlapping runs double the
+// API spend and race each other writing `state`. Re-entrant calls now no-op.
+let refreshInFlight = false;
+
 async function refreshAll() {
+  if (refreshInFlight) { console.warn('[v4] refreshAll skipped — already running'); return; }
+  refreshInFlight = true;
+  try {
+    await doRefreshAll();
+  } finally {
+    refreshInFlight = false;
+  }
+}
+
+async function doRefreshAll() {
   console.log('[v4] refreshAll start');
   UI.updateClock();
 
@@ -106,8 +121,16 @@ async function refreshPrice() {
   }
 }
 
-// Triggered by retail-panel slider inputs — recomputes locally, no network
+// Triggered by retail-panel slider inputs — recomputes locally, no network.
+// v4.1: debounced 80 ms — `input` fires on every pixel of a drag and the full
+// plan + decision rebuild was running hundreds of times per slider gesture.
+let sliderDebounce = null;
 function onRetailSliderChange() {
+  clearTimeout(sliderDebounce);
+  sliderDebounce = setTimeout(doRetailSliderChange, 80);
+}
+
+function doRetailSliderChange() {
   if (!state.price || !state.options || !state.atmInfo || !state.hv20 || !state.regime || !state.kronos) return;
   state.retailPlan = DataLayer.buildRetailPlan({
     price:          state.price.price,

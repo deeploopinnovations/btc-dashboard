@@ -1,0 +1,70 @@
+# .github/workflows/fetch-data.yml  (v4.1)
+# =====================================================================
+# Snapshot enrichment cron. Every 30 minutes it:
+#   1. Parses the Kronos demo page server-side  → data/kronos.json
+#   2. Fetches news (CryptoPanic + GDELT, + Exa if EXA_API_KEY secret set)
+#      and Fear & Greed                          → data/news.json, data/fg.json
+#   3. Runs the smoke gate (never publish malformed snapshots)
+#   4. Commits only if something actually changed
+#
+# The browser-side data.js prefers these snapshots (tryLoadSnapshot, 45-min
+# window) and only falls back to its CORS-proxy chain when they are stale —
+# so the free-proxy roulette becomes the backup path, not the primary.
+#
+# Cost: $0 — GitHub Actions free tier for public repos.
+name: fetch-data
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'     # every 30 min (GH may delay a few minutes)
+  workflow_dispatch: {}         # manual run button
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fetch-data
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Parse Kronos demo page
+        run: node scripts/parse-kronos.js
+        continue-on-error: true   # keep yesterday's kronos.json on parse miss
+
+      - name: Fetch news + fear/greed enrichment
+        env:
+          EXA_API_KEY: ${{ secrets.EXA_API_KEY }}
+        run: node scripts/fetch-enrichment.js
+        continue-on-error: true
+
+      - name: FinBERT sentiment (HF Inference API)
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: python3 scripts/fetch-sentiment.py
+        continue-on-error: true   # script also soft-exits without a token
+
+      - name: Smoke-test snapshots
+        run: node scripts/smoke.js
+
+      - name: Commit snapshots if changed
+        run: |
+          git config user.name  "snapshot-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data/*.json
+          if git diff --cached --quiet; then
+            echo "No snapshot changes."
+          else
+            git commit -m "chore(data): snapshot $(date -u '+%Y-%m-%d %H:%M UTC')"
+            git pull --rebase origin ${GITHUB_REF_NAME} || true
+            git push
+          fi

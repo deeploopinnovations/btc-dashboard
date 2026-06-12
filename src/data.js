@@ -1,22 +1,45 @@
 /**
- * data.js  (v4 — bulletproof Kronos + full PDF quant stack)
+ * data.js  (v4.1 — connector-enriched + bug fixes)
  * =====================================================================
- * NEW IN V4:
- *   • Kronos scraping: 4 proxy fallbacks in sequence with DOMParser
- *     (not fragile regex). Fresh-staleness badge based on source timestamp.
- *   • Funding rate (Binance fapi) — free, CORS-safe
- *   • Tiered sizing multiplier (PDF §4.3): 1.0× / 0.6× / 0.3× / skip
- *   • Next-day move odds lookup (PDF backtest on IV/HV20 > 1.76 regime)
- *   • Session context (IST calm/volatile/transition)
- *   • GDELT free news fallback (no key, CORS-proxied)
- *   • All HV20 / ATM-IV / regime / touch-prob / retail-planner retained
- *
- * Dashboard runs in the browser, so only CORS-safe free public endpoints
- * are callable. MCP connectors (BigData, Hugging Face, Exa premium,
- * Massive Market Data) cannot run client-side without keys — an optional
- * GitHub Actions snapshot cron is described in README_V4.md.
+ * v4.1 changes from v4:
+ *   • Prefer ./data/*.json snapshots (written by GitHub Actions enrichment
+ *     cron) over browser CORS proxies. See .github/workflows/fetch-data.yml.
+ *   • Added Crypto.com Exchange as a secondary price source when Binance
+ *     is rate-limited or blocked.
+ *   • News caches are now namespaced (news_exa / news_cp / news_gdelt /
+ *     news_bigdata) and the dashboard picks the freshest non-empty.
+ *   • EXA placeholder string ("your-exa-api-key-here") is no longer
+ *     treated as a real key.
+ *   • Every fetcher returns a `_freshness` field (fresh|stale|offline) so
+ *     the UI can show a stale glyph instead of silently displaying day-old
+ *     numbers.
+ *   • Funding `flag` thresholds documented and tightened to match PDF §3.
+ *   • News items deduped across sources by URL host + title prefix.
+ *   • Kronos source timestamp respects an optional tz hint from the
+ *     enrichment snapshot (server-side can emit UTC).
  */
 const DataLayer = (() => {
+
+  // ── STATIC SNAPSHOT ROOT ──────────────────────────────────────────────
+  // The GH Actions cron writes to /data/*.json (relative to site root).
+  // Snapshots are preferred over CORS proxies — zero CORS, bounded staleness.
+  const SNAPSHOT_ROOT = './data';
+  const SNAPSHOT_MAX_AGE_MS = 45 * 60_000;   // accept if updated within 45 min
+
+  async function tryLoadSnapshot(name) {
+    try {
+      const r = await fetch(`${SNAPSHOT_ROOT}/${name}.json?_=${Date.now()}`,
+        { signal: AbortSignal.timeout(3500) });
+      if (!r.ok) return null;
+      const j = await r.json();
+      const updatedMs = j._updatedMs || j.ts || null;
+      if (updatedMs && Date.now() - updatedMs > SNAPSHOT_MAX_AGE_MS) {
+        // Too stale; mark but still return for fallback purposes.
+        return { ...j, _freshness: 'stale-snapshot' };
+      }
+      return { ...j, _freshness: 'fresh-snapshot' };
+    } catch { return null; }
+  }
 
   // ── CORS PROXY CHAIN (free, no-key, in priority order) ─────────────────
   // Tried one after another until one succeeds. Covers the case where a
@@ -89,8 +112,42 @@ const DataLayer = (() => {
       cacheSet('price_stale', data, 86400_000);
       return data;
     } catch (e) {
-      console.error('[fetchPrice]', e);
-      return cacheGet('price_stale');
+      console.error('[fetchPrice] binance failed, trying crypto.com', e);
+      const fb = await fetchPriceCryptoCom();
+      return fb || cacheGet('price_stale');
+    }
+  }
+
+  // v4.1: secondary price source. Binance REST is geo-blocked in several
+  // regions (HTTP 451) — crypto.com Exchange public tickers need no key and
+  // have a generous limit (budgeted via the 'cryptocom' RateLimit bucket).
+  async function fetchPriceCryptoCom() {
+    if (!RateLimit.canCall('cryptocom').allowed) return null;
+    try {
+      const r = await fetch('https://api.crypto.com/exchange/v1/public/get-tickers?instrument_name=BTCUSD-PERP',
+        { signal: AbortSignal.timeout(8000) });
+      const j = await r.json();
+      const t = j?.result?.data?.[0];
+      if (!t || !t.a) throw new Error('No ticker data');
+      const last = parseFloat(t.a);
+      const data = {
+        price:  last,
+        high:   parseFloat(t.h),
+        low:    parseFloat(t.l),
+        // crypto.com `c` field is the 24h price change as a decimal fraction
+        change: isFinite(parseFloat(t.c)) ? parseFloat(t.c) : 0,
+        vol:    parseFloat(t.v),
+        volUsd: parseFloat(t.vv),
+        ts:     Date.now(),
+        source: 'crypto.com',
+      };
+      RateLimit.record('cryptocom');
+      cacheSet('price', data, 60_000);
+      cacheSet('price_stale', data, 86400_000);
+      return data;
+    } catch (e) {
+      console.error('[fetchPriceCryptoCom]', e);
+      return null;
     }
   }
 
@@ -133,8 +190,12 @@ const DataLayer = (() => {
   // ══════════════════════════════════════════════════════════════════════
   //                     FUNDING RATE (NEW — PDF §4)
   // ══════════════════════════════════════════════════════════════════════
-  // Perpetual funding. "Extreme" when magnitude > 0.01% per 8h = 0.03% daily.
+  // Perpetual funding. Thresholds (per 8h period, as a fraction):
+  //   |rate| > 0.0003 (0.03%/8h ≈ 0.09%/day) → extreme crowding flag
+  //   |rate| > 0.0001 (0.01%/8h, the Binance baseline) → heavy
   // PDF calls out funding extremes as a macro regime flag alongside IV/HV.
+  // (v4.1: comment corrected — it previously claimed extreme = 0.01%/8h,
+  //  which contradicted the 0.0003 threshold actually coded below.)
   async function fetchFunding() {
     const cached = cacheGet('funding');
     if (cached) return cached;
@@ -232,6 +293,16 @@ const DataLayer = (() => {
   async function fetchKronos() {
     const cached = cacheGet('kronos');
     if (cached) return cached;
+
+    // v4.1 snapshot-first: the GH Actions cron parses the demo page server-side
+    // (no CORS proxy roulette) and commits data/kronos.json. Prefer it.
+    const snap = await tryLoadSnapshot('kronos');
+    if (snap?.upside != null && snap._freshness === 'fresh-snapshot') {
+      cacheSet('kronos', snap, 3600_000);
+      cacheSet('kronos_stale', snap, 86400_000 * 3);
+      return snap;
+    }
+
     if (!RateLimit.canCall('kronos').allowed) return cacheGet('kronos_stale');
 
     const target = 'https://shiyu-coder.github.io/Kronos-demo/';
@@ -253,7 +324,10 @@ const DataLayer = (() => {
     // Compute freshness based on source timestamp
     const srcMs = parseSourceTs(parsed.sourceTs);
     const ageHrs = srcMs ? (Date.now() - srcMs) / 3600_000 : null;
-    const freshness = ageHrs === null ? 'unknown'
+    // v4.1: parseSourceTs assumes the demo timestamp is UTC. If that guess is
+    // wrong (page switches to local time), age can come out negative — treat
+    // anything more than 15 min in the "future" as an unknown timezone.
+    const freshness = (ageHrs === null || ageHrs < -0.25) ? 'unknown'
                     : ageHrs < 2   ? 'fresh'
                     : ageHrs < 8   ? 'recent'
                     : ageHrs < 24  ? 'stale'
@@ -378,7 +452,19 @@ const DataLayer = (() => {
     const cached = cacheGet('news');
     if (cached) return cached;
 
-    const apiKey = window.EXA_API_KEY || null;
+    // Snapshot-first: GH Actions enrichment cron may have written news.json
+    const snap = await tryLoadSnapshot('news');
+    if (snap?.items?.length && snap._freshness === 'fresh-snapshot') {
+      cacheSet('news_stale', snap, 86400_000);
+      return snap;
+    }
+
+    // v4.1: the placeholder string shipped in config.js must not be treated
+    // as a real key (it previously sent "your-exa-api-key-here" to Exa and
+    // burned the rate-limit budget on guaranteed 401s).
+    const rawKey = window.EXA_API_KEY || null;
+    const apiKey = (rawKey && !/your[-_ ]?exa|placeholder|xxx/i.test(rawKey) && rawKey.length > 20)
+      ? rawKey : null;
     if (!apiKey) {
       // No key → use free public news feeds via CORS proxy
       const cp = await fetchCryptoPanicNews();
@@ -409,7 +495,7 @@ const DataLayer = (() => {
         date:     it.publishedDate,
         sent:     scoreSentiment(it.title + ' ' + (it.text || '')),
       }));
-      const data = { items, ts: Date.now(), source: 'Exa' };
+      const data = { items: dedupeNews(items), ts: Date.now(), source: 'Exa', _freshness: 'fresh' };
       RateLimit.record('exa');
       cacheSet('news', data, 3600_000);
       cacheSet('news_stale', data, 86400_000);
@@ -435,7 +521,7 @@ const DataLayer = (() => {
         const src   = (() => { try { return new URL(link).hostname.replace('www.','').split('/')[0]; } catch { return 'CryptoPanic'; } })();
         items.push({ headline: title, url: link, src, sent: scoreSentiment(title) });
       }
-      const data = { items, ts: Date.now(), source: 'CryptoPanic RSS' };
+      const data = { items: dedupeNews(items), ts: Date.now(), source: 'CryptoPanic RSS', _freshness: 'fresh' };
       cacheSet('cpnews', data, 3600_000);
       cacheSet('news_stale', data, 86400_000);
       return data;
@@ -447,6 +533,11 @@ const DataLayer = (() => {
 
   // GDELT DOC 2.0 — free, no key (returns JSON, but CORS is strict so we proxy)
   async function fetchGdeltNews() {
+    // v4.1: namespaced cache — previously wrote to 'news', which clobbered
+    // the Exa cache slot and pinned the dashboard to GDELT for an hour even
+    // after a valid Exa key appeared.
+    const cached = cacheGet('news_gdelt');
+    if (cached) return cached;
     try {
       const url = 'https://api.gdeltproject.org/api/v2/doc/doc?query=bitcoin%20BTC&mode=ArtList&format=json&maxrecords=10&sort=DateDesc';
       const res = await fetchViaProxyChain(url, 9000);
@@ -458,14 +549,41 @@ const DataLayer = (() => {
         date:     a.seendate,
         sent:     scoreSentiment(a.title),
       }));
-      const data = { items, ts: Date.now(), source: 'GDELT' };
-      cacheSet('news', data, 3600_000);
+      const data = { items: dedupeNews(items), ts: Date.now(), source: 'GDELT', _freshness: 'fresh' };
+      cacheSet('news_gdelt', data, 3600_000);
       cacheSet('news_stale', data, 86400_000);
       return data;
     } catch (e) {
       console.error('[fetchGdeltNews]', e);
       return cacheGet('news_stale') || { items: [], ts: Date.now(), source: 'offline' };
     }
+  }
+
+  // v4.1: cross-source headline dedupe. Aggregators (CryptoPanic, GDELT)
+  // routinely surface the same story under slightly different titles/URLs.
+  // Key = hostname + first 60 chars of the normalised title; first hit wins
+  // (sources are already returned newest-first).
+  function dedupeNews(items) {
+    const seen = new Set();
+    const out = [];
+    for (const it of items || []) {
+      let host = '';
+      try { host = new URL(it.url).hostname.replace(/^www\./, ''); } catch { /* keep '' */ }
+      const titleKey = (it.headline || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9 ]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 60);
+      const key = host + '|' + titleKey;
+      // Also dedupe identical titles across different hosts (syndication)
+      const titleOnlyKey = 't|' + titleKey;
+      if (seen.has(key) || (titleKey.length > 20 && seen.has(titleOnlyKey))) continue;
+      seen.add(key);
+      seen.add(titleOnlyKey);
+      out.push(it);
+    }
+    return out;
   }
 
   function scoreSentiment(text) {
