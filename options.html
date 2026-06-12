@@ -82,6 +82,40 @@
     <div id="deskGlossary" style="font-size:11.5px;color:var(--dim);margin-top:10px"></div>
   </div>
 
+  <div class="card wide" style="border-color:rgba(63,185,80,.45)">
+    <h2>Trading Clock — when BTC sleeps and when it roars <span style="font-weight:normal;font-size:11px;color:var(--dim)">(2015–2026 study, post-ETF era)</span></h2>
+    <div id="clockNow" style="font-size:14px;margin-bottom:8px">computing…</div>
+    <div id="clockBars" aria-label="Volatility by UTC hour" style="display:flex;gap:2px;align-items:flex-end;height:54px;margin:6px 0"></div>
+    <div style="font-size:10.5px;color:var(--dim);display:flex;justify-content:space-between"><span>00 UTC</span><span>06</span><span>12</span><span>18</span><span>23 UTC</span></div>
+    <div id="clockAdvice" style="font-size:12.5px;line-height:1.65;margin-top:8px"></div>
+  </div>
+
+  <div class="card wide" style="border-color:rgba(255,179,71,.45)">
+    <h2>Buyer's Radar — when paying premium is statistically justified <span style="font-weight:normal;font-size:11px;color:var(--dim)">(backtested vs real Deribit IV, post-ETF)</span></h2>
+    <div class="kv"><span>DVOL (BTC 30d implied vol index)</span><b id="radarDvol">—</b></div>
+    <div class="kv"><span>Shock day (|move| &gt; 2.5&times; normal)</span><b id="radarShock">—</b></div>
+    <div class="verdict" id="radarVerdict">computing…</div>
+    <div id="radarWhy" style="font-size:12px;color:var(--dim);margin-top:8px;line-height:1.65"></div>
+  </div>
+
+  <div class="card wide" style="border-color:rgba(47,213,123,.45)">
+    <h2>Seller's Compass — directional premium selling, regime by regime <span style="font-weight:normal;font-size:11px;color:var(--dim)">(894 days backtested at real DVOL; put-side edge only)</span></h2>
+    <div class="kv"><span>Trend (MA100) &amp; drawdown from 90d high</span><b id="scTrend">—</b></div>
+    <div class="kv"><span>Perp funding regime (7d avg, 180d percentile)</span><b id="scFund">—</b></div>
+    <div class="kv"><span>RSI(14) — anti-signal gate</span><b id="scRsi">—</b></div>
+    <div class="verdict" id="scVerdict">computing…</div>
+    <div id="scWhy" style="font-size:12px;color:var(--dim);margin-top:8px;line-height:1.65"></div>
+  </div>
+
+  <div class="card wide" style="border-color:rgba(90,167,255,.5)">
+    <h2>Daily Desk — the 1DTE seller's calendar &amp; clock <span style="font-weight:normal;font-size:11px;color:var(--dim)">(998 daily expiries backtested at real DVOL; settles 12:00 UTC / 5:30 PM IST)</span></h2>
+    <div class="kv"><span>Next daily expiry (12:00 UTC window)</span><b id="ddWindow">—</b></div>
+    <div class="kv"><span>Hours to expiry / entry-clock advice</span><b id="ddHours">—</b></div>
+    <div class="kv"><span>Live 1-day ATM IV vs DVOL (edge already priced?)</span><b id="ddIv">—</b></div>
+    <div class="verdict" id="ddVerdict">computing…</div>
+    <div id="ddWhy" style="font-size:12px;color:var(--dim);margin-top:8px;line-height:1.65"></div>
+  </div>
+
   <div class="card wide">
     <h2>Short Strangle Builder (delta-targeted)</h2>
     <div class="controls">
