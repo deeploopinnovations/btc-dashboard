@@ -1,18 +1,67 @@
 {
   "items": [
     {
-      "headline": "Stock Market Today : S & P 500 , Dow Futures Gain Ahead Of SpaceX Debut Adobe , Lennar , CoreWeave In Focus - ",
-      "url": "https://www.benzinga.com/markets/equities/26/06/53160732/stock-market-today-sp-500-dow-futures-gain-ahead-of-spacexs-debut-adobe-lennar-coreweave-in-focus",
+      "headline": "Bitcoin Could Drop Another 20 % To $48 , 000 In Worst Case Scenario , Bitwise Exec Says",
+      "url": "https://www.benzinga.com/crypto/cryptocurrency/26/06/53168558/bitcoin-could-drop-another-20-to-48000-in-worst-case-scenario-bitwise-exec-says",
       "src": "benzinga.com",
-      "date": "20260612T104500Z",
+      "date": "20260612T151500Z",
+      "sent": "neg"
+    },
+    {
+      "headline": "Coinbase Exec : Institutional Buyers Seen Acquiring Bitcoin Amid Price Plunge – NaturalNews . com",
+      "url": "https://www.naturalnews.com/2026-06-12-coinbase-exec-institutional-buyers-seen-acquiring-bitcoin.html",
+      "src": "naturalnews.com",
+      "date": "20260612T150000Z",
       "sent": "pos"
     },
     {
-      "headline": "Crypto Laundering Network Linked To Ransomware Dismantled",
-      "url": "https://www.newsbtc.com/news/crypto-laundering-network-ransomware-law-enforcement-chainalysis/",
-      "src": "newsbtc.com",
-      "date": "20260612T104500Z",
+      "headline": "Michael Saylor Fires Back :  I Never Said The Company Wouldnt Sell Its Bitcoin  - Strategy ( NASDAQ : MSTR ) ",
+      "url": "https://www.benzinga.com/crypto/cryptocurrency/26/06/53164111/michael-saylor-fires-back-i-never-said-the-company-wouldnt-sell-its-bitcoin",
+      "src": "benzinga.com",
+      "date": "20260612T141500Z",
+      "sent": "neg"
+    },
+    {
+      "headline": "Blockrise CEOsu geleneksel bankalara Bitcoin tabanlı alternatif istiyor",
+      "url": "https://www.haberler.com/kripto-para/blockrise-ceosu-geleneksel-bankalara-bitcoin-19941771-haberi/",
+      "src": "haberler.com",
+      "date": "20260612T133000Z",
       "sent": "neu"
+    },
+    {
+      "headline": "Stock Market Today : S & P 500 , Dow Futures Gain Ahead Of SpaceX Debut Adobe , Lennar , CoreWeave In Focus - ",
+      "url": "https://www.benzinga.com/markets/equities/26/06/53160732/stock-market-today-sp-500-dow-futures-gain-ahead-of-spacexs-debut-adobe-lennar-coreweave-in-focu",
+      "src": "benzinga.com",
+      "date": "20260612T133000Z",
+      "sent": "pos"
+    },
+    {
+      "headline": "How to Swap Crypto on Godex : A Step - by - Step Guide",
+      "url": "https://www.coinspeaker.com/guides/how-to-swap-crypto-on-godex/",
+      "src": "coinspeaker.com",
+      "date": "20260612T130000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Metaplanet Strikes Deal for Siiibo Securities to Build Bitcoin Yield Products",
+      "url": "https://cointelegraph.com/news/metaplanet-to-form-securities-arm-through-siiibo-acquisition",
+      "src": "cointelegraph.com",
+      "date": "20260612T123000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Analyst reveals the next Bitcoin bottom price",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/analyst-reveals-next-bitcoin-bottom-002000992.html",
+      "src": "finance.yahoo.com",
+      "date": "20260612T121500Z",
+      "sent": "neg"
+    },
+    {
+      "headline": "How to confirm a bitcoin ( BTC ) bottom ? ",
+      "url": "https://www.coindesk.com/markets/2026/06/12/there-s-one-simple-way-to-tell-whether-bitcoin-has-really-bottomed-right-now-it-hasn-t",
+      "src": "coindesk.com",
+      "date": "20260612T114500Z",
+      "sent": "neg"
     },
     {
       "headline": "Bitcoin Just Fell Below $65 , 000 . What Happens Next ? ",
@@ -20,6 +69,13 @@
       "src": "fool.com",
       "date": "20260612T104500Z",
       "sent": "neg"
+    },
+    {
+      "headline": "Crypto Laundering Network Linked To Ransomware Dismantled",
+      "url": "https://www.newsbtc.com/news/crypto-laundering-network-ransomware-law-enforcement-chainalysis/",
+      "src": "newsbtc.com",
+      "date": "20260612T104500Z",
+      "sent": "neu"
     },
     {
       "headline": "Bitget Review 2026 : Features , User Experience , and Security Explained",
@@ -41,72 +97,9 @@
       "src": "memeburn.com",
       "date": "20260612T103000Z",
       "sent": "neu"
-    },
-    {
-      "headline": "Glaxis Capital Management LLC Reduces Stock Holdings in iShares Bitcoin Trust ETF $IBIT",
-      "url": "https://www.dailypolitical.com/2026/06/12/glaxis-capital-management-llc-reduces-stock-holdings-in-ishares-bitcoin-trust-etf-ibit.html",
-      "src": "dailypolitical.com",
-      "date": "20260612T094500Z",
-      "sent": "neg"
-    },
-    {
-      "headline": "BTC Development ( BDCI ) & Its Peers Head to Head Comparison",
-      "url": "https://www.tickerreport.com/banking-finance/13471520/btc-development-bdci-its-peers-head-to-head-comparison.html",
-      "src": "tickerreport.com",
-      "date": "20260612T084500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "May Results - Bitcoin Yield | Company Announcement",
-      "url": "https://www.investegate.co.uk/announcement/rns/falconedge-plc--edge/may-results-bitcoin-yield/9614707",
-      "src": "investegate.co.uk",
-      "date": "20260612T064500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Horse Hill Oil Field Acquisition and Placing | Company Announcement",
-      "url": "https://www.investegate.co.uk/announcement/rns/energy-b-plc--nrgb/horse-hill-oil-field-acquisition-and-placing-/9614715",
-      "src": "investegate.co.uk",
-      "date": "20260612T064500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Dow Jones Tumbles Over 1 % as Energy - Driven Inflation and Iran Conflict Rattle Markets",
-      "url": "https://finance.yahoo.com/markets/stocks/articles/dow-jones-tumbles-over-1-172831491.html",
-      "src": "finance.yahoo.com",
-      "date": "20260612T053000Z",
-      "sent": "neg"
-    },
-    {
-      "headline": "Sanae Takaichi Government Passes Bill To Cut Taxes On Bitcoin , Ethereum Taxes In Japan From 55 % To 20 % ",
-      "url": "https://www.benzinga.com/crypto/cryptocurrency/26/06/53159229/sanae-takaichi-government-passes-bill-to-cut-bitcoin-ethereum-tax-from-55-percent-to-20-percent",
-      "src": "benzinga.com",
-      "date": "20260612T051500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Bitcoin Could Be 50 % Undervalued . Should You Buy It Right Now ? ",
-      "url": "https://finance.yahoo.com/markets/crypto/articles/bitcoin-could-50-undervalued-buy-023300865.html",
-      "src": "finance.yahoo.com",
-      "date": "20260612T031500Z",
-      "sent": "pos"
-    },
-    {
-      "headline": "Here What History Says Could Come Next for Bitcoin in July",
-      "url": "https://www.fool.com/investing/2026/06/11/heres-what-history-says-could-come-next-for-bitcoi/?source=iedfolrf0000001",
-      "src": "fool.com",
-      "date": "20260612T003000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Strategy Just Made a Major Bitcoin Buy After Selling For the First Time Since 2022 . What Does It Mean for Bitcoin Investors ? ",
-      "url": "https://www.fool.com/investing/2026/06/11/strategy-just-made-a-major-bitcoin-buy-after-selli/?source=iedfolrf0000001",
-      "src": "fool.com",
-      "date": "20260612T003000Z",
-      "sent": "neu"
     }
   ],
-  "ts": 1781265535290,
+  "ts": 1781287508135,
   "source": "GDELT",
-  "_updatedMs": 1781265535290
+  "_updatedMs": 1781287508135
 }
