@@ -1,6 +1,55 @@
 {
   "items": [
     {
+      "headline": "Feds Bust Alleged Crypto Laundering Ring That Moved Nearly $390 Million",
+      "url": "https://wcbm.com/national-headline/feds-bust-alleged-crypto-laundering-ring-that-moved-nearly-390-million/",
+      "src": "wcbm.com",
+      "date": "20260614T030000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Michael Saylor Fires Back :  I Never Said The Company Wouldnt Sell Its Bitcoin  ",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/michael-saylor-fires-back-never-220115528.html",
+      "src": "finance.yahoo.com",
+      "date": "20260614T000000Z",
+      "sent": "neg"
+    },
+    {
+      "headline": "Head to Head Survey : BTC Development ( BDCI ) versus Its Peers",
+      "url": "https://www.themarketsdaily.com/2026/06/13/head-to-head-survey-btc-development-bdci-versus-its-peers.html",
+      "src": "themarketsdaily.com",
+      "date": "20260613T233000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Why Is Institutional Money Pouring Into XRP ETFs While Fleeing Bitcoin and Ethereum ? ",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/why-institutional-money-pouring-xrp-221603053.html",
+      "src": "finance.yahoo.com",
+      "date": "20260613T230000Z",
+      "sent": "pos"
+    },
+    {
+      "headline": "Fintech Stock Block Is Trying to Prove That the Ultimate Cryptocurrency Has a Real Use Case , But Will It Work ? ",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/fintech-stock-block-trying-prove-202400059.html",
+      "src": "finance.yahoo.com",
+      "date": "20260613T211500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Bitcoin Price Forms Risky Pattern as It Suffers $4 . 4 Billion Headwind Bitcoin Price Forms Risky Pattern a",
+      "url": "https://www.benzinga.com/crypto/26/06/53184565/bitcoin-price-forms-risky-pattern-as-it-suffers-4-4-billion-headwind",
+      "src": "benzinga.com",
+      "date": "20260613T194500Z",
+      "sent": "neg"
+    },
+    {
+      "headline": "Prediction : Bitcoin Will Hit $100 , 000 By the End of 2026",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/prediction-bitcoin-hit-100-000-181100713.html",
+      "src": "finance.yahoo.com",
+      "date": "20260613T194500Z",
+      "sent": "neg"
+    },
+    {
       "headline": "Franklin Bitcoin ETF ( BATS : EZBC ) Short Interest Down 55 . 7 % in May",
       "url": "https://www.tickerreport.com/banking-finance/13474170/franklin-bitcoin-etf-batsezbc-short-interest-down-55-7-in-may.html",
       "src": "tickerreport.com",
@@ -41,51 +90,9 @@
       "src": "themarketsdaily.com",
       "date": "20260613T164500Z",
       "sent": "neu"
-    },
-    {
-      "headline": "Efforce Achieves Market Capitalization of $620 . 25 Thousand ( WOZX ) ",
-      "url": "https://www.dailypolitical.com/2026/06/13/efforce-achieves-market-capitalization-of-620-25-thousand-wozx.html",
-      "src": "dailypolitical.com",
-      "date": "20260613T164500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "ReddCoin Price Reaches $0 . 0000 on Major Exchanges ( RDD ) ",
-      "url": "https://www.dailypolitical.com/2026/06/13/reddcoin-price-reaches-0-0000-on-major-exchanges-rdd.html",
-      "src": "dailypolitical.com",
-      "date": "20260613T164500Z",
-      "sent": "neg"
-    },
-    {
-      "headline": "Oasis Network ( ROSE ) Price Hits $0 . 0065 on Major Exchanges",
-      "url": "https://www.tickerreport.com/banking-finance/13474149/oasis-network-rose-price-hits-0-0065-on-major-exchanges.html",
-      "src": "tickerreport.com",
-      "date": "20260613T164500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Uquid Coin ( UQC ) Market Cap Reaches $27 . 93 Million",
-      "url": "https://www.tickerreport.com/banking-finance/13474147/uquid-coin-uqc-market-cap-reaches-27-93-million.html",
-      "src": "tickerreport.com",
-      "date": "20260613T164500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Numeraire Market Cap Achieves $63 . 13 Million ( NMR ) ",
-      "url": "https://www.dailypolitical.com/2026/06/13/numeraire-market-cap-achieves-63-13-million-nmr.html",
-      "src": "dailypolitical.com",
-      "date": "20260613T164500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Kaspa ( KAS ) Reaches Self Reported Market Cap of $865 . 44 Million",
-      "url": "https://www.themarketsdaily.com/2026/06/13/kaspa-kas-reaches-self-reported-market-cap-of-865-44-million.html",
-      "src": "themarketsdaily.com",
-      "date": "20260613T164500Z",
-      "sent": "neu"
     }
   ],
-  "ts": 1781378529718,
+  "ts": 1781408684652,
   "source": "GDELT",
-  "_updatedMs": 1781378529718
+  "_updatedMs": 1781408684652
 }
