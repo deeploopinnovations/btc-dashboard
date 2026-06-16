@@ -1,6 +1,27 @@
 {
   "items": [
     {
+      "headline": "Bitcoin 4 - Year Cycle Hits a Question Mark at Mid - 2026 , Brian Armstrong Has an Answer",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/bitcoin-4-cycle-hits-mark-135228058.html",
+      "src": "finance.yahoo.com",
+      "date": "20260616T223000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Veteran investor reveals one way out of $40 trillion U . S . debt",
+      "url": "https://finance.yahoo.com/economy/policy/articles/veteran-investor-reveals-one-way-211900569.html",
+      "src": "finance.yahoo.com",
+      "date": "20260616T214500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Strategy Buys $100 Million Of Bitcoin Ahead Of Price Surge",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/strategy-buys-100-million-bitcoin-125700286.html",
+      "src": "finance.yahoo.com",
+      "date": "20260616T213000Z",
+      "sent": "pos"
+    },
+    {
       "headline": "The Complete Guide to Crypto Casino Deposits in 2026",
       "url": "https://cogconnected.com/2026/06/the-complete-guide-to-crypto-casino-deposits-in-2026/",
       "src": "cogconnected.com",
@@ -83,30 +104,9 @@
       "src": "themarketsdaily.com",
       "date": "20260616T113000Z",
       "sent": "neu"
-    },
-    {
-      "headline": "Wayfinder Price Hits $0 . 0255 on Top Exchanges ( PROMPT ) ",
-      "url": "https://www.themarketsdaily.com/2026/06/16/wayfinder-price-hits-0-0255-on-top-exchanges-prompt.html",
-      "src": "themarketsdaily.com",
-      "date": "20260616T113000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Mr Miggles Price Tops $0 . 0019 on Major Exchanges ( MIGGLES ) ",
-      "url": "https://www.tickerreport.com/banking-finance/13477027/mr-miggles-price-tops-0-0019-on-major-exchanges-miggles.html",
-      "src": "tickerreport.com",
-      "date": "20260616T113000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Parcl Price Up 4 . 4 % Over Last Week ( PRCL ) ",
-      "url": "https://www.themarketsdaily.com/2026/06/16/parcl-price-up-4-4-over-last-week-prcl.html",
-      "src": "themarketsdaily.com",
-      "date": "20260616T113000Z",
-      "sent": "neu"
     }
   ],
-  "ts": 1781646079153,
+  "ts": 1781652164736,
   "source": "GDELT",
-  "_updatedMs": 1781646079153
+  "_updatedMs": 1781652164736
 }
