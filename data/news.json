@@ -1,6 +1,34 @@
 {
   "items": [
     {
+      "headline": "Kraken ABDde sürekli vadeli işlemleri başlattı",
+      "url": "https://www.haberler.com/kripto-para/kraken-abdde-surekli-vadeli-islemleri-baslatti-19953182-haberi/",
+      "src": "haberler.com",
+      "date": "20260616T071500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Clarity Act update : Experts reveal  Why July 4 breakthrough looks impossible  ",
+      "url": "https://seekingalpha.com/news/4603341-clarity-act-update-experts-reveal-why-july-4-breakthrough-looks-impossible",
+      "src": "seekingalpha.com",
+      "date": "20260616T044500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Coinbase Referral Code 2026 : Earn Up to $200 BTC Sign - Up Bonus",
+      "url": "https://memeburn.com/coinbase-referral-code/",
+      "src": "memeburn.com",
+      "date": "20260616T043000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Bitcoin Reclaims $65 , 000 After Iran Deal as FOMC Meeting Looms : What Comes Next",
+      "url": "https://memeburn.com/bitcoin-reclaims-65000-after-iran-deal-as-fomc-meeting-looms-what-comes-next/",
+      "src": "memeburn.com",
+      "date": "20260616T043000Z",
+      "sent": "neu"
+    },
+    {
       "headline": "MoneySimpler Launches Free XRP AI Quantitative Strategy Contracts with Daily Settlement",
       "url": "https://www.manilatimes.net/2026/06/16/tmt-newswire/globenewswire/moneysimpler-launches-free-xrp-ai-quantitative-strategy-contracts-with-daily-settlement/2366058",
       "src": "manilatimes.net",
@@ -43,6 +71,13 @@
       "sent": "neu"
     },
     {
+      "headline": "ETH Surges Over 10 %: What Is Going With Ethereum ? ",
+      "url": "https://www.benzinga.com/crypto/cryptocurrency/26/06/53211436/eth-surges-over-10-what-is-going-with-ethereum",
+      "src": "benzinga.com",
+      "date": "20260615T220000Z",
+      "sent": "pos"
+    },
+    {
       "headline": "Stock Market Euphoric Over New Musk Post And Iran Deal - American Airlines Group ( NASDAQ : AAL ) ",
       "url": "https://www.benzinga.com/Opinion/26/06/53211089/stock-market-euphoric-over-new-musk-post-and-iran-deal",
       "src": "benzinga.com",
@@ -64,49 +99,14 @@
       "sent": "neu"
     },
     {
-      "headline": "ETH Surges Over 10 %: What Is Going With Ethereum ? ",
-      "url": "https://www.benzinga.com/crypto/cryptocurrency/26/06/53211436/eth-surges-over-10-what-is-going-with-ethereum",
-      "src": "benzinga.com",
-      "date": "20260615T220000Z",
-      "sent": "pos"
-    },
-    {
       "headline": "Crypto News : Fed Meets Tomorrow as Pepeto Races Past $10 . 2",
       "url": "https://www.openpr.com/news/4550415/crypto-news-fed-meets-tomorrow-as-pepeto-races-past-10-2",
       "src": "openpr.com",
       "date": "20260615T191500Z",
       "sent": "neu"
-    },
-    {
-      "headline": "Will Bitcoin Fall Below $50 , 000 ? | The Motley Fool",
-      "url": "https://www.fool.com/investing/2026/06/15/will-bitcoin-fall-below-50000/?source=iedfolrf0000001",
-      "src": "fool.com",
-      "date": "20260615T191500Z",
-      "sent": "neg"
-    },
-    {
-      "headline": "MSTR Is Not In A Death Spiral , TD Cowen Assesses : Here What Bears Get Wrong - Strategy ( NASDAQ : MSTR ) ",
-      "url": "https://www.benzinga.com/crypto/cryptocurrency/26/06/53207151/mstr-is-not-in-a-death-spiral-td-cowen-assesses-heres-what-bears-get-wrong",
-      "src": "benzinga.com",
-      "date": "20260615T190000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "  Rich Dad Poor Dad  author reveals bullish gold target",
-      "url": "https://finance.yahoo.com/markets/commodities/articles/rich-dad-poor-dad-author-171500233.html",
-      "src": "finance.yahoo.com",
-      "date": "20260615T174500Z",
-      "sent": "pos"
-    },
-    {
-      "headline": "BTC News Today : Bitcoin Climbs Toward $66K as Trump Reveals US - Iran Peace Deal",
-      "url": "https://bravenewcoin.com/insights/btc-news-today-bitcoin-climbs-toward-66k-as-trump-reveals-us-iran-peace-deal",
-      "src": "bravenewcoin.com",
-      "date": "20260615T173000Z",
-      "sent": "neu"
     }
   ],
-  "ts": 1781581876434,
+  "ts": 1781601873633,
   "source": "GDELT",
-  "_updatedMs": 1781581876434
+  "_updatedMs": 1781601873633
 }
