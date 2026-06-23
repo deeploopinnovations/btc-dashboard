@@ -1,12 +1,12 @@
 {
-  "upside": 50,
-  "volAmp": 46.7,
-  "sourceTs": "2026-06-23 17:00:25",
-  "sourceMs": 1782234025000,
+  "upside": 73.3,
+  "volAmp": 30,
+  "sourceTs": "2026-06-23 19:00:25",
+  "sourceMs": 1782241225000,
   "tz": "UTC",
-  "ageHrs": 0.8448997222222222,
+  "ageHrs": 0.9847258333333333,
   "freshness": "fresh",
-  "fetchedAt": 1782237066639,
+  "fetchedAt": 1782244770013,
   "proxy": "gh-actions",
-  "_updatedMs": 1782237066639
+  "_updatedMs": 1782244770013
 }
