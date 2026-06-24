@@ -1,112 +1,77 @@
 {
   "items": [
     {
-      "headline": "HIVE Stock Jumps 20 % On Positive Research Results",
-      "url": "https://finance.yahoo.com/technology/ai/articles/hive-stock-jumps-20-positive-203400909.html",
-      "src": "finance.yahoo.com",
-      "date": "20260622T210000Z",
-      "sent": "pos"
-    },
-    {
-      "headline": "Bitcoin Been Holding Steady of Late . Is It a Good Buy While It Around $60 , 000 ? ",
-      "url": "https://www.fool.com/investing/2026/06/22/bitcoins-been-holding-steady-of-late-is-it-a-good/",
-      "src": "fool.com",
-      "date": "20260622T201500Z",
-      "sent": "pos"
-    },
-    {
-      "headline": "Bitcoin , Ethereum , XRP , Dogecoin Trade Sideways On Low - Volatility Monday",
-      "url": "https://www.benzinga.com/crypto/cryptocurrency/26/06/60026862/bitcoin-ethereum-xrp-dogecoin-trade-sideways-on-low-volatility-monday",
-      "src": "benzinga.com",
-      "date": "20260622T194500Z",
+      "headline": "Bitcoin Mining Is Near a Breaking Point JPMorgan Just Explained Why",
+      "url": "https://memeburn.com/bitcoin-mining-is-near-a-breaking-point-jpmorgan-just-explained-why/",
+      "src": "memeburn.com",
+      "date": "20260624T043000Z",
       "sent": "neu"
     },
     {
-      "headline": "CLARITY Act Approval Odds Drop To 48 %: What Is Going On ? ",
-      "url": "https://www.benzinga.com/markets/prediction-markets/26/06/60024273/clarity-act-approval-odds-drop-to-48-what-is-going-on",
+      "headline": "Morning Minute : Bitcoin at $65 , 000 as Iran Deal Wobbles",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/morning-minute-bitcoin-65-000-151746073.html",
+      "src": "finance.yahoo.com",
+      "date": "20260624T031500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Bitcoin , Ethereum , XRP , Dogecoin Drop Further Amid Global Chip Sell - Off : Analyst Flags  The Most Importan",
+      "url": "https://www.benzinga.com/crypto/cryptocurrency/26/06/60061465/bitcoin-ethereum-xrp-dogecoin-drop-amid-chip-sell-off-analyst-flags-key-btc-level",
       "src": "benzinga.com",
-      "date": "20260622T194500Z",
+      "date": "20260624T031500Z",
       "sent": "neg"
     },
     {
-      "headline": "Analyzing BTC Development ( BDCI ) & The Competition",
-      "url": "https://www.themarketsdaily.com/2026/06/22/analyzing-btc-development-bdci-the-competition.html",
-      "src": "themarketsdaily.com",
-      "date": "20260622T183000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "HIVE Digital Stock Crosses Key Price , Forms Golden Cross : Is It a Buy ? ",
-      "url": "https://www.banklesstimes.com/articles/2026/06/22/hive-digital-stock-crosses-key-price-forms-golden-cross-is-it-a-buy/",
-      "src": "banklesstimes.com",
-      "date": "20260622T183000Z",
-      "sent": "pos"
-    },
-    {
-      "headline": "Hut 8 Stock Gets New Buy Rating",
-      "url": "https://finance.yahoo.com/markets/stocks/articles/hut-8-stock-gets-buy-162900217.html",
+      "headline": "Strategy Pads Cash Reserves to $1 . 4B After STRC Stumble",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/strategy-pads-cash-reserves-1-145532261.html",
       "src": "finance.yahoo.com",
-      "date": "20260622T170000Z",
-      "sent": "pos"
+      "date": "20260624T030000Z",
+      "sent": "neg"
     },
     {
-      "headline": "Market Open : Muted futures and mining highlights | June 22nd | 2026 - 06 - 22 | Investing News",
-      "url": "https://stockhouse.com/news/market-updates/2026/06/22/market-open-muted-futures-and-mining-highlights-june-22nd",
-      "src": "stockhouse.com",
-      "date": "20260622T143000Z",
+      "headline": "Talvurieks Review 2026 : Legit or Not ? - Truth Explained ! ",
+      "url": "https://thenationonlineng.net/talvurieks-review-2026-legit-or-not-truth-explained/",
+      "src": "thenationonlineng.net",
+      "date": "20260624T003000Z",
       "sent": "neu"
     },
     {
-      "headline": "Bitcoin and ethereum prices today , Monday , June 22 , 2026 : Prices moving higher this morning",
-      "url": "https://finance.yahoo.com/personal-finance/investing/article/bitcoin-and-ethereum-prices-today-monday-june-22-2026-prices-moving-higher-this-morning-133853515.html",
+      "headline": "Adam Back BSTR Prepares to Buy 23 , 500 BTC at a Discount as $1 . 5B Bitcoin Treasury Goes Public",
+      "url": "https://bravenewcoin.com/insights/adam-backs-bstr-prepares-to-buy-23500-btc-at-a-discount-as-1-5b-bitcoin-treasury-goes-public",
+      "src": "bravenewcoin.com",
+      "date": "20260624T000000Z",
+      "sent": "pos"
+    },
+    {
+      "headline": "Strategy Bitcoin Holdings Surge Past 846 , 000 BTC as Saylor Reveals 716 , 000 Coins Added Since 2022 Crisis",
+      "url": "https://memeburn.com/strategy-bitcoin-holdings-surge-past-846000/",
+      "src": "memeburn.com",
+      "date": "20260624T000000Z",
+      "sent": "pos"
+    },
+    {
+      "headline": "Hypersurface Acquires Acre to Launch the First On - Chain Bitcoin Premium Income Vault",
+      "url": "http://www.clevelandstar.com/news/279143264/hypersurface-acquires-acre-to-launch-the-first-on-chain-bitcoin-premium-income-vault",
+      "src": "clevelandstar.com",
+      "date": "20260623T234500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Bitcoin  Resilient  After Hawkish Fed , But No  Return of Demand : Analysts",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/bitcoin-resilient-hawkish-fed-no-121225910.html",
       "src": "finance.yahoo.com",
-      "date": "20260622T140000Z",
-      "sent": "pos"
-    },
-    {
-      "headline": "From Bitcoin to Stocks : QuantRate Launches Free AI Trading Bot to Help Retail Investors Execute Stock and Crypto Trading Strategies",
-      "url": "https://www.manilatimes.net/2026/06/22/tmt-newswire/globenewswire/from-bitcoin-to-stocks-quantrate-launches-free-ai-trading-bot-to-help-retail-investors-execute-stock-and-crypto-trading-strategies/2370142",
-      "src": "manilatimes.net",
-      "date": "20260622T140000Z",
+      "date": "20260623T211500Z",
       "sent": "neu"
     },
     {
-      "headline": "Bitcoin ETF outflow pain eases just as another headwind strengthens : Crypto Daily",
-      "url": "https://www.coindesk.com/daybook-us/2026/06/22/bitcoin-etf-outflow-pain-eases-just-as-another-headwind-strengthens",
-      "src": "coindesk.com",
-      "date": "20260622T133000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Hey Anon ( ANON ) Trading 8 . 8 % Lower Over Last Week",
-      "url": "https://www.dailypolitical.com/2026/06/22/hey-anon-anon-trading-8-8-lower-over-last-week.html",
-      "src": "dailypolitical.com",
-      "date": "20260622T123000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Wrapped Sonic Self Reported Market Cap Achieves $491 . 73 Thousand ( WS ) ",
-      "url": "https://www.dailypolitical.com/2026/06/22/wrapped-sonic-self-reported-market-cap-achieves-491-73-thousand-ws.html",
-      "src": "dailypolitical.com",
-      "date": "20260622T123000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "VIBE Reaches Market Capitalization of $314 . 49 Thousand ( VIBE ) ",
-      "url": "https://www.dailypolitical.com/2026/06/22/vibe-reaches-market-capitalization-of-314-49-thousand-vibe.html",
-      "src": "dailypolitical.com",
-      "date": "20260622T123000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "ArchLoot ( AL ) Trading 2 . 8 % Lower Over Last Week",
-      "url": "https://www.dailypolitical.com/2026/06/22/archloot-al-trading-2-8-lower-over-last-week.html",
-      "src": "dailypolitical.com",
-      "date": "20260622T123000Z",
+      "headline": "MSTR Faces Its  First Real Test , Should Not Be Seen As Cheap Bitcoin , Research Report Argues - Strategy",
+      "url": "https://www.benzinga.com/crypto/cryptocurrency/26/06/60058512/mstr-faces-its-first-real-test-should-not-be-seen-as-cheap-bitcoin-research-report-argues",
+      "src": "benzinga.com",
+      "date": "20260623T210000Z",
       "sent": "neu"
     }
   ],
-  "ts": 1782170216180,
+  "ts": 1782279305678,
   "source": "GDELT",
-  "_updatedMs": 1782170216180
+  "_updatedMs": 1782279305678
 }
