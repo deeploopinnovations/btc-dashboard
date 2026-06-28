@@ -1,6 +1,90 @@
 {
   "items": [
     {
+      "headline": "Will Bitcoin Price Recover in July ? ",
+      "url": "https://cointelegraph.com/markets/will-bitcoin-price-recover-in-july",
+      "src": "cointelegraph.com",
+      "date": "20260628T191500Z",
+      "sent": "pos"
+    },
+    {
+      "headline": "Contrasting BTC Development ( BDCI ) and Its Peers",
+      "url": "https://www.dailypolitical.com/2026/06/28/contrasting-btc-development-bdci-and-its-peers.html",
+      "src": "dailypolitical.com",
+      "date": "20260628T163000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Bitcoin ( BTC ) Price Prediction : Bitcoin Struggles at $60K as MSTR Drawdown and Weak Demand Keep Bulls on Edge",
+      "url": "https://bravenewcoin.com/insights/bitcoin-btc-price-prediction-bitcoin-struggles-at-60k-as-mstr-drawdown-and-weak-demand-keep-bulls-on-edge",
+      "src": "bravenewcoin.com",
+      "date": "20260628T141500Z",
+      "sent": "neg"
+    },
+    {
+      "headline": "Weekend Round - Up : Bitcoin Bottom Signal , Gold Buying Opportunity And More Crypto News",
+      "url": "https://www.benzinga.com/crypto/cryptocurrency/26/06/60146861/weekend-round-up-bitcoins-bottom-signal-golds-buying-opportunity-and-more-crypto-news",
+      "src": "benzinga.com",
+      "date": "20260628T134500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Fogo Price Hits $0 . 0099 on Exchanges ( FOGO ) ",
+      "url": "https://www.tickerreport.com/banking-finance/13488632/fogo-price-hits-0-0099-on-exchanges-fogo.html",
+      "src": "tickerreport.com",
+      "date": "20260628T114500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "NikolAI ( NIKO ) Achieves Self Reported Market Cap of $599 . 23 Thousand",
+      "url": "https://www.tickerreport.com/banking-finance/13488630/nikolai-niko-achieves-self-reported-market-cap-of-599-23-thousand.html",
+      "src": "tickerreport.com",
+      "date": "20260628T114500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Bitdeer Technologies ( BTDR ) Continues to Focus on AI Infrastructure Platform",
+      "url": "https://www.insidermonkey.com/blog/bitdeer-technologies-btdr-continues-to-focus-on-ai-infrastructure-platform-1790567/",
+      "src": "insidermonkey.com",
+      "date": "20260628T101500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Grayscale Pandl Says Strategy $3B Bitcoin Sale Could Restore Confidence",
+      "url": "https://cointelegraph.com/news/grayscales-pandl-strategy-sells-3b-bitcoin-confidence",
+      "src": "cointelegraph.com",
+      "date": "20260628T091500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Strategy Bitcoin Bet Is Huge Cracking Under Sell Pressure",
+      "url": "https://memeburn.com/strategy-bitcoin-saylor-investor-pressure/",
+      "src": "memeburn.com",
+      "date": "20260628T081500Z",
+      "sent": "neg"
+    },
+    {
+      "headline": "BTC price news : Bitcoin under $60 , 000 on track for a rare back - to - back quarterly loss",
+      "url": "https://www.coindesk.com/markets/2026/06/28/bitcoin-falls-below-usd60-000-on-track-for-a-rare-back-to-back-quarterly-loss",
+      "src": "coindesk.com",
+      "date": "20260628T081500Z",
+      "sent": "neg"
+    },
+    {
+      "headline": "Crypto Market Recap : Bitcoin Eyes New Lows ; CoinEx Tied to Iran Crypto Flows ; GOP Races Clock on Clarity Act ; and More ( June 21 – 27 , 2026 ) ",
+      "url": "https://www.banklesstimes.com/articles/2026/06/28/crypto-market-recap-bitcoin-eyes-new-lows-coinex-tied-to-iran-crypto-flows-gop-races-clock-on-clarity-act-and-more-june-21-27-2026/",
+      "src": "banklesstimes.com",
+      "date": "20260628T081500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Bitcoin analysis over the weekend , 28 June 2026",
+      "url": "https://investinglive.com:443/Cryptocurrency/bitcoin-analysis-over-the-weekend-28-june-2026-20260628/",
+      "src": "investinglive.com",
+      "date": "20260628T074500Z",
+      "sent": "neu"
+    },
+    {
       "headline": "Bitcoin and Stablecoins Become Lifelines After Venezuela Earthquakes",
       "url": "https://www.yahoo.com/news/world/articles/bitcoin-stablecoins-become-lifelines-venezuela-184751025.html",
       "src": "yahoo.com",
@@ -20,93 +104,9 @@
       "src": "banklesstimes.com",
       "date": "20260627T124500Z",
       "sent": "neu"
-    },
-    {
-      "headline": "XRP Price Falls Below $1 . 05 as Broader Crypto Selloff Tests Key Support",
-      "url": "https://memeburn.com/xrp-price-falls-below-1-05/",
-      "src": "memeburn.com",
-      "date": "20260627T124500Z",
-      "sent": "neg"
-    },
-    {
-      "headline": "Solana Price Nears Breakout Zone : Can SOL Hit $75 in 2026 ? ",
-      "url": "https://memeburn.com/sol-price-is-stuck-near-70-and-thats-the-most-interesting-setup-in-crypto-now/",
-      "src": "memeburn.com",
-      "date": "20260627T124500Z",
-      "sent": "pos"
-    },
-    {
-      "headline": "Bless Price Tops $0 . 0079 on Top Exchanges ( BLESS ) ",
-      "url": "https://www.themarketsdaily.com/2026/06/27/bless-price-tops-0-0079-on-top-exchanges-bless.html",
-      "src": "themarketsdaily.com",
-      "date": "20260627T120000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Bitcoin Price Steadies Near $60 , 000 After a Bruising Week",
-      "url": "https://www.riotimesonline.com/bitcoin-steadies-near-60000-june-26-2026/",
-      "src": "riotimesonline.com",
-      "date": "20260627T104500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "SharpLink Resumes Ethereum Buying After 8 - Month Pause",
-      "url": "https://finance.yahoo.com/markets/crypto/articles/sharplink-resumes-ethereum-buying-8-064234927.html",
-      "src": "finance.yahoo.com",
-      "date": "20260627T101500Z",
-      "sent": "pos"
-    },
-    {
-      "headline": "Crypto Market Flashes Recovery Signs Ahead of $10 . 8B Bitcoin , ETH , XRP , SOL Options Expiry",
-      "url": "https://finance.yahoo.com/markets/crypto/articles/crypto-market-flashes-recovery-signs-065311714.html",
-      "src": "finance.yahoo.com",
-      "date": "20260627T101500Z",
-      "sent": "pos"
-    },
-    {
-      "headline": "SG Americas Securities LLC Has $12 . 09 Million Stock Holdings in iShares Bitcoin Trust ETF $IBIT",
-      "url": "https://www.tickerreport.com/banking-finance/13487434/sg-americas-securities-llc-has-12-09-million-stock-holdings-in-ishares-bitcoin-trust-etf-ibit.html",
-      "src": "tickerreport.com",
-      "date": "20260627T093000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Aave Price Prediction Hits $3 , 500 in Standard Chartered Call",
-      "url": "https://memeburn.com/aave-price-prediction-hits-3500-in-standard-chartered-call/",
-      "src": "memeburn.com",
-      "date": "20260627T081500Z",
-      "sent": "neg"
-    },
-    {
-      "headline": "Binance kurucusu CZ Satoshinin 1 milyon Bitcoinini dondurmayı önerdi",
-      "url": "https://www.haberler.com/kripto-para/binance-kurucusu-cz-satoshinin-1-milyon-19994583-haberi/",
-      "src": "haberler.com",
-      "date": "20260627T073000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Bitcoin , Ethereum , XRP , Dogecoin Slump As Fed Favourite Inflation Barometer Hits 3 - Year High : Analyst Weighs If July Will Bring Relief To BTC Investors",
-      "url": "https://finance.yahoo.com/markets/crypto/articles/bitcoin-ethereum-xrp-dogecoin-slump-021556998.html",
-      "src": "finance.yahoo.com",
-      "date": "20260627T073000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Crypto Market Today , June 25 : Crypto Selloff Deepens as Bitcoin Hits Multi - Year Low",
-      "url": "https://finance.yahoo.com/markets/crypto/articles/crypto-market-today-june-25-221641426.html",
-      "src": "finance.yahoo.com",
-      "date": "20260627T053000Z",
-      "sent": "neg"
-    },
-    {
-      "headline": "Is the Iran War Back ? Gold , Bitcoin & War Stocks",
-      "url": "https://www.livetradingnews.com/is-the-iran-war-back",
-      "src": "livetradingnews.com",
-      "date": "20260627T050000Z",
-      "sent": "neu"
     }
   ],
-  "ts": 1782604792036,
+  "ts": 1782677507349,
   "source": "GDELT",
-  "_updatedMs": 1782604792036
+  "_updatedMs": 1782677507349
 }
