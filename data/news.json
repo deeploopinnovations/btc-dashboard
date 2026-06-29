@@ -1,6 +1,20 @@
 {
   "items": [
     {
+      "headline": "Binance Booted From EU , EthLabs Rises : Hodler Digest",
+      "url": "https://cointelegraph.com/features/hodlers-digest-binance",
+      "src": "cointelegraph.com",
+      "date": "20260629T000000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "60 % of S & P 500 Stocks Carry Buy Ratings as US , Iran Halt Strikes",
+      "url": "https://finance.yahoo.com/markets/stocks/articles/60-p-500-stocks-carry-215900774.html",
+      "src": "finance.yahoo.com",
+      "date": "20260628T233000Z",
+      "sent": "pos"
+    },
+    {
       "headline": "Will Bitcoin Price Recover in July ? ",
       "url": "https://cointelegraph.com/markets/will-bitcoin-price-recover-in-july",
       "src": "cointelegraph.com",
@@ -90,23 +104,9 @@
       "src": "yahoo.com",
       "date": "20260627T204500Z",
       "sent": "neu"
-    },
-    {
-      "headline": "Where Will Solana Be in 3 Years ? | The Motley Fool",
-      "url": "https://www.fool.com/investing/2026/06/27/where-will-solana-be-in-3-years/?source=iedfolrf0000001",
-      "src": "fool.com",
-      "date": "20260627T193000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "MSTR Stock vs PURR : One Surges , One Stumbles Here Why",
-      "url": "https://www.banklesstimes.com/articles/2026/06/27/mstr-stock-vs-purr-one-surges-one-stumbles-heres-why/",
-      "src": "banklesstimes.com",
-      "date": "20260627T124500Z",
-      "sent": "neu"
     }
   ],
-  "ts": 1782677507349,
+  "ts": 1782692249497,
   "source": "GDELT",
-  "_updatedMs": 1782677507349
+  "_updatedMs": 1782692249497
 }
