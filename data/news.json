@@ -1,6 +1,20 @@
 {
   "items": [
     {
+      "headline": "Under Which President Did Bitcoin Perform Best ? The Answer May Surprise You",
+      "url": "https://www.benzinga.com/crypto/cryptocurrency/26/07/60268619/under-which-president-did-bitcoin-perform-best-the-answer-may-surprise-you",
+      "src": "benzinga.com",
+      "date": "20260705T013000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Strategy Just Announced a Major Shake - Up to Its Bitcoin Plan . Here What It Means for MSTR Stock . ",
+      "url": "https://www.fool.com/investing/2026/07/04/strategy-major-shake-up-bitcoin-mstr-stock/?source=iedfolrf0000001",
+      "src": "fool.com",
+      "date": "20260705T000000Z",
+      "sent": "neu"
+    },
+    {
       "headline": "Best Crypto Casinos 2026 : Top Bitcoin & Crypto Sites Ranked",
       "url": "https://electroiq.com/crypto/best-casinos/",
       "src": "electroiq.com",
@@ -90,23 +104,9 @@
       "src": "dailypolitical.com",
       "date": "20260630T114500Z",
       "sent": "neu"
-    },
-    {
-      "headline": "NeuralAI Self Reported Market Cap Tops $4 . 30 Million ( NEURAL ) ",
-      "url": "https://www.themarketsdaily.com/2026/06/30/neuralai-self-reported-market-cap-tops-4-30-million-neural.html",
-      "src": "themarketsdaily.com",
-      "date": "20260630T114500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Story Reaches Self Reported Market Capitalization of $73 . 30 Million ( IP ) ",
-      "url": "https://www.dailypolitical.com/2026/06/30/story-reaches-self-reported-market-capitalization-of-73-30-million-ip.html",
-      "src": "dailypolitical.com",
-      "date": "20260630T114500Z",
-      "sent": "neu"
     }
   ],
-  "ts": 1783200414168,
+  "ts": 1783219759976,
   "source": "GDELT",
-  "_updatedMs": 1783200414168
+  "_updatedMs": 1783219759976
 }
