@@ -1,98 +1,112 @@
 {
   "items": [
     {
-      "headline": "Commodity , Crypto Pool Operator Faces CFTC Fraud Charges",
-      "url": "https://cointelegraph.com/news/cftc-charges-commodity-crypto-pool-operator-with-14m-fraud",
-      "src": "cointelegraph.com",
-      "date": "20260708T064500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Swyftx Eyes Crypto Payments After Securing License",
-      "url": "https://cointelegraph.com/news/swyftx-eyes-crypto-payments-space-after-securing-australian-license",
-      "src": "cointelegraph.com",
-      "date": "20260708T064500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Strike Launches Volatility - Proof Bitcoin - Backed Loans",
-      "url": "https://cointelegraph.com/news/strike-launches-volatility-proof-bitcoin-loans-amid-bear-market-but-at-what-cost",
-      "src": "cointelegraph.com",
-      "date": "20260708T064500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Binance Launches BTC Yield , Bringing Covered Call Bitcoin Income Strategy to Users",
-      "url": "https://www.manilatimes.net/2026/07/08/tmt-newswire/pr-newswire/binance-launches-btc-yield-bringing-covered-call-bitcoin-income-strategy-to-users/2380469",
-      "src": "manilatimes.net",
-      "date": "20260708T061500Z",
-      "sent": "neg"
-    },
-    {
-      "headline": "BTC , XRP , ETH news : Major tokens under pressure as U . S . attacks Iran",
-      "url": "https://www.coindesk.com/markets/2026/07/08/bitcoin-under-pressure-as-u-s-iran-escalation-lifts-oil",
+      "headline": "Billions flowing out of bitcoin ETFs and private credit funds suggest rising market risks",
+      "url": "https://www.coindesk.com/markets/2026/07/09/billions-flowing-out-of-bitcoin-etfs-and-private-credit-funds-suggest-rising-market-risks",
       "src": "coindesk.com",
-      "date": "20260708T053000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Eric Trump Says  Stacking Continue as American Bitcoin Amasses 8 , 000 BTC :  We Continue to Differentiate",
-      "url": "https://www.benzinga.com/crypto/cryptocurrency/26/07/60323137/eric-trump-says-stacking-continues-as-american-bitcoin-amasses-8000-btc",
-      "src": "benzinga.com",
-      "date": "20260708T051500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Bitcoin Flat , Ethereum , XRP , Dogecoin Dip as US Strikes Iran : Analyst Spots Dollar - Cost Averaging  Opport",
-      "url": "https://www.benzinga.com/crypto/cryptocurrency/26/07/60322897/bitcoin-flat-ethereum-xrp-and-dogecoin-dip-as-us-strikes-iran-analyst-sees-dollar-cost-averaging-opportunity-in-btc",
-      "src": "benzinga.com",
-      "date": "20260708T051500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Crypto : the Market Is Set to Test the Strength of the Downtrend",
-      "url": "https://www.actionforex.com/contributors/fundamental-analysis/646485-crypto-the-market-is-set-to-test-the-strength-of-the-downtrend/",
-      "src": "actionforex.com",
-      "date": "20260708T044500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Strategy Sells 3 , 558 Bitcoin for $216M to Pay Dividends : Is Saylor BTC Treasury Model Under Pressure ? ",
-      "url": "https://finance.yahoo.com/markets/crypto/articles/strategy-sells-3-558-bitcoin-150715833.html",
-      "src": "finance.yahoo.com",
-      "date": "20260708T031500Z",
+      "date": "20260709T201500Z",
       "sent": "neg"
     },
     {
-      "headline": "Treasury and Commerce Are Fighting Over Who Gets to Run America Bitcoin Reserve",
-      "url": "https://bravenewcoin.com/insights/treasury-and-commerce-are-fighting-over-who-gets-to-run-americas-bitcoin-reserve",
-      "src": "bravenewcoin.com",
-      "date": "20260708T024500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "8 Best Crypto Penny Stocks to Buy Now - Insider Monkey",
-      "url": "https://www.insidermonkey.com/blog/8-best-crypto-penny-stocks-to-buy-now-1796733/",
-      "src": "insidermonkey.com",
-      "date": "20260708T013000Z",
+      "headline": "Bitcoin , Ethereum Exchange Supplies at Historic Lows : Is This Bullish ? ",
+      "url": "https://www.benzinga.com/crypto/cryptocurrency/26/07/60367584/bitcoin-ethereum-exchange-supplies-at-historic-lows-is-this-bullish",
+      "src": "benzinga.com",
+      "date": "20260709T184500Z",
       "sent": "pos"
     },
     {
-      "headline": "Dollar at week - high after US resumes attacks on Iran",
-      "url": "https://www.freemalaysiatoday.com/category/business/2026/07/08/dollar-at-week-high-after-us-resumes-attacks-on-iran",
-      "src": "freemalaysiatoday.com",
-      "date": "20260708T011500Z",
+      "headline": "American Bitcoin Plunges 95 % as AI - Focused Rivals Pull Ahead",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/american-bitcoin-plunges-95-ai-174413921.html",
+      "src": "finance.yahoo.com",
+      "date": "20260709T181500Z",
+      "sent": "neg"
+    },
+    {
+      "headline": "Bitwise Drops 2 Altcoins From Flagship Crypto ETF : Will Hyperliquid Keep Its Seat ? ",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/bitwise-drops-2-altcoins-flagship-163923929.html",
+      "src": "finance.yahoo.com",
+      "date": "20260709T171500Z",
+      "sent": "neg"
+    },
+    {
+      "headline": "Bitcoin price today : Fear Index at 22 as BTC clings to $62 , 852",
+      "url": "https://sofokleous10.gr/2026/07/09/bitcoin-price-today-fear-index-at-22-as-btc-clings-to-62852/",
+      "src": "sofokleous10.gr",
+      "date": "20260709T170000Z",
+      "sent": "neg"
+    },
+    {
+      "headline": "Market Open : Chip Stocks Lead Gains as TSX Rises , Levi Drops on Earnings Reaction | July 9th | 2026 - 07 - 09 | Investing News",
+      "url": "https://stockhouse.com/news/market-updates/2026/07/09/market-open-chip-stocks-lead-gains-as-tsx-rises-levi-drops-on-earnings-reaction",
+      "src": "stockhouse.com",
+      "date": "20260709T164500Z",
       "sent": "neu"
     },
     {
-      "headline": "Dave Portnoy Holds Bitcoin Loss at $100K Entry , Vows to Ride It to Zero",
-      "url": "https://finance.yahoo.com/markets/crypto/articles/dave-portnoy-holds-bitcoin-loss-150818440.html",
+      "headline": "Altcoin Depression Deepens : Capital Concentrates in BTC and ETH as Broad Altcoin Underperformance Persists",
+      "url": "http://www.econotimes.com/Altcoin-Depression-Deepens-Capital-Concentrates-in-BTC-and-ETH-as-Broad-Altcoin-Underperformance-Persists-1746378",
+      "src": "econotimes.com",
+      "date": "20260709T164500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Bitcoin just crossed 200 days of warning sign investors cannot ignore",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/bitcoin-just-crossed-200-days-161105070.html",
       "src": "finance.yahoo.com",
-      "date": "20260707T234500Z",
+      "date": "20260709T164500Z",
       "sent": "neg"
+    },
+    {
+      "headline": "Bitdeer Brings SEALMINER Production to U . S . With $36M Nevada Plant",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/bitdeer-brings-sealminer-production-u-145300420.html",
+      "src": "finance.yahoo.com",
+      "date": "20260709T154500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Bitcoin ( BTC ) price climbs to $63 , 000 as markets shrug off Iran airstrikes : Crypto Markets Today",
+      "url": "https://www.coindesk.com/markets/2026/07/09/crypto-remains-resilient-in-face-of-renewed-middle-east-tensions",
+      "src": "coindesk.com",
+      "date": "20260709T151500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Eric Trump Said  Just Hold On  While Bitcoin Erased $600M From His Fortune",
+      "url": "https://www.benzinga.com/crypto/cryptocurrency/26/07/60361416/eric-trump-said-just-hold-on-while-bitcoin-erased-600m-from-his-fortune",
+      "src": "benzinga.com",
+      "date": "20260709T151500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Pricing houses in bitcoin ( BTC ) exposes dollar debasement : Crypto Daily",
+      "url": "https://www.coindesk.com/daybook-us/2026/07/09/pricing-houses-in-bitcoin-exposes-dollar-s-loss-of-value",
+      "src": "coindesk.com",
+      "date": "20260709T151500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Strategy Sells Bitcoin Worth $216M in Largest Sale Ever",
+      "url": "https://memeburn.com/strategy-sells-bitcoin-worth-216m-in-largest-sale-ever/",
+      "src": "memeburn.com",
+      "date": "20260709T131500Z",
+      "sent": "neg"
+    },
+    {
+      "headline": "BTC Digital ( BTCT ) Announces Private Placement",
+      "url": "https://www.insidermonkey.com/blog/btc-digital-btct-announces-private-placement-1798424/",
+      "src": "insidermonkey.com",
+      "date": "20260709T110000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Here Why Canaan ( CAN ) is Among the 8 Best Crypto Penny Stocks to Buy Now",
+      "url": "https://www.insidermonkey.com/blog/heres-why-canaan-can-is-among-the-8-best-crypto-penny-stocks-to-buy-now-1798423/",
+      "src": "insidermonkey.com",
+      "date": "20260709T110000Z",
+      "sent": "pos"
     }
   ],
-  "ts": 1783504489536,
+  "ts": 1783630957347,
   "source": "GDELT",
-  "_updatedMs": 1783504489536
+  "_updatedMs": 1783630957347
 }
