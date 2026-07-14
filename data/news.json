@@ -1,6 +1,55 @@
 {
   "items": [
     {
+      "headline": "Bitcoin Hits $64 , 000 , Ethereum Gains 5 % on Ice - Cold Inflation Print : What Is Happening ? ",
+      "url": "https://www.benzinga.com/crypto/cryptocurrency/26/07/60447127/bitcoin-hits-64000-ethereum-gains-5-on-ice-cold-inflation-print-what-is-happening",
+      "src": "benzinga.com",
+      "date": "20260714T174500Z",
+      "sent": "pos"
+    },
+    {
+      "headline": "Michael van de Poppe Says Bitcoin Will Hit $70K in Two Weeks",
+      "url": "https://memeburn.com/bitcoin-price-prediction-70k-2026/",
+      "src": "memeburn.com",
+      "date": "20260714T160000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "CleanSpark Signs Data Centre Lease Worth $6 . 6 Billion",
+      "url": "https://finance.yahoo.com/technology/ai/articles/cleanspark-signs-data-centre-lease-143100018.html",
+      "src": "finance.yahoo.com",
+      "date": "20260714T150000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Interactive Brokers Group , Inc .: Interactive Brokers Builds Out One of the Most Comprehensive and Low - Cost Solutions for Accessing Cryptocurrency Available",
+      "url": "https://www.finanznachrichten.de/nachrichten-2026-07/69023480-interactive-brokers-group-inc-interactive-brokers-builds-out-one-of-the-most-comprehensive-and-low-cost-solutions-for-accessing-cryptocurrency-avai-004.htm",
+      "src": "finanznachrichten.de",
+      "date": "20260714T143000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Crypto consolidates after selloff as South Korea market meltdown drives crypto volumes higher",
+      "url": "https://www.coindesk.com/markets/2026/07/14/bitcoin-steadies-at-usd62-600-as-south-koreans-flee-stocks-rout-for-crypto",
+      "src": "coindesk.com",
+      "date": "20260714T131500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Wrapped Islamic Coin ( WISLM ) Achieves Self Reported Market Cap of $44 . 41 Million",
+      "url": "https://www.themarketsdaily.com/2026/07/14/wrapped-islamic-coin-wislm-achieves-self-reported-market-cap-of-44-41-million.html",
+      "src": "themarketsdaily.com",
+      "date": "20260714T114500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "$150 home hardware triggers massive $200 , 000 Bitcoin jackpot against 18 , 000 year odds",
+      "url": "https://www.bankingnews.gr/kriptonomismata/articles/888075/150-home-hardware-triggers-massive-200-000-bitcoin-jackpot-against-18-000-year-odds%20title=",
+      "src": "bankingnews.gr",
+      "date": "20260714T114500Z",
+      "sent": "pos"
+    },
+    {
       "headline": "Morphware Hits Self Reported Market Cap of $107 . 18 Thousand ( XMW ) ",
       "url": "https://www.tickerreport.com/banking-finance/13503424/morphware-hits-self-reported-market-cap-of-107-18-thousand-xmw.html",
       "src": "tickerreport.com",
@@ -15,13 +64,6 @@
       "sent": "neu"
     },
     {
-      "headline": "$150 home hardware triggers massive $200 , 000 Bitcoin jackpot against 18 , 000 year odds",
-      "url": "https://www.bankingnews.gr/kriptonomismata/articles/888075/150-home-hardware-triggers-massive-200-000-bitcoin-jackpot-against-18-000-year-odds",
-      "src": "bankingnews.gr",
-      "date": "20260714T114500Z",
-      "sent": "pos"
-    },
-    {
       "headline": "CRYPGPT Achieves Self Reported Market Cap of $8 . 23 Million ( CRYPGPT ) ",
       "url": "https://www.tickerreport.com/banking-finance/13503407/crypgpt-achieves-self-reported-market-cap-of-8-23-million-crypgpt.html",
       "src": "tickerreport.com",
@@ -31,13 +73,6 @@
     {
       "headline": "GameStop ( gamestop - coin . vip ) ( GME ) Price Tops $0 . 0000 on Exchanges",
       "url": "https://www.themarketsdaily.com/2026/07/14/gamestop-gamestop-coin-vip-gme-price-tops-0-0000-on-exchanges.html",
-      "src": "themarketsdaily.com",
-      "date": "20260714T114500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Wrapped Islamic Coin ( WISLM ) Achieves Self Reported Market Cap of $44 . 41 Million",
-      "url": "https://www.themarketsdaily.com/2026/07/14/wrapped-islamic-coin-wislm-achieves-self-reported-market-cap-of-44-41-million.html",
       "src": "themarketsdaily.com",
       "date": "20260714T114500Z",
       "sent": "neu"
@@ -55,44 +90,9 @@
       "src": "dailypolitical.com",
       "date": "20260714T113000Z",
       "sent": "neu"
-    },
-    {
-      "headline": "NEXPACE Price Tops $0 . 25 ( NXPC ) ",
-      "url": "https://www.dailypolitical.com/2026/07/14/nexpace-price-tops-0-25-nxpc.html",
-      "src": "dailypolitical.com",
-      "date": "20260714T113000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Bitcoin consolidates near $62K as US - Iran tensions and inflation fears keep investors cautious",
-      "url": "https://economictimes.indiatimes.com/markets/cryptocurrency/bitcoin-consolidates-near-62k-as-us-iran-tensions-and-inflation-fears-keep-investors-cautious/articleshow/132385801.cms",
-      "src": "economictimes.indiatimes.com",
-      "date": "20260714T091500Z",
-      "sent": "neg"
-    },
-    {
-      "headline": "Solo BTC miner makes $200 , 000 using $150 equipment",
-      "url": "https://www.coindesk.com/markets/2026/07/14/solo-btc-miner-makes-usd200-000-using-usd150-equipment",
-      "src": "coindesk.com",
-      "date": "20260714T083000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "BTC , ETH news : U . S . government moves $288 million in seized bitcoin , ether to Coinbase Prime",
-      "url": "https://www.coindesk.com/markets/2026/07/14/u-s-government-moves-usd288-million-in-seized-bitcoin-ether-to-coinbase-prime",
-      "src": "coindesk.com",
-      "date": "20260714T083000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Bitcoin , Ethereum , XRP , Dogecoin Dip as Trump Reinstates Strait of Hormuz Blockade : Analyst Says Whales  ",
-      "url": "https://www.benzinga.com/crypto/cryptocurrency/26/07/60432044/bitcoin-ethereum-xrp-and-dogecoin-dip-as-trump-reinstates-strait-of-hormuz-blockade",
-      "src": "benzinga.com",
-      "date": "20260714T023000Z",
-      "sent": "neu"
     }
   ],
-  "ts": 1784030933954,
+  "ts": 1784054269151,
   "source": "GDELT",
-  "_updatedMs": 1784030933954
+  "_updatedMs": 1784054269151
 }
