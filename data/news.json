@@ -1,6 +1,20 @@
 {
   "items": [
     {
+      "headline": "Bitcoin , Ethereum , XRP , Dogecoin Dip as Trump Reinstates Strait of Hormuz Blockade : Analyst Says Whales  ",
+      "url": "https://www.benzinga.com/crypto/cryptocurrency/26/07/60432044/bitcoin-ethereum-xrp-and-dogecoin-dip-as-trump-reinstates-strait-of-hormuz-blockade",
+      "src": "benzinga.com",
+      "date": "20260714T023000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "If you invested just $100 a month in Bitcoin since 2015 , here what it worth today",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/invested-just-100-month-bitcoin-232400263.html",
+      "src": "finance.yahoo.com",
+      "date": "20260714T000000Z",
+      "sent": "neu"
+    },
+    {
       "headline": "If You Perfectly Bought Every Bitcoin Bottom , You ( Probably ) Still Messed Up",
       "url": "https://www.benzinga.com/crypto/cryptocurrency/26/07/60429455/if-you-perfectly-bought-every-bitcoin-bottom-you-probably-still-messed-up",
       "src": "benzinga.com",
@@ -90,23 +104,9 @@
       "src": "zerohedge.com",
       "date": "20260713T163000Z",
       "sent": "neu"
-    },
-    {
-      "headline": "Bitcoin Whale Moves $188M for First Time in 7 Years",
-      "url": "https://cointelegraph.com/news/bitcoin-whale-moves-188m-first-7-years",
-      "src": "cointelegraph.com",
-      "date": "20260713T151500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Bitcoin and ethereum prices today , Monday , July 13 , 2026 : Strong price openings backtracking this morning",
-      "url": "https://finance.yahoo.com/personal-finance/investing/article/bitcoin-and-ethereum-prices-today-monday-july-13-2026-strong-price-openings-backtracking-this-morning-133042462.html",
-      "src": "finance.yahoo.com",
-      "date": "20260713T140000Z",
-      "sent": "neu"
     }
   ],
-  "ts": 1783985298912,
+  "ts": 1784018104479,
   "source": "GDELT",
-  "_updatedMs": 1783985298912
+  "_updatedMs": 1784018104479
 }
