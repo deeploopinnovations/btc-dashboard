@@ -1,6 +1,13 @@
 {
   "items": [
     {
+      "headline": "Bitcoin Slides With SK Hynix Rout : Is $60K Next for BTC Prices ? ",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/bitcoin-slides-sk-hynix-rout-112749344.html",
+      "src": "finance.yahoo.com",
+      "date": "20260714T201500Z",
+      "sent": "neg"
+    },
+    {
       "headline": "Bitcoin Hits $64 , 000 , Ethereum Gains 5 % on Ice - Cold Inflation Print : What Is Happening ? ",
       "url": "https://www.benzinga.com/crypto/cryptocurrency/26/07/60447127/bitcoin-hits-64000-ethereum-gains-5-on-ice-cold-inflation-print-what-is-happening",
       "src": "benzinga.com",
@@ -92,7 +99,7 @@
       "sent": "neu"
     }
   ],
-  "ts": 1784054269151,
+  "ts": 1784064605884,
   "source": "GDELT",
-  "_updatedMs": 1784054269151
+  "_updatedMs": 1784064605884
 }
