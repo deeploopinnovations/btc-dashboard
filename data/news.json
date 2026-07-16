@@ -1,6 +1,13 @@
 {
   "items": [
     {
+      "headline": "Bitcoin Holds $64 , 000 as Analyst Says Market Low Is  Months , Not Week Away",
+      "url": "https://www.benzinga.com/crypto/cryptocurrency/26/07/60514824/bitcoin-holds-64000-as-analyst-says-market-low-is-months-not-weeks-away",
+      "src": "benzinga.com",
+      "date": "20260716T221500Z",
+      "sent": "neu"
+    },
+    {
       "headline": "Crypto Analysts Flag Bottom Signals As Ethereum Breaks $1 , 900 And Stocks Rally On Soft Inflation Data",
       "url": "https://www.foreignpolicyjournal.com/2026/07/16/crypto-analysts-flag-bottom-signals-as-ethereum-breaks-1900-and-stocks-rally-on-soft-inflation-data/",
       "src": "foreignpolicyjournal.com",
@@ -97,16 +104,9 @@
       "src": "benzinga.com",
       "date": "20260716T124500Z",
       "sent": "pos"
-    },
-    {
-      "headline": "Ethereum ( ETH ) Price Prediction : Can ETH Clear $2 , 000 as Bullish Breakout Signals Gather Pace ? ",
-      "url": "https://bravenewcoin.com/insights/ethereum-eth-price-prediction-can-eth-clear-2000-as-bullish-breakout-signals-gather-pace",
-      "src": "bravenewcoin.com",
-      "date": "20260716T110000Z",
-      "sent": "pos"
     }
   ],
-  "ts": 1784237533158,
+  "ts": 1784242508498,
   "source": "GDELT",
-  "_updatedMs": 1784237533158
+  "_updatedMs": 1784242508498
 }
