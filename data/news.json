@@ -1,6 +1,83 @@
 {
   "items": [
     {
+      "headline": "Grayscale Covered Call Play : Monetizing Bitcoin Range for 22 % Annualized Yield",
+      "url": "http://www.econotimes.com/Grayscales-Covered-Call-Play-Monetizing-Bitcoins-Range-for-22-Annualized-Yield-1747039",
+      "src": "econotimes.com",
+      "date": "20260717T071500Z",
+      "sent": "neg"
+    },
+    {
+      "headline": "Wall Street Goes All - In on Stocks , So Why Not Bitcoin ? ",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/wall-street-goes-stocks-why-062318930.html",
+      "src": "finance.yahoo.com",
+      "date": "20260717T070000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Ethereum Leads Bitcoin Again . Is Crypto Finally Turning the Corner ? ",
+      "url": "https://www.actionforex.com/action-insight/market-overview/647526-ethereum-leads-bitcoin-again-is-crypto-finally-turning-the-corner/",
+      "src": "actionforex.com",
+      "date": "20260717T053000Z",
+      "sent": "pos"
+    },
+    {
+      "headline": "Half - time : What the first six months of 2026 revealed about the traders who were prepared and those who werent",
+      "url": "https://bravenewcoin.com/sponsored/article/half-time-what-the-first-six-months-of-2026-revealed-about-the-traders-who-were-prepared-and-those-who-werent",
+      "src": "bravenewcoin.com",
+      "date": "20260717T053000Z",
+      "sent": "neg"
+    },
+    {
+      "headline": "The $3 . 5 Billion Reason TeraWulf Stock Is in Focus Today",
+      "url": "https://finance.yahoo.com/markets/stocks/articles/3-5-billion-reason-terawulf-172601927.html",
+      "src": "finance.yahoo.com",
+      "date": "20260717T043000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Bitcoin Giant Strategy Isnt Panicking Unless BTC Crashes to $10K : CEO",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/bitcoin-giant-strategy-isnt-panicking-155701029.html",
+      "src": "finance.yahoo.com",
+      "date": "20260717T043000Z",
+      "sent": "neg"
+    },
+    {
+      "headline": "Bitcoin , Ethereum , XRP , Dogecoin Slide as  Fear  Sentiment Prevails : Analyst Says BTC  Clear Breakthrou",
+      "url": "https://www.benzinga.com/crypto/cryptocurrency/26/07/60515898/bitcoin-ethereum-xrp-dogecoin-slide-as-fear-sentiment-prevails",
+      "src": "benzinga.com",
+      "date": "20260717T024500Z",
+      "sent": "neg"
+    },
+    {
+      "headline": "Morning Minute : Crypto Rips on Cool CPI",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/morning-minute-crypto-rips-cool-122645370.html",
+      "src": "finance.yahoo.com",
+      "date": "20260717T004500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "JPMorgan has blunt response to MicroStrategy cash reserve boost",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/jpmorgan-blunt-response-microstrategys-cash-235704224.html",
+      "src": "finance.yahoo.com",
+      "date": "20260717T003000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "US PPI Lands Soft , Fed Rate Hike Odds Lower as Bitcoin Price Reclaims $65 , 000",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/us-ppi-lands-soft-fed-161120575.html",
+      "src": "finance.yahoo.com",
+      "date": "20260717T000000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Crypto Market Today , July 16 : Bitcoin Pulls Back as Risk Aversion Weighs on Markets",
+      "url": "https://www.fool.com/coverage/stock-market-today/2026/07/16/crypto-market-today-july-16-bitcoin-pulls-back-as-risk-aversion-weighs-on-markets/?source=iedfolrf0000001",
+      "src": "fool.com",
+      "date": "20260716T231500Z",
+      "sent": "neg"
+    },
+    {
       "headline": "Bitcoin Holds $64 , 000 as Analyst Says Market Low Is  Months , Not Week Away",
       "url": "https://www.benzinga.com/crypto/cryptocurrency/26/07/60514824/bitcoin-holds-64000-as-analyst-says-market-low-is-months-not-weeks-away",
       "src": "benzinga.com",
@@ -27,86 +104,9 @@
       "src": "finance.yahoo.com",
       "date": "20260716T194500Z",
       "sent": "pos"
-    },
-    {
-      "headline": "Dormant Bitcoin wallet moves $383 million after 8 years",
-      "url": "https://finance.yahoo.com/markets/crypto/articles/dormant-bitcoin-wallet-moves-383-174646831.html",
-      "src": "finance.yahoo.com",
-      "date": "20260716T181500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Stanford Study Estimates $8 . 2 Million From Suspected Polymarket Bitcoin Trading Activity",
-      "url": "https://finance.yahoo.com/markets/crypto/articles/stanford-study-estimates-8-2-173529133.html",
-      "src": "finance.yahoo.com",
-      "date": "20260716T180000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Baystreet . ca - Options Traders Lower Their Expectations For Bitcoin",
-      "url": "http://baystreet.ca/cryptonews/1349/Options-Traders-Lower-Their-Expectations-For-Bitcoin",
-      "src": "baystreet.ca",
-      "date": "20260716T174500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Deflationary Money Hits Different : Losing Half Its Price And Winning Anyway",
-      "url": "https://www.zerohedge.com/crypto/deflationary-money-hits-different-losing-half-its-price-and-winning-anyway",
-      "src": "zerohedge.com",
-      "date": "20260716T173000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Bitcoin Consolidates Near $64K as Infrastructure Demand Propels Bitcoin Hyper Presale past $32 . 9M",
-      "url": "https://partners.coinspeaker.com/bitcoin-consolidates-near-64k-as-infrastructure-demand-propels-hyper-presale-past-329m",
-      "src": "partners.coinspeaker.com",
-      "date": "20260716T163000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Cryptocurrencies : Bitcoin Sits Just Below $65K",
-      "url": "https://www.etftrends.com/crypto-content-hub/cryptocurrencies-bitcoin-below-65k/",
-      "src": "etftrends.com",
-      "date": "20260716T163000Z",
-      "sent": "neg"
-    },
-    {
-      "headline": "Bitcoin  May Be at a Turning Point , Could Surge Into Year - End , Bitwise Matt Hougan Says",
-      "url": "https://www.benzinga.com/crypto/cryptocurrency/26/07/60500553/bitcoin-may-be-at-a-turning-point-could-surge-into-year-end-bitwises-matt-hougan-says",
-      "src": "benzinga.com",
-      "date": "20260716T153000Z",
-      "sent": "pos"
-    },
-    {
-      "headline": "Gambling On Random Pokémon Cards : Onchain Gagcha Hits Record Highs",
-      "url": "https://cointelegraph.com/features/pokemon-cards-as-rwas-gacha-spending-hits-records-as-crypto-sinks",
-      "src": "cointelegraph.com",
-      "date": "20260716T141500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Cryptos Slip As Inflation - led Bounce Triggers Profit - taking",
-      "url": "https://www.rttnews.com/3667622/cryptos-slip-as-inflation-led-bounce-triggers-profit-taking.aspx",
-      "src": "rttnews.com",
-      "date": "20260716T134500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Bitcoin and ethereum prices today , Thursday , July 16 , 2026 : Prices rise , ethereum becomes  increasingly compelling  ",
-      "url": "https://finance.yahoo.com/personal-finance/investing/article/bitcoin-and-ethereum-prices-today-thursday-july-16-2026-prices-rise-ethereum-becomes-increasingly-compelling-124218108.html",
-      "src": "finance.yahoo.com",
-      "date": "20260716T131500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Could the Fed and Cooling Inflation Kickstart a Bigger Bitcoin Rally in July ? ",
-      "url": "https://www.benzinga.com/crypto/cryptocurrency/26/07/60492720/could-the-fed-and-cooling-inflation-kickstart-a-bigger-bitcoin-rally-in-july",
-      "src": "benzinga.com",
-      "date": "20260716T124500Z",
-      "sent": "pos"
     }
   ],
-  "ts": 1784242508498,
+  "ts": 1784275510067,
   "source": "GDELT",
-  "_updatedMs": 1784242508498
+  "_updatedMs": 1784275510068
 }
