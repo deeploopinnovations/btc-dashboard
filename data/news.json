@@ -1,6 +1,48 @@
 {
   "items": [
     {
+      "headline": "Veritaseum ( VERI ) Price Up 3 . 8 % Over Last Week",
+      "url": "https://www.themarketsdaily.com/2026/07/17/veritaseum-veri-price-up-3-8-over-last-week.html",
+      "src": "themarketsdaily.com",
+      "date": "20260717T113000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Bitcoin falls nearly 2 % to $63 , 000 as geopolitical tensions weigh on crypto markets",
+      "url": "https://economictimes.indiatimes.com/markets/cryptocurrency/crypto-news/bitcoin-falls-nearly-2-to-63000-as-geopolitical-tensions-weigh-on-crypto-markets/articleshow/132458432.cms",
+      "src": "economictimes.indiatimes.com",
+      "date": "20260717T103000Z",
+      "sent": "neg"
+    },
+    {
+      "headline": "Bitcoin slips below $63 . 5K ahead of U . S . CLARITY Act hearing",
+      "url": "https://arynews.tv/bitcoin-slips-below-63-5k-ahead-of-u-s-clarity-act-hearing",
+      "src": "arynews.tv",
+      "date": "20260717T090000Z",
+      "sent": "neg"
+    },
+    {
+      "headline": "Muğlada kara para çetesini kerten iki villa | 99 milyar dolarlık trafik nasıl deşifre oldu",
+      "url": "https://www.odatv.com/guncel/muglada-kara-para-cetesini-cokerten-iki-villa-99-milyar-dolarlik-trafik-nasil-desifre-oldu-120154985",
+      "src": "odatv.com",
+      "date": "20260717T083000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Bitcoin Rises Above $65 , 000 As Inflation Worries Ease",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/bitcoin-rises-above-65-000-215100262.html",
+      "src": "finance.yahoo.com",
+      "date": "20260717T083000Z",
+      "sent": "pos"
+    },
+    {
+      "headline": "Calamos Advisors LLC Acquires New Shares in iShares Bitcoin Trust ETF $IBIT",
+      "url": "https://www.tickerreport.com/banking-finance/13506375/calamos-advisors-llc-acquires-new-shares-in-ishares-bitcoin-trust-etf-ibit.html",
+      "src": "tickerreport.com",
+      "date": "20260717T081500Z",
+      "sent": "neu"
+    },
+    {
       "headline": "Grayscale Covered Call Play : Monetizing Bitcoin Range for 22 % Annualized Yield",
       "url": "http://www.econotimes.com/Grayscales-Covered-Call-Play-Monetizing-Bitcoins-Range-for-22-Annualized-Yield-1747039",
       "src": "econotimes.com",
@@ -62,51 +104,9 @@
       "src": "finance.yahoo.com",
       "date": "20260717T003000Z",
       "sent": "neu"
-    },
-    {
-      "headline": "US PPI Lands Soft , Fed Rate Hike Odds Lower as Bitcoin Price Reclaims $65 , 000",
-      "url": "https://finance.yahoo.com/markets/crypto/articles/us-ppi-lands-soft-fed-161120575.html",
-      "src": "finance.yahoo.com",
-      "date": "20260717T000000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Crypto Market Today , July 16 : Bitcoin Pulls Back as Risk Aversion Weighs on Markets",
-      "url": "https://www.fool.com/coverage/stock-market-today/2026/07/16/crypto-market-today-july-16-bitcoin-pulls-back-as-risk-aversion-weighs-on-markets/?source=iedfolrf0000001",
-      "src": "fool.com",
-      "date": "20260716T231500Z",
-      "sent": "neg"
-    },
-    {
-      "headline": "Bitcoin Holds $64 , 000 as Analyst Says Market Low Is  Months , Not Week Away",
-      "url": "https://www.benzinga.com/crypto/cryptocurrency/26/07/60514824/bitcoin-holds-64000-as-analyst-says-market-low-is-months-not-weeks-away",
-      "src": "benzinga.com",
-      "date": "20260716T221500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Crypto Analysts Flag Bottom Signals As Ethereum Breaks $1 , 900 And Stocks Rally On Soft Inflation Data",
-      "url": "https://www.foreignpolicyjournal.com/2026/07/16/crypto-analysts-flag-bottom-signals-as-ethereum-breaks-1900-and-stocks-rally-on-soft-inflation-data/",
-      "src": "foreignpolicyjournal.com",
-      "date": "20260716T201500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Bitcoin Holds $64 , 000 While Ethereum , XRP , Dogecoin Slip 2 % as Geopolitical Tensions Escalate",
-      "url": "https://www.benzinga.com/crypto/cryptocurrency/26/07/60510756/bitcoin-holds-64000-while-ethereum-xrp-dogecoin-slip-2-as-geopolitical-tensions-escalate",
-      "src": "benzinga.com",
-      "date": "20260716T201500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Federal Reserve Signals Good News for Crypto : 2 Coins Worth Buying Now",
-      "url": "https://finance.yahoo.com/markets/crypto/articles/federal-signals-good-news-crypto-092000713.html",
-      "src": "finance.yahoo.com",
-      "date": "20260716T194500Z",
-      "sent": "pos"
     }
   ],
-  "ts": 1784275510067,
+  "ts": 1784289083118,
   "source": "GDELT",
-  "_updatedMs": 1784275510068
+  "_updatedMs": 1784289083118
 }
