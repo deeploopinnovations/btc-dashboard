@@ -4,9 +4,9 @@
   "sourceTs": "2026-07-04 11:00:26",
   "sourceMs": 1783162826000,
   "tz": "UTC",
-  "ageHrs": 333.29287666666664,
+  "ageHrs": 334.90608777777777,
   "freshness": "very-stale",
-  "fetchedAt": 1784362680356,
+  "fetchedAt": 1784368487916,
   "proxy": "gh-actions",
-  "_updatedMs": 1784362680356
+  "_updatedMs": 1784368487916
 }
