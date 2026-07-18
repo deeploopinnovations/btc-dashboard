@@ -1,6 +1,13 @@
 {
   "items": [
     {
+      "headline": "$2 . 5 billion in BTC call spreads target $72 , 000 by the month end when the Fed meets",
+      "url": "https://www.coindesk.com/markets/2026/07/18/massive-bitcoin-call-spreads-target-usd72-000-by-month-end-right-when-the-fed-meets",
+      "src": "coindesk.com",
+      "date": "20260718T164500Z",
+      "sent": "neu"
+    },
+    {
       "headline": "Pi Network shows grit as Bitcoin nears $64K",
       "url": "https://arynews.tv/pi-network-shows-grit-as-bitcoin-nears-64k",
       "src": "arynews.tv",
@@ -97,16 +104,9 @@
       "src": "cointelegraph.com",
       "date": "20260717T180000Z",
       "sent": "neg"
-    },
-    {
-      "headline": "Baystreet . ca - Crypto Dragged Lower As Technology Stocks Retreat",
-      "url": "http://baystreet.ca/cryptonews/1350/Crypto-Dragged-Lower-As-Technology-Stocks-Retreat",
-      "src": "baystreet.ca",
-      "date": "20260717T164500Z",
-      "sent": "neu"
     }
   ],
-  "ts": 1784393705363,
+  "ts": 1784401182024,
   "source": "GDELT",
-  "_updatedMs": 1784393705363
+  "_updatedMs": 1784401182024
 }
