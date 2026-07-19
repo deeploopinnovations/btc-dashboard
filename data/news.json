@@ -1,6 +1,20 @@
 {
   "items": [
     {
+      "headline": "Azalan ödül , büyüyen risk , işlem hacmi artmalı ! ",
+      "url": "https://www.dunya.com/kose-yazisi/azalan-odul-buyuyen-risk-islem-hacmi-artmali/832835",
+      "src": "dunya.com",
+      "date": "20260719T223000Z",
+      "sent": "neg"
+    },
+    {
+      "headline": "MicroStrategy CEO : Wall Street Biggest Banks are Locked in a Tight Bitcoin Race",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/microstrategy-ceo-wall-street-biggest-203000673.html",
+      "src": "finance.yahoo.com",
+      "date": "20260719T211500Z",
+      "sent": "neu"
+    },
+    {
       "headline": "XRP Price Prediction : Inverse Head - and - Shoulders Setup Puts $1 . 20 Resistance in Focus",
       "url": "https://bravenewcoin.com/insights/xrp-price-prediction-inverse-head-and-shoulders-setup-puts-1-20-resistance-in-focus",
       "src": "bravenewcoin.com",
@@ -90,23 +104,9 @@
       "src": "dailypolitical.com",
       "date": "20260719T154500Z",
       "sent": "neu"
-    },
-    {
-      "headline": "Syscoin Self Reported Market Capitalization Hits $2 . 48 Million ( SYS ) ",
-      "url": "https://www.themarketsdaily.com/2026/07/19/syscoin-self-reported-market-capitalization-hits-2-48-million-sys.html",
-      "src": "themarketsdaily.com",
-      "date": "20260719T154500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "NEAR Protocol ( NEAR ) Self Reported Market Capitalization Achieves $2 . 33 Billion",
-      "url": "https://www.dailypolitical.com/2026/07/19/near-protocol-near-self-reported-market-capitalization-achieves-2-33-billion.html",
-      "src": "dailypolitical.com",
-      "date": "20260719T154500Z",
-      "sent": "neu"
     }
   ],
-  "ts": 1784496200483,
+  "ts": 1784503702153,
   "source": "GDELT",
-  "_updatedMs": 1784496200483
+  "_updatedMs": 1784503702153
 }
