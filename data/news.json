@@ -1,6 +1,27 @@
 {
   "items": [
     {
+      "headline": "Coinbase CEO Brian Armstrong Says $60 , 000 Is the Bottom for Bitcoin . Where Does BTC Go From Here ? ",
+      "url": "https://www.fool.com/investing/2026/07/19/coinbase-ceo-brian-armstrong-says-60000-is-the-bot/?source=iedfolrf0000001",
+      "src": "fool.com",
+      "date": "20260719T050000Z",
+      "sent": "neg"
+    },
+    {
+      "headline": "The White House Is Renewing Its Push for a Strategic Bitcoin Reserve . Here What That Could Mean for Bitcoin . ",
+      "url": "https://www.fool.com/investing/2026/07/18/the-white-house-is-renewing-its-push-for-a-strateg/?source=iedfolrf0000001",
+      "src": "fool.com",
+      "date": "20260719T050000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Bitcoin ( BTC ) Price Prediction : Dormant Whale Activity Sparks Volatility Alert as BTC Hovers Near $64K",
+      "url": "https://bravenewcoin.com/insights/bitcoin-btc-price-prediction-dormant-whale-activity-sparks-volatility-alert-as-btc-hovers-near-64k",
+      "src": "bravenewcoin.com",
+      "date": "20260718T190000Z",
+      "sent": "neg"
+    },
+    {
       "headline": "$2 . 5 billion in BTC call spreads target $72 , 000 by the month end when the Fed meets",
       "url": "https://www.coindesk.com/markets/2026/07/18/massive-bitcoin-call-spreads-target-usd72-000-by-month-end-right-when-the-fed-meets",
       "src": "coindesk.com",
@@ -83,30 +104,9 @@
       "src": "benzinga.com",
       "date": "20260717T204500Z",
       "sent": "neg"
-    },
-    {
-      "headline": "BTCC Exchange Q2 2026 Growth Report : TradFi Volumes Triple , 12M Users Reached as Exchange Marks 15 Years",
-      "url": "https://bravenewcoin.com/press-release/btcc-exchange-q2-2026-growth-report-tradfi-volumes-triple-12m-users-reached-as-exchange-marks-15-years",
-      "src": "bravenewcoin.com",
-      "date": "20260717T190000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Strategy Became a Symbol of Dot - Com Crash : Could History Repeat ? ",
-      "url": "https://cointelegraph.com/magazine/from-dot-com-bust-to-bitcoin-king-has-michael-saylor-rewritten-his-legacy",
-      "src": "cointelegraph.com",
-      "date": "20260717T180000Z",
-      "sent": "neg"
-    },
-    {
-      "headline": "Bitcoin Drops Back to Its Local Range as Bear - Market History Repeats",
-      "url": "https://cointelegraph.com/markets/bitcoin-price-sags-under-625k-as-iran-strikes-add-to-us-stocks-pressure",
-      "src": "cointelegraph.com",
-      "date": "20260717T180000Z",
-      "sent": "neg"
     }
   ],
-  "ts": 1784401182024,
+  "ts": 1784458377141,
   "source": "GDELT",
-  "_updatedMs": 1784401182024
+  "_updatedMs": 1784458377141
 }
