@@ -1,6 +1,34 @@
 {
   "items": [
     {
+      "headline": "XRP Price Prediction : Inverse Head - and - Shoulders Setup Puts $1 . 20 Resistance in Focus",
+      "url": "https://bravenewcoin.com/insights/xrp-price-prediction-inverse-head-and-shoulders-setup-puts-1-20-resistance-in-focus",
+      "src": "bravenewcoin.com",
+      "date": "20260719T191500Z",
+      "sent": "neg"
+    },
+    {
+      "headline": "The CLARITY Act Could Be in Trouble . This is the Only Crypto Im Buying Right Now . ",
+      "url": "https://www.fool.com/investing/2026/07/19/the-clarity-act-could-be-in-trouble-this-is-the-on/",
+      "src": "fool.com",
+      "date": "20260719T174500Z",
+      "sent": "pos"
+    },
+    {
+      "headline": "Strategy Michael Saylor Pounds Away at  Bad Idea  BIP - 110",
+      "url": "https://cointelegraph.com/news/saylor-turns-up-heat-with-110-reasons-why-bip-110-is-a-bad-idea",
+      "src": "cointelegraph.com",
+      "date": "20260719T171500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Pax Dollar ( USDP ) 1 - Day Volume Tops $671 . 56 Thousand",
+      "url": "https://www.themarketsdaily.com/2026/07/19/pax-dollar-usdp-1-day-volume-tops-671-56-thousand.html",
+      "src": "themarketsdaily.com",
+      "date": "20260719T163000Z",
+      "sent": "neu"
+    },
+    {
       "headline": "WhiteCoin ( XWC ) One Day Trading Volume Reaches $637 . 28 Thousand",
       "url": "https://www.tickerreport.com/banking-finance/13509021/whitecoin-xwc-one-day-trading-volume-reaches-637-28-thousand.html",
       "src": "tickerreport.com",
@@ -11,13 +39,6 @@
       "headline": "Vulcan Forged PYR ( PYR ) Self Reported Market Cap Hits $3 . 22 Million",
       "url": "https://www.tickerreport.com/banking-finance/13509020/vulcan-forged-pyr-pyr-self-reported-market-cap-hits-3-22-million.html",
       "src": "tickerreport.com",
-      "date": "20260719T163000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Pax Dollar ( USDP ) 1 - Day Volume Tops $671 . 56 Thousand",
-      "url": "https://www.themarketsdaily.com/2026/07/19/pax-dollar-usdp-1-day-volume-tops-671-56-thousand.html",
-      "src": "themarketsdaily.com",
       "date": "20260719T163000Z",
       "sent": "neu"
     },
@@ -83,30 +104,9 @@
       "src": "dailypolitical.com",
       "date": "20260719T154500Z",
       "sent": "neu"
-    },
-    {
-      "headline": "Uniswap Price Reaches $3 . 52 on Exchanges ( UNI ) ",
-      "url": "https://www.tickerreport.com/banking-finance/13509014/uniswap-price-reaches-3-52-on-exchanges-uni.html",
-      "src": "tickerreport.com",
-      "date": "20260719T154500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Chromia Price Down 4 . 3 % This Week ( CHR ) ",
-      "url": "https://www.themarketsdaily.com/2026/07/19/chromia-price-down-4-3-this-week-chr.html",
-      "src": "themarketsdaily.com",
-      "date": "20260719T154500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "iExec RLC Trading Down 5 % Over Last 7 Days ( RLC ) ",
-      "url": "https://www.tickerreport.com/banking-finance/13509017/iexec-rlc-trading-down-5-over-last-7-days-rlc.html",
-      "src": "tickerreport.com",
-      "date": "20260719T154500Z",
-      "sent": "neu"
     }
   ],
-  "ts": 1784480143996,
+  "ts": 1784492570806,
   "source": "GDELT",
-  "_updatedMs": 1784480143996
+  "_updatedMs": 1784492570806
 }
