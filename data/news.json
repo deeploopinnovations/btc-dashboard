@@ -1,6 +1,62 @@
 {
   "items": [
     {
+      "headline": "BlackRock Larry Fink Says Crypto Washout Is Over : Is Bitcoin Stabilizing ? ",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/blackrock-larry-fink-says-crypto-171713939.html",
+      "src": "finance.yahoo.com",
+      "date": "20260720T174500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Market Open : Chip Stocks Rebound , Alphabet in Focus as TSX Edges Higher | July 20th | 2026 - 07 - 20 | Investing News",
+      "url": "https://stockhouse.com/news/market-updates/2026/07/20/market-open-chip-stocks-rebound-alphabet-focus-as-tsx-edges-higher-july-20th",
+      "src": "stockhouse.com",
+      "date": "20260720T171500Z",
+      "sent": "pos"
+    },
+    {
+      "headline": "Holdings Following EBT Distribution | Company Announcement",
+      "url": "https://www.investegate.co.uk/announcement/rns/london-btc-company-limited--btc/holdings-following-ebt-distribution/9678114",
+      "src": "investegate.co.uk",
+      "date": "20260720T170000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "MicroStrategy again sells company shares to boost cash reserve",
+      "url": "https://finance.yahoo.com/markets/stocks/articles/microstrategy-again-sells-company-shares-155815776.html",
+      "src": "finance.yahoo.com",
+      "date": "20260720T164500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "What Happens When the Largest Bitcoin ETF Sells 100 , 000 BTC ? - SPDR Gold Shares ( ARCA : GLD ), iShares Bitco",
+      "url": "https://www.benzinga.com/etfs/specialty-etfs/26/07/60555788/what-happens-when-the-largest-bitcoin-etf-sells-100000-btc",
+      "src": "benzinga.com",
+      "date": "20260720T161500Z",
+      "sent": "neg"
+    },
+    {
+      "headline": "Bitcoin analysis today",
+      "url": "https://investinglive.com:443/cryptocurrency/bitcoin-analysis-today",
+      "src": "investinglive.com",
+      "date": "20260720T161500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Bitcoin and ethereum prices today , Monday , July 20 , 2026 : Crypto prices mixed as second half 2026 outlooks conflict",
+      "url": "https://finance.yahoo.com/personal-finance/investing/article/bitcoin-and-ethereum-prices-today-monday-july-20-2026-crypto-prices-mixed-as-second-half-2026-outlooks-conflict-151956982.html",
+      "src": "finance.yahoo.com",
+      "date": "20260720T154500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Bitcoin L2 Innovation Draws $32 . 97M as Bitcoin Hyper Presale Nears Next Milestone",
+      "url": "https://partners.coinspeaker.com/bitcoin-l2-innovation-draws-3297m-as-hyper-presale-nears-next-milestone",
+      "src": "partners.coinspeaker.com",
+      "date": "20260720T154500Z",
+      "sent": "neu"
+    },
+    {
       "headline": "Strategy stock rises after the company raises $263 million without selling bitcoin",
       "url": "https://finance.yahoo.com/markets/stocks/article/strategy-stock-rises-after-the-company-raises-263-million-without-selling-bitcoin-140454002.html",
       "src": "finance.yahoo.com",
@@ -48,58 +104,9 @@
       "src": "bitacora.com.uy",
       "date": "20260720T073000Z",
       "sent": "neg"
-    },
-    {
-      "headline": "Michael Saylor Says Bitcoin Proposed BIP - 110 Upgrade Is  More Dangerous Than the Condition  ",
-      "url": "https://www.benzinga.com/crypto/cryptocurrency/26/07/60543662/michael-saylor-says-bitcoins-proposed-bip-110-upgrade-is-more-dangerous-than-the-condition",
-      "src": "benzinga.com",
-      "date": "20260720T064500Z",
-      "sent": "pos"
-    },
-    {
-      "headline": "Will US Get CLARITY This Week ? Bitcoin New $80K Target : Hodler Digest",
-      "url": "https://cointelegraph.com/magazine/will-the-us-get-finally-clarity-this-week-bitcoin-80k-hodlers-digest",
-      "src": "cointelegraph.com",
-      "date": "20260720T023000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Azalan ödül , büyüyen risk , işlem hacmi artmalı ! ",
-      "url": "https://www.dunya.com/kose-yazisi/azalan-odul-buyuyen-risk-islem-hacmi-artmali/832835",
-      "src": "dunya.com",
-      "date": "20260719T223000Z",
-      "sent": "neg"
-    },
-    {
-      "headline": "MicroStrategy CEO : Wall Street Biggest Banks are Locked in a Tight Bitcoin Race",
-      "url": "https://finance.yahoo.com/markets/crypto/articles/microstrategy-ceo-wall-street-biggest-203000673.html",
-      "src": "finance.yahoo.com",
-      "date": "20260719T211500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "XRP Price Prediction : Inverse Head - and - Shoulders Setup Puts $1 . 20 Resistance in Focus",
-      "url": "https://bravenewcoin.com/insights/xrp-price-prediction-inverse-head-and-shoulders-setup-puts-1-20-resistance-in-focus",
-      "src": "bravenewcoin.com",
-      "date": "20260719T191500Z",
-      "sent": "neg"
-    },
-    {
-      "headline": "The CLARITY Act Could Be in Trouble . This is the Only Crypto Im Buying Right Now . ",
-      "url": "https://www.fool.com/investing/2026/07/19/the-clarity-act-could-be-in-trouble-this-is-the-on/",
-      "src": "fool.com",
-      "date": "20260719T174500Z",
-      "sent": "pos"
-    },
-    {
-      "headline": "Strategy Michael Saylor Pounds Away at  Bad Idea  BIP - 110",
-      "url": "https://cointelegraph.com/news/saylor-turns-up-heat-with-110-reasons-why-bip-110-is-a-bad-idea",
-      "src": "cointelegraph.com",
-      "date": "20260719T171500Z",
-      "sent": "neu"
     }
   ],
-  "ts": 1784561262320,
+  "ts": 1784573630271,
   "source": "GDELT",
-  "_updatedMs": 1784561262320
+  "_updatedMs": 1784573630271
 }
