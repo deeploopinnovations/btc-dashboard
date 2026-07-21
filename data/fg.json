@@ -1,8 +1,8 @@
 {
-  "value": 29,
-  "label": "Fear",
-  "prev": 28,
-  "srcTs": 1784505600000,
-  "ts": 1784591960122,
-  "_updatedMs": 1784591960122
+  "value": 25,
+  "label": "Extreme Fear",
+  "prev": 29,
+  "srcTs": 1784592000000,
+  "ts": 1784604747916,
+  "_updatedMs": 1784604747916
 }
