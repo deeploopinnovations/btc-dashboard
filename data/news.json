@@ -1,6 +1,76 @@
 {
   "items": [
     {
+      "headline": "Chip Stocks Retreat As Yemen Houthis Enter The War ; Alphabet , Tesla Earnings Ahead - United States Oil",
+      "url": "https://www.benzinga.com/Opinion/26/07/60622342/chip-stocks-retreat-as-yemens-houthis-enter-the-war-alphabet-tesla-earnings-ahead",
+      "src": "benzinga.com",
+      "date": "20260722T221500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Tesla holds bitcoin steady , reports $112M impairment loss",
+      "url": "https://www.coindesk.com/markets/2026/07/22/tesla-holds-bitcoin-steady-reports-usd112m-impairment-loss",
+      "src": "coindesk.com",
+      "date": "20260722T213000Z",
+      "sent": "neg"
+    },
+    {
+      "headline": "Strategy Stops Buying Bitcoin as the Treasury Flywheel Reverses",
+      "url": "http://www.econotimes.com/Strategy-Stops-Buying-Bitcoin-as-the-Treasury-Flywheel-Reverses-1747456",
+      "src": "econotimes.com",
+      "date": "20260722T213000Z",
+      "sent": "pos"
+    },
+    {
+      "headline": "US Federal Officials Barred Until 2029 from Issuing or Sponsoring Tokens under CLARITY Proposed Ethics Rules",
+      "url": "https://cointelegraph.com/news/clarity-act-ethics-public-officials-president-barred-crypto",
+      "src": "cointelegraph.com",
+      "date": "20260722T211500Z",
+      "sent": "neg"
+    },
+    {
+      "headline": "SEC Peirce Warns Onchain Lending May Trigger Securities Laws",
+      "url": "https://cointelegraph.com/news/secs-hester-peirce-says-crypto-vaults-and-onchain-lending-may-fall-under-securities-laws",
+      "src": "cointelegraph.com",
+      "date": "20260722T211500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Bitcoin BTC USD bottom alert explained : Has Bitcoin ( BTC USD ) already bottomed ? Grayscale reveals the key factors for crypto traders to watch",
+      "url": "https://economictimes.indiatimes.com/news/international/us/has-bitcoin-btc-usd-already-bottomed-grayscale-reveals-the-key-factors-for-crypto-traders-to-watch/articleshow/132567577.cms",
+      "src": "economictimes.indiatimes.com",
+      "date": "20260722T210000Z",
+      "sent": "neg"
+    },
+    {
+      "headline": "7 Reasons Nigerians are selling Bitcoin on Apexpay",
+      "url": "https://pmnewsnigeria.com/2026/07/22/7-reasons-nigerians-are-selling-bitcoin-on-apexpay/",
+      "src": "pmnewsnigeria.com",
+      "date": "20260722T203000Z",
+      "sent": "neg"
+    },
+    {
+      "headline": "SEC Just Put IBIT Bitcoin in the Same Options League as Apple and NVIDIA",
+      "url": "https://memeburn.com/sec-ibit-options-limit-bitcoin-wall-street/",
+      "src": "memeburn.com",
+      "date": "20260722T203000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Benchmark Raises Hut 8 Price Target For Second Time In A Week",
+      "url": "https://finance.yahoo.com/markets/stocks/articles/benchmark-raises-hut-8-price-193900092.html",
+      "src": "finance.yahoo.com",
+      "date": "20260722T201500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Hashi Testnet Is Live , Bringing Native Bitcoin Finance One Step Closer to Global Adoption",
+      "url": "https://bravenewcoin.com/press-release/hashi-testnet-is-live-bringing-native-bitcoin-finance-one-step-closer-to-global-adoption",
+      "src": "bravenewcoin.com",
+      "date": "20260722T201500Z",
+      "sent": "pos"
+    },
+    {
       "headline": "Baystreet . ca - Crypto Clarity Act In Limbo As Democrats Balk At Trump  Ethics Clause  ",
       "url": "http://baystreet.ca/cryptonews/1353/Crypto-Clarity-Act-In-Limbo-As-Democrats-Balk-At-Trumps-Ethics-Clause",
       "src": "baystreet.ca",
@@ -34,72 +104,9 @@
       "src": "fool.com",
       "date": "20260722T161500Z",
       "sent": "neu"
-    },
-    {
-      "headline": "Bitcoin Rally May Have Legs ; Bank Income With BTCI",
-      "url": "https://www.etftrends.com/monthly-income-content-hub/bitcoin-rally-bank-income-btci/",
-      "src": "etftrends.com",
-      "date": "20260722T161500Z",
-      "sent": "pos"
-    },
-    {
-      "headline": "Gold prices today , Wednesday , July 22 : Renewed safe - haven demand pushes gold price higher",
-      "url": "https://finance.yahoo.com/personal-finance/investing/article/gold-prices-today-wednesday-july-22-renewed-safe-haven-demand-pushes-gold-price-higher-152629042.html",
-      "src": "finance.yahoo.com",
-      "date": "20260722T160000Z",
-      "sent": "pos"
-    },
-    {
-      "headline": "Bitcoin Bear Market Over ? Not Quite . Analyst Says $83 , 000 Is The Real Test",
-      "url": "https://www.benzinga.com/crypto/cryptocurrency/26/07/60609023/bitcoin-bear-market-over-not-quite-analyst-says-83000-is-the-real-test",
-      "src": "benzinga.com",
-      "date": "20260722T151500Z",
-      "sent": "neg"
-    },
-    {
-      "headline": "Cryptos Slip Amidst Oil Price Spike , Big Tech Caution",
-      "url": "https://www.rttnews.com/3669325/cryptos-slip-amidst-oil-price-spike-big-tech-caution.aspx",
-      "src": "rttnews.com",
-      "date": "20260722T131500Z",
-      "sent": "pos"
-    },
-    {
-      "headline": "Annamite Capital Announces Institutional Bitcoin Treasury Management Platform",
-      "url": "https://www.finanznachrichten.de/nachrichten-2026-07/69091982-annamite-capital-announces-institutional-bitcoin-treasury-management-platform-008.htm",
-      "src": "finanznachrichten.de",
-      "date": "20260722T101500Z",
-      "sent": "pos"
-    },
-    {
-      "headline": "The Crypto Industry Has Spent Nearly $200 Million to Pass New Pro - Crypto Legislation . Here What Investors Need to Know . ",
-      "url": "https://finance.yahoo.com/markets/crypto/articles/crypto-industry-spent-nearly-200-085100691.html",
-      "src": "finance.yahoo.com",
-      "date": "20260722T093000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Bitcoin Dominance Expected to  Keep Increasing , Says Strategy CEO Phong Le Amid Stablecoin , Big Bank Ado",
-      "url": "https://www.benzinga.com/crypto/cryptocurrency/26/07/60599390/bitcoin-dominance-strategy-phong-le-stablecoin-adoption",
-      "src": "benzinga.com",
-      "date": "20260722T084500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Bitcoin price surpasses $66 , 000 amid continued gains in cryptocurrency market",
-      "url": "https://en.apa.az/cryptocurrency/bitcoin-price-surpasses-66000-amid-continued-gains-in-cryptocurrency-market-517170",
-      "src": "en.apa.az",
-      "date": "20260722T071500Z",
-      "sent": "pos"
-    },
-    {
-      "headline": "Anthony Scaramucci Explains Why He Long Bitcoin and Gold :  Imagine an American President ... Sitting in F",
-      "url": "https://www.benzinga.com/crypto/cryptocurrency/26/07/60598465/anthony-scaramucci-bitcoin-gold-55-trillion-deficit",
-      "src": "benzinga.com",
-      "date": "20260722T053000Z",
-      "sent": "neu"
     }
   ],
-  "ts": 1784751006863,
+  "ts": 1784761175440,
   "source": "GDELT",
-  "_updatedMs": 1784751006863
+  "_updatedMs": 1784761175440
 }
