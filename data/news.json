@@ -1,6 +1,41 @@
 {
   "items": [
     {
+      "headline": "Bitcoin , Ethereum , XRP , Dogecoin Flat Despite Crypto Bill Getting Ethics Provisions : Analyst Highlights L",
+      "url": "https://www.benzinga.com/crypto/cryptocurrency/26/07/60627990/bitcoin-ethereum-xrp-dogecoin-crypto-bill-btc-key-level",
+      "src": "benzinga.com",
+      "date": "20260723T031500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Elon Musk Tesla Held on to Bitcoin Stockpile in Q2 Despite $112 Million in Paper Losses - Tesla ( NASDAQ",
+      "url": "https://www.benzinga.com/crypto/cryptocurrency/26/07/60628134/tesla-bitcoin-holdings-q2-paper-loss",
+      "src": "benzinga.com",
+      "date": "20260723T031500Z",
+      "sent": "neg"
+    },
+    {
+      "headline": "S & P Unveils Digital Asset Index Tracking Blockchain Fundamentals",
+      "url": "https://cointelegraph.com/news/sp-launches-blockchain-fundamentals-index-digital-assets",
+      "src": "cointelegraph.com",
+      "date": "20260723T020000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Why Bitcoin Rebound Above $66K Still Faces a Tough Test",
+      "url": "https://www.dailyforex.com/forex-technical-analysis/2026/07/bitcoin-analysis-22-july-2026/247914",
+      "src": "dailyforex.com",
+      "date": "20260723T004500Z",
+      "sent": "pos"
+    },
+    {
+      "headline": "Battle of Malta Online Hits Full Stride on CoinPoker as Early Champions Emerge : Best Crypto Giveaway in 2026 ? ",
+      "url": "https://www.newsbtc.com/sponsored/battle-of-malta-online-hits-full-stride-on-coinpoker-as-early-champions-emerge-best-crypto-giveaway-in-2026/",
+      "src": "newsbtc.com",
+      "date": "20260723T001500Z",
+      "sent": "neu"
+    },
+    {
       "headline": "Chip Stocks Retreat As Yemen Houthis Enter The War ; Alphabet , Tesla Earnings Ahead - United States Oil",
       "url": "https://www.benzinga.com/Opinion/26/07/60622342/chip-stocks-retreat-as-yemens-houthis-enter-the-war-alphabet-tesla-earnings-ahead",
       "src": "benzinga.com",
@@ -69,44 +104,9 @@
       "src": "bravenewcoin.com",
       "date": "20260722T201500Z",
       "sent": "pos"
-    },
-    {
-      "headline": "Baystreet . ca - Crypto Clarity Act In Limbo As Democrats Balk At Trump  Ethics Clause  ",
-      "url": "http://baystreet.ca/cryptonews/1353/Crypto-Clarity-Act-In-Limbo-As-Democrats-Balk-At-Trumps-Ethics-Clause",
-      "src": "baystreet.ca",
-      "date": "20260722T190000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Is Litecoin a Buy After Its Recent Surge ? ",
-      "url": "https://www.fool.com/investing/2026/07/22/is-litecoin-a-buy-after-its-recent-surge/?source=iedfolrf0000001",
-      "src": "fool.com",
-      "date": "20260722T190000Z",
-      "sent": "pos"
-    },
-    {
-      "headline": "Market Open : Coinbase Rallies on Crypto Vote , Rogers Posts Q2 Loss | July 22nd | 2026 - 07 - 22 | Investing News",
-      "url": "https://stockhouse.com/news/market-updates/2026/07/22/market-open-coinbase-rallies-on-crypto-vote-rogers-posts-q2-loss-july-22nd",
-      "src": "stockhouse.com",
-      "date": "20260722T163000Z",
-      "sent": "neg"
-    },
-    {
-      "headline": "Balance Stablecoin Collapses After Bitcoin Vault Is Drained",
-      "url": "https://finance.yahoo.com/markets/crypto/articles/balance-stablecoin-collapses-bitcoin-vault-154200744.html",
-      "src": "finance.yahoo.com",
-      "date": "20260722T163000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "How to Use Crypto ETFs as Part of a Diversified Portfolio",
-      "url": "https://www.fool.com/investing/2026/07/22/use-crypto-etfs-in-a-diversified-portfolio/?source=iedfolrf0000001",
-      "src": "fool.com",
-      "date": "20260722T161500Z",
-      "sent": "neu"
     }
   ],
-  "ts": 1784765347725,
+  "ts": 1784778794601,
   "source": "GDELT",
-  "_updatedMs": 1784765347725
+  "_updatedMs": 1784778794601
 }
