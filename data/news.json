@@ -1,6 +1,48 @@
 {
   "items": [
     {
+      "headline": "1 Popular Cryptocurrency to Buy Before It Soars 1 , 125 %, According to Cathie Wood Ark Invest",
+      "url": "https://www.fool.com/investing/2026/07/25/1-cryptocurrency-buy-soars-1125-cathie-woods-ark/?source=iedfolrf0000001",
+      "src": "fool.com",
+      "date": "20260725T091500Z",
+      "sent": "pos"
+    },
+    {
+      "headline": "Cetera Investment Advisers Purchases 262 , 087 Shares of iShares Bitcoin Trust ETF $IBIT",
+      "url": "https://www.dailypolitical.com/2026/07/25/cetera-investment-advisers-purchases-262087-shares-of-ishares-bitcoin-trust-etf-ibit.html",
+      "src": "dailypolitical.com",
+      "date": "20260725T081500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Is Bitcoin Still a Millionaire Maker ? | The Motley Fool",
+      "url": "https://www.fool.com/investing/2026/07/24/is-bitcoin-still-a-millionaire-maker/?source=iedfolrf0000001",
+      "src": "fool.com",
+      "date": "20260725T040000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Billionaire doubles down on Orange Juice",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/billionaire-doubles-down-orange-juice-184648136.html",
+      "src": "finance.yahoo.com",
+      "date": "20260725T020000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Short Interest in Calamos Bitcoin Structured Alt Protection ETF – April ( BATS : CBOA ) Increases By 922 . 2 % ",
+      "url": "https://www.dailypolitical.com/2026/07/24/short-interest-in-calamos-bitcoin-structured-alt-protection-etf-april-batscboa-increases-by-922-2.html",
+      "src": "dailypolitical.com",
+      "date": "20260725T011500Z",
+      "sent": "neg"
+    },
+    {
+      "headline": "Coinbase CEO Brian Armstrong Thinks Bitcoin May Have Hit a Bottom . Here Why He Right",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/coinbase-ceo-brian-armstrong-thinks-105900189.html",
+      "src": "finance.yahoo.com",
+      "date": "20260724T211500Z",
+      "sent": "neg"
+    },
+    {
       "headline": "Bitcoin  Plunge Protection Team  Returns As BTC Price Drops Under $64 , 000",
       "url": "https://cointelegraph.com/markets/bitcoin-falls-under-64k-us-bond-yields-fed-rate-hike-odds",
       "src": "cointelegraph.com",
@@ -62,51 +104,9 @@
       "src": "benzinga.com",
       "date": "20260724T131500Z",
       "sent": "neg"
-    },
-    {
-      "headline": "Cryptos Extend Losses Amidst Energy , Tech Shocks",
-      "url": "https://www.rttnews.com/3670436/cryptos-extend-losses-amidst-energy-tech-shocks.aspx",
-      "src": "rttnews.com",
-      "date": "20260724T131500Z",
-      "sent": "neg"
-    },
-    {
-      "headline": "Japan Bitcoin ETF Market Could Hit $18 . 4B And Itd Still Be Just 0 . 13 % Of Household Wealth",
-      "url": "https://www.benzinga.com/crypto/cryptocurrency/26/07/60664502/japan-bitcoin-etf-market-could-hit-18-4b-by-2028-whats-driving-the-demand",
-      "src": "benzinga.com",
-      "date": "20260724T131500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Memecoins DOGE , SHIB pay the price of crypto institutional influx : Crypto Daily",
-      "url": "https://www.coindesk.com/daybook-us/2026/07/24/crypto-s-institutional-influx-has-killed-the-memecoin-craze",
-      "src": "coindesk.com",
-      "date": "20260724T123000Z",
-      "sent": "pos"
-    },
-    {
-      "headline": "Bitcoin Miner Poolin Files for Chapter 11 Bankruptcy",
-      "url": "https://cointelegraph.com/news/bitcoin-mining-poolin-chapter-11-bankruptcy",
-      "src": "cointelegraph.com",
-      "date": "20260724T123000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Bitcoin holds near $65 , 000 as the Iran conflict sends oil to a two - month high : Crypto Markets Today",
-      "url": "https://www.coindesk.com/markets/2026/07/24/bitcoin-settles-near-usd65-000-as-oil-s-march-toward-usd100-fails-to-spook-the-market",
-      "src": "coindesk.com",
-      "date": "20260724T123000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Stock Market Highlights , July 24 : Sensex , Nifty decline for fifth straight session ; Auto , metal stocks drag",
-      "url": "https://www.thehindubusinessline.com/markets/sensex-nifty50-today-stock-market-highlights-24th-july-2026/article71257579.ece",
-      "src": "thehindubusinessline.com",
-      "date": "20260724T121500Z",
-      "sent": "neg"
     }
   ],
-  "ts": 1784919517669,
+  "ts": 1784974233195,
   "source": "GDELT",
-  "_updatedMs": 1784919517669
+  "_updatedMs": 1784974233195
 }
