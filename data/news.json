@@ -1,11 +1,46 @@
 {
   "items": [
     {
-      "headline": "1 Popular Cryptocurrency to Buy Before It Soars 1 , 125 %, According to Cathie Wood Ark Invest",
-      "url": "https://www.fool.com/investing/2026/07/25/1-cryptocurrency-buy-soars-1125-cathie-woods-ark/?source=iedfolrf0000001",
-      "src": "fool.com",
-      "date": "20260725T091500Z",
+      "headline": "Ethereum Traders are Giving Up Again . The Last Two Times ETH Rallied",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/ethereum-traders-giving-again-last-152134528.html",
+      "src": "finance.yahoo.com",
+      "date": "20260725T161500Z",
       "sent": "pos"
+    },
+    {
+      "headline": "BitMEX Faces Lawsuit Alleging Theft And Insider Trading",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/bitmex-faces-lawsuit-alleging-theft-132600230.html",
+      "src": "finance.yahoo.com",
+      "date": "20260725T153000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Bitcoin nation : Trump bets America future on crypto",
+      "url": "https://www.stcatharinesstandard.ca/opinion/contributors/trump-and-the-crypto-bros-may-soon-get-their-way--and-it-will-affect-investors-the-world-over/article_bae30d12-b33c-5ad7-92b2-89af25103dbb.html",
+      "src": "stcatharinesstandard.ca",
+      "date": "20260725T151500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "1 Popular Cryptocurrency to Buy Before It Soars 1 , 125 %, According to Cathie Wood Ark Invest",
+      "url": "https://www.fool.com/investing/2026/07/25/1-cryptocurrency-buy-soars-1125-cathie-woods-ark/",
+      "src": "fool.com",
+      "date": "20260725T141500Z",
+      "sent": "pos"
+    },
+    {
+      "headline": "Ethereum ETFs End 5 - Day Inflow Streak With $70 . 6M Outflows",
+      "url": "https://cointelegraph.com/markets/ethereum-etfs-week-red-end-inflow-streak",
+      "src": "cointelegraph.com",
+      "date": "20260725T123000Z",
+      "sent": "pos"
+    },
+    {
+      "headline": "Vivaldi Capital Management LP Has $1 . 29 Million Holdings in ARK 21Shares Bitcoin ETF $ARKB",
+      "url": "https://www.tickerreport.com/banking-finance/13515482/vivaldi-capital-management-lp-has-1-29-million-holdings-in-ark-21shares-bitcoin-etf-arkb.html",
+      "src": "tickerreport.com",
+      "date": "20260725T113000Z",
+      "sent": "neu"
     },
     {
       "headline": "Cetera Investment Advisers Purchases 262 , 087 Shares of iShares Bitcoin Trust ETF $IBIT",
@@ -55,58 +90,9 @@
       "src": "ibtimes.com",
       "date": "20260724T164500Z",
       "sent": "neg"
-    },
-    {
-      "headline": "Baystreet . ca - European Sanctions On Russia Target $120 Billion Of Crypto",
-      "url": "http://baystreet.ca/cryptonews/1355/European-Sanctions-On-Russia-Target-120-Billion-Of-Crypto",
-      "src": "baystreet.ca",
-      "date": "20260724T163000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "BitMEX CEO Calls New Insider Trading Lawsuit  Spurious and Opportunistic  ",
-      "url": "https://www.benzinga.com/crypto/cryptocurrency/26/07/60669715/bitmex-ceo-calls-new-insider-trading-lawsuit-spurious-and-opportunistic",
-      "src": "benzinga.com",
-      "date": "20260724T160000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Market Open : SpaceX Selloff Deepens , Intel Rallies as Mag 7 Loses $797B | July 24th | 2026 - 07 - 24 | Investing News",
-      "url": "https://stockhouse.com/news/market-updates/2026/07/24/market-open-spacex-selloff-deepens-intel-rallies-as-mag-7-loses-797b-july-24th",
-      "src": "stockhouse.com",
-      "date": "20260724T160000Z",
-      "sent": "neg"
-    },
-    {
-      "headline": "Bitcoin Weathers $800 Billion Tech Selloff As Stocks Sink What Next ? - Tesla ( NASDAQ : TSLA ) ",
-      "url": "https://www.benzinga.com/crypto/cryptocurrency/26/07/60671623/bitcoin-weathers-800-billion-tech-selloff-as-stocks-sink-whats-next",
-      "src": "benzinga.com",
-      "date": "20260724T160000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "5 Things That Smart Money Thinks Could End the Crypto Bear Market",
-      "url": "https://www.fool.com/investing/2026/07/24/5-things-that-smart-money-thinks-could-end-the-cry/?source=iedfolrf0000001",
-      "src": "fool.com",
-      "date": "20260724T151500Z",
-      "sent": "neg"
-    },
-    {
-      "headline": "Bitcoin , Ethereum , XRP , Dogecoin Flat Despite Crypto Bill Getting Ethics Provisions : Analyst Highlights Level to  Watch  for BTC",
-      "url": "https://finance.yahoo.com/markets/crypto/articles/bitcoin-ethereum-xrp-dogecoin-flat-015508966.html",
-      "src": "finance.yahoo.com",
-      "date": "20260724T141500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Dogecoin Slides As Elon Musk Says He  Got Carried Away  With Government Efficiency Push",
-      "url": "https://www.benzinga.com/crypto/cryptocurrency/26/07/60664601/dogecoin-slides-as-elon-musk-says-he-got-carried-away-with-government-efficiency-push",
-      "src": "benzinga.com",
-      "date": "20260724T131500Z",
-      "sent": "neg"
     }
   ],
-  "ts": 1784974233195,
+  "ts": 1785000570559,
   "source": "GDELT",
-  "_updatedMs": 1784974233195
+  "_updatedMs": 1785000570559
 }
