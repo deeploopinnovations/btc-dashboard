@@ -1,6 +1,76 @@
 {
   "items": [
     {
+      "headline": "UZDT ( UZDT ) Reaches 1 - Day Trading Volume of $237 . 75",
+      "url": "https://www.dailypolitical.com/2026/07/26/uzdt-uzdt-reaches-1-day-trading-volume-of-237-75.html",
+      "src": "dailypolitical.com",
+      "date": "20260726T114500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Morphware ( XMW ) Price Up 1 . 4 % Over Last 7 Days",
+      "url": "https://www.tickerreport.com/banking-finance/13516559/morphware-xmw-price-up-1-4-over-last-7-days.html",
+      "src": "tickerreport.com",
+      "date": "20260726T114500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "B3 ( Base ) Achieves Self Reported Market Cap of $10 . 37 Million ( B3 ) ",
+      "url": "https://www.themarketsdaily.com/2026/07/26/b3-base-achieves-self-reported-market-cap-of-10-37-million-b3.html",
+      "src": "themarketsdaily.com",
+      "date": "20260726T114500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Shrub 24 - Hour Trading Volume Tops $24 . 99 Thousand ( SHRUB ) ",
+      "url": "https://www.tickerreport.com/banking-finance/13516555/shrub-24-hour-trading-volume-tops-24-99-thousand-shrub.html",
+      "src": "tickerreport.com",
+      "date": "20260726T114500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "STASIS EURO Hits 24 Hour Volume of $14 . 45 ( EURS ) ",
+      "url": "https://www.tickerreport.com/banking-finance/13516556/stasis-euro-hits-24-hour-volume-of-14-45-eurs.html",
+      "src": "tickerreport.com",
+      "date": "20260726T114500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "GOHOME Hits Self Reported Market Cap of $35 . 69 Million ( GOHOME ) ",
+      "url": "https://www.themarketsdaily.com/2026/07/26/gohome-hits-self-reported-market-cap-of-35-69-million-gohome.html",
+      "src": "themarketsdaily.com",
+      "date": "20260726T114500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Bao Finance ( BAO ) Price Reaches $0 . 0000 on Top Exchanges",
+      "url": "https://www.dailypolitical.com/2026/07/26/bao-finance-bao-price-reaches-0-0000-on-top-exchanges.html",
+      "src": "dailypolitical.com",
+      "date": "20260726T114500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Sign 24 - Hour Volume Tops $3 . 42 Million ( SIGN ) ",
+      "url": "https://www.dailypolitical.com/2026/07/26/sign-24-hour-volume-tops-3-42-million-sign.html",
+      "src": "dailypolitical.com",
+      "date": "20260726T114500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Islamic Coin Tops 24 Hour Volume of $1 . 08 Thousand ( ISLM ) ",
+      "url": "https://www.dailypolitical.com/2026/07/26/islamic-coin-tops-24-hour-volume-of-1-08-thousand-islm.html",
+      "src": "dailypolitical.com",
+      "date": "20260726T114500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "1 Popular Cryptocurrency to Buy Before It Soars 1 , 125 %, According to Cathie Wood Ark Invest",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/1-popular-cryptocurrency-buy-soars-084800919.html",
+      "src": "finance.yahoo.com",
+      "date": "20260726T111500Z",
+      "sent": "pos"
+    },
+    {
       "headline": "Here Why Im Buying Bitcoin Right Now",
       "url": "https://finance.yahoo.com/markets/crypto/articles/heres-why-im-buying-bitcoin-085000587.html",
       "src": "finance.yahoo.com",
@@ -34,65 +104,9 @@
       "src": "finance.yahoo.com",
       "date": "20260725T161500Z",
       "sent": "pos"
-    },
-    {
-      "headline": "BitMEX Faces Lawsuit Alleging Theft And Insider Trading",
-      "url": "https://finance.yahoo.com/markets/crypto/articles/bitmex-faces-lawsuit-alleging-theft-132600230.html",
-      "src": "finance.yahoo.com",
-      "date": "20260725T153000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Bitcoin nation : Trump bets America future on crypto",
-      "url": "https://www.stcatharinesstandard.ca/opinion/contributors/trump-and-the-crypto-bros-may-soon-get-their-way--and-it-will-affect-investors-the-world-over/article_bae30d12-b33c-5ad7-92b2-89af25103dbb.html",
-      "src": "stcatharinesstandard.ca",
-      "date": "20260725T151500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "1 Popular Cryptocurrency to Buy Before It Soars 1 , 125 %, According to Cathie Wood Ark Invest",
-      "url": "https://www.fool.com/investing/2026/07/25/1-cryptocurrency-buy-soars-1125-cathie-woods-ark/",
-      "src": "fool.com",
-      "date": "20260725T141500Z",
-      "sent": "pos"
-    },
-    {
-      "headline": "Ethereum ETFs End 5 - Day Inflow Streak With $70 . 6M Outflows",
-      "url": "https://cointelegraph.com/markets/ethereum-etfs-week-red-end-inflow-streak",
-      "src": "cointelegraph.com",
-      "date": "20260725T123000Z",
-      "sent": "pos"
-    },
-    {
-      "headline": "Vivaldi Capital Management LP Has $1 . 29 Million Holdings in ARK 21Shares Bitcoin ETF $ARKB",
-      "url": "https://www.tickerreport.com/banking-finance/13515482/vivaldi-capital-management-lp-has-1-29-million-holdings-in-ark-21shares-bitcoin-etf-arkb.html",
-      "src": "tickerreport.com",
-      "date": "20260725T113000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Cetera Investment Advisers Purchases 262 , 087 Shares of iShares Bitcoin Trust ETF $IBIT",
-      "url": "https://www.dailypolitical.com/2026/07/25/cetera-investment-advisers-purchases-262087-shares-of-ishares-bitcoin-trust-etf-ibit.html",
-      "src": "dailypolitical.com",
-      "date": "20260725T081500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Is Bitcoin Still a Millionaire Maker ? | The Motley Fool",
-      "url": "https://www.fool.com/investing/2026/07/24/is-bitcoin-still-a-millionaire-maker/?source=iedfolrf0000001",
-      "src": "fool.com",
-      "date": "20260725T040000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Billionaire doubles down on Orange Juice",
-      "url": "https://finance.yahoo.com/markets/crypto/articles/billionaire-doubles-down-orange-juice-184648136.html",
-      "src": "finance.yahoo.com",
-      "date": "20260725T020000Z",
-      "sent": "neu"
     }
   ],
-  "ts": 1785063477024,
+  "ts": 1785067593809,
   "source": "GDELT",
-  "_updatedMs": 1785063477024
+  "_updatedMs": 1785067593809
 }
