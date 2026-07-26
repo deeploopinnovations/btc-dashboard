@@ -1,6 +1,55 @@
 {
   "items": [
     {
+      "headline": "Battle of Malta Online Hits Midway Point With Millions of Dollars in Crypto Prizes Still on the Line",
+      "url": "https://partners.coinspeaker.com/battle-of-malta-online-hits-midway-point-with-millions-of-dollars-in-crypto-prizes-still-on-the-line",
+      "src": "partners.coinspeaker.com",
+      "date": "20260726T190000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Bitcoin Price Prediction : Is the 0 . 79 OTE the Buy Zone Before BTC Retakes $67 , 000",
+      "url": "https://sofokleous10.gr/2026/07/26/bitcoin-price-prediction-is-the-0-79-ote-the-buy-zone-before-btc-retakes-67000/",
+      "src": "sofokleous10.gr",
+      "date": "20260726T171500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Crypto Winter Split : BTC , ETH and Altcoin Divergence",
+      "url": "https://www.dailyforex.com/forex-technical-analysis/2026/07/crypto-market-overview-26-july-2026/248004",
+      "src": "dailyforex.com",
+      "date": "20260726T171500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Bitcoin OG Selling Eases , Dormant BTC Movement Hits 4 - Year Low",
+      "url": "https://cointelegraph.com/markets/bitcoin-og-dormant-btc-movement-thorn",
+      "src": "cointelegraph.com",
+      "date": "20260726T163000Z",
+      "sent": "neg"
+    },
+    {
+      "headline": "T . Rowe Price Just Launched the First Actively Managed Multi - Crypto Spot ETF . Here What Crypto Investors Need to Know",
+      "url": "https://www.fool.com/investing/2026/07/26/t-rowe-price-just-launched-the-first-actively-mana/?source=iedfolrf0000001",
+      "src": "fool.com",
+      "date": "20260726T144500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "MARA Holdings CEO Fred Thiel : AI Data Centers Generate More Revenue Than Bitcoin Mining",
+      "url": "https://bravenewcoin.com/insights/mara-holdings-ceo-fred-thiel-ai-data-centers-generate-more-revenue-than-bitcoin-mining",
+      "src": "bravenewcoin.com",
+      "date": "20260726T134500Z",
+      "sent": "neg"
+    },
+    {
+      "headline": "$7 Trillion Wall Street Giant is Watching This Key Bitcoin Metric",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/7-trillion-wall-street-giant-113753819.html",
+      "src": "finance.yahoo.com",
+      "date": "20260726T131500Z",
+      "sent": "neu"
+    },
+    {
       "headline": "UZDT ( UZDT ) Reaches 1 - Day Trading Volume of $237 . 75",
       "url": "https://www.dailypolitical.com/2026/07/26/uzdt-uzdt-reaches-1-day-trading-volume-of-237-75.html",
       "src": "dailypolitical.com",
@@ -55,58 +104,9 @@
       "src": "dailypolitical.com",
       "date": "20260726T114500Z",
       "sent": "neu"
-    },
-    {
-      "headline": "Islamic Coin Tops 24 Hour Volume of $1 . 08 Thousand ( ISLM ) ",
-      "url": "https://www.dailypolitical.com/2026/07/26/islamic-coin-tops-24-hour-volume-of-1-08-thousand-islm.html",
-      "src": "dailypolitical.com",
-      "date": "20260726T114500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "1 Popular Cryptocurrency to Buy Before It Soars 1 , 125 %, According to Cathie Wood Ark Invest",
-      "url": "https://finance.yahoo.com/markets/crypto/articles/1-popular-cryptocurrency-buy-soars-084800919.html",
-      "src": "finance.yahoo.com",
-      "date": "20260726T111500Z",
-      "sent": "pos"
-    },
-    {
-      "headline": "Here Why Im Buying Bitcoin Right Now",
-      "url": "https://finance.yahoo.com/markets/crypto/articles/heres-why-im-buying-bitcoin-085000587.html",
-      "src": "finance.yahoo.com",
-      "date": "20260726T093000Z",
-      "sent": "pos"
-    },
-    {
-      "headline": "Bitcoin Just Hit a 30 - Day High Above $65 , 000 . Where Does BTC Go From Here ? ",
-      "url": "https://finance.yahoo.com/markets/crypto/articles/bitcoin-just-hit-30-day-043700064.html",
-      "src": "finance.yahoo.com",
-      "date": "20260726T093000Z",
-      "sent": "pos"
-    },
-    {
-      "headline": "3 Real Reasons Why BitMEX is Shutting Down , and Who Could Be Next",
-      "url": "https://finance.yahoo.com/markets/crypto/articles/3-real-reasons-why-bitmex-201321849.html",
-      "src": "finance.yahoo.com",
-      "date": "20260726T033000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Crypto Trader Sells $2 . 5M In Ferraris To Buy More Bitcoin",
-      "url": "https://www.benzinga.com/crypto/cryptocurrency/26/07/60685348/crypto-trader-sells-2-5m-in-ferraris-to-buy-more-bitcoin",
-      "src": "benzinga.com",
-      "date": "20260725T230000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Ethereum Traders are Giving Up Again . The Last Two Times ETH Rallied",
-      "url": "https://finance.yahoo.com/markets/crypto/articles/ethereum-traders-giving-again-last-152134528.html",
-      "src": "finance.yahoo.com",
-      "date": "20260725T161500Z",
-      "sent": "pos"
     }
   ],
-  "ts": 1785067593809,
+  "ts": 1785106764873,
   "source": "GDELT",
-  "_updatedMs": 1785067593809
+  "_updatedMs": 1785106764873
 }
