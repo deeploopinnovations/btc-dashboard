@@ -1,6 +1,34 @@
 {
   "items": [
     {
+      "headline": "Here Why Im Buying Bitcoin Right Now",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/heres-why-im-buying-bitcoin-085000587.html",
+      "src": "finance.yahoo.com",
+      "date": "20260726T093000Z",
+      "sent": "pos"
+    },
+    {
+      "headline": "Bitcoin Just Hit a 30 - Day High Above $65 , 000 . Where Does BTC Go From Here ? ",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/bitcoin-just-hit-30-day-043700064.html",
+      "src": "finance.yahoo.com",
+      "date": "20260726T093000Z",
+      "sent": "pos"
+    },
+    {
+      "headline": "3 Real Reasons Why BitMEX is Shutting Down , and Who Could Be Next",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/3-real-reasons-why-bitmex-201321849.html",
+      "src": "finance.yahoo.com",
+      "date": "20260726T033000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Crypto Trader Sells $2 . 5M In Ferraris To Buy More Bitcoin",
+      "url": "https://www.benzinga.com/crypto/cryptocurrency/26/07/60685348/crypto-trader-sells-2-5m-in-ferraris-to-buy-more-bitcoin",
+      "src": "benzinga.com",
+      "date": "20260725T230000Z",
+      "sent": "neu"
+    },
+    {
       "headline": "Ethereum Traders are Giving Up Again . The Last Two Times ETH Rallied",
       "url": "https://finance.yahoo.com/markets/crypto/articles/ethereum-traders-giving-again-last-152134528.html",
       "src": "finance.yahoo.com",
@@ -62,37 +90,9 @@
       "src": "finance.yahoo.com",
       "date": "20260725T020000Z",
       "sent": "neu"
-    },
-    {
-      "headline": "Short Interest in Calamos Bitcoin Structured Alt Protection ETF – April ( BATS : CBOA ) Increases By 922 . 2 % ",
-      "url": "https://www.dailypolitical.com/2026/07/24/short-interest-in-calamos-bitcoin-structured-alt-protection-etf-april-batscboa-increases-by-922-2.html",
-      "src": "dailypolitical.com",
-      "date": "20260725T011500Z",
-      "sent": "neg"
-    },
-    {
-      "headline": "Coinbase CEO Brian Armstrong Thinks Bitcoin May Have Hit a Bottom . Here Why He Right",
-      "url": "https://finance.yahoo.com/markets/crypto/articles/coinbase-ceo-brian-armstrong-thinks-105900189.html",
-      "src": "finance.yahoo.com",
-      "date": "20260724T211500Z",
-      "sent": "neg"
-    },
-    {
-      "headline": "Bitcoin  Plunge Protection Team  Returns As BTC Price Drops Under $64 , 000",
-      "url": "https://cointelegraph.com/markets/bitcoin-falls-under-64k-us-bond-yields-fed-rate-hike-odds",
-      "src": "cointelegraph.com",
-      "date": "20260724T173000Z",
-      "sent": "neg"
-    },
-    {
-      "headline": "Bitcoin ETFs Just Pulled In $1 Billion , It Recovered Only 15 % of June Losses . ",
-      "url": "https://www.ibtimes.com/bitcoin-etfs-just-pulled-1-billion-it-recovered-only-15-junes-losses-3805689",
-      "src": "ibtimes.com",
-      "date": "20260724T164500Z",
-      "sent": "neg"
     }
   ],
-  "ts": 1785004184497,
+  "ts": 1785063477024,
   "source": "GDELT",
-  "_updatedMs": 1785004184497
+  "_updatedMs": 1785063477024
 }
