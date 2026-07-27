@@ -1,6 +1,34 @@
 {
   "items": [
     {
+      "headline": "Michael Saylor Strategy Gears Up to Report Q2 Earnings Will Bitcoin Persistent Declines Weigh on Results ? ",
+      "url": "https://finance.yahoo.com/markets/stocks/articles/michael-saylors-strategy-gears-report-092108551.html",
+      "src": "finance.yahoo.com",
+      "date": "20260727T101500Z",
+      "sent": "neg"
+    },
+    {
+      "headline": "Anthony Scaramucci Says Clarity Act  Ten Times Better  Than  Wild West Status Quo  on Crypto , Wants Stake",
+      "url": "https://www.benzinga.com/crypto/cryptocurrency/26/07/60687736/anthony-scaramucci-clarity-act-crypto-regulation",
+      "src": "benzinga.com",
+      "date": "20260727T074500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Bitcoin ETFs end inflow streak as Fed rate concerns mount",
+      "url": "https://www.thehindubusinessline.com/money-and-banking/cryptocurrency/bitcoin-etfs-end-inflow-streak-as-fed-rate-concerns-mount/article71271458.ece",
+      "src": "thehindubusinessline.com",
+      "date": "20260727T061500Z",
+      "sent": "pos"
+    },
+    {
+      "headline": "New Crypto Pepeto Advances DeFi Tools While Bitcoin Price Target $180 , 000 and Whales Load Next Dogecoin",
+      "url": "https://www.manilatimes.net/2026/07/27/tmt-newswire/globenewswire/new-crypto-pepeto-advances-defi-tools-while-bitcoin-price-target-180000-and-whales-load-next-dogecoin/2391733",
+      "src": "manilatimes.net",
+      "date": "20260726T233000Z",
+      "sent": "neu"
+    },
+    {
       "headline": "Battle of Malta Online Hits Midway Point With Millions of Dollars in Crypto Prizes Still on the Line",
       "url": "https://partners.coinspeaker.com/battle-of-malta-online-hits-midway-point-with-millions-of-dollars-in-crypto-prizes-still-on-the-line",
       "src": "partners.coinspeaker.com",
@@ -76,37 +104,9 @@
       "src": "tickerreport.com",
       "date": "20260726T114500Z",
       "sent": "neu"
-    },
-    {
-      "headline": "STASIS EURO Hits 24 Hour Volume of $14 . 45 ( EURS ) ",
-      "url": "https://www.tickerreport.com/banking-finance/13516556/stasis-euro-hits-24-hour-volume-of-14-45-eurs.html",
-      "src": "tickerreport.com",
-      "date": "20260726T114500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "GOHOME Hits Self Reported Market Cap of $35 . 69 Million ( GOHOME ) ",
-      "url": "https://www.themarketsdaily.com/2026/07/26/gohome-hits-self-reported-market-cap-of-35-69-million-gohome.html",
-      "src": "themarketsdaily.com",
-      "date": "20260726T114500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Bao Finance ( BAO ) Price Reaches $0 . 0000 on Top Exchanges",
-      "url": "https://www.dailypolitical.com/2026/07/26/bao-finance-bao-price-reaches-0-0000-on-top-exchanges.html",
-      "src": "dailypolitical.com",
-      "date": "20260726T114500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Sign 24 - Hour Volume Tops $3 . 42 Million ( SIGN ) ",
-      "url": "https://www.dailypolitical.com/2026/07/26/sign-24-hour-volume-tops-3-42-million-sign.html",
-      "src": "dailypolitical.com",
-      "date": "20260726T114500Z",
-      "sent": "neu"
     }
   ],
-  "ts": 1785106764873,
+  "ts": 1785153009404,
   "source": "GDELT",
-  "_updatedMs": 1785106764873
+  "_updatedMs": 1785153009404
 }
