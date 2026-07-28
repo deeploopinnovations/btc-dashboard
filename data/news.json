@@ -1,24 +1,87 @@
 {
   "items": [
     {
+      "headline": "Anthony Scaramucci Keeps  Fingers Crossed  on Crypto Bill , But Reiterates Democrats Are Acting Out of Tru",
+      "url": "https://www.benzinga.com/crypto/cryptocurrency/26/07/60714624/anthony-scaramucci-crypto-bill-trump-democrats",
+      "src": "benzinga.com",
+      "date": "20260728T040000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Bitcoin , Ethereum , XRP , Dogecoin Plummet Even as SEC Chair Paul Atkins Sees Crypto Bill Advancing : Analyst Says BTC Big Move  Just Around the Corner  ",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/bitcoin-ethereum-xrp-dogecoin-plummet-021322342.html",
+      "src": "finance.yahoo.com",
+      "date": "20260728T024500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Bitcoin Holds $65K As Fed Decision Nears",
+      "url": "https://www.dailyforex.com/forex-technical-analysis/2026/07/bitcoin-analysis-forecast-27-july-2026/248058",
+      "src": "dailyforex.com",
+      "date": "20260728T020000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Peter Schiff Slams MSTR , Backs Up Claims With Math :  At This Rate , Youre Better Off Owning BTC if Youre",
+      "url": "https://www.benzinga.com/crypto/cryptocurrency/26/07/60713529/peter-schiff-slams-mstr-backs-up-claims-with-math-at-this-rate-youre-better-off-owning-btc-if-youre-bullish",
+      "src": "benzinga.com",
+      "date": "20260728T004500Z",
+      "sent": "pos"
+    },
+    {
+      "headline": "If you had invested $1 , 000 in gold instead of Bitcoin five years ago , here is what each is worth today",
+      "url": "https://finance.yahoo.com/markets/commodities/articles/had-invested-1-000-gold-233000269.html",
+      "src": "finance.yahoo.com",
+      "date": "20260728T000000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Crypto Market Today , July 27 : Bitcoin Steadies as Ahead of Fed Meeting",
+      "url": "https://www.fool.com/coverage/stock-market-today/2026/07/27/crypto-market-today-july-27-bitcoin-steadies-as-ahead-of-fed-meeting/?source=iedfolrf0000001",
+      "src": "fool.com",
+      "date": "20260727T231500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "BitMine Immersion Technologies ( NYSE : BMNR ) Closes In On 5 % Ethereum Supply Target With $11 . 8 Billion Treasury",
+      "url": "https://www.foreignpolicyjournal.com/2026/07/27/bitmine-immersion-technologies-nyse-bmnr-closes-in-on-5-ethereum-supply-target-with-11-8-billion-treasury/",
+      "src": "foreignpolicyjournal.com",
+      "date": "20260727T223000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Bitmine Buys More Ether , Bringing Holdings to 5 . 79M ETH",
+      "url": "https://cointelegraph.com/news/bitmine-keeps-buying-ether-as-eth-outperforms-bitcoin",
+      "src": "cointelegraph.com",
+      "date": "20260727T213000Z",
+      "sent": "pos"
+    },
+    {
+      "headline": "Tether XAUT Gains Shariah Certification for Islamic Finance",
+      "url": "https://cointelegraph.com/news/tether-xaut-gold-token-receives-shariah-certification-islamic-finance-access",
+      "src": "cointelegraph.com",
+      "date": "20260727T213000Z",
+      "sent": "pos"
+    },
+    {
+      "headline": "Bitcoin ( BTC ) price may fall to $52 , 000 as demand remains elusive , Nansen analyst says",
+      "url": "https://www.coindesk.com/markets/2026/07/27/bitcoin-shrugs-off-ai-selloff-but-high-stakes-fed-meeting-could-determine-what-s-next",
+      "src": "coindesk.com",
+      "date": "20260727T210000Z",
+      "sent": "neg"
+    },
+    {
+      "headline": "Over 13 , 000 banks have already connected to the XRP ecosystem , and EX DeFi generates $3 , 000 in daily returns for XRP holders . ",
+      "url": "https://cyprus-mail.com/2026/07/27/over-13000-banks-have-already-connected-to-the-xrp-ecosystem-and-ex-defi-generates-3000-in-daily-returns-for-xrp-holders",
+      "src": "cyprus-mail.com",
+      "date": "20260727T204500Z",
+      "sent": "neu"
+    },
+    {
       "headline": "MSTR Target Price Remains $570 , Benchmark Equity Research Writes : Why So Bullish ? - Strategy ( NASDAQ : MSTR",
       "url": "https://www.benzinga.com/crypto/cryptocurrency/26/07/60706192/mstr-target-price-remains-570-benchmark-equity-research-writes-why-so-bullish",
       "src": "benzinga.com",
       "date": "20260727T190000Z",
-      "sent": "pos"
-    },
-    {
-      "headline": "Bitmine Nears Goal of Controlling 5 % of Ethereum Supply With $11 . 8 Billion Treasury",
-      "url": "https://finance.yahoo.com/markets/crypto/articles/bitmine-nears-goal-controlling-5-154254598.html",
-      "src": "finance.yahoo.com",
-      "date": "20260727T163000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Bitcoin Flips Volatile As US Trading Session Sees Spike Toward $66 , 000",
-      "url": "https://cointelegraph.com/markets/bitcoin-price-eyes-66k-as-us-stocks-rise-on-iran-strike-pause",
-      "src": "cointelegraph.com",
-      "date": "20260727T163000Z",
       "sent": "pos"
     },
     {
@@ -41,72 +104,9 @@
       "src": "coindesk.com",
       "date": "20260727T163000Z",
       "sent": "pos"
-    },
-    {
-      "headline": "Manta Network Price Tops $0 . 0590 on Top Exchanges ( MANTA ) ",
-      "url": "https://www.dailypolitical.com/2026/07/27/manta-network-price-tops-0-0590-on-top-exchanges-manta.html",
-      "src": "dailypolitical.com",
-      "date": "20260727T153000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Perth Mint Gold Token ( PMGT ) Price Hits $1 , 888 . 98 on Exchanges",
-      "url": "https://www.dailypolitical.com/2026/07/27/perth-mint-gold-token-pmgt-price-hits-1888-98-on-exchanges.html",
-      "src": "dailypolitical.com",
-      "date": "20260727T153000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Turbo Hits Self Reported Market Capitalization of $54 . 57 Million ( TURBO ) ",
-      "url": "https://www.dailypolitical.com/2026/07/27/turbo-hits-self-reported-market-capitalization-of-54-57-million-turbo.html",
-      "src": "dailypolitical.com",
-      "date": "20260727T153000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Cindicator ( CND ) Price Hits $0 . 0001 on Exchanges",
-      "url": "https://www.dailypolitical.com/2026/07/27/cindicator-cnd-price-hits-0-0001-on-exchanges.html",
-      "src": "dailypolitical.com",
-      "date": "20260727T153000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Metaverse Dualchain Network Architecture ( DNA ) Trading Down 0 % Over Last Week",
-      "url": "https://www.dailypolitical.com/2026/07/27/metaverse-dualchain-network-architecture-dna-trading-down-0-over-last-week.html",
-      "src": "dailypolitical.com",
-      "date": "20260727T153000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Dragonchain Reaches 1 - Day Volume of $0 . 50 ( DRGN ) ",
-      "url": "https://www.dailypolitical.com/2026/07/27/dragonchain-reaches-1-day-volume-of-0-50-drgn.html",
-      "src": "dailypolitical.com",
-      "date": "20260727T153000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Synthetix ( SNX ) Price Hits $0 . 21",
-      "url": "https://www.themarketsdaily.com/2026/07/27/synthetix-snx-price-hits-0-21.html",
-      "src": "themarketsdaily.com",
-      "date": "20260727T151500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Mina ( MINA ) Achieves Self Reported Market Cap of $53 . 74 Million",
-      "url": "https://www.themarketsdaily.com/2026/07/27/mina-mina-achieves-self-reported-market-cap-of-53-74-million.html",
-      "src": "themarketsdaily.com",
-      "date": "20260727T151500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "WhiteCoin ( XWC ) Market Capitalization Achieves $4 . 43 Million",
-      "url": "https://www.themarketsdaily.com/2026/07/27/whitecoin-xwc-market-capitalization-achieves-4-43-million.html",
-      "src": "themarketsdaily.com",
-      "date": "20260727T151500Z",
-      "sent": "neu"
     }
   ],
-  "ts": 1785182612564,
+  "ts": 1785219845567,
   "source": "GDELT",
-  "_updatedMs": 1785182612564
+  "_updatedMs": 1785219845567
 }
