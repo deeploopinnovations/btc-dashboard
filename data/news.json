@@ -1,6 +1,41 @@
 {
   "items": [
     {
+      "headline": "Analyzing Bullish ( NYSE : BLSH ) and Securitize ( NYSE : SECZ ) ",
+      "url": "https://www.themarketsdaily.com/2026/07/28/analyzing-bullish-nyseblsh-and-securitize-nysesecz.html",
+      "src": "themarketsdaily.com",
+      "date": "20260728T224500Z",
+      "sent": "pos"
+    },
+    {
+      "headline": "GitHub - ghaziwali / Hulios : A Rust - based transparent Tor proxy that routes all system traffic through the Tor network enhanced security , proper DNS isolation , and modern Linux compatibility . ",
+      "url": "https://github.com/ghaziwali/Hulios",
+      "src": "github.com",
+      "date": "20260728T221500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Bitcoin Bounces as Iran War Pause Pressures Oil : Can BTC Price Reach $70K ? ",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/bitcoin-bounces-iran-war-pause-104205304.html",
+      "src": "finance.yahoo.com",
+      "date": "20260728T194500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Brian Armstrong Says the AI Megatrend Makes Crypto More Important",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/brian-armstrong-says-ai-megatrend-101903630.html",
+      "src": "finance.yahoo.com",
+      "date": "20260728T194500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "China Developments Spark KOSPI Crash , US Semi Stocks Follow As Fed Decision Looms - United States Oil Fun",
+      "url": "https://www.benzinga.com/Opinion/26/07/60740360/china-developments-spark-kospi-crash-us-semi-stocks-follow-as-fed-decision-looms",
+      "src": "benzinga.com",
+      "date": "20260728T191500Z",
+      "sent": "neg"
+    },
+    {
       "headline": "Bitcoin Price Prediction : BTC Falls Below $64K as Fed Rate - Hike Fears Intensify",
       "url": "https://bravenewcoin.com/insights/bitcoin-price-prediction-btc-falls-below-64k-as-fed-rate-hike-fears-intensify",
       "src": "bravenewcoin.com",
@@ -36,13 +71,6 @@
       "sent": "neu"
     },
     {
-      "headline": "Apple left fake bitcoin wallet on App Store after $875 , 000 theft report , lawsuit says",
-      "url": "https://www.coindesk.com/business/2026/07/28/apple-kept-fake-bitcoin-wallet-on-app-store-after-usd875-000-theft-report-lawsuit-alleges",
-      "src": "coindesk.com",
-      "date": "20260728T153000Z",
-      "sent": "neu"
-    },
-    {
       "headline": "Bitwise CIO Matt Hougan Thinks Bitcoin Has Finally Hit a Bottom . Here Why He Right . ",
       "url": "https://www.fool.com/investing/2026/07/28/bitwise-cio-matt-hougan-thinks-bitcoin-has-finally/?source=iedfolrf0000001",
       "src": "fool.com",
@@ -71,42 +99,14 @@
       "sent": "pos"
     },
     {
-      "headline": "Onchain Vaults : Financial Infrastructure Of The ( Near ) Future",
-      "url": "https://www.forbes.com/sites/alexanderblume/2026/07/28/onchain-vaults-financial-infrastructure-of-the-near-future/",
-      "src": "forbes.com",
-      "date": "20260728T150000Z",
+      "headline": "Apple left fake bitcoin wallet on App Store after $875 , 000 theft report , lawsuit says",
+      "url": "https://www.coindesk.com/business/2026/07/28/apple-kept-fake-bitcoin-wallet-on-app-store-after-usd875-000-theft-report-lawsuit-alleges",
+      "src": "coindesk.com",
+      "date": "20260728T153000Z",
       "sent": "neu"
-    },
-    {
-      "headline": "Apple Sued For Keeping Fake Bitcoin Wallet On App Store",
-      "url": "https://finance.yahoo.com/markets/crypto/articles/apple-sued-keeping-fake-bitcoin-140400101.html",
-      "src": "finance.yahoo.com",
-      "date": "20260728T150000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Bitcoin Drops Below $64 , 000 :  Respect the Bear , Bloomberg Mike McGlone Says",
-      "url": "https://www.benzinga.com/crypto/cryptocurrency/26/07/60723861/bitcoin-drops-below-64000-respect-the-bear-bloombergs-mike-mcglone-says",
-      "src": "benzinga.com",
-      "date": "20260728T143000Z",
-      "sent": "neg"
-    },
-    {
-      "headline": "Bitcoin Drops on Fed Hike Odds and ETF Outflows",
-      "url": "https://www.coinspeaker.com/bitcoin-etf-outflows-fed-rate-hike-price-drop/",
-      "src": "coinspeaker.com",
-      "date": "20260728T140000Z",
-      "sent": "neg"
-    },
-    {
-      "headline": "Bitcoin and ethereum prices today , Tuesday , July 28 , 2026 : Crypto prices slide ahead of Fed meeting",
-      "url": "https://finance.yahoo.com/personal-finance/investing/article/bitcoin-and-ethereum-prices-today-tuesday-july-28-2026-crypto-prices-slide-ahead-of-fed-meeting-125210301.html",
-      "src": "finance.yahoo.com",
-      "date": "20260728T133000Z",
-      "sent": "neg"
     }
   ],
-  "ts": 1785261132217,
+  "ts": 1785300254236,
   "source": "GDELT",
-  "_updatedMs": 1785261132217
+  "_updatedMs": 1785300254236
 }
