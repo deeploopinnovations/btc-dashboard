@@ -1,6 +1,20 @@
 {
   "items": [
     {
+      "headline": "Bitcoin Hyper Closing in on $33M as Layer - 2 Solutions Gain Traction",
+      "url": "https://partners.coinspeaker.com/bitcoin-hyper-closing-in-on-33m-milestone-as-layer-2-solutions-gain-traction-amid-market-volatility",
+      "src": "partners.coinspeaker.com",
+      "date": "20260803T231500Z",
+      "sent": "pos"
+    },
+    {
+      "headline": "Michael Seller",
+      "url": "https://www.zerohedge.com/news/2026-08-03/michael-seller",
+      "src": "zerohedge.com",
+      "date": "20260803T231500Z",
+      "sent": "neg"
+    },
+    {
       "headline": "Michael Saylor Strategy Just Boosted Its Cash Reserve to $3 . 75 Billion . Here Why Im Bearish on the Stock . ",
       "url": "https://www.fool.com/investing/2026/08/03/michael-saylors-strategy-just-boosted-its-cash-res/?source=iedfolrf0000001",
       "src": "fool.com",
@@ -90,23 +104,9 @@
       "src": "actionforex.com",
       "date": "20260803T164500Z",
       "sent": "neu"
-    },
-    {
-      "headline": "Cryptocurrency trading heats up after Fed decision as MoneySimpler launches AI trading for passive income",
-      "url": "https://cyprus-mail.com/2026/08/03/cryptocurrency-trading-heats-up-after-fed-decision-as-moneysimpler-launches-ai-trading-for-passive-income",
-      "src": "cyprus-mail.com",
-      "date": "20260803T164500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Strategy Sells 1 , 638 Bitcoin , Funds Dividends and Buybacks",
-      "url": "https://cointelegraph.com/news/strategy-sells-bitcoin-dividend-strc",
-      "src": "cointelegraph.com",
-      "date": "20260803T161500Z",
-      "sent": "neu"
     }
   ],
-  "ts": 1785800082109,
+  "ts": 1785809526274,
   "source": "GDELT",
-  "_updatedMs": 1785800082109
+  "_updatedMs": 1785809526274
 }
