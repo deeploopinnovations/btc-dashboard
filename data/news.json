@@ -1,6 +1,27 @@
 {
   "items": [
     {
+      "headline": "Bull DeFi : An Investment Strategy for Automatic Bitcoin ( BTC ) Growth",
+      "url": "https://newsroompanama.com/2026/08/07/bull-defi-an-investment-strategy-for-automatic-bitcoin-btc-growth/",
+      "src": "newsroompanama.com",
+      "date": "20260807T234500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Michael Saylor Just Sold Bitcoin at a Loss for the Third Time in 2026",
+      "url": "https://www.ibtimes.com/michael-saylor-just-sold-bitcoin-loss-third-time-2026-3806199",
+      "src": "ibtimes.com",
+      "date": "20260807T194500Z",
+      "sent": "neg"
+    },
+    {
+      "headline": "Baystreet . ca - Bitcoin Hovers Near $65 , 000 Amid Rising Middle East Tensions",
+      "url": "http://baystreet.ca/cryptonews/1364/Bitcoin-Hovers-Near-65000-Amid-Rising-Middle-East-Tensions",
+      "src": "baystreet.ca",
+      "date": "20260807T180000Z",
+      "sent": "neu"
+    },
+    {
       "headline": "Crypto Business Converges With Traditional Banking",
       "url": "https://cointelegraph.com/news/crypto-biz-crypto-business-converges-traditional-banking",
       "src": "cointelegraph.com",
@@ -83,30 +104,9 @@
       "src": "themarketsdaily.com",
       "date": "20260807T113000Z",
       "sent": "neu"
-    },
-    {
-      "headline": "XRP $70 Billion DeFi Problem May Finally Have an Answer",
-      "url": "https://memeburn.com/xrp-defi-lending-rlusd-fxrp/",
-      "src": "memeburn.com",
-      "date": "20260807T101500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Bitcoin whales load up on $1 . 2 billion in BTC as ETFs attract $750 million",
-      "url": "https://www.coindesk.com/markets/2026/08/07/bitcoin-whales-load-up-on-usd1-2-billion-in-btc-as-etfs-attract-usd750-million",
-      "src": "coindesk.com",
-      "date": "20260807T074500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Bitcoin price struggles below $65 , 000 as traders await fresh market cues",
-      "url": "https://www.moneycontrol.com/news/business/personal-finance/bitcoin-price-struggles-below-65-000-as-traders-await-fresh-market-cues-13997157.html",
-      "src": "moneycontrol.com",
-      "date": "20260807T044500Z",
-      "sent": "neg"
     }
   ],
-  "ts": 1786126226321,
+  "ts": 1786167587105,
   "source": "GDELT",
-  "_updatedMs": 1786126226321
+  "_updatedMs": 1786167587105
 }
