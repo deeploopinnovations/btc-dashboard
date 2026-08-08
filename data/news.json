@@ -1,112 +1,112 @@
 {
   "items": [
     {
-      "headline": "MARBLEX ( MBX ) Trading 2 . 9 % Higher Over Last Week",
-      "url": "https://www.themarketsdaily.com/2026/08/08/marblex-mbx-trading-2-9-higher-over-last-week.html",
+      "headline": "Velas ( VLX ) Price Down 6 . 1 % This Week",
+      "url": "https://www.themarketsdaily.com/2026/08/08/velas-vlx-price-down-6-1-this-week.html",
       "src": "themarketsdaily.com",
-      "date": "20260808T123000Z",
+      "date": "20260808T140000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Astar Trading Down 0 . 1 % Over Last 7 Days ( ASTR ) ",
+      "url": "https://www.themarketsdaily.com/2026/08/08/astar-trading-down-0-1-over-last-7-days-astr.html",
+      "src": "themarketsdaily.com",
+      "date": "20260808T140000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "BORA Achieves Self Reported Market Cap of $24 . 41 Million ( BORA ) ",
+      "url": "https://www.themarketsdaily.com/2026/08/08/bora-achieves-self-reported-market-cap-of-24-41-million-bora.html",
+      "src": "themarketsdaily.com",
+      "date": "20260808T140000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Bitcoin Latinum ( LTNM ) Achieves Self Reported Market Capitalization of $76 . 81 Million",
+      "url": "https://www.themarketsdaily.com/2026/08/08/bitcoin-latinum-ltnm-achieves-self-reported-market-capitalization-of-76-81-million.html",
+      "src": "themarketsdaily.com",
+      "date": "20260808T140000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Streamr ( DATA ) Price Down 25 . 1 % This Week",
+      "url": "https://www.themarketsdaily.com/2026/08/08/streamr-data-price-down-25-1-this-week.html",
+      "src": "themarketsdaily.com",
+      "date": "20260808T140000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Radio Caca ( RACA ) Price Tops $0 . 0000",
+      "url": "https://www.themarketsdaily.com/2026/08/08/radio-caca-raca-price-tops-0-0000.html",
+      "src": "themarketsdaily.com",
+      "date": "20260808T140000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Concordium ( CCD ) Achieves Self Reported Market Cap of $37 . 47 Million",
+      "url": "https://www.themarketsdaily.com/2026/08/08/concordium-ccd-achieves-self-reported-market-cap-of-37-47-million.html",
+      "src": "themarketsdaily.com",
+      "date": "20260808T140000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Luxurious Pro Network Token ( LPNT ) Price Up 0 . 3 % Over Last 7 Days",
+      "url": "https://www.themarketsdaily.com/2026/08/08/luxurious-pro-network-token-lpnt-price-up-0-3-over-last-7-days.html",
+      "src": "themarketsdaily.com",
+      "date": "20260808T140000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "APENFT ( NFT ) Price Hits $0 . 0000 on Major Exchanges",
+      "url": "https://www.themarketsdaily.com/2026/08/08/apenft-nft-price-hits-0-0000-on-major-exchanges.html",
+      "src": "themarketsdaily.com",
+      "date": "20260808T140000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "DAO Maker Trading Up 7 . 7 % This Week ( DAO ) ",
+      "url": "https://www.dailypolitical.com/2026/08/08/dao-maker-trading-up-7-7-this-week-dao.html",
+      "src": "dailypolitical.com",
+      "date": "20260808T134500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Vaulta ( A ) Reaches 1 - Day Trading Volume of $4 . 19 Million",
+      "url": "https://www.themarketsdaily.com/2026/08/08/vaulta-a-reaches-1-day-trading-volume-of-4-19-million.html",
+      "src": "themarketsdaily.com",
+      "date": "20260808T134500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Popcat ( SOL ) ( POPCAT ) Reaches Self Reported Market Capitalization of $42 . 03 Million",
+      "url": "https://www.dailypolitical.com/2026/08/08/popcat-sol-popcat-reaches-self-reported-market-capitalization-of-42-03-million.html",
+      "src": "dailypolitical.com",
+      "date": "20260808T134500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Wrapped BNB ( WBNB ) Price Reaches $595 . 67 on Top Exchanges",
+      "url": "https://www.dailypolitical.com/2026/08/08/wrapped-bnb-wbnb-price-reaches-595-67-on-top-exchanges.html",
+      "src": "dailypolitical.com",
+      "date": "20260808T134500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Ocean Protocol ( OCEAN ) 24 Hour Trading Volume Hits $2 . 77 Thousand",
+      "url": "https://www.dailypolitical.com/2026/08/08/ocean-protocol-ocean-24-hour-trading-volume-hits-2-77-thousand.html",
+      "src": "dailypolitical.com",
+      "date": "20260808T134500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Harmony Trading 2 . 6 % Higher Over Last 7 Days ( ONE ) ",
+      "url": "https://www.themarketsdaily.com/2026/08/08/harmony-trading-2-6-higher-over-last-7-days-one.html",
+      "src": "themarketsdaily.com",
+      "date": "20260808T134500Z",
       "sent": "pos"
-    },
-    {
-      "headline": "Ergo ( ERG ) Price Reaches $0 . 24 on Major Exchanges",
-      "url": "https://www.dailypolitical.com/2026/08/08/ergo-erg-price-reaches-0-24-on-major-exchanges.html",
-      "src": "dailypolitical.com",
-      "date": "20260808T123000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "SUNDOG ( SUNDOG ) Price Down 2 . 2 % Over Last Week",
-      "url": "https://www.dailypolitical.com/2026/08/08/sundog-sundog-price-down-2-2-over-last-week.html",
-      "src": "dailypolitical.com",
-      "date": "20260808T123000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Destra Network ( DSYNC ) Price Down 4 . 1 % Over Last Week",
-      "url": "https://www.themarketsdaily.com/2026/08/08/destra-network-dsync-price-down-4-1-over-last-week.html",
-      "src": "themarketsdaily.com",
-      "date": "20260808T123000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Wrapped THETA Trading 5 . 8 % Higher Over Last Week ( WTHETA ) ",
-      "url": "https://www.themarketsdaily.com/2026/08/08/wrapped-theta-trading-5-8-higher-over-last-week-wtheta.html",
-      "src": "themarketsdaily.com",
-      "date": "20260808T123000Z",
-      "sent": "pos"
-    },
-    {
-      "headline": "Alpha Finance Lab Price Reaches $0 . 0005 on Exchanges ( ALPHA ) ",
-      "url": "https://www.themarketsdaily.com/2026/08/08/alpha-finance-lab-price-reaches-0-0005-on-exchanges-alpha.html",
-      "src": "themarketsdaily.com",
-      "date": "20260808T123000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "HUNT ( HUNT ) Hits 24 Hour Volume of $44 . 16 Thousand",
-      "url": "https://www.themarketsdaily.com/2026/08/08/hunt-hunt-hits-24-hour-volume-of-44-16-thousand.html",
-      "src": "themarketsdaily.com",
-      "date": "20260808T123000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Casper ( CSPR ) Price Reaches $0 . 0019 on Top Exchanges",
-      "url": "https://www.dailypolitical.com/2026/08/08/casper-cspr-price-reaches-0-0019-on-top-exchanges.html",
-      "src": "dailypolitical.com",
-      "date": "20260808T123000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Millennium Sapphire ( MSTO ) Trading 0 % Lower Over Last 7 Days",
-      "url": "https://www.dailypolitical.com/2026/08/08/millennium-sapphire-msto-trading-0-lower-over-last-7-days.html",
-      "src": "dailypolitical.com",
-      "date": "20260808T123000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "XRUN ( XRUN ) Trading 22 . 1 % Higher Over Last Week",
-      "url": "https://www.dailypolitical.com/2026/08/08/xrun-xrun-trading-22-1-higher-over-last-week.html",
-      "src": "dailypolitical.com",
-      "date": "20260808T123000Z",
-      "sent": "pos"
-    },
-    {
-      "headline": "VeChain Price Hits $0 . 0047 ( VET ) ",
-      "url": "https://www.themarketsdaily.com/2026/08/08/vechain-price-hits-0-0047-vet.html",
-      "src": "themarketsdaily.com",
-      "date": "20260808T123000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Origin Protocol Price Hits $0 . 0161 ( OGN ) ",
-      "url": "https://www.dailypolitical.com/2026/08/08/origin-protocol-price-hits-0-0161-ogn.html",
-      "src": "dailypolitical.com",
-      "date": "20260808T123000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "MobileCoin ( MOB ) Hits Self Reported Market Capitalization of $5 . 83 Million",
-      "url": "https://www.themarketsdaily.com/2026/08/08/mobilecoin-mob-hits-self-reported-market-capitalization-of-5-83-million.html",
-      "src": "themarketsdaily.com",
-      "date": "20260808T121500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "RichQUACK . com Price Tops $0 . 0000 on Major Exchanges ( QUACK ) ",
-      "url": "https://www.themarketsdaily.com/2026/08/08/richquack-com-price-tops-0-0000-on-major-exchanges-quack.html",
-      "src": "themarketsdaily.com",
-      "date": "20260808T121500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Siacoin ( SC ) Reaches One Day Volume of $2 . 50 Million",
-      "url": "https://www.tickerreport.com/banking-finance/13535570/siacoin-sc-reaches-one-day-volume-of-2-50-million.html",
-      "src": "tickerreport.com",
-      "date": "20260808T121500Z",
-      "sent": "neu"
     }
   ],
-  "ts": 1786196560699,
+  "ts": 1786199353128,
   "source": "GDELT",
-  "_updatedMs": 1786196560699
+  "_updatedMs": 1786199353128
 }
