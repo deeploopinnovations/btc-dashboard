@@ -1,6 +1,69 @@
 {
   "items": [
     {
+      "headline": "aPriori ( APR ) Trading 2 . 9 % Higher Over Last 7 Days",
+      "url": "https://www.themarketsdaily.com/2026/08/08/apriori-apr-trading-2-9-higher-over-last-7-days.html",
+      "src": "themarketsdaily.com",
+      "date": "20260808T113000Z",
+      "sent": "pos"
+    },
+    {
+      "headline": "Ponke Reaches One Day Trading Volume of $955 . 06 Thousand ( PONKE ) ",
+      "url": "https://www.themarketsdaily.com/2026/08/08/ponke-reaches-one-day-trading-volume-of-955-06-thousand-ponke.html",
+      "src": "themarketsdaily.com",
+      "date": "20260808T113000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Reef ( REEF ) Price Reaches $0 . 0001 on Major Exchanges",
+      "url": "https://www.themarketsdaily.com/2026/08/08/reef-reef-price-reaches-0-0001-on-major-exchanges.html",
+      "src": "themarketsdaily.com",
+      "date": "20260808T113000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "NetMind Token ( NMT ) Self Reported Market Cap Reaches $2 . 56 Million",
+      "url": "https://www.themarketsdaily.com/2026/08/08/netmind-token-nmt-self-reported-market-cap-reaches-2-56-million.html",
+      "src": "themarketsdaily.com",
+      "date": "20260808T113000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Drift ( DRIFT ) Tops 24 - Hour Trading Volume of $2 . 03 Million",
+      "url": "https://www.themarketsdaily.com/2026/08/08/drift-drift-tops-24-hour-trading-volume-of-2-03-million.html",
+      "src": "themarketsdaily.com",
+      "date": "20260808T113000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "NYM Price Tops $0 . 0185 on Major Exchanges ( NYM ) ",
+      "url": "https://www.themarketsdaily.com/2026/08/08/nym-price-tops-0-0185-on-major-exchanges-nym.html",
+      "src": "themarketsdaily.com",
+      "date": "20260808T113000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "LandWolf ( SOL ) ( WOLF ) Tops 24 Hour Volume of $0 . 20",
+      "url": "https://www.themarketsdaily.com/2026/08/08/landwolf-sol-wolf-tops-24-hour-volume-of-0-20.html",
+      "src": "themarketsdaily.com",
+      "date": "20260808T113000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "AVINOC ( AVINOC ) Trading 7 . 1 % Lower Over Last Week",
+      "url": "https://www.themarketsdaily.com/2026/08/08/avinoc-avinoc-trading-7-1-lower-over-last-week.html",
+      "src": "themarketsdaily.com",
+      "date": "20260808T113000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Attention bitcoin holders : You can lose real BTC trying to sell coins from BIP - 110 fork",
+      "url": "https://www.coindesk.com/tech/2026/08/08/bitcoin-holders-risk-losing-real-btc-if-they-sell-coins-from-bip-110-fork-says-developer",
+      "src": "coindesk.com",
+      "date": "20260808T063000Z",
+      "sent": "neg"
+    },
+    {
       "headline": "Bull DeFi : An Investment Strategy for Automatic Bitcoin ( BTC ) Growth",
       "url": "https://newsroompanama.com/2026/08/07/bull-defi-an-investment-strategy-for-automatic-bitcoin-btc-growth/",
       "src": "newsroompanama.com",
@@ -41,72 +104,9 @@
       "src": "cointelegraph.com",
       "date": "20260807T171500Z",
       "sent": "neu"
-    },
-    {
-      "headline": "CORRECTING and REPLACING : Consensus Mining & Seigniorage Corporation ( OTCQX : CMSG ) 2Q2026 Financial Results",
-      "url": "http://www.newjerseytelegraph.com/news/279226594/correcting-and-replacing-consensus-mining-seigniorage-corporation-otcqxcmsg-2q2026-financial-results",
-      "src": "newjerseytelegraph.com",
-      "date": "20260807T164500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Kritik veri açıklandı : Bitcoin 65 bin doları geçti",
-      "url": "https://www.haberler.com/kripto-para/kritik-veri-aciklandi-bitcoin-65-bin-dolari-gecti-20126265-haberi/",
-      "src": "haberler.com",
-      "date": "20260807T151500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Bitcoin ETFs Attract $754 Million Of Capital",
-      "url": "https://finance.yahoo.com/markets/crypto/articles/bitcoin-etfs-attract-754-million-134900109.html",
-      "src": "finance.yahoo.com",
-      "date": "20260807T144500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Ripple News : XRP USD at Risk of Losing Key Support at $1",
-      "url": "https://www.coinspeaker.com/xrp-price-prediction-ripple-news-clarity-act/",
-      "src": "coinspeaker.com",
-      "date": "20260807T133000Z",
-      "sent": "neg"
-    },
-    {
-      "headline": "BitFuFu Announces July 2026 Bitcoin Production and Operational Updates",
-      "url": "https://www.manilatimes.net/2026/08/07/tmt-newswire/globenewswire/bitfufu-announces-july-2026-bitcoin-production-and-operational-updates/2400985",
-      "src": "manilatimes.net",
-      "date": "20260807T133000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Comparing BTC Development ( NASDAQ : BDCIW ) and Virtus Investment Partners ( NASDAQ : VRTS ) ",
-      "url": "https://www.themarketsdaily.com/2026/08/07/comparing-btc-development-nasdaqbdciw-and-virtus-investment-partners-nasdaqvrts.html",
-      "src": "themarketsdaily.com",
-      "date": "20260807T123000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Devve Trading 0 . 8 % Lower Over Last 7 Days ( DEVVE ) ",
-      "url": "https://www.themarketsdaily.com/2026/08/07/devve-trading-0-8-lower-over-last-7-days-devve.html",
-      "src": "themarketsdaily.com",
-      "date": "20260807T113000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "STBL ( STBL ) Price Tops $0 . 0253",
-      "url": "https://www.themarketsdaily.com/2026/08/07/stbl-stbl-price-tops-0-0253.html",
-      "src": "themarketsdaily.com",
-      "date": "20260807T113000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Irys ( IRYS ) Price Reaches $0 . 0156",
-      "url": "https://www.themarketsdaily.com/2026/08/07/irys-irys-price-reaches-0-0156.html",
-      "src": "themarketsdaily.com",
-      "date": "20260807T113000Z",
-      "sent": "neu"
     }
   ],
-  "ts": 1786167587105,
+  "ts": 1786189996996,
   "source": "GDELT",
-  "_updatedMs": 1786167587105
+  "_updatedMs": 1786189996996
 }
