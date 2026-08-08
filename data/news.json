@@ -1,6 +1,13 @@
 {
   "items": [
     {
+      "headline": "Coldcard Hack : Bitcoin Losses and Seed Flaw Explained",
+      "url": "https://www.coinspeaker.com/coldcard-hack-bitcoin-losses/",
+      "src": "coinspeaker.com",
+      "date": "20260808T190000Z",
+      "sent": "neg"
+    },
+    {
       "headline": "ABBC Coin 24 - Hour Volume Tops $532 . 45 ( ABBC ) ",
       "url": "https://www.tickerreport.com/banking-finance/13535860/abbc-coin-24-hour-volume-tops-532-45-abbc.html",
       "src": "tickerreport.com",
@@ -97,16 +104,9 @@
       "src": "dailypolitical.com",
       "date": "20260808T144500Z",
       "sent": "neu"
-    },
-    {
-      "headline": "Wrapped TAO ( WTAO ) Reaches 24 Hour Trading Volume of $45 . 92 Thousand",
-      "url": "https://www.dailypolitical.com/2026/08/08/wrapped-tao-wtao-reaches-24-hour-trading-volume-of-45-92-thousand.html",
-      "src": "dailypolitical.com",
-      "date": "20260808T144500Z",
-      "sent": "neu"
     }
   ],
-  "ts": 1786211781701,
+  "ts": 1786218834704,
   "source": "GDELT",
-  "_updatedMs": 1786211781701
+  "_updatedMs": 1786218834704
 }
