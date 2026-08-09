@@ -1,6 +1,20 @@
 {
   "items": [
     {
+      "headline": "Bitcoin ( BTC ) Price Prediction : BTC Nears Major Supply Zone as Bulls Target a Break Above $65K",
+      "url": "https://bravenewcoin.com/insights/bitcoin-btc-price-prediction-btc-nears-major-supply-zone-as-bulls-target-a-break-above-65k",
+      "src": "bravenewcoin.com",
+      "date": "20260809T194500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Economic Calendar and Trading Strategy This Week : CPI , PPI , Retail Sales",
+      "url": "https://www.livetradingnews.com/economic-calendar-and-trading-strategy-this-week",
+      "src": "livetradingnews.com",
+      "date": "20260809T194500Z",
+      "sent": "neu"
+    },
+    {
       "headline": "After a $130 Million Hack of Coldcard , Money Is Flowing Into Bitcoin ETFs . Here the Best Bitcoin ETF to Buy Right Now . ",
       "url": "https://www.fool.com/investing/2026/08/09/130-million-hack-coldcard-money-flow-bitcoin-etf/?source=iedfolrf0000001",
       "src": "fool.com",
@@ -76,23 +90,9 @@
       "src": "finance.yahoo.com",
       "date": "20260809T114500Z",
       "sent": "neg"
-    },
-    {
-      "headline": "AI Rig Complex Price Up 39 . 1 % Over Last Week ( ARC ) ",
-      "url": "https://www.themarketsdaily.com/2026/08/09/ai-rig-complex-price-up-39-1-over-last-week-arc.html",
-      "src": "themarketsdaily.com",
-      "date": "20260809T114500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "AUSD Self Reported Market Capitalization Achieves $149 . 41 Million ( AUSD ) ",
-      "url": "https://www.themarketsdaily.com/2026/08/09/ausd-self-reported-market-capitalization-achieves-149-41-million-ausd.html",
-      "src": "themarketsdaily.com",
-      "date": "20260809T114500Z",
-      "sent": "neu"
     }
   ],
-  "ts": 1786296507720,
+  "ts": 1786315185942,
   "source": "GDELT",
-  "_updatedMs": 1786296507720
+  "_updatedMs": 1786315185942
 }
