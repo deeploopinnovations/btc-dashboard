@@ -60,13 +60,15 @@ def run_fold(ep, X, fold, *, epochs, hidden, seed, verbose=False):
     # calibration on the fold's own calib slice (H=19, all anchors)
     m_cal19 = m_va & (ep.H == 19).to_numpy()
     cd, _ = prepare(ep, X, m_cal19, *stds)
-    pc = I.predict(model, cd)
+    _bl = B.fit_vol_baselines(X[m_tr], B.har_target(ep.RV.to_numpy(), ep.H.to_numpy())[m_tr], wtr)
+    pc = I.predict(model, cd, har_logvol=_bl['log_har_cal'].predict(X[m_cal19]))
     ec = ep[m_cal19]
     calib = NoctuaCalibration().fit(pc, ec.M_up.to_numpy(), ec.M_dn.to_numpy(), ec.R.to_numpy())
 
     te, _ = prepare(ep, X, m_te, *stds)
-    pred = I.predict(model, te)
     e = ep[m_te]
+    bl0 = B.fit_vol_baselines(X[m_tr], B.har_target(ep.RV.to_numpy(), ep.H.to_numpy())[m_tr], wtr)
+    pred = I.predict(model, te, har_logvol=bl0['log_har_cal'].predict(X[m_te]))
 
     # ---- volatility ------------------------------------------------------
     H = ep.H.to_numpy(np.float64)

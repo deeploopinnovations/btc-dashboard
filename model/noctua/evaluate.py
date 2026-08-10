@@ -226,7 +226,9 @@ def main(argv=None) -> int:
 
     model, ck = load_model(a.model)
     te, _ = prepare(ep, X, m_te, *stds_from_ck(ck))
-    pred = I.predict(model, te)
+    _y = B.har_target(ep.RV.to_numpy(), ep.H.to_numpy())
+    _bl = B.fit_vol_baselines(X[m_tr], _y[m_tr], wtr)
+    pred = I.predict(model, te, har_logvol=_bl['log_har_cal'].predict(X[m_te]))
     calib = NoctuaCalibration.from_dict(ck["calibration"]) if "calibration" in ck else None
 
     print(f"[eval] production-slice test episodes = {int(m_te.sum())}")

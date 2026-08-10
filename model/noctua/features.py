@@ -189,6 +189,17 @@ def build_features(hours: pd.DataFrame, episodes: pd.DataFrame) -> pd.DataFrame:
         vals[ok] = 0.5 * _safe_log(seg[ok] / np.maximum(H[ok], 1))
         out[f"seas_{d}d"] = vals
 
+    if len(episodes) == 0:
+        # A degenerate input series (e.g. a constant price) yields no valid
+        # episodes at all, because the episode builder rejects windows with
+        # zero realized variance. Return an empty frame with the right columns
+        # rather than crashing -- refusing to forecast is the correct response.
+        cols = list(out.keys()) + [f"seas_{d}d" for d in (1, 5, 22)] + [
+            "cal_hour_sin", "cal_hour_cos", "cal_dow_sin", "cal_dow_cos",
+            "cal_H", "cal_weekend_frac", "cal_month_sin", "cal_month_cos",
+        ]
+        return pd.DataFrame({c: np.zeros(0) for c in cols})
+
     # ---- calendar of the FORWARD window (known in advance, not lookahead) ---
     anchor_ts = episodes["anchor_ts"].to_numpy(np.int64)
     ah = episodes["anchor_hour"].to_numpy(np.float64)

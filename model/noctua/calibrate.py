@@ -89,10 +89,18 @@ class PITCalibrator:
         return c
 
 
+# Production shrinkage, selected by the walk-forward sweep in
+# model/artifacts/walkforward.json. shrink=0.5 minimises mean |calibration
+# error| across alpha (2.78pp vs the Gaussian baseline's 3.17pp) while staying
+# close to the best deep-tail setting. Full correction (shrink=1.0) is
+# marginally better at alpha<=2% but degrades the body.
+DEFAULT_SHRINK = 0.5
+
+
 class NoctuaCalibration:
     """The three recalibration maps NOCTUA serves through."""
 
-    def __init__(self, shrink: float = 1.0):
+    def __init__(self, shrink: float = DEFAULT_SHRINK):
         self.up = PITCalibrator()
         self.dn = PITCalibrator()
         self.ret = PITCalibrator()
@@ -142,7 +150,7 @@ class NoctuaCalibration:
 
     @classmethod
     def from_dict(cls, d: dict) -> "NoctuaCalibration":
-        c = cls(shrink=float(d.get("shrink", 1.0)))
+        c = cls(shrink=float(d.get("shrink", DEFAULT_SHRINK)))
         c.up = PITCalibrator.from_dict(d["up"])
         c.dn = PITCalibrator.from_dict(d["dn"])
         c.ret = PITCalibrator.from_dict(d["ret"])
