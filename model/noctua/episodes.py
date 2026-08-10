@@ -115,6 +115,28 @@ def build_hourly(df: pd.DataFrame) -> pd.DataFrame:
     rv5 = np.zeros(n_hours)
     np.add.at(rv5, r5_hour, r5**2)
 
+    # ---- decomposed realized measures (Barndorff-Nielsen / Patton-Sheppard) --
+    # Realized SEMIvariances: separating upside from downside variance is the
+    # measurable form of the leverage effect, and downside semivariance carries
+    # most of the predictive content for future volatility. For a PUT seller
+    # this is the single most relevant decomposition available.
+    rv5_pos = np.zeros(n_hours)
+    rv5_neg = np.zeros(n_hours)
+    np.add.at(rv5_pos, r5_hour, np.where(r5 > 0, r5**2, 0.0))
+    np.add.at(rv5_neg, r5_hour, np.where(r5 < 0, r5**2, 0.0))
+
+    # Bipower variation: jump-robust estimate of the CONTINUOUS variance.
+    # rv5 - bpv5 isolates the jump component.
+    bp = (np.pi / 2.0) * np.abs(r5[1:]) * np.abs(r5[:-1])
+    bpv5 = np.zeros(n_hours)
+    np.add.at(bpv5, r5_hour[1:], bp)
+
+    # Realized quarticity: measures the MEASUREMENT ERROR in rv5 itself, which
+    # is what HARQ uses to attenuate coefficients when RV is noisily estimated.
+    rq5 = np.zeros(n_hours)
+    np.add.at(rq5, r5_hour, r5**4)
+    rq5 *= 12.0 / 3.0  # n/3 with n = 12 five-minute buckets per hour
+
     r1 = np.diff(logc, prepend=logc[0])
     rv1 = np.zeros(n_hours)
     np.add.at(rv1, slot, r1**2)
@@ -131,6 +153,10 @@ def build_hourly(df: pd.DataFrame) -> pd.DataFrame:
             "volume": hour_vol,
             "n_bad": hour_bad,
             "rv5": rv5,
+            "rv5_pos": rv5_pos,
+            "rv5_neg": rv5_neg,
+            "bpv5": bpv5,
+            "rq5": rq5,
             "rv1": rv1,
         }
     )
