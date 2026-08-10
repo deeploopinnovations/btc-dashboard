@@ -17,6 +17,7 @@ on:
   pull_request:
     paths:
       - 'model/**'
+      - 'data/noctua_history.parquet'
       - 'scripts/**'
       - '.github/workflows/model-ci.yml'
       - '.github/workflows/fetch-data.yml'
@@ -47,3 +48,6 @@ jobs:
 
       - name: Model self-test
         run: python model/tests/test_serving.py
+
+      - name: History / live-path self-test
+        run: python model/tests/test_history.py

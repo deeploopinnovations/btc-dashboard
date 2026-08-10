@@ -2,6 +2,8 @@
 # =====================================================================
 # Snapshot enrichment cron. Every 30 minutes it:
 #   1. Runs the local NOCTUA model             → data/kronos.json + noctua.json
+#      (tops up data/noctua_history.parquet from a live 5-min feed; the
+#       bundle carries the 365d of history the features need)
 #   2. Fetches news (CryptoPanic + GDELT, + Exa if EXA_API_KEY secret set)
 #      and Fear & Greed                          → data/news.json, data/fg.json
 #   3. Runs the smoke gate (never publish malformed snapshots)
@@ -67,7 +69,7 @@ jobs:
         run: |
           git config user.name  "snapshot-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add data/*.json
+          git add data/*.json data/*.parquet
           if git diff --cached --quiet; then
             echo "No snapshot changes."
           else
