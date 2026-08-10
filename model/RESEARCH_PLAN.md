@@ -1,8 +1,8 @@
-# NOCTUA — A Small, Calibrated, Clock-Anchored Model for the BTC Overnight Option-Seller's Window
+# NOCTUA — A Small, Calibrated Barrier Model for the BTC Overnight Option-Seller's Window
 
 **Nocturnal Overnight Calibrated Tail & Underlying Analyzer**
 
-*Research and development plan. Version 1.0.*
+*Research and development plan. Version 1.1 — revised after first contact with the data (see §0, §2.4).*
 
 ---
 
@@ -30,28 +30,27 @@ large general model used through Monte-Carlo rollouts.**
 
 ### The central structural insight
 
-The window is not arbitrary. Converting to UTC and laying it against this repo's own
-intraday volatility study (`BTC_VOL_RESEARCH.md`, 77 k hourly candles):
+**The edge here is not scale, it is specification** — modelling the functional the seller
+actually trades (the barrier), with a proper scoring rule and an explicit calibration step,
+instead of Monte-Carlo-sampling a general generative model and reading a summary statistic
+off the samples.
 
-```
-  17:00 UTC ─────────────────────────────────────────────────► 12:00 UTC (+1d)
-  │ US afternoon │      Asia / overnight      │ Europe morning │
-  │  42–61 bps   │        37–41 bps           │   37–39 bps    │
-  └──────────────┴────────────────────────────┴────────────────┘
-                                                                 ✂ WINDOW CLOSES
-                                                    13:00–16:00 UTC = 58–80 bps
-                                                    ▲ the loudest block of the day
-                                                      is EXCLUDED
-```
+> **Correction, v1.1 — a claim this plan originally made and the data killed.**
+>
+> Version 1.0 argued that the decisive edge was *clock anchoring*: that the 17:00→12:00 UTC
+> window excludes the loud 13:00–16:00 UTC US-macro block, so a clock-aware model would
+> avoid structurally over-forecasting volatility. **Measured on our own 7.68 M-bar sample
+> (2017-08+), that claim is wrong in magnitude.** Anchor hour explains **0.22 %** of the
+> variance of log RV at H = 19 h, and the 17:00 anchor ranks a thoroughly unremarkable
+> **11th of 24**. The reason is arithmetic and should have been obvious: a 19-hour window
+> covers 79 % of the day, so every anchor averages over nearly the same hours. The clock
+> effect is real but only at short horizons — the max/min anchor ratio for median RV is
+> **1.41× at H = 6 h, 1.23× at H = 12 h, 1.10× at H = 19 h, 1.01× at H = 24 h.**
+>
+> Clock position is retained as a feature (it is free and non-negative in value), but it is
+> demoted from thesis to footnote. See §2.4 for what the measurement actually found.
 
-The seller's window **systematically excludes the single loudest block of the BTC trading
-day** — the US pre-market/cash-open/macro-print cluster at 13:00–16:00 UTC, which runs at
-up to 80 bps/hour versus 37–41 bps overnight. A model that does not know what time it is
-must average over the whole day and will **structurally over-forecast** volatility for this
-window. A clock-anchored model gets that for free.
 
-This is the entire thesis in one picture: **the edge here is not scale, it is
-specification.**
 
 ---
 
@@ -199,7 +198,64 @@ Three conclusions drive our architecture:
 3. **Beating it requires information the benchmark does not have.** Ours is: exact clock
    position, 1-minute realized measures, path functionals, and multi-anchor training.
 
-### 2.4 Econometric foundations we build on
+### 2.4 What the data actually says (measured, not assumed)
+
+Before fitting anything, the three assumptions this architecture rests on were tested
+directly on the built episode table (BTC/USD, 2017-08 → 2026-08, H = 19 h). Results drive
+the design, including where they contradicted it.
+
+**(i) Volatility is strongly predictable — Stage A is justified.**
+
+| lag (days) | 1 | 2 | 3 | 5 | 10 | 22 |
+|---|---|---|---|---|---|---|
+| autocorr of log RV | 0.744 | 0.643 | 0.615 | 0.570 | 0.479 | 0.438 |
+
+A crude log-HAR on the (1, 5, 22)-day cascade already reaches **R² = 0.605** in-sample. The
+slow decay is the classic long-memory signature that makes HAR work. This is where the
+predictability lives, and it is why Stage A is built around an explicit Log-HAR base.
+
+**(ii) The scale-invariance prior is real — Stage B is justified.** Splitting episodes by
+realized-vol quintile, raw `M⁺` varies **~4.4×** across quintiles while the standardized
+`m⁺ = M⁺/RV` is nearly flat:
+
+| RV quintile | Q1 low | Q2 | Q3 | Q4 | Q5 high | spread |
+|---|---|---|---|---|---|---|
+| median `M⁺` (%) | 0.67 | 1.18 | 1.60 | 2.08 | 2.97 | **4.4×** |
+| median `m⁺ = M⁺/RV` | 0.639 | 0.672 | 0.693 | 0.666 | 0.564 | **1.23×** |
+
+Dividing by the volatility scale removes ~80 % of the variation in the barrier functional.
+That is exactly the seam the Stage-A/Stage-B factorization cuts along, and it is what lets a
+sub-1 M-parameter model work on ~3,300 native episodes.
+
+Better still, the level is close to theory: for a driftless diffusion the running maximum
+over a window of total vol `σ` satisfies `median(M⁺) = 0.6745 σ` (reflection principle,
+`max ~ |N(0,1)|·σ`). We measure **0.64–0.69**. So the Brownian barrier baseline is nearly
+*right at the median* — the model's job is to learn the **deviations**, which is precisely
+where a seller's money is: the empirical 95th percentile of `m⁺` runs 1.61–2.01 against the
+Gaussian 1.96, and the quintile pattern is non-monotone (a hump at Q3, a marked drop at Q5).
+Fat tails in quiet regimes, compressed tails in already-violent ones.
+
+**(iii) The dominant calendar signal is the weekend, not the clock.** Day-of-week explains
+**5.35 %** of log-RV variance — **24× more than anchor hour (0.22 %)**:
+
+| day | Mon | Tue | Wed | Thu | Fri | **Sat** | Sun |
+|---|---|---|---|---|---|---|---|
+| median RV over 19 h (%) | 2.447 | 2.502 | 2.535 | 2.490 | 2.359 | **1.777** | 2.098 |
+
+Saturday realizes **30 % less volatility than Wednesday**. This independently reproduces the
+central finding of this repo's own `DAILY_EXPIRY_ALPHA.md` ("the Saturday lull is the single
+largest, cleanest edge found in this entire project") from a completely different estimator
+— 5-minute realized variance on Bitstamp here, versus Black-Scholes P&L simulation on
+Deribit DVOL there. Two independent routes to the same structure is the strongest evidence
+available in this project, and day-of-week is therefore a first-class feature.
+
+**(iv) Cross-validation of the RV estimator.** Median annualized RV from 24-hour windows
+tracks the daily-return realized vol table published in `BTC_VOL_RESEARCH.md` — 2015: 60.1
+vs 60.0, 2016: 47.0 vs 49.9, 2017 the peak in both, 2023/2025 the troughs in both. Our
+medians sit systematically below their standard deviations, as they must for a right-skewed
+quantity. The estimator is sound.
+
+### 2.5 Econometric foundations we build on
 
 - **Corsi (2009)** — the HAR model. Cascading daily/weekly/monthly realized-volatility
   components approximate long memory with three regressors. Still the workhorse benchmark
@@ -500,8 +556,9 @@ barrier is the result.**
 
 ### 6.4 Ablations (each isolates one design claim)
 
-1. Remove clock anchoring → quantifies the §0 thesis.
+1. Remove clock anchoring → quantifies the (demoted) §2.4(iii) clock effect.
 2. Remove the multi-anchor augmentation → quantifies the §3.4 trick.
+   1b. Remove day-of-week/weekend features → quantifies the dominant calendar signal.
 3. Remove the Log-HAR base (pure MLP) → shows the residual structure earns its place.
 4. Remove semivariance/jump features → tests the Patton–Sheppard channel.
 5. Remove Stage-A/Stage-B factorization (predict `M⁺` directly) → tests the invariance prior.
