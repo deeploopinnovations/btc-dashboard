@@ -1,6 +1,11 @@
 #!/usr/bin/env node
 /**
- * scripts/parse-kronos.js  (v4.1)
+ * scripts/parse-kronos.js  (v4.1)  ** RETIRED -- NO LONGER RUN BY CI **
+ *
+ * The public Kronos demo stopped updating; its last genuine source timestamp
+ * was 2026-07-04 11:00:26 UTC and this script had been re-committing a fossil
+ * ever since. data/kronos.json is now produced by model/serve/predict.py
+ * (NOCTUA). Kept for reference only.
  * =====================================================================
  * GH Actions-side Kronos demo scraper. Runs server-side (no CORS), parses
  * "Upside Probability (Next 24h)" and "Volatility Amplification (Next 24h)"
