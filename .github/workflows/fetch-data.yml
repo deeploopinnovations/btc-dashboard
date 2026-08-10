@@ -1,7 +1,7 @@
 # .github/workflows/fetch-data.yml  (v4.1)
 # =====================================================================
 # Snapshot enrichment cron. Every 30 minutes it:
-#   1. Parses the Kronos demo page server-side  → data/kronos.json
+#   1. Runs the local NOCTUA model             → data/kronos.json + noctua.json
 #   2. Fetches news (CryptoPanic + GDELT, + Exa if EXA_API_KEY secret set)
 #      and Fear & Greed                          → data/news.json, data/fg.json
 #   3. Runs the smoke gate (never publish malformed snapshots)
@@ -37,9 +37,16 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Parse Kronos demo page
-        run: node scripts/parse-kronos.js
-        continue-on-error: true   # keep yesterday's kronos.json on parse miss
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install NOCTUA runtime (numpy/scipy only, no torch)
+        run: pip install --quiet -r model/serve/requirements-ci.txt
+
+      - name: NOCTUA forecast
+        run: python model/serve/predict.py --out-dir data
+        continue-on-error: true   # keep the previous forecast on a feed failure
 
       - name: Fetch news + fear/greed enrichment
         env:
