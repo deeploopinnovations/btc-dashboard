@@ -52,6 +52,13 @@ and [`RESULTS.md`](https://github.com/deeploopinnovations/btc-dashboard/blob/mai
 
 ## Data
 
+The feature set reaches back **365 days** (`reg_rv_vs_year`), so the long
+history ships as a committed hourly bundle — `data/noctua_history.parquet`,
+~716 KB, built by the same `build_hourly` used in training — and each run
+fetches only the recent tail (one request). Short or gappy history is a hard
+error: silently falling back to a feature's training mean would produce
+confident, subtly wrong strike levels.
+
 Trained on Bitstamp BTC/USD 1-minute bars, 2017-08 → 2026-08, via
 [ff137/bitstamp-btcusd-minute-data](https://github.com/ff137/bitstamp-btcusd-minute-data).
 Serving fetches 5-minute bars from the **same venue and pair** — venue

@@ -158,6 +158,31 @@ the put side are the expensive ones for a seller.
 window drifts 2.85 % (train) → 1.86 % (calibration) → 1.67 % (test). Every
 number here is conditioned on a market that keeps moving.
 
+**The live path failed on its first real run, and why.** The serving code was
+written in an environment whose egress proxy blocks every exchange API, so the
+network path could not be exercised until it merged. It failed twice over:
+Bitstamp pagination never advanced (passing both `start` and `end` makes the
+API re-serve the same final page, so the loop exited after one call with
+exactly 1000 bars), and the Binance fallback returned `HTTP 451` because
+GitHub's runners sit on US IPs that Binance geo-blocks.
+
+Behind both sat a worse, quieter bug. `LOOKBACK_HOURS` was set to 23 days on
+the assumption that the 22-day HAR term was the longest window. It is not —
+`reg_rv_vs_year` reaches back **365 days**, `mom_dist_ma100` 100 days,
+`mom_drawdown_90d` 90 days. And short history does not raise: `prepare()` runs
+`nan_to_num` after standardising, so an unfillable feature becomes 0, *which is
+exactly its training mean*. Had the fetch merely "worked" at 23 days, the model
+would have served confident strike levels with four long-lookback features
+silently pinned to their means. Measured over 60 daily anchors, that skew moves
+the forecast volatility by up to 3.5% and the **α = 1% put strike by a median
+0.38 pp of spot, up to 1.45 pp** — a few hundred dollars at current prices, on
+the leg where errors are most expensive, with nothing to indicate it.
+
+The fix ships the 365-day history as a committed hourly bundle
+(`data/noctua_history.parquet`, ~716 KB, built by the same `build_hourly` as
+training) and fetches only the recent tail, which is a single request. Short or
+gappy history is now a hard error rather than a silent mean-imputation.
+
 **Single venue.** Bitstamp BTC/USD only. Deribit-settled options settle on a
 multi-venue index, so a Bitstamp-only wick is a touch a real seller would not
 have suffered. Isolated bad prints are detected and neutralised (1–5 per

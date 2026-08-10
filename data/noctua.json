@@ -3,46 +3,46 @@
   "settle_utc": "2026-08-10 19:00:00+00:00",
   "H_hours": 19,
   "spot": 64857.27,
-  "sigma_window_pct": 0.787,
-  "sigma_annualized_pct": 16.9,
+  "sigma_window_pct": 0.8,
+  "sigma_annualized_pct": 17.2,
   "trailing_rv_pct": 0.615,
-  "p_up": 0.6007,
-  "p_vol_amplify": 0.8013,
+  "p_up": 0.5426,
+  "p_vol_amplify": 0.8004,
   "safe_levels": [
     {
       "alpha": 0.01,
-      "call_strike": 68318.74,
-      "put_strike": 62210.83,
-      "call_pct": 5.337,
-      "put_pct": -4.08
+      "call_strike": 69443.22,
+      "put_strike": 61440.0,
+      "call_pct": 7.071,
+      "put_pct": -5.269
     },
     {
       "alpha": 0.02,
-      "call_strike": 67310.69,
-      "put_strike": 62863.47,
-      "call_pct": 3.783,
-      "put_pct": -3.074
+      "call_strike": 68067.05,
+      "put_strike": 62304.26,
+      "call_pct": 4.949,
+      "put_pct": -3.936
     },
     {
       "alpha": 0.05,
-      "call_strike": 66373.64,
-      "put_strike": 63543.76,
-      "call_pct": 2.338,
-      "put_pct": -2.025
+      "call_strike": 66811.14,
+      "put_strike": 63181.31,
+      "call_pct": 3.013,
+      "put_pct": -2.584
     },
     {
       "alpha": 0.1,
-      "call_strike": 65885.65,
-      "put_strike": 63961.12,
-      "call_pct": 1.586,
-      "put_pct": -1.382
+      "call_strike": 66149.92,
+      "put_strike": 63735.2,
+      "call_pct": 1.993,
+      "put_pct": -1.73
     },
     {
       "alpha": 0.2,
-      "call_strike": 65537.03,
-      "put_strike": 64259.0,
-      "call_pct": 1.048,
-      "put_pct": -0.922
+      "call_strike": 65681.12,
+      "put_strike": 64132.53,
+      "call_pct": 1.27,
+      "put_pct": -1.117
     }
   ],
   "barrier_curves": {
@@ -50,96 +50,97 @@
       {
         "pct": 0.5,
         "price": 65181.56,
-        "touch_prob": 0.5098
+        "touch_prob": 0.5444
       },
       {
         "pct": 1.0,
         "price": 65505.84,
-        "touch_prob": 0.2151
+        "touch_prob": 0.2766
       },
       {
         "pct": 1.5,
         "price": 65830.13,
-        "touch_prob": 0.1095
+        "touch_prob": 0.1559
       },
       {
         "pct": 2.0,
         "price": 66154.42,
-        "touch_prob": 0.0671
+        "touch_prob": 0.0994
       },
       {
         "pct": 3.0,
         "price": 66802.99,
-        "touch_prob": 0.0318
+        "touch_prob": 0.0504
       },
       {
         "pct": 4.0,
         "price": 67451.56,
-        "touch_prob": 0.018
+        "touch_prob": 0.0302
       },
       {
         "pct": 5.0,
         "price": 68100.13,
-        "touch_prob": 0.0115
+        "touch_prob": 0.0196
       },
       {
         "pct": 7.5,
         "price": 69721.57,
-        "touch_prob": 0.002
+        "touch_prob": 0.0081
       },
       {
         "pct": 10.0,
         "price": 71343.0,
-        "touch_prob": 0.0003
+        "touch_prob": 0.0023
       }
     ],
     "dn": [
       {
         "pct": -0.5,
         "price": 64532.98,
-        "touch_prob": 0.4691
+        "touch_prob": 0.5154
       },
       {
         "pct": -1.0,
         "price": 64208.7,
-        "touch_prob": 0.1763
+        "touch_prob": 0.2401
       },
       {
         "pct": -1.5,
         "price": 63884.41,
-        "touch_prob": 0.0897
+        "touch_prob": 0.1277
       },
       {
         "pct": -2.0,
         "price": 63560.12,
-        "touch_prob": 0.0528
+        "touch_prob": 0.0814
       },
       {
         "pct": -3.0,
         "price": 62911.55,
-        "touch_prob": 0.0225
+        "touch_prob": 0.0396
       },
       {
         "pct": -4.0,
         "price": 62262.98,
-        "touch_prob": 0.0114
+        "touch_prob": 0.0212
       },
       {
         "pct": -5.0,
         "price": 61614.41,
-        "touch_prob": 0.0068
+        "touch_prob": 0.0127
       },
       {
         "pct": -7.5,
         "price": 59992.97,
-        "touch_prob": 0.0008
+        "touch_prob": 0.0044
       },
       {
         "pct": -10.0,
         "price": 58371.54,
-        "touch_prob": 0.0001
+        "touch_prob": 0.0009
       }
     ]
   },
-  "source": "offline:parquet"
+  "source": "offline:bundle",
+  "history_hours": 9600
 }

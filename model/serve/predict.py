@@ -39,9 +39,9 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from noctua.episodes import build_hourly                      # noqa: E402
 from noctua.features import build_features                    # noqa: E402
 from serve.fetch import fetch_bars                            # noqa: E402
+from serve.history import get_hours, load_bundle              # noqa: E402
 from serve.runtime import NumpyNoctua                         # noqa: E402
 
 PROD_H = 19
@@ -57,10 +57,15 @@ def _next_anchor(now_ts: int) -> int:
     return int(anchor.timestamp())
 
 
-def forecast(model: NumpyNoctua, df: pd.DataFrame, H: int = PROD_H,
-             anchor_ts: int | None = None) -> dict:
-    """Run one forecast anchored at `anchor_ts` (default: the latest full hour)."""
-    hours = build_hourly(df)
+def forecast(model: NumpyNoctua, hours: pd.DataFrame, H: int = PROD_H,
+             anchor_ts: int | None = None, source: str = "unknown") -> dict:
+    """Run one forecast anchored at `anchor_ts` (default: the latest full hour).
+
+    `hours` is the merged hourly history from `serve.history.get_hours` --
+    committed bundle plus the freshly fetched tail. It must reach back at least
+    365 days, because `reg_rv_vs_year` looks that far and a short history would
+    silently fall back to the feature's training mean rather than fail.
+    """
     hour_ts = hours["hour_ts"].to_numpy(np.int64)
 
     if anchor_ts is None:
@@ -122,7 +127,8 @@ def forecast(model: NumpyNoctua, df: pd.DataFrame, H: int = PROD_H,
         "p_vol_amplify": round(p_amp, 4),
         "safe_levels": safe,
         "barrier_curves": curves,
-        "source": str(df["source"].iloc[0]),
+        "source": source,
+        "history_hours": int(len(hours)),
     }
 
 
@@ -181,19 +187,20 @@ def main(argv=None) -> int:
     p = argparse.ArgumentParser(description="Run one NOCTUA forecast")
     p.add_argument("--weights", type=Path, default=Path(__file__).with_name("noctua_weights.npz"))
     p.add_argument("--out-dir", type=Path, default=Path("data"))
-    p.add_argument("--parquet", type=Path, help="offline 1-min parquet instead of live fetch")
+    p.add_argument("--offline", action="store_true",
+                   help="use the committed history bundle only, no network fetch")
     p.add_argument("--anchor", type=int, help="unix ts of the anchor hour")
     p.add_argument("--H", type=int, default=PROD_H)
     a = p.parse_args(argv)
 
     model = NumpyNoctua(a.weights)
-    if a.parquet:
-        df = pd.read_parquet(a.parquet).tail(24 * 24 * 60)
-        df["source"] = "offline:parquet"
+    if a.offline:
+        hours, src = load_bundle(), "offline:bundle"
     else:
-        df = fetch_bars()
+        hours, info = get_hours(fetch_bars)
+        src = info["source"]
 
-    f = forecast(model, df, H=a.H, anchor_ts=a.anchor)
+    f = forecast(model, hours, H=a.H, anchor_ts=a.anchor, source=src)
     legacy = to_legacy(f)
 
     a.out_dir.mkdir(parents=True, exist_ok=True)

@@ -1,35 +1,50 @@
 """
 serve/fetch.py
 =====================================================================
-Live market data for inference.
+Live market data: the recent TAIL only.
 
-The model needs ~22 days of history to fill the Log-HAR cascade's longest
-trailing window. It does NOT need 1-minute bars to do that: the hourly
-aggregator is exact on any input granularity that divides the 5-minute
-realized-variance grid, which was verified bit-for-bit against the 1-minute
-build. So we fetch 5-MINUTE bars and make ~7 paginated calls instead of ~32.
+The long history lives in a committed hourly bundle (see `serve/history.py`),
+so this module only has to fetch enough recent 5-minute bars to bring that
+bundle up to now. At a 30-minute cron cadence that is a single request.
 
-Primary source is Bitstamp BTC/USD -- the same venue and the same pair the
-model was trained on. Venue consistency matters more than it might seem: the
-model predicts BARRIER TOUCHES, and different venues wick to different
-extremes, so training on Bitstamp and serving on Binance perpetuals would
-quietly shift the thing being predicted. Binance is wired as a fallback but
-flags itself in the output so the mismatch is never silent.
+Two bugs from the first live run are fixed here, both found only in production
+because this session's egress proxy blocks every exchange API.
+
+1. PAGINATION NEVER ADVANCED.
+   The old loop passed BOTH `start` and `end` to Bitstamp's OHLC endpoint.
+   Given both, Bitstamp anchors the window to `end` and returns the most
+   recent `limit` candles -- so every iteration returned the same final page,
+   the cursor jumped past `end`, and the loop exited after one call with
+   exactly 1000 bars (83.2 h). We now paginate forward with `start` ONLY, and
+   assert forward progress each iteration instead of trusting it.
+
+2. THE BINANCE FALLBACK IS UNUSABLE FROM CI.
+   It returned `HTTP 451 Unavailable For Legal Reasons`: GitHub's hosted
+   runners sit in Azure US regions and Binance geo-blocks US IPs. It has been
+   replaced by Coinbase Exchange (BTC-USD, US-accessible, and a real USD pair
+   like Bitstamp rather than a USDT perp).
+
+Venue consistency still matters more than it looks: the model predicts BARRIER
+TOUCHES, and different venues wick to different extremes, so a fallback is
+flagged in the output rather than silently substituted.
 """
 from __future__ import annotations
 
 import json
 import time
+import urllib.error
 import urllib.request
 
 import numpy as np
 import pandas as pd
 
-STEP = 300
-LOOKBACK_HOURS = 24 * 23           # 22-day HAR window plus slack
+STEP = 300                       # 5-minute bars
+MAX_PER_CALL = 1000              # Bitstamp's limit
+DEFAULT_TAIL_HOURS = 72          # comfortably covers a missed cron or two
+
 BITSTAMP = "https://www.bitstamp.net/api/v2/ohlc/btcusd/"
-BINANCE = "https://api.binance.com/api/v3/klines"
-UA = {"User-Agent": "noctua/1.0 (+https://github.com/deeploopinnovations/btc-dashboard)"}
+COINBASE = "https://api.exchange.coinbase.com/products/BTC-USD/candles"
+UA = {"User-Agent": "noctua/1.1 (+https://github.com/deeploopinnovations/btc-dashboard)"}
 
 
 def _get(url: str, timeout: int = 25):
@@ -38,84 +53,113 @@ def _get(url: str, timeout: int = 25):
         return json.loads(r.read().decode())
 
 
-def fetch_bitstamp(end_ts: int | None = None, lookback_hours: int = LOOKBACK_HOURS) -> pd.DataFrame:
-    """Paginated 5-minute OHLCV from Bitstamp, oldest-first, de-duplicated."""
-    end = int(end_ts or time.time())
-    start = end - lookback_hours * 3600
-    rows, cursor = [], start
-    while cursor < end:
-        url = f"{BITSTAMP}?step={STEP}&limit=1000&start={cursor}&end={end}"
-        data = _get(url)["data"]["ohlc"]
-        if not data:
-            break
-        rows.extend(data)
-        last = int(data[-1]["timestamp"])
-        if last <= cursor:
-            break
-        cursor = last + STEP
-        time.sleep(0.25)  # be polite to a free public endpoint
-
-    if not rows:
-        raise RuntimeError("bitstamp returned no data")
+def _finish(rows: list[dict], source: str) -> pd.DataFrame:
     df = pd.DataFrame(rows)
     for c in ("open", "high", "low", "close", "volume"):
         df[c] = df[c].astype(np.float64)
     df["timestamp"] = df["timestamp"].astype(np.int64)
     df = df.drop_duplicates("timestamp").sort_values("timestamp", ignore_index=True)
-    df["source"] = "bitstamp:btcusd"
-    return df[["timestamp", "open", "high", "low", "close", "volume", "source"]]
+    df["source"] = source
+    df["bad_print"] = False
+    return df[["timestamp", "open", "high", "low", "close", "volume", "source", "bad_print"]]
 
 
-def fetch_binance(lookback_hours: int = LOOKBACK_HOURS) -> pd.DataFrame:
-    """Fallback only. Different venue AND a USDT pair -- flagged in the output."""
-    end = int(time.time() * 1000)
-    span = lookback_hours * 3600 * 1000
-    cursor, rows = end - span, []
-    while cursor < end:
-        url = f"{BINANCE}?symbol=BTCUSDT&interval=5m&limit=1000&startTime={cursor}"
-        data = _get(url)
-        if not data:
+# --------------------------------------------------------------------------
+def fetch_bitstamp(tail_hours: int = DEFAULT_TAIL_HOURS) -> pd.DataFrame:
+    """Recent 5-minute BTC/USD bars, oldest-first.
+
+    Paginates forward using `start` alone. Passing `end` as well makes the API
+    anchor to the end of the window and re-serve the same final page, which is
+    what broke the previous implementation.
+    """
+    now = int(time.time())
+    start = now - tail_hours * 3600
+    need_calls = max(1, int(np.ceil(tail_hours * 3600 / (STEP * MAX_PER_CALL))))
+
+    rows: list[dict] = []
+    cursor = start
+    for _ in range(need_calls + 2):          # +2 slack for partial pages
+        data = _get(f"{BITSTAMP}?step={STEP}&limit={MAX_PER_CALL}&start={cursor}")
+        page = data.get("data", {}).get("ohlc", [])
+        if not page:
             break
-        rows.extend(data)
-        nxt = int(data[-1][0]) + STEP * 1000
-        if nxt <= cursor:
+        rows.extend(page)
+        newest = int(page[-1]["timestamp"])
+        if newest <= cursor:                 # no forward progress -> stop, do not spin
             break
-        cursor = nxt
-        time.sleep(0.2)
+        cursor = newest + STEP
+        if cursor >= now:
+            break
+        time.sleep(0.25)                     # polite to a free public endpoint
 
     if not rows:
-        raise RuntimeError("binance returned no data")
-    df = pd.DataFrame(rows).iloc[:, :6]
-    df.columns = ["timestamp", "open", "high", "low", "close", "volume"]
-    df["timestamp"] = (df["timestamp"].astype(np.int64) // 1000)
-    for c in ("open", "high", "low", "close", "volume"):
-        df[c] = df[c].astype(np.float64)
-    df = df.drop_duplicates("timestamp").sort_values("timestamp", ignore_index=True)
-    df["source"] = "binance:btcusdt (FALLBACK - venue mismatch)"
-    return df
+        raise RuntimeError("bitstamp returned no candles")
+    return _finish(rows, "bitstamp:btcusd")
 
 
-def fetch_bars(lookback_hours: int = LOOKBACK_HOURS) -> pd.DataFrame:
-    errors = []
-    for fn in (fetch_bitstamp, fetch_binance):
-        try:
-            df = fetch_bars_validate(fn(lookback_hours=lookback_hours))
-            return df
-        except Exception as e:  # noqa: BLE001 - report every source that failed
-            errors.append(f"{fn.__name__}: {type(e).__name__}: {e}")
-    raise RuntimeError("all data sources failed -> " + " | ".join(errors))
+def fetch_coinbase(tail_hours: int = DEFAULT_TAIL_HOURS) -> pd.DataFrame:
+    """Fallback: Coinbase Exchange BTC-USD, max 300 candles per request.
+
+    Same asset and quote currency as the training venue, and reachable from US
+    runners -- unlike Binance, which returns 451 there.
+    """
+    now = int(time.time())
+    start = now - tail_hours * 3600
+    rows: list[dict] = []
+    cursor = start
+    while cursor < now:
+        end = min(cursor + 300 * STEP, now)
+        url = (f"{COINBASE}?granularity={STEP}"
+               f"&start={pd.Timestamp(cursor, unit='s', tz='UTC').isoformat()}"
+               f"&end={pd.Timestamp(end, unit='s', tz='UTC').isoformat()}")
+        page = _get(url)                     # [[time, low, high, open, close, volume], ...]
+        if not page:
+            break
+        rows.extend({
+            "timestamp": int(c[0]), "low": c[1], "high": c[2],
+            "open": c[3], "close": c[4], "volume": c[5],
+        } for c in page)
+        cursor = end
+        time.sleep(0.25)
+
+    if not rows:
+        raise RuntimeError("coinbase returned no candles")
+    return _finish(rows, "coinbase:BTC-USD (FALLBACK - venue mismatch)")
 
 
-def fetch_bars_validate(df: pd.DataFrame, min_hours: int = 22 * 24) -> pd.DataFrame:
-    """Refuse to serve a forecast from data that cannot support the features."""
-    span_h = (df.timestamp.iloc[-1] - df.timestamp.iloc[0]) / 3600.0
-    if span_h < min_hours:
-        raise RuntimeError(f"only {span_h:.1f}h of history, need >= {min_hours}h")
+# --------------------------------------------------------------------------
+def validate_bars(df: pd.DataFrame, tail_hours: int) -> pd.DataFrame:
+    """Reject a feed too broken to extend the history with."""
+    if len(df) < 12:
+        raise RuntimeError(f"only {len(df)} bars returned")
     if (df[["open", "high", "low", "close"]] <= 0).any().any():
         raise RuntimeError("non-positive prices in feed")
-    gaps = np.diff(df.timestamp.to_numpy())
-    if (gaps > 6 * STEP).sum() > span_h * 0.02:
+
+    span_h = (df.timestamp.iloc[-1] - df.timestamp.iloc[0]) / 3600.0
+    if span_h < min(6.0, tail_hours * 0.25):
+        raise RuntimeError(f"feed spans only {span_h:.1f}h")
+
+    # A gap inside the fetched tail means some hours will be incomplete and
+    # dropped by history.hours_from_bars; a lot of them means a bad feed.
+    gaps = np.diff(df.timestamp.to_numpy(np.int64))
+    if (gaps > 4 * STEP).sum() > max(2, 0.02 * len(df)):
         raise RuntimeError("feed has too many gaps to build realized measures")
-    df = df.copy()
-    df["bad_print"] = False
+
+    stale_h = (time.time() - df.timestamp.iloc[-1]) / 3600.0
+    if stale_h > 3.0:
+        raise RuntimeError(f"feed's newest bar is {stale_h:.1f}h old")
     return df
+
+
+def fetch_bars(tail_hours: int = DEFAULT_TAIL_HOURS) -> pd.DataFrame:
+    """Primary venue, then fallback. Every failure is reported, not swallowed."""
+    errors = []
+    for fn in (fetch_bitstamp, fetch_coinbase):
+        try:
+            return validate_bars(fn(tail_hours=tail_hours), tail_hours)
+        except Exception as e:  # noqa: BLE001 - surface every source that failed
+            detail = ""
+            if isinstance(e, urllib.error.HTTPError):
+                detail = f" (HTTP {e.code})"
+            errors.append(f"{fn.__name__}: {type(e).__name__}: {e}{detail}")
+    raise RuntimeError("all data sources failed -> " + " | ".join(errors))
