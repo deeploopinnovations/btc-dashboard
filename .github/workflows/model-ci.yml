@@ -1,0 +1,49 @@
+# .github/workflows/model-ci.yml
+# =====================================================================
+# Pull-request gate for the NOCTUA model and its serving path.
+#
+# The data cron (fetch-data.yml) only runs on a schedule, so before this
+# workflow existed a change to the serving code was not executed by CI until
+# AFTER it merged and the cron picked it up -- i.e. the first thing to notice a
+# broken import would have been the live dashboard.
+#
+# This job exercises everything that does not need market data or the ~160 MB
+# training parquet: imports, the exported weights, the NumPy runtime's parity
+# with its own monotonicity guarantees, the legacy JSON contract, and the
+# existing snapshot smoke gate.
+name: model-ci
+
+on:
+  pull_request:
+    paths:
+      - 'model/**'
+      - 'scripts/**'
+      - '.github/workflows/model-ci.yml'
+      - '.github/workflows/fetch-data.yml'
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install serving runtime
+        run: pip install --quiet -r model/serve/requirements-ci.txt
+
+      - name: Smoke-test existing snapshots
+        run: node scripts/smoke.js
+
+      - name: Model self-test
+        run: python model/tests/test_serving.py
