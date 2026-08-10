@@ -3,3 +3,6 @@ node_modules/
 *.log
 .env
 src/config.js
+model/artifacts/
+__pycache__/
+*.pyc
