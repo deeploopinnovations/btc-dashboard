@@ -50,16 +50,21 @@ the model's characteristic failure mode and it is discussed in §5.
 
 **Fixed-split baseline scoreboard** (test 2024-07 → 2026-08, 769 episodes):
 
-| model | QLIKE | R² (log) |
-|---|---|---|
-| **NOCTUA** | **0.2430** | **0.4543** |
-| log_har_cal | 0.2644 | 0.3816 |
-| har_short | 0.2769 | 0.3189 |
-| harq | 0.2843 | 0.3124 |
-| log_har | 0.2858 | 0.3434 |
-| har_rs | 0.2873 | 0.3338 |
-| ewma | 0.3070 | 0.3407 |
-| constant | 0.5625 | −1.1553 |
+| model | QLIKE | R² (log) | vs ref | p |
+|---|---|---|---|---|
+| **NOCTUA** | **0.2492** | **0.4250** | **−5.74 %** | **0.0000** |
+| log_har_cal | 0.2644 | 0.3816 | — | — |
+| har_short | 0.2769 | 0.3189 | +4.76 % | 0.158 |
+| harq | 0.2843 | 0.3124 | +7.54 % | 0.0008 |
+| log_har | 0.2858 | 0.3434 | +8.10 % | 0.0000 |
+| har_rs | 0.2873 | 0.3338 | +8.69 % | 0.0000 |
+| ewma | 0.3070 | 0.3407 | +16.13 % | 0.0000 |
+| constant | 0.5625 | −1.1553 | +112.79 % | 0.0000 |
+
+The fixed split flatters the model relative to the walk-forward headline
+(−5.74 % here vs −2.79 % pooled). **Trust the walk-forward number** — it
+retrains per fold and includes the 2023 regime break that a single split
+happens to sit outside of.
 
 Two things worth noting honestly: the semivariance (`har_rs`) and quarticity
 (`harq`) augmentations, which the literature favours, **did not help** on this

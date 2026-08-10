@@ -19,6 +19,12 @@ silently, would produce plausible-looking but wrong strike recommendations):
   6. tail extrapolation stays finite and in [0,1] far outside the quantile grid
   7. the legacy JSON contract still satisfies scripts/smoke.js's constraints,
      including `upside == 50.0`, which src/data.js pipes into strike selection
+  8. PyTorch is never imported. The serving path advertises NumPy + SciPy only,
+     and both the HF Space and the GitHub Action install exactly that. This
+     check exists because the invariant already broke once: noctua/infer.py
+     had a module-level `import torch`, the local suite passed anyway (torch is
+     installed in the training environment), and only CI caught it. Asserting
+     it here means the training environment catches it too.
 """
 from __future__ import annotations
 
@@ -46,6 +52,9 @@ def check(name: str, cond: bool, detail: str = ""):
 
 def main() -> int:
     print("NOCTUA serving self-test\n")
+
+    check("torch not imported by the serving path", "torch" not in sys.modules,
+          "something on the serve path imports PyTorch")
 
     m = NumpyNoctua(ROOT / "serve" / "noctua_weights.npz")
     check("weights load", True)
@@ -108,6 +117,11 @@ def main() -> int:
 
     p_up = m.prob_up(pred)
     check("prob_up in [0,1]", bool(np.all((p_up >= 0) & (p_up <= 1))))
+
+    # re-check AFTER a full predict: the lazy import lives inside a code path
+    # that only a real forecast exercises
+    check("torch still not imported after a full predict", "torch" not in sys.modules,
+          "predict path pulled in PyTorch")
 
     # ---- 7: legacy JSON contract ----------------------------------------
     fake = {

@@ -41,29 +41,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as Fn
 
-# Quantile grid, deliberately dense in the tails: an option seller lives at
-# alpha = 1-5%, so that is where resolution has to be.
-LEVELS = np.array(
-    [0.005, 0.01, 0.02, 0.05, 0.10, 0.20, 0.30, 0.40, 0.50,
-     0.60, 0.70, 0.80, 0.90, 0.95, 0.98, 0.99, 0.995],
-    dtype=np.float64,
-)
-MEDIAN_IDX = int(np.argmin(np.abs(LEVELS - 0.5)))
-
-# Stage A's linear base: exactly the Log-HAR cascade plus the two calendar
-# terms that the baseline scoreboard showed to matter.
-BASE_COLS = ["har_1d", "har_5d", "har_22d", "cal_H", "cal_weekend_frac"]
-
-# Stage B sees only SHAPE information -- not the vol level itself, except
-# through the explicit log-sigma conditioning input appended at the end.
-SHAPE_COLS = [
-    "semi_neg_share_1d", "semi_signed_jump_1d", "semi_neg_share_5d",
-    "semi_signed_jump_5d", "jump_share_1d", "jump_share_5d",
-    "mom_ret_1d", "mom_ret_5d", "mom_ret_22d", "mom_dist_ma100",
-    "mom_drawdown_90d", "vov_5d", "vov_22d", "reg_rv_vs_year",
-    "reg_post_etf", "cal_hour_sin", "cal_hour_cos", "cal_dow_sin",
-    "cal_dow_cos", "cal_H", "cal_weekend_frac",
-]
+# The quantile grid and column layouts live in `spec`, which imports nothing
+# but NumPy. Keeping them out of this module is what lets `noctua.infer` -- and
+# through it the NumPy serving runtime -- avoid pulling PyTorch in transitively.
+# Re-exported here so existing `from .model import BASE_COLS` imports still work.
+from .spec import BASE_COLS, LEVELS, MEDIAN_IDX, SHAPE_COLS  # noqa: F401
 
 
 # --------------------------------------------------------------------------

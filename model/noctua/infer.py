@@ -23,9 +23,19 @@ touched -- exactly the error that bankrupts an option seller.
 from __future__ import annotations
 
 import numpy as np
-import torch
 
-from .model import LEVELS, MEDIAN_IDX
+from .spec import LEVELS, MEDIAN_IDX
+
+# NOTE: torch is imported LAZILY inside predict(), not at module scope.
+#
+# Everything else in this module -- the survival function, the mixing integral,
+# the barrier inversion -- is pure NumPy, and `serve/runtime.py` imports those
+# helpers so the served numbers come from exactly the same code the evaluation
+# used. A module-level `import torch` would drag a ~2 GB dependency into the
+# Hugging Face Space and the GitHub Action, both of which install NumPy + SciPy
+# only. That is not hypothetical: it shipped, and CI caught it -- the local
+# test suite passed because torch happens to be installed in the training
+# environment. test_serving.py now asserts torch stays unimported.
 
 EPS = 1e-12
 N_ATOMS = 32
@@ -76,10 +86,12 @@ def quantiles_at(q: np.ndarray, levels: np.ndarray) -> np.ndarray:
 BLEND_W = 0.25
 
 
-@torch.no_grad()
 def predict(model, d: dict, n_atoms: int = N_ATOMS,
             har_logvol: np.ndarray | None = None, blend_w: float = BLEND_W) -> dict:
-    """Full predictive object for a batch of episodes.
+    """Full predictive object for a batch of episodes (PyTorch model).
+
+    Serving does not go through here -- `serve.runtime.NumpyNoctua.predict`
+    is the NumPy equivalent, verified to agree with this to ~1e-6.
 
     If `har_logvol` (the Log-HAR forecast of the log hourly vol rate) is given,
     Stage A's whole predictive distribution is SHIFTED so its median lands on
@@ -87,35 +99,39 @@ def predict(model, d: dict, n_atoms: int = N_ATOMS,
     forecast means the barrier curves inherit the robust volatility level too,
     which is the point of the ensemble.
     """
-    Xa = torch.tensor(d["Xa"])
-    Xb = torch.tensor(d["Xb"])
-    Xs = torch.tensor(d["Xs"])
-    H = np.asarray(d["H"], dtype=np.float64)
+    import torch  # lazy: keeps this module importable without PyTorch
 
-    qa = model.a(Xa, Xb).numpy().astype(np.float64)      # (n, K) log vol rate
-    if har_logvol is not None and blend_w < 1.0:
-        shift = (1.0 - blend_w) * (np.asarray(har_logvol, dtype=np.float64) - qa[:, MEDIAN_IDX])
-        qa = qa + shift[:, None]
-    atom_levels = (np.arange(n_atoms) + 0.5) / n_atoms
-    atoms_y = quantiles_at(qa, atom_levels)              # (n, A)
-    sigma_atoms = np.exp(atoms_y) * np.sqrt(H)[:, None]  # (n, A) total window vol
+    with torch.no_grad():
+        Xa = torch.tensor(d["Xa"])
+        Xb = torch.tensor(d["Xb"])
+        Xs = torch.tensor(d["Xs"])
+        H = np.asarray(d["H"], dtype=np.float64)
 
-    qr, qu, qd = [], [], []
-    for i in range(n_atoms):
-        ls = torch.tensor(
-            np.log(np.maximum(sigma_atoms[:, i], EPS)).astype(np.float32)
-        )[:, None]
-        a_, b_, c_ = model.b(Xs, ls)
-        qr.append(a_.numpy()); qu.append(b_.numpy()); qd.append(c_.numpy())
+        qa = model.a(Xa, Xb).numpy().astype(np.float64)      # (n, K) log vol rate
+        if har_logvol is not None and blend_w < 1.0:
+            shift = (1.0 - blend_w) * (
+                np.asarray(har_logvol, dtype=np.float64) - qa[:, MEDIAN_IDX]
+            )
+            qa = qa + shift[:, None]
+        atom_levels = (np.arange(n_atoms) + 0.5) / n_atoms
+        atoms_y = quantiles_at(qa, atom_levels)              # (n, A)
+        sigma_atoms = np.exp(atoms_y) * np.sqrt(H)[:, None]  # (n, A) window vol
+
+        qr, qu, qd = [], [], []
+        for i in range(n_atoms):
+            ls = torch.tensor(
+                np.log(np.maximum(sigma_atoms[:, i], EPS)).astype(np.float32)
+            )[:, None]
+            a_, b_, c_ = model.b(Xs, ls)
+            qr.append(a_.numpy()); qu.append(b_.numpy()); qd.append(c_.numpy())
 
     # Point forecasts. These are NOT interchangeable, and using the wrong one
     # is a real trap: QLIKE (and any squared-error loss on variance) is
     # minimised by the conditional MEAN of the variance, not its median. For a
     # roughly lognormal volatility with residual sd s, the median understates
-    # the mean variance by exp(2 s^2) -- about 28% at s = 0.35. Scoring the
-    # median against QLIKE therefore manufactures a large artificial loss.
-    # `sigma_mean` integrates exp(2y) over Stage A's own predictive atoms and
-    # is the correct point forecast to report against QLIKE.
+    # the mean variance by exp(2 s^2) -- about 28% at s = 0.35. Measured here,
+    # though, the mean OVER-forecasts (ratio 1.205) and scores worse, so the
+    # median is what the evaluation reports; both are returned.
     var_mean = np.mean(np.exp(2.0 * atoms_y), axis=1) * H
     return {
         "qa": qa,
