@@ -11,7 +11,7 @@
   "safe_levels": [
     {
       "alpha": 0.01,
-      "call_strike": 69607.75,
+      "call_strike": 69607.76,
       "put_strike": 59751.77,
       "call_pct": 8.659,
       "put_pct": -6.726
