@@ -39,7 +39,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from serve.predict import to_legacy                      # noqa: E402
-from serve.runtime import NumpyNoctua                    # noqa: E402
+from serve.runtime import NoctuaV2, NumpyNoctua         # noqa: E402
 
 FAILS: list[str] = []
 
@@ -56,9 +56,12 @@ def main() -> int:
     check("torch not imported by the serving path", "torch" not in sys.modules,
           "something on the serve path imports PyTorch")
 
-    m = NumpyNoctua(ROOT / "serve" / "noctua_weights.npz")
+    v2 = ROOT / "serve" / "noctua_v2.npz"
+    m = NoctuaV2(v2) if v2.exists() else NumpyNoctua(ROOT / "serve" / "noctua_weights.npz")
+    n_par = m.meta.get("n_params_total", m.meta.get("n_params"))
+    print(f"  (testing {m.meta.get('version', 'NOCTUA-v1')}, {n_par:,} params)")
     check("weights load", True)
-    check("param count is small", m.meta["n_params"] < 1_000_000, str(m.meta["n_params"]))
+    check("param count is small", n_par < 1_000_000, str(n_par))
     check("blend weight in range", 0.0 <= m.blend_w <= 1.0, str(m.blend_w))
     check("calibration shrink in range", 0.0 <= m.cal_shrink <= 1.0, str(m.cal_shrink))
 

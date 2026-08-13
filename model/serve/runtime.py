@@ -163,3 +163,134 @@ class NumpyNoctua:
         from noctua import infer as I
 
         return I.prob_up(pred)
+
+
+# ==========================================================================
+# NOCTUA v2: seed ensemble + equal-weight specialist committee
+# ==========================================================================
+# Shipping shape, all of it measured (see model/RESULTS_V2.md):
+#   * width 32, not 128 -- the capacity sweep is monotone the "wrong" way
+#   * 3 seeds averaged  -- free variance reduction
+#   * 4 specialists, EQUAL weights, pooled by Vincentization
+#
+# Equal weights are a result, not laziness. Level-dependent fitted weights and
+# a state-conditioned gating network were both built and evaluated; both
+# converged to uniform-or-degenerate and neither beat the plain average.
+class NoctuaV2(NumpyNoctua):
+    """Committee inference. NumPy + SciPy only, same as v1."""
+
+    def __init__(self, path: Path | str | None = None):
+        p = Path(path) if path else Path(__file__).with_name("noctua_v2.npz")
+        z = np.load(p, allow_pickle=False)
+        self.w = {k: z[k] for k in z.files if k != "meta_json"}
+        self.meta = json.loads(bytes(z["meta_json"]).decode())
+        self.levels = z["levels"]
+        self.alpha_grid = z["alpha_grid"]
+        self.q_levels = 1.0 - self.alpha_grid
+        self.median_idx = int(np.argmin(np.abs(self.levels - 0.5)))
+
+        self.feat_cols = self.meta["feat_cols"]
+        self.base_cols = self.meta["base_cols"]
+        self.shape_cols = self.meta["shape_cols"]
+        self.blend_w = self.meta["blend_w"]
+        self.n_seeds = self.meta["seeds"]
+        self.cal_shrink = 0.0            # v2 pools instead of PIT-recalibrating
+
+    # ---- per-seed weight access ------------------------------------------
+    def _seed_scope(self, src: dict, s: int) -> dict:
+        """Extract one seed's weights from `src`.
+
+        Takes the source dict explicitly rather than reading self.w: predict()
+        swaps self.w per seed, so scoping off self.w silently returned an empty
+        dict from the second seed onward.
+        """
+        pre = f"m{s}."
+        return {k[len(pre):]: v for k, v in src.items() if k.startswith(pre)}
+
+    def predict(self, d: dict, n_atoms: int = 32) -> dict:
+        """Average the seed ensemble's predictive objects."""
+        outs = []
+        full = self.w
+        try:
+            for s in range(self.n_seeds):
+                self.w = {**self._seed_scope(full, s), "har_beta": full["har_beta"]}
+                outs.append(NumpyNoctua.predict(self, d, n_atoms=n_atoms))
+        finally:
+            self.w = full
+        avg = dict(outs[0])
+        for k in ("qa", "sigma_atoms", "sigma_med", "sigma_mean", "q_r", "q_up", "q_dn"):
+            avg[k] = np.mean([o[k] for o in outs], axis=0)
+        return avg
+
+    # ---- specialists -------------------------------------------------------
+    def _mix_over_sigma(self, z: np.ndarray, sigma_atoms: np.ndarray,
+                        n_grid: int = 400) -> np.ndarray:
+        """Integrate a standardized quantile curve over sigma uncertainty.
+
+        Without this the analytic specialists are under-dispersed relative to
+        the neural one, which pulls every pooled level too close to spot. It
+        was the single defect standing between a committee that lost and one
+        that wins (3.199 -> 2.455 pp).
+        """
+        n, A = sigma_atoms.shape
+        lo = float(z[-1]) * np.maximum(sigma_atoms.min(axis=1), 1e-12)
+        hi = float(z[0]) * np.maximum(sigma_atoms.max(axis=1), 1e-12) * 1.5
+        grid = np.linspace(lo, hi, n_grid).T
+        z_asc, lev_asc = z[::-1], self.q_levels[::-1]
+        cdf = np.zeros_like(grid)
+        for a in range(A):
+            cdf += np.interp(grid / np.maximum(sigma_atoms[:, a], 1e-12)[:, None],
+                             z_asc, lev_asc, left=0.0, right=1.0)
+        cdf /= A
+        return np.stack([np.interp(self.q_levels, cdf[i], grid[i]) for i in range(n)])
+
+    def _evt_z(self, side: str) -> np.ndarray:
+        u, xi, beta, tq = self.w[f"evt_{side}"]
+        emp = self.w[f"evt_{side}_emp"]
+        out = np.empty(len(self.q_levels))
+        for j, q in enumerate(self.q_levels):
+            if q <= tq:
+                out[j] = emp[j]
+            else:
+                frac = (1.0 - q) / (1.0 - tq)
+                out[j] = (u + beta * (-np.log(frac)) if abs(xi) < 1e-6
+                          else u + (beta / xi) * (frac ** (-xi) - 1.0))
+        return np.minimum.accumulate(out)      # q_levels descend, so must this
+
+    def committee_quantiles(self, pred: dict, up: bool = True) -> np.ndarray:
+        """Equal-weight Vincentization of the four specialist quantile curves."""
+        from noctua import infer as I
+
+        atoms = pred["sigma_atoms"]
+        neural = np.stack([I.safe_level(pred, float(a), up=up) for a in self.alpha_grid],
+                          axis=1)
+        gauss = self._mix_over_sigma(-norm_ppf(self.alpha_grid / 2.0), atoms)
+        emp = self._mix_over_sigma(self.w["emp_z_up" if up else "emp_z_dn"], atoms)
+        evt = self._mix_over_sigma(self._evt_z("up" if up else "dn"), atoms)
+
+        pooled = 0.25 * (neural + gauss + emp + evt)
+        return np.maximum.accumulate(pooled[:, ::-1], axis=1)[:, ::-1]
+
+    def safe_level(self, pred: dict, alpha: float, up: bool = True, **_) -> np.ndarray:
+        Qp = self.committee_quantiles(pred, up)
+        j = int(np.argmin(np.abs(self.alpha_grid - alpha)))
+        if abs(self.alpha_grid[j] - alpha) < 1e-9:
+            return Qp[:, j]
+        return np.array([np.interp(1.0 - alpha, self.q_levels[::-1], r[::-1]) for r in Qp])
+
+    def touch_prob(self, pred: dict, u: np.ndarray, up: bool = True) -> np.ndarray:
+        """Invert the pooled quantile curve to a touch probability."""
+        Qp = self.committee_quantiles(pred, up)
+        u = np.abs(np.asarray(u, dtype=np.float64))
+        if u.ndim == 0:
+            u = np.full(Qp.shape[0], float(u))
+        out = np.empty(Qp.shape[0])
+        for i in range(Qp.shape[0]):
+            out[i] = np.interp(u[i], Qp[i, ::-1], self.alpha_grid[::-1],
+                               left=float(self.alpha_grid[-1]), right=0.0)
+        return np.clip(out, 0.0, 1.0)
+
+
+def norm_ppf(p):
+    from scipy.stats import norm as _n
+    return _n.ppf(p)
