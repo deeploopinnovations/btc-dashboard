@@ -183,11 +183,20 @@ def main(argv=None) -> int:
         return 1
 
     rows = []
-    # BTC first as the in-domain reference line.
+    # BTC first as the in-domain reference. Prefer a harvested 900-day BTC
+    # bundle if one exists: the committed SERVING bundle is 400 days, which
+    # leaves ~29 anchors and cannot be compared like-for-like against the
+    # altcoins' 529. Borrowing a BTC number from a different protocol
+    # (benchmark.py refits walk-forward over 2021-2026) would not be a fair
+    # reference either, so it is simply reported as unavailable when missing.
+    btc_bundle = a.assets / "btc_history.parquet"
+    btc_hours = pd.read_parquet(btc_bundle) if btc_bundle.exists() else load_bundle()
+    btc_label = "btc (in-domain)" if btc_bundle.exists() else "btc (400d bundle)"
     for adaptive in (False, True):
-        r = evaluate_asset(model, load_bundle(), "btc (in-domain)", adaptive)
+        r = evaluate_asset(model, btc_hours, btc_label, adaptive)
         r["adaptive"] = adaptive
         rows.append(r)
+    bundles = [b for b in bundles if b.stem != "btc_history"]
     for b in bundles:
         hours = pd.read_parquet(b)
         for adaptive in (False, True):
@@ -220,13 +229,24 @@ def main(argv=None) -> int:
 
     fin = df[df.adaptive]
     alt = fin[~fin.asset.str.startswith("btc")]
+    btc = fin[fin.asset.str.startswith("btc")]
     if not alt.empty:
         print(f"\nAltcoins only (n={len(alt)} assets), with correction:")
         print(f"  median sigma ratio : {alt.sigma_ratio.median():.3f}  (1.00 = perfect)")
         print(f"  mean coverage err  : {alt.coverage_err_pp.mean():.3f} pp")
-        print(f"  mean DSC           : {alt.DSC.mean():.5f}  "
-              f"(0 = no skill; BTC in-domain "
-              f"{fin[fin.asset.str.startswith('btc')].DSC.iloc[0]:.5f})")
+        ref = (f"BTC in-domain {btc.DSC.iloc[0]:.5f}" if not btc.empty else
+               "BTC in-domain row unavailable: the committed serving bundle is "
+               "400 days, which leaves only ~29 usable anchors")
+        print(f"  mean DSC           : {alt.DSC.mean():.5f}  (0 = no skill; {ref})")
+        raw = df[~df.adaptive & ~df.asset.str.startswith("btc")]
+        if not raw.empty:
+            print(f"\n  the correction's effect on these four:")
+            print(f"    sigma ratio    {raw.sigma_ratio.median():.3f} -> "
+                  f"{alt.sigma_ratio.median():.3f}")
+            print(f"    coverage err   {raw.coverage_err_pp.mean():.3f} -> "
+                  f"{alt.coverage_err_pp.mean():.3f} pp")
+            print(f"    DSC            {raw.DSC.mean():.5f} -> {alt.DSC.mean():.5f}"
+                  "   (unchanged by design: the correction moves level, not shape)")
 
     a.out.parent.mkdir(parents=True, exist_ok=True)
     a.out.write_text(json.dumps(rows, indent=2, default=float) + "\n")

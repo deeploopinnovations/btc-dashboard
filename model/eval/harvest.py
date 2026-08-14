@@ -37,7 +37,7 @@ bundle reaches a full year behind it: usable anchors ~= days - 365. A 400-day
 bundle yields ~29 production anchors per asset, far too few to estimate
 discrimination. The default is 900 days, which leaves ~500.
 
-    python -m model.eval.harvest --symbols eth,sol,xrp,ltc --days 900
+    python -m model.eval.harvest --symbols btc,eth,sol,xrp,ltc --days 900
 """
 from __future__ import annotations
 
@@ -97,7 +97,7 @@ def harvest_symbol(symbol: str, days: int, verbose: bool = True) -> pd.DataFrame
 
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(description="Harvest hourly bundles for other assets")
-    p.add_argument("--symbols", default="eth,sol,xrp,ltc")
+    p.add_argument("--symbols", default="btc,eth,sol,xrp,ltc")
     p.add_argument("--days", type=int, default=900)
     p.add_argument("--out-dir", type=Path, default=OUT_DIR)
     a = p.parse_args(argv)

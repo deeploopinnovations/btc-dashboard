@@ -19,7 +19,7 @@ on:
     inputs:
       symbols:
         description: 'Comma-separated symbols (eth,sol,xrp,ltc,ada,link,doge)'
-        default: 'eth,sol,xrp,ltc'
+        default: 'btc,eth,sol,xrp,ltc'
       days:
         description: 'Days of history per asset'
         default: '900'
@@ -59,7 +59,7 @@ jobs:
       - name: Harvest
         run: |
           python -m model.eval.harvest \
-            --symbols "${{ github.event.inputs.symbols || 'eth,sol,xrp,ltc' }}" \
+            --symbols "${{ github.event.inputs.symbols || 'btc,eth,sol,xrp,ltc' }}" \
             --days "${{ github.event.inputs.days || '900' }}"
 
       - name: Report what landed
