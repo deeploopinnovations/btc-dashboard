@@ -1,0 +1,177 @@
+"""
+eval/kronos_compare.py
+=====================================================================
+Score Kronos against NOCTUA on identical episodes, by one implementation of
+one set of rules.
+
+Kronos's raw per-episode probabilities come from data/kronos_predictions.json,
+produced by eval/kronos_ci.py on a GitHub runner (huggingface.co weight
+downloads are 403-blocked from the development container). NOCTUA is run here
+on episodes matched by `anchor_ts`, so both models answer exactly the same
+questions about exactly the same nights.
+
+Neither model grades itself. Both are scored by the functions in this file,
+which are the same rules eval/benchmark.py uses:
+
+  * Brier and log score -- strictly proper, so calibration alone cannot win;
+  * the CORP decomposition, whose DSC term is 0 by construction for any
+    constant forecaster and therefore cannot be faked.
+
+`climatology` is included as the same adversarial control used throughout this
+repo. Its DSC must come out at exactly 0.000000; if it does not, the harness
+is broken and no other number in the table means anything.
+
+A NOTE ON WHAT A LOSS WOULD MEAN
+
+Kronos-small is 24.7M parameters against NOCTUA's 19,134 -- roughly 1,300x.
+Losing to it would be an entirely ordinary outcome and will be reported as
+plainly as a win. What would NOT be acceptable is quietly reporting only the
+metrics NOCTUA happens to win, so every metric computed here is printed.
+
+    python -m model.eval.kronos_compare
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+from sklearn.isotonic import IsotonicRegression
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from noctua.features import build_features                          # noqa: E402
+from serve.history import load_bundle                               # noqa: E402
+from serve.runtime import load_model                                # noqa: E402
+
+H = 19
+
+
+def corp(p: np.ndarray, y: np.ndarray) -> dict:
+    """S = MCB - DSC + UNC, calibrated by isotonic regression (bin-free)."""
+    p = np.clip(np.asarray(p, float), 1e-6, 1 - 1e-6)
+    y = np.asarray(y, float)
+    base = float(y.mean())
+    pc = IsotonicRegression(y_min=0, y_max=1, out_of_bounds="clip").fit_transform(p, y)
+    s_raw = float(np.mean((p - y) ** 2))
+    s_cal = float(np.mean((pc - y) ** 2))
+    s_ref = float(np.mean((base - y) ** 2))
+    return {"brier": s_raw, "MCB": s_raw - s_cal, "DSC": s_ref - s_cal, "UNC": s_ref,
+            "log_score": float(-np.mean(y * np.log(p) + (1 - y) * np.log(1 - p)))}
+
+
+def main(argv=None) -> int:
+    ap = argparse.ArgumentParser(description="Kronos vs NOCTUA, one scorer")
+    ap.add_argument("--kronos", type=Path, default=Path("data/kronos_predictions.json"))
+    ap.add_argument("--out", type=Path, default=Path("model/artifacts/kronos_vs_noctua.json"))
+    a = ap.parse_args(argv)
+
+    if not a.kronos.exists():
+        print(f"{a.kronos} not found -- run the kronos-eval workflow first.")
+        print("Kronos weights are not reachable from this container (HF 403);")
+        print("the run happens on a GitHub runner and commits its predictions.")
+        return 1
+
+    kd = json.loads(a.kronos.read_text())
+    eps = kd["episodes"]
+    barriers = np.array(kd["barrier_pct"], dtype=float)
+    bu = np.log1p(barriers / 100.0)
+    print(f"Kronos {kd['model']} -- {kd['n_episodes']} episodes, "
+          f"{kd['samples_per_episode']} paths each")
+    print(f"  wall clock {kd['total_seconds']:.0f}s "
+          f"({kd['seconds_per_episode']:.2f}s/episode)\n")
+
+    # ---- NOCTUA on the SAME anchors ---------------------------------------
+    model = load_model()
+    hours = load_bundle()
+    ts_all = hours["hour_ts"].to_numpy(np.int64)
+    want = np.array([e["anchor_ts"] for e in eps], dtype=np.int64)
+    rows = np.searchsorted(ts_all, want)
+    keep = (rows < len(hours)) & (ts_all[np.clip(rows, 0, len(hours) - 1)] == want)
+    if keep.sum() < len(want):
+        print(f"  matched {keep.sum()}/{len(want)} anchors in the bundle")
+    eps = [e for e, k in zip(eps, keep) if k]
+    rows = rows[keep]
+
+    dt = pd.to_datetime(ts_all[rows], unit="s", utc=True)
+    ep_df = pd.DataFrame({"anchor_ts": ts_all[rows], "H": H, "row": rows, "dt": dt,
+                          "anchor_hour": dt.hour, "dow": dt.dayofweek})
+    X = build_features(hours, ep_df)
+    ok = np.isfinite(X.to_numpy()).all(1)
+    X, ep_df, rows = X[ok], ep_df[ok], rows[ok]
+    eps = [e for e, k in zip(eps, ok) if k]
+    print(f"  scoring {len(eps)} episodes both models answered\n")
+
+    pred = model.predict(model.prepare(X, ep_df.H.to_numpy(np.float64)))
+
+    M_up = np.array([e["M_up"] for e in eps])
+    M_dn = np.array([e["M_dn"] for e in eps])
+    RV = np.array([e["RV"] for e in eps])
+    k_up = np.array([e["p_up_barrier"] for e in eps])
+    k_dn = np.array([e["p_dn_barrier"] for e in eps])
+    k_sig = np.array([e["sigma"] for e in eps])
+    n_sam = kd["samples_per_episode"]
+
+    rowsout = []
+    for j, pct in enumerate(barriers):
+        for side, M, kp in (("up", M_up, k_up), ("dn", M_dn, k_dn)):
+            y = (M >= bu[j]).astype(float)
+            if y.mean() <= 0 or y.mean() >= 1:
+                continue
+            npv = model.touch_prob(pred, np.full(len(eps), bu[j]), side == "up")
+            # A generative model's probability is granular at 1/n_samples and
+            # can be exactly 0; nudge inside the open interval so the log score
+            # is finite. This HELPS Kronos and is applied only to Kronos.
+            kpv = np.clip(kp[:, j], 0.5 / n_sam, 1 - 0.5 / n_sam)
+            const = np.full(len(eps), float(y.mean()))
+            for name, p in (("noctua", npv), ("kronos", kpv), ("climatology", const)):
+                rowsout.append({"barrier_pct": float(pct), "side": side,
+                                "model": name, **corp(p, y)})
+
+    df = pd.DataFrame(rowsout)
+    agg = df.groupby("model")[["brier", "log_score", "DSC", "MCB", "UNC"]].mean()
+    agg = agg.reindex(["noctua", "kronos", "climatology"])
+
+    print("=" * 72)
+    print("HEAD-TO-HEAD, pooled over barriers and sides")
+    print("=" * 72)
+    print(agg.round(6).to_string())
+
+    c_dsc = float(agg.loc["climatology", "DSC"])
+    print(f"\nsanity: climatology DSC = {c_dsc:.8f} "
+          f"({'OK, harness sound' if abs(c_dsc) < 1e-9 else 'BROKEN -- ignore every number above'})")
+
+    print("\nPer barrier (upside), DSC -- higher is better:")
+    piv = df[df.side == "up"].pivot_table(index="barrier_pct", columns="model", values="DSC")
+    print(piv.round(6).to_string())
+
+    print("\nVolatility, median predicted / realized (1.00 = unbiased):")
+    print(f"  noctua {np.median(pred['sigma_med'] / np.maximum(RV, 1e-12)):.3f}")
+    print(f"  kronos {np.median(k_sig / np.maximum(RV, 1e-12)):.3f}")
+
+    n_par = model.meta.get("n_params_total", 0)
+    print(f"\nparameters: noctua {n_par:,}   kronos ~24,700,000 "
+          f"({24_700_000 / max(n_par, 1):.0f}x larger)")
+
+    verdict = []
+    for m in ("brier", "log_score"):
+        w = "noctua" if agg.loc["noctua", m] < agg.loc["kronos", m] else "kronos"
+        verdict.append(f"{m}: {w}")
+    w = "noctua" if agg.loc["noctua", "DSC"] > agg.loc["kronos", "DSC"] else "kronos"
+    verdict.append(f"DSC: {w}")
+    print("\nwinner by metric -> " + ", ".join(verdict))
+
+    a.out.parent.mkdir(parents=True, exist_ok=True)
+    a.out.write_text(json.dumps(
+        {"kronos_meta": {k: v for k, v in kd.items() if k != "episodes"},
+         "n_scored": len(eps), "per_barrier": rowsout,
+         "pooled": json.loads(agg.to_json(orient="index"))}, indent=2, default=float) + "\n")
+    print(f"\nwritten -> {a.out}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
