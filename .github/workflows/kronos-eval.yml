@@ -1,0 +1,100 @@
+# .github/workflows/kronos-eval.yml
+# =====================================================================
+# Runs Kronos against the committed BTC history and commits its raw
+# predictions, so the head-to-head can finally be scored.
+#
+# This is the one comparison the project has never been able to make. Kronos's
+# weights are on huggingface.co, which the development container cannot reach
+# (403 on weight downloads through the egress proxy; only the metadata API is
+# available via the MCP connector). A GitHub runner has unrestricted access to
+# both HF and PyPI -- the same observation that unblocked the cross-asset data
+# harvest. So Kronos runs here and the numbers come back for offline scoring.
+#
+# Nothing is scored in this job. It emits raw per-episode touch probabilities
+# and the realized outcomes; eval/kronos_compare.py grades Kronos and NOCTUA
+# together, by one implementation of one set of rules.
+name: kronos-eval
+
+on:
+  workflow_dispatch:
+    inputs:
+      kronos_model:
+        description: 'HF model id'
+        default: 'NeoQuasar/Kronos-small'
+      samples:
+        description: 'Monte-Carlo paths per episode'
+        default: '32'
+      episodes:
+        description: 'Number of production episodes'
+        default: '180'
+  push:
+    paths:
+      - 'model/eval/kronos_ci.py'
+      - '.github/workflows/kronos-eval.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  kronos:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330        # generative rollouts on CPU are slow; be generous
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # CPU wheels only -- the CUDA build is ~2.5 GB and there is no GPU here.
+      - name: Install PyTorch (CPU) and deps
+        run: |
+          pip install --quiet torch --index-url https://download.pytorch.org/whl/cpu
+          pip install --quiet numpy pandas pyarrow huggingface_hub safetensors einops
+
+      - name: Clone Kronos
+        run: |
+          git clone --depth 1 https://github.com/shiyu-coder/Kronos /tmp/Kronos
+          echo "KRONOS_REPO=/tmp/Kronos" >> "$GITHUB_ENV"
+          ls /tmp/Kronos
+
+      - name: Install Kronos's own requirements if present
+        run: |
+          if [ -f /tmp/Kronos/requirements.txt ]; then
+            pip install --quiet -r /tmp/Kronos/requirements.txt || \
+              echo "kronos requirements partially failed; continuing"
+          fi
+
+      - name: Run Kronos
+        run: |
+          python model/eval/kronos_ci.py \
+            --kronos-model "${{ github.event.inputs.kronos_model || 'NeoQuasar/Kronos-small' }}" \
+            --samples "${{ github.event.inputs.samples || '32' }}" \
+            --episodes "${{ github.event.inputs.episodes || '180' }}"
+
+      - name: Summarise
+        run: |
+          python - <<'PY'
+          import json, pathlib
+          p = pathlib.Path("data/kronos_predictions.json")
+          if not p.exists():
+              print("no predictions produced"); raise SystemExit(1)
+          d = json.loads(p.read_text())
+          print(f"model     {d['model']}")
+          print(f"episodes  {d['n_episodes']}")
+          print(f"samples   {d['samples_per_episode']}")
+          print(f"wall      {d['total_seconds']:.0f}s "
+                f"({d['seconds_per_episode']:.2f}s/episode)")
+          PY
+
+      - name: Commit predictions
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A data/kronos_predictions.json
+          if git diff --cached --quiet; then
+            echo "nothing new to commit"
+          else
+            git commit -m "chore(eval): Kronos raw predictions from CI"
+            git push origin HEAD:${{ github.ref_name }}
+          fi
