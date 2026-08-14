@@ -199,6 +199,10 @@ def main(argv=None) -> int:
     for r in rows:
         if "error" in r:
             print(f"  skipped {r['asset']}: {r['error']}")
+    if df.empty:
+        print("\nNo asset had enough usable anchors. Features need 365 days of")
+        print("lookback, so usable anchors ~= bundle_days - 365; re-harvest deeper.")
+        return 1
 
     for adaptive in (False, True):
         sub = df[df.adaptive == adaptive]

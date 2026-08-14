@@ -30,7 +30,14 @@ in a direction the benchmark can name.
 USD pairs throughout. A USDT pair would fold stablecoin depeg risk into the
 excursion distribution and confound the comparison.
 
-    python -m model.eval.harvest --symbols eth,sol,xrp,ltc --days 400
+HOW MUCH HISTORY
+
+`reg_rv_vs_year` looks back 365 days, so an anchor is only usable once the
+bundle reaches a full year behind it: usable anchors ~= days - 365. A 400-day
+bundle yields ~29 production anchors per asset, far too few to estimate
+discrimination. The default is 900 days, which leaves ~500.
+
+    python -m model.eval.harvest --symbols eth,sol,xrp,ltc --days 900
 """
 from __future__ import annotations
 
@@ -91,7 +98,7 @@ def harvest_symbol(symbol: str, days: int, verbose: bool = True) -> pd.DataFrame
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(description="Harvest hourly bundles for other assets")
     p.add_argument("--symbols", default="eth,sol,xrp,ltc")
-    p.add_argument("--days", type=int, default=400)
+    p.add_argument("--days", type=int, default=900)
     p.add_argument("--out-dir", type=Path, default=OUT_DIR)
     a = p.parse_args(argv)
 

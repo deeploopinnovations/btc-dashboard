@@ -22,7 +22,7 @@ on:
         default: 'eth,sol,xrp,ltc'
       days:
         description: 'Days of history per asset'
-        default: '400'
+        default: '900'
   push:
     paths:
       - 'model/eval/harvest.py'
@@ -56,7 +56,7 @@ jobs:
         run: |
           python -m model.eval.harvest \
             --symbols "${{ github.event.inputs.symbols || 'eth,sol,xrp,ltc' }}" \
-            --days "${{ github.event.inputs.days || '400' }}"
+            --days "${{ github.event.inputs.days || '900' }}"
 
       - name: Report what landed
         run: |
