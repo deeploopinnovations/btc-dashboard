@@ -61,14 +61,25 @@ ALPHAS = np.array([0.01, 0.02, 0.05, 0.10, 0.20])
 BARRIER_PCT = np.array([1.0, 2.0, 3.0, 5.0])
 
 
-def dsc_mcb(p: np.ndarray, y: np.ndarray) -> tuple[float, float]:
-    """CORP discrimination and miscalibration. DSC is 0 for any constant."""
+def dsc_mcb(p: np.ndarray, y: np.ndarray) -> tuple[float, float, float]:
+    """CORP discrimination, miscalibration, and the uncertainty it scales with.
+
+    UNC = p(1-p) of the base rate is returned because RAW DSC IS NOT COMPARABLE
+    ACROSS ASSETS. A barrier that is touched half the time leaves far more room
+    to discriminate than one touched a fifth of the time, so a more volatile
+    asset posts a higher DSC at the same skill. At the 2% barrier BTC's base
+    rate is 0.197 (UNC 0.158) against 0.36-0.46 for the altcoins (UNC 0.23-0.25)
+    -- about 50% more headroom, from arithmetic alone. DSC/UNC is the
+    skill-score form and is the one to compare.
+    """
     base = float(np.mean(y))
     if base <= 0 or base >= 1 or len(y) < 30:
-        return float("nan"), float("nan")
+        return float("nan"), float("nan"), float("nan")
     pc = IsotonicRegression(y_min=0, y_max=1, out_of_bounds="clip").fit_transform(p, y)
     ref = float(np.mean((base - y) ** 2))
-    return ref - float(np.mean((pc - y) ** 2)), float(np.mean((p - y) ** 2)) - float(np.mean((pc - y) ** 2))
+    return (ref - float(np.mean((pc - y) ** 2)),
+            float(np.mean((p - y) ** 2)) - float(np.mean((pc - y) ** 2)),
+            ref)
 
 
 def production_anchors(hours: pd.DataFrame) -> np.ndarray:
@@ -150,17 +161,22 @@ def evaluate_asset(model, hours: pd.DataFrame, label: str, adaptive: bool) -> di
     rec["coverage_err_pp"] = float(100 * np.mean(errs))
 
     # discrimination: the part that cannot be faked
-    d_list, m_list = [], []
+    d_list, m_list, u_list = [], [], []
     for pct in BARRIER_PCT:
         u = np.full(len(rows), np.log1p(pct / 100.0))
         p = model.touch_prob(pred, u, True)
         y = (truth["M_up"] >= np.log1p(pct / 100.0)).astype(float)
-        d, mc = dsc_mcb(p, y)
+        d, mc, un = dsc_mcb(p, y)
         if np.isfinite(d):
             d_list.append(d)
             m_list.append(mc)
+            u_list.append(un)
     rec["DSC"] = float(np.mean(d_list)) if d_list else float("nan")
     rec["MCB"] = float(np.mean(m_list)) if m_list else float("nan")
+    rec["UNC"] = float(np.mean(u_list)) if u_list else float("nan")
+    # the comparable form: what fraction of the available uncertainty the
+    # model actually resolves
+    rec["DSS"] = rec["DSC"] / rec["UNC"] if u_list and rec["UNC"] > 0 else float("nan")
     return rec
 
 
@@ -221,11 +237,12 @@ def main(argv=None) -> int:
         print(f"{'WITH' if adaptive else 'WITHOUT'} the causal volatility correction")
         print("=" * 76)
         print(f"{'asset':<18} {'n':>5} {'sigma%':>8} {'realRV%':>8} {'ratio':>7} "
-              f"{'cov err pp':>11} {'DSC':>9} {'c':>6}")
+              f"{'cov err pp':>11} {'DSC':>9} {'DSC/UNC':>8} {'c':>6}")
         for _, r in sub.iterrows():
             print(f"{r.asset:<18} {int(r.n):>5} {r.sigma_model_pct:8.3f} "
                   f"{r.rv_realized_pct:8.3f} {r.sigma_ratio:7.3f} "
-                  f"{r.coverage_err_pp:11.3f} {r.DSC:9.5f} {r.adaptive_factor:6.3f}")
+                  f"{r.coverage_err_pp:11.3f} {r.DSC:9.5f} {r.DSS:8.4f} "
+                  f"{r.adaptive_factor:6.3f}")
 
     fin = df[df.adaptive]
     alt = fin[~fin.asset.str.startswith("btc")]
@@ -234,7 +251,9 @@ def main(argv=None) -> int:
         print(f"\nAltcoins only (n={len(alt)} assets), with correction:")
         print(f"  median sigma ratio : {alt.sigma_ratio.median():.3f}  (1.00 = perfect)")
         print(f"  mean coverage err  : {alt.coverage_err_pp.mean():.3f} pp")
-        ref = (f"BTC in-domain {btc.DSC.iloc[0]:.5f}" if not btc.empty else
+        ref = (f"BTC in-domain {btc.DSC.iloc[0]:.5f}, DSC/UNC "
+               f"{btc.DSS.iloc[0]:.4f} vs altcoin {alt.DSS.mean():.4f}"
+               if not btc.empty else
                "BTC in-domain row unavailable: the committed serving bundle is "
                "400 days, which leaves only ~29 usable anchors")
         print(f"  mean DSC           : {alt.DSC.mean():.5f}  (0 = no skill; {ref})")
