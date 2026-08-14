@@ -48,41 +48,37 @@ from serve.fetch import SYMBOLS, fetch_bitstamp, fetch_coinbase, validate_bars  
 from serve.history import hours_from_bars                                       # noqa: E402
 
 OUT_DIR = Path("data/assets")
-CHUNK_HOURS = 800          # ~1000 five-minute bars, Bitstamp's per-call ceiling
 
 
 def harvest_symbol(symbol: str, days: int, verbose: bool = True) -> pd.DataFrame:
-    """Page backwards through a long history, one venue, oldest-first result."""
+    """Fetch a long history from the first venue that answers.
+
+    One call per venue, not a chunking loop: `fetch_bitstamp` and
+    `fetch_coinbase` already paginate forward internally across the whole
+    `tail_hours` window. Wrapping them in an outer loop that asks for an
+    ever-larger tail re-fetches everything already retrieved -- 749 requests
+    instead of 115 for 400 days, which is both slow and rude to a free public
+    endpoint.
+    """
     total_hours = days * 24
-    frames: list[pd.DataFrame] = []
+    bars = None
     errors: list[str] = []
 
     for fn in (fetch_bitstamp, fetch_coinbase):
-        frames.clear()
-        errors.clear()
         try:
-            remaining = total_hours
-            while remaining > 0:
-                take = min(CHUNK_HOURS, remaining)
-                # `tail_hours` counts back from now, so ask for an increasing
-                # window and keep the oldest slice of each response.
-                got = fn(tail_hours=int(total_hours - remaining + take), symbol=symbol)
-                frames.append(got)
-                remaining -= take
-                if verbose:
-                    print(f"    {symbol}: {total_hours - remaining}/{total_hours}h", flush=True)
-                time.sleep(0.3)
+            if verbose:
+                print(f"    {symbol}: {fn.__name__}, {total_hours}h ...", flush=True)
+            bars = fn(tail_hours=total_hours, symbol=symbol)
             break
         except Exception as e:                                   # noqa: BLE001
             errors.append(f"{fn.__name__}: {type(e).__name__}: {e}")
             continue
 
-    if not frames:
+    if bars is None or bars.empty:
         raise RuntimeError(f"{symbol}: every venue failed -> {' | '.join(errors)}")
 
-    bars = (pd.concat(frames, ignore_index=True)
-            .drop_duplicates("timestamp")
-            .sort_values("timestamp", ignore_index=True))
+    bars = (bars.drop_duplicates("timestamp")
+                .sort_values("timestamp", ignore_index=True))
     bars = validate_bars(bars, tail_hours=24)
     hours = hours_from_bars(bars)
     if verbose:
