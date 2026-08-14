@@ -42,7 +42,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from noctua.features import build_features                    # noqa: E402
 from serve.fetch import fetch_bars                            # noqa: E402
 from serve.history import get_hours, load_bundle              # noqa: E402
-from serve.runtime import NoctuaV2, NumpyNoctua               # noqa: E402
+from serve.runtime import load_model                          # noqa: E402
 
 _MODEL_TAG = ["NOCTUA-v1"]   # set by main() once the artifact is chosen
 
@@ -129,6 +129,7 @@ def forecast(model, hours: pd.DataFrame, H: int = PROD_H,
         "p_vol_amplify": round(p_amp, 4),
         "safe_levels": safe,
         "barrier_curves": curves,
+        "model": model.meta.get("version", "NOCTUA-v1"),
         "source": source,
         "history_hours": int(len(hours)),
     }
@@ -173,7 +174,7 @@ def to_legacy(f: dict) -> dict:
         "fetchedAt": now_ms,
         "proxy": "noctua-local",
         "_updatedMs": now_ms,
-        "model": _MODEL_TAG[0],
+        "model": f.get("model", _MODEL_TAG[0]),
         "upside_is_informative": False,
         "warning": (
             "upside is pinned to 50.0 on purpose: direction is NOT predictable at "
@@ -196,14 +197,9 @@ def main(argv=None) -> int:
     p.add_argument("--H", type=int, default=PROD_H)
     a = p.parse_args(argv)
 
-    # Prefer the v2 committee artifact; fall back to v1 if it is absent.
-    v2 = Path(__file__).with_name("noctua_v2.npz")
-    if a.weights is not None:
-        model = NoctuaV2(a.weights) if "v2" in a.weights.name else NumpyNoctua(a.weights)
-    elif v2.exists():
-        model = NoctuaV2(v2)
-    else:
-        model = NumpyNoctua(Path(__file__).with_name("noctua_weights.npz"))
+    # Prefer the v2 committee artifact; fall back to v1 if it is absent. The
+    # runtime is chosen from the artifact's own metadata, not its filename.
+    model = load_model(a.weights)
     print(f"[predict] model = {model.meta.get('version', 'NOCTUA-v1')} "
           f"({model.meta.get('n_params_total', model.meta.get('n_params')):,} params)")
     if a.offline:

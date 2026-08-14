@@ -39,7 +39,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from serve.predict import to_legacy                      # noqa: E402
-from serve.runtime import NoctuaV2, NumpyNoctua         # noqa: E402
+from serve.runtime import load_model                     # noqa: E402
 
 FAILS: list[str] = []
 
@@ -56,8 +56,7 @@ def main() -> int:
     check("torch not imported by the serving path", "torch" not in sys.modules,
           "something on the serve path imports PyTorch")
 
-    v2 = ROOT / "serve" / "noctua_v2.npz"
-    m = NoctuaV2(v2) if v2.exists() else NumpyNoctua(ROOT / "serve" / "noctua_weights.npz")
+    m = load_model()          # exercises metadata-based artifact selection
     n_par = m.meta.get("n_params_total", m.meta.get("n_params"))
     print(f"  (testing {m.meta.get('version', 'NOCTUA-v1')}, {n_par:,} params)")
     check("weights load", True)
@@ -117,6 +116,46 @@ def main() -> int:
     check("far tail finite and in [0,1]",
           bool(np.all(np.isfinite(far)) and np.all((far >= 0) & (far <= 1))))
     check("far tail is small", bool(far.max() < 0.05), f"max {far.max():.4f}")
+
+    # ---- 6b: OUTSIDE the quantile grid, extrapolate -- never clamp -------
+    # The pooled grid only spans alpha in [0.005, 0.5]. Reading it with a flat
+    # clamp reported every barrier nearer than the median excursion as exactly
+    # 0.50 and every barrier past the 99.5th percentile as exactly 0.00 -- the
+    # shipped forecast said a 10% overnight move had ZERO chance of being
+    # touched. These four checks are the ones that would have caught it.
+    for up in (True, False):
+        sfx = "up" if up else "dn"
+        tiny = m.touch_prob(pred, np.full(n, 1e-6), up)
+        check(f"tiny barrier approaches certainty, not 0.5 ({sfx})",
+              bool(tiny.min() > 0.99), f"min {tiny.min():.4f}")
+
+        deep = m.touch_prob(pred, np.full(n, 1.0), up)
+        check(f"deep barrier stays strictly positive ({sfx})",
+              bool(deep.min() > 0.0), f"min {deep.min():.3e}")
+
+        # strictly decreasing across BOTH seams, not merely non-increasing
+        span = np.array([1e-5, 1e-4, 1e-3, 5e-3, 0.02, 0.05, 0.2, 0.6, 1.5, 4.0])
+        curve = np.stack([m.touch_prob(pred, np.full(n, x), up) for x in span], axis=1)
+        check(f"survival strictly decreasing across the seams ({sfx})",
+              bool((np.diff(curve, axis=1) < 0).all()))
+
+        # safe_level must keep inverting touch_prob outside the grid too
+        for alpha in (0.001, 0.75):
+            lvl = m.safe_level(pred, alpha, up)
+            got = m.touch_prob(pred, lvl, up)
+            check(f"safe_level inverts touch_prob off-grid (alpha={alpha}, {sfx})",
+                  bool(np.abs(got - alpha).max() < 1e-6),
+                  f"max dev {np.abs(got - alpha).max():.2e}")
+
+    # the published barrier grid itself must be free of clamped endpoints
+    for pct in (0.5, 10.0):
+        u = np.full(n, float(np.log1p(pct / 100.0)))
+        for up in (True, False):
+            tp = m.touch_prob(pred, u, up)
+            check(f"published {pct}% barrier is not a clamp artifact "
+                  f"({'up' if up else 'dn'})",
+                  bool(np.all(tp > 0.0) and np.all(np.abs(tp - 0.5) > 1e-9)),
+                  f"values {np.unique(np.round(tp, 6))[:3]}")
 
     p_up = m.prob_up(pred)
     check("prob_up in [0,1]", bool(np.all((p_up >= 0) & (p_up <= 1))))

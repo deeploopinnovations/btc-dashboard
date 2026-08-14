@@ -84,6 +84,11 @@ def build_fold(ep, X, fold, hidden, seeds, verbose=False):
     comm = Committee(specs).fit(sig_cal, p_cal,
                                 e_cal.M_up.to_numpy(), e_cal.M_dn.to_numpy())
 
+    # The estimator that actually ships: equal weights, nothing fitted. Scored
+    # as its own arm so the headline number describes the released artifact
+    # rather than the SLSQP variant.
+    equal = Committee(specs).fit_equal()
+
     # NOCTUA-as-parent: a gate that picks children per episode, not per alpha
     G_cal = X.loc[m_cal, GATE_FEATURES].to_numpy(np.float64)
     gated = GatedCommittee(specs).fit(G_cal, sig_cal, p_cal,
@@ -103,6 +108,8 @@ def build_fold(ep, X, fold, hidden, seeds, verbose=False):
         u_g = -sig_te * norm.ppf(a / 2.0)
         u_c = comm.safe_level(sig_te, p_te, a, True)
         l_c = comm.safe_level(sig_te, p_te, a, False)
+        u_e = equal.safe_level(sig_te, p_te, a, True)
+        l_e = equal.safe_level(sig_te, p_te, a, False)
         u_x = gated.safe_level(G_te, sig_te, p_te, a, True)
         l_x = gated.safe_level(G_te, sig_te, p_te, a, False)
         rows.append({
@@ -110,6 +117,7 @@ def build_fold(ep, X, fold, hidden, seeds, verbose=False):
             "noctua": 100 * 0.5 * (abs((M_up >= u_n).mean() - a) + abs((M_dn >= l_n).mean() - a)),
             "gauss": 100 * 0.5 * (abs((M_up >= u_g).mean() - a) + abs((M_dn >= u_g).mean() - a)),
             "committee": 100 * 0.5 * (abs((M_up >= u_c).mean() - a) + abs((M_dn >= l_c).mean() - a)),
+            "equal": 100 * 0.5 * (abs((M_up >= u_e).mean() - a) + abs((M_dn >= l_e).mean() - a)),
             "gated": 100 * 0.5 * (abs((M_up >= u_x).mean() - a) + abs((M_dn >= l_x).mean() - a)),
             "cte_up": float((M_up >= u_c).mean()), "cte_dn": float((M_dn >= l_c).mean()),
         })
@@ -167,7 +175,7 @@ def main(argv=None) -> int:
     tab = []
     for i, al in enumerate(REPORT_ALPHAS):
         row = {"alpha": al}
-        for k in ("noctua", "gauss", "committee", "gated"):
+        for k in ("noctua", "gauss", "committee", "equal", "gated"):
             row[k] = float(np.mean([r["barrier"][i][k] for r in res]))
         row["cte_up"] = float(np.mean([r["barrier"][i]["cte_up"] for r in res]))
         row["cte_dn"] = float(np.mean([r["barrier"][i]["cte_dn"] for r in res]))
@@ -175,13 +183,13 @@ def main(argv=None) -> int:
     df = pd.DataFrame(tab)
     print(df.round(3).to_string(index=False))
     print(f"\n  mean over alphas:  noctua={df.noctua.mean():.3f}  "
-          f"gauss={df.gauss.mean():.3f}  committee={df.committee.mean():.3f}  "
-          f"GATED={df.gated.mean():.3f}")
+          f"gauss={df.gauss.mean():.3f}  committee(fitted)={df.committee.mean():.3f}  "
+          f"EQUAL(shipped)={df.equal.mean():.3f}  GATED={df.gated.mean():.3f}")
+    lo = df[df.alpha <= 0.10]
     print(f"  mean over alphas <= 0.10 (the seller's range): "
-          f"noctua={df[df.alpha<=0.10].noctua.mean():.3f}  "
-          f"gauss={df[df.alpha<=0.10].gauss.mean():.3f}  "
-          f"committee={df[df.alpha<=0.10].committee.mean():.3f}  "
-          f"GATED={df[df.alpha<=0.10].gated.mean():.3f}")
+          f"noctua={lo.noctua.mean():.3f}  gauss={lo.gauss.mean():.3f}  "
+          f"committee(fitted)={lo.committee.mean():.3f}  "
+          f"EQUAL(shipped)={lo.equal.mean():.3f}  GATED={lo.gated.mean():.3f}")
 
     print("\n=== GATE: per-episode weights on the final fold ===")
     print(f"{'child':>11} {'mean w':>9} {'sd across episodes':>20}")

@@ -258,8 +258,19 @@ class NoctuaV2(NumpyNoctua):
         return np.minimum.accumulate(out)      # q_levels descend, so must this
 
     def committee_quantiles(self, pred: dict, up: bool = True) -> np.ndarray:
-        """Equal-weight Vincentization of the four specialist quantile curves."""
+        """Equal-weight Vincentization of the four specialist quantile curves.
+
+        Memoised on `pred`. The pooled curve depends only on `pred` and `up`,
+        but `forecast()` asks for 18 touch probabilities and 10 safe levels,
+        and each rebuild runs eight bisections over 32 sigma atoms for the
+        neural member alone. Rebuilding per query cost ~250k redundant
+        survival evaluations per one-row forecast.
+        """
         from noctua import infer as I
+
+        key = "_pooled_up" if up else "_pooled_dn"
+        if key in pred:
+            return pred[key]
 
         atoms = pred["sigma_atoms"]
         neural = np.stack([I.safe_level(pred, float(a), up=up) for a in self.alpha_grid],
@@ -269,10 +280,47 @@ class NoctuaV2(NumpyNoctua):
         evt = self._mix_over_sigma(self._evt_z("up" if up else "dn"), atoms)
 
         pooled = 0.25 * (neural + gauss + emp + evt)
-        return np.maximum.accumulate(pooled[:, ::-1], axis=1)[:, ::-1]
+        pooled = np.maximum.accumulate(pooled[:, ::-1], axis=1)[:, ::-1]
+        pred[key] = pooled
+        return pooled
+
+    # ---- tails outside the pooled grid -------------------------------------
+    # ALPHA_GRID spans [0.005, 0.5], so the pooled curve only speaks about
+    # barriers between the median excursion and the 99.5th percentile. Reading
+    # it with a flat clamp outside that span reports every near barrier as
+    # exactly 0.50 and every far barrier as exactly 0.00 -- i.e. it tells an
+    # option seller that a 10% move is impossible. Both ends are extrapolated
+    # instead, with the two closed forms that the endpoints already imply.
+    _Z25 = 0.6744897501960817          # -Phi^-1(0.25)
+
+    def _near_sigma(self, q_med: np.ndarray) -> np.ndarray:
+        """Scale of the reflection-principle survival that passes through the
+        pooled median level: P(M >= u) = 2*Phi(-u/s), so P = 0.5 at u = q_med
+        requires s = q_med / -Phi^-1(0.25). Tends to 1 as u -> 0, as a touch
+        probability must."""
+        return np.maximum(q_med, 1e-12) / self._Z25
+
+    def _far_k(self, Qp: np.ndarray) -> np.ndarray:
+        """Power-law exponent implied by the two deepest pooled quantiles:
+        alpha(u) = a0 * (u/u0)^-k. Fitted from the curve rather than from the
+        EVT member's raw xi, because the pooled tail is a scale MIXTURE over
+        the 32 sigma atoms and so is fatter than any single standardized GPD
+        (both fitted xi are negative, i.e. bounded, before mixing)."""
+        u0, u1 = np.maximum(Qp[:, 0], 1e-12), np.maximum(Qp[:, 1], 1e-12)
+        a0, a1 = self.alpha_grid[0], self.alpha_grid[1]
+        ratio = np.maximum(u0 / u1, 1.0 + 1e-9)
+        return np.log(a1 / a0) / np.log(ratio)
 
     def safe_level(self, pred: dict, alpha: float, up: bool = True, **_) -> np.ndarray:
         Qp = self.committee_quantiles(pred, up)
+        a_lo, a_hi = float(self.alpha_grid[0]), float(self.alpha_grid[-1])
+
+        if alpha > a_hi:                       # nearer than the median excursion
+            return -self._near_sigma(Qp[:, -1]) * norm_ppf(min(alpha, 1.0) / 2.0)
+        if alpha < a_lo:                       # deeper than the 99.5th percentile
+            k = self._far_k(Qp)
+            return Qp[:, 0] * (alpha / a_lo) ** (-1.0 / k)
+
         j = int(np.argmin(np.abs(self.alpha_grid - alpha)))
         if abs(self.alpha_grid[j] - alpha) < 1e-9:
             return Qp[:, j]
@@ -284,13 +332,66 @@ class NoctuaV2(NumpyNoctua):
         u = np.abs(np.asarray(u, dtype=np.float64))
         if u.ndim == 0:
             u = np.full(Qp.shape[0], float(u))
+
+        s_near = self._near_sigma(Qp[:, -1])
+        k_far = self._far_k(Qp)
+        a_lo, a_hi = float(self.alpha_grid[0]), float(self.alpha_grid[-1])
+
         out = np.empty(Qp.shape[0])
         for i in range(Qp.shape[0]):
-            out[i] = np.interp(u[i], Qp[i, ::-1], self.alpha_grid[::-1],
-                               left=float(self.alpha_grid[-1]), right=0.0)
+            if u[i] <= Qp[i, -1]:
+                out[i] = 2.0 * norm_cdf(-u[i] / s_near[i])
+            elif u[i] >= Qp[i, 0]:
+                out[i] = a_lo * (max(u[i], 1e-12) / Qp[i, 0]) ** (-k_far[i])
+            else:
+                out[i] = np.interp(u[i], Qp[i, ::-1], self.alpha_grid[::-1],
+                                   left=a_hi, right=a_lo)
         return np.clip(out, 0.0, 1.0)
 
 
 def norm_ppf(p):
     from scipy.stats import norm as _n
     return _n.ppf(p)
+
+
+def norm_cdf(x):
+    from scipy.stats import norm as _n
+    return _n.cdf(x)
+
+
+# ==========================================================================
+# artifact selection
+# ==========================================================================
+V2_NAME = "noctua_v2.npz"
+V1_NAME = "noctua_weights.npz"
+
+
+def _artifact_version(path: Path) -> str:
+    """Read the artifact's own version tag.
+
+    Dispatching on the FILENAME was the earlier approach and it is wrong in
+    both directions: a v2 artifact downloaded under another name would be
+    loaded by the v1 runtime, which expects a flat weight layout and would
+    fail mid-forecast, and a v1 file whose name happened to contain "v2"
+    would fail the opposite way. The npz already carries the answer.
+    """
+    with np.load(path, allow_pickle=False) as z:
+        if "meta_json" not in z.files:
+            return "NOCTUA-v1"          # earliest artifacts predate meta_json
+        return json.loads(bytes(z["meta_json"]).decode()).get("version", "NOCTUA-v1")
+
+
+def load_model(path: Path | str | None = None):
+    """Load whichever artifact is present, newest first.
+
+    Shared by `serve.predict` (the GitHub Action) and `serve.app` (the Hugging
+    Face Space) so the two cannot drift onto different models -- the Space
+    served v1 for as long as it constructed `NumpyNoctua` directly.
+    """
+    here = Path(__file__).parent
+    if path is None:
+        path = here / V2_NAME if (here / V2_NAME).exists() else here / V1_NAME
+    path = Path(path)
+    if not path.exists():
+        raise FileNotFoundError(f"no NOCTUA artifact at {path}")
+    return NoctuaV2(path) if _artifact_version(path) == "NOCTUA-v2" else NumpyNoctua(path)
