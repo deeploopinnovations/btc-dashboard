@@ -10,10 +10,10 @@ Serves:
     /api/noctua       the real product: barrier survival curves + safe strikes
     /api/health       liveness + model metadata
 
-Resource profile: 49,866 parameters, a ~198 KB weights file, NumPy + SciPy
-only (no PyTorch), ~6 ms per forecast. The forecast is recomputed at most once
-every REFRESH_SEC and served from cache otherwise, so the Space spends
-essentially all of its time idle.
+Resource profile: NumPy + SciPy only (no PyTorch), sub-millisecond per
+forecast on the v2 artifact (19,134 parameters, ~98 KB). The forecast is
+recomputed at most once every REFRESH_SEC and served from cache otherwise, so
+the Space spends essentially all of its time idle.
 """
 from __future__ import annotations
 
@@ -31,13 +31,17 @@ import gradio as gr                                            # noqa: E402
 from fastapi.responses import JSONResponse                     # noqa: E402
 
 from serve.fetch import fetch_bars                             # noqa: E402
+from serve.history import get_hours                            # noqa: E402
 from serve.predict import forecast, to_legacy                  # noqa: E402
-from serve.runtime import NumpyNoctua                          # noqa: E402
+from serve.runtime import load_model                           # noqa: E402
 
 REFRESH_SEC = int(os.environ.get("NOCTUA_REFRESH_SEC", "1800"))
-WEIGHTS = Path(__file__).with_name("noctua_weights.npz")
 
-_model = NumpyNoctua(WEIGHTS)
+# Whichever artifact is present, newest first -- NOT a hardcoded v1 path. The
+# Space quietly served v1 while the Action served v2 for as long as this line
+# constructed NumpyNoctua itself.
+_model = load_model()
+_N_PARAMS = _model.meta.get("n_params_total", _model.meta.get("n_params", 0))
 _lock = threading.Lock()
 _cache: dict = {"forecast": None, "legacy": None, "ts": 0.0, "error": None}
 
@@ -48,8 +52,13 @@ def get_forecast(force: bool = False) -> dict:
         if fresh and not force:
             return _cache
         try:
-            df = fetch_bars()
-            f = forecast(_model, df)
+            # `forecast` runs on the MERGED HOURLY frame (committed bundle +
+            # live tail), not on raw 5-minute bars. Passing fetch_bars() straight
+            # through raised KeyError('hour_ts') into the handler below, so the
+            # Space served "no forecast yet" indefinitely. persist=False: the
+            # Space's filesystem is ephemeral and is not the bundle's home.
+            hours, info = get_hours(fetch_bars, persist=False, verbose=False)
+            f = forecast(_model, hours, source=info["source"])
             _cache.update(forecast=f, legacy=to_legacy(f), ts=time.time(), error=None)
         except Exception as e:  # noqa: BLE001
             # keep serving the last good forecast, but say so
@@ -96,7 +105,8 @@ def render() -> str:
 with gr.Blocks(title="NOCTUA — BTC overnight barrier model", theme=gr.themes.Base()) as demo:
     gr.Markdown("## NOCTUA — BTC overnight option-seller's barrier model")
     gr.Markdown(
-        "49,866 parameters. Predicts, for the 19-hour window from 17:00 UTC "
+        f"{_N_PARAMS:,} parameters ({_model.meta.get('version', 'NOCTUA-v1')}). "
+        "Predicts, for the 19-hour window from 17:00 UTC "
         "(22:30 IST) to 12:00 UTC (17:30 IST) next day, **which levels are strong "
         "enough not to break**."
     )
@@ -126,7 +136,8 @@ def api_noctua():
 def api_health():
     return JSONResponse({
         "ok": True,
-        "params": _model.meta["n_params"],
+        "model": _model.meta.get("version", "NOCTUA-v1"),
+        "params": _N_PARAMS,
         "blend_w": _model.blend_w,
         "cal_shrink": _model.cal_shrink,
         "cache_age_sec": round(time.time() - _cache["ts"], 1) if _cache["ts"] else None,

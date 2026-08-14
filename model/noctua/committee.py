@@ -346,6 +346,21 @@ class Committee:
         self.W_dn = fit_weights(self._stack(sigma, pred, False), np.abs(m_dn), self.ridge)
         return self
 
+    def fit_equal(self):
+        """Fix every weight at 1/K, fitting nothing.
+
+        This is the estimator the ARTIFACT actually ships -- `NoctuaV2.
+        committee_quantiles` hard-codes 0.25 per specialist. Scoring only the
+        SLSQP-fitted variant would report a number produced by a different
+        estimator from the released one, however close the two turn out to be,
+        so both are evaluated side by side and the equal-weight column is the
+        one quoted as the headline.
+        """
+        K, J = len(self.specialists), len(ALPHA_GRID)
+        self.W_up = np.full((K, J), 1.0 / K)
+        self.W_dn = np.full((K, J), 1.0 / K)
+        return self
+
     def quantiles(self, sigma, pred, up=True) -> np.ndarray:
         Q = self._stack(sigma, pred, up)
         W = self.W_up if up else self.W_dn

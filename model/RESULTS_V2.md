@@ -52,20 +52,32 @@ necessarily **overdispersed**, which would destroy the one thing this model is
 good at. Quantile averaging also keeps monotonicity, so `safe_level` stays
 exactly invertible.
 
-| α | NOCTUA v1 | Gaussian | **Committee** |
-|---|---|---|---|
-| 1 % | 1.112 | 3.326 | **1.090** |
-| 2 % | 1.423 | 3.527 | **1.336** |
-| 5 % | 2.610 | 3.765 | **1.959** |
-| 10 % | 3.257 | 2.710 | **2.131** |
-| 20 % | 3.663 | **2.006** | 3.040 |
-| 30 % | 3.777 | **3.693** | 5.175 |
-| **mean** | 2.640 | 3.171 | **2.455** |
-| **mean, α ≤ 10 %** | 2.100 | 3.332 | **1.629** |
+Two weighting schemes are scored, because only one of them ships. The
+artifact hard-codes 1/4 per specialist; `Committee.fit` estimates
+level-dependent weights by SLSQP. Quoting the fitted number while shipping the
+equal-weight one would report a different estimator from the released model,
+so both are in the table and **the equal-weight column is the headline**.
+
+| α | NOCTUA v1 | Gaussian | Committee (fitted) | **Committee (equal — shipped)** |
+|---|---|---|---|---|
+| 1 % | 1.089 | 3.326 | 1.090 | **1.090** |
+| 2 % | 1.446 | 3.527 | 1.381 | **1.381** |
+| 5 % | 2.655 | 3.765 | 1.891 | **1.868** |
+| 10 % | 3.279 | 2.710 | 2.177 | **2.177** |
+| 20 % | 3.678 | **2.006** | 3.078 | 3.078 |
+| 30 % | 3.861 | **3.693** | 5.220 | 5.220 |
+| **mean** | 2.668 | 3.171 | 2.473 | **2.469** |
+| **mean, α ≤ 10 %** | 2.118 | 3.332 | 1.635 | **1.629** |
 
 In the range an option seller actually operates in, calibration error drops
-**22 %**. Above α = 20 % the committee is worse and the Gaussian should be
+**23 %**. Above α = 20 % the committee is worse and the Gaussian should be
 used instead — reported, not hidden.
+
+The two weighting schemes differ by **0.006 pp**, and the fitted weights come
+out at 0.239–0.272 across every level — uniform to within estimation noise.
+That is the forecast-combination puzzle showing up a third time in this
+project, and it is why fitting was dropped: the estimator that fits nothing is
+the one that scores best.
 
 ### The bug that decided it
 
@@ -131,8 +143,49 @@ about how to weight them.
 
 | | v1 shipped | **v2** |
 |---|---|---|
-| volatility QLIKE vs Log-HAR | −2.79 % (p = 0.043) | **−4.27 % (p = 0.0002)** |
-| barrier err, α ≤ 10 % | 2.100 pp | **1.629 pp** |
+| volatility QLIKE vs Log-HAR | −2.79 % (p = 0.043) | **−4.04 % (p = 0.0002)** |
+| barrier err, α ≤ 10 % | 2.118 pp | **1.629 pp** |
 | network params | 49,866 | **6,378 × 3 seeds** |
+
+## Post-merge correction: the barrier curve was clamped outside the grid
+
+Found in review after v2 merged, and fixed in a follow-up. It is the most
+consequential defect in this project so far, so it is recorded here in full.
+
+`ALPHA_GRID` spans α ∈ [0.005, 0.5], so the pooled quantile curve only speaks
+about barriers between the median excursion and the 99.5th percentile.
+`touch_prob` read it with `np.interp(..., left=0.5, right=0.0)` — a flat clamp.
+Every barrier nearer than the median excursion was reported as **exactly
+0.50**, and every barrier past the 99.5th percentile as **exactly 0.00**. The
+published forecast said a 10 % overnight move had *zero* probability of being
+touched:
+
+| barrier | v1 | v2 as merged | **v2 fixed** |
+|---|---|---|---|
+| +0.5 % | 0.6034 | 0.5000 ← clamp | **0.6144** |
+| +7.5 % | 0.0067 | 0.0000 ← clamp | **0.0029** |
+| +10 % | 0.0018 | 0.0000 ← clamp | **0.0013** |
+
+Both ends now extrapolate, each with the closed form its endpoint already
+implies:
+
+- **near** — the reflection-principle survival `P(M ≥ u) = 2Φ(−u/s)`, with `s`
+  set so the curve passes exactly through the pooled median level. Tends to 1
+  as `u → 0`, as a touch probability must.
+- **far** — a power law `α(u) = α₀·(u/u₀)^−k`, with `k` fitted from the two
+  deepest pooled quantiles. Fitted from the *pooled* curve rather than from the
+  EVT member's ξ, because both fitted ξ are **negative** (bounded support)
+  while the pooled tail is a scale mixture over 32 σ atoms and so is fatter
+  than any single standardized GPD.
+
+Both are continuous at the seam to machine precision, so `safe_level` still
+inverts `touch_prob` exactly — now for α outside the grid too. Interior values
+are bit-identical: the fix touches only the two extrapolation regions.
+
+Why the original suite missed it: the far-tail check asserted
+`touch_prob(5.0) < 0.05`, which a hard 0.0 satisfies trivially, and the
+monotonicity check used `≤` rather than `<`, which a flat clamp also satisfies.
+Both are now strict, and four checks assert the endpoints are not clamp
+artifacts.
 
 *Educational research only. Not financial advice.*
