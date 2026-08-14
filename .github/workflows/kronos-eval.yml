@@ -35,13 +35,24 @@ on:
 permissions:
   contents: write
 
-# Serialise, but never pre-empt: a re-run of an older failed run counts as
-# "newest" under cancel-in-progress and would kill a fixed run partway through
-# hours of rollouts. The commit step re-parents onto the current tip, so
-# overlapping runs are harmless and queueing is safer.
+# Pre-empt, deliberately -- reversing an earlier choice here, with a reason.
+#
+# Queueing (cancel-in-progress: false) has a trap for a job this long: a queued
+# run executes the workflow file from ITS OWN commit, not the branch tip. So a
+# fix to the sizing below cannot take effect until the already-queued run
+# finishes, and that run is five and a half hours of compute already known to
+# be misconfigured. That is exactly what happened: the sizing fix was pushed
+# while a run carrying the old 180-episode / 330-minute config was executing,
+# and the fix got no run of its own.
+#
+# The failure that motivated queueing was a RE-RUN of an older failed run
+# pre-empting a newer fixed one. The distinction GitHub cannot express is
+# "newer commit good, re-run of older commit bad". Between the two hazards,
+# pre-emption is the cheaper one to be wrong about while this is being
+# iterated: it costs a restart, whereas queueing costs a full wasted cycle.
 concurrency:
   group: kronos-eval-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   kronos:
