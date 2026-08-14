@@ -16,8 +16,10 @@ runs there, and the raw numbers are committed for scoring here.
 
 The existing eval/kronos_baseline.py cannot do this: it needs the 160 MB
 training parquet and the PyTorch checkpoint, neither of which is committed.
-This script deliberately depends on nothing but `data/noctua_history.parquet`
--- the 400-day hourly bundle already in the repo.
+This script depends on nothing but a committed hourly bundle. It uses the
+900-day harvested BTC bundle rather than the 400-day serving one, because
+NOCTUA's features need 365 days of lookback and a 400-day bundle leaves only
+~30 anchors that BOTH models can answer.
 
 WHAT IT EMITS
 
@@ -71,11 +73,18 @@ def load_kronos(model_name: str, tokenizer_name: str, device: str = "cpu"):
     return KronosPredictor(mdl, tok, device=device, max_context=CONTEXT)
 
 
+# NOCTUA's reg_rv_vs_year feature looks back 365 days, so an anchor is only
+# COMPARABLE once the bundle reaches a year behind it. Kronos itself needs just
+# CONTEXT hours, but an episode Kronos can answer and NOCTUA cannot is useless
+# for a head-to-head, so the stricter bound governs.
+LOOKBACK_HOURS = 24 * 370
+
+
 def production_anchors(hours: pd.DataFrame) -> np.ndarray:
     ts = hours["hour_ts"].to_numpy(np.int64)
     hh = pd.to_datetime(ts, unit="s", utc=True).hour
     rows = np.where(hh == ANCHOR_UTC)[0]
-    return rows[(rows >= CONTEXT + 1) & (rows + H < len(hours))]
+    return rows[(rows >= max(CONTEXT + 1, LOOKBACK_HOURS)) & (rows + H < len(hours))]
 
 
 def realized(hours: pd.DataFrame, row: int) -> dict:
@@ -143,13 +152,24 @@ def kronos_episode(predictor, hours: pd.DataFrame, row: int, n_samples: int,
 
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(description="Run Kronos in CI, emit raw predictions")
-    p.add_argument("--bundle", type=Path, default=Path("data/noctua_history.parquet"))
+    # The 900-day harvested bundle, NOT the 400-day serving one. NOCTUA's
+    # features need 365 days of lookback, so a 400-day bundle leaves only ~30
+    # anchors it can score -- the first run produced 150 Kronos episodes of
+    # which only 34 were comparable.
+    p.add_argument("--bundle", type=Path,
+                   default=Path("data/assets/btc_history.parquet"))
     p.add_argument("--kronos-model", default="NeoQuasar/Kronos-small")
     p.add_argument("--kronos-tokenizer", default="NeoQuasar/Kronos-Tokenizer-base")
     p.add_argument("--samples", type=int, default=32)
-    p.add_argument("--episodes", type=int, default=180)
+    p.add_argument("--episodes", type=int, default=150)
     p.add_argument("--temperature", type=float, default=1.0)
-    p.add_argument("--top-p", type=float, default=0.9)
+    # top_p=1.0, deliberately. Nucleus sampling truncates the tail of the
+    # token distribution, which is precisely where large moves live. At 0.9 the
+    # sampled paths came out with median volatility 0.377% against a realized
+    # 1.467% -- a ratio of 0.259, four times too calm -- which depressed every
+    # touch probability and made the comparison meaningless as a test of
+    # Kronos. Truncation is wrong for a tail-sensitive task.
+    p.add_argument("--top-p", type=float, default=1.0)
     p.add_argument("--out", type=Path, default=Path("data/kronos_predictions.json"))
     a = p.parse_args(argv)
 

@@ -26,7 +26,7 @@ on:
         default: '32'
       episodes:
         description: 'Number of production episodes'
-        default: '150'
+        default: '120'
   push:
     paths:
       - 'model/eval/kronos_ci.py'
@@ -57,11 +57,11 @@ concurrency:
 jobs:
   kronos:
     runs-on: ubuntu-latest
-    # MEASURED: Kronos-small runs at 117.4 s/episode on a CPU runner, rock
-    # steady (117.36 at episode 1, 117.37 at episode 161). 180 episodes needs
-    # 5h52m; the previous 330-minute cap killed it at ~168, twenty-two minutes
-    # short, after five and a half hours of useful work. 150 episodes needs
-    # 4h54m and fits with an hour to spare.
+    # MEASURED, and NOT stable across runners: 117.4 s/episode on one runner,
+    # 138.0 s/episode on another -- an 18% spread. 150 episodes at 138 s is
+    # 5h45m, which cleared a 350-minute cap by five minutes. Sizing off the
+    # faster observation would have failed again, so 120 episodes (4h36m at the
+    # slower rate) leaves real margin instead of luck.
     timeout-minutes: 350
     steps:
       - uses: actions/checkout@v4
@@ -94,7 +94,7 @@ jobs:
           python model/eval/kronos_ci.py \
             --kronos-model "${{ github.event.inputs.kronos_model || 'NeoQuasar/Kronos-small' }}" \
             --samples "${{ github.event.inputs.samples || '32' }}" \
-            --episodes "${{ github.event.inputs.episodes || '150' }}"
+            --episodes "${{ github.event.inputs.episodes || '120' }}"
 
       - name: Summarise
         run: |
