@@ -188,4 +188,21 @@ monotonicity check used `≤` rather than `<`, which a flat clamp also satisfies
 Both are now strict, and four checks assert the endpoints are not clamp
 artifacts.
 
+## Correction: the headline metric in this file is cheatable
+
+`model/BENCHMARK.md` supersedes the barrier numbers above.
+
+Mean |coverage error| -- the 1.629 pp quoted throughout this document -- is not
+a proper scoring rule. It rewards a forecaster whose levels break alpha% of the
+time, which is exactly what fitting an unconditional distribution achieves. In
+the adversarial benchmark a trivial `scaled_clim` baseline (unconditional shape
+x trailing vol) scores **1.360 pp and beats the shipped model**, and a constant
+input-blind climatology beats both Log-HAR and persistence on it.
+
+The tables above are still correct as *calibration diagnostics*. They are not
+evidence of skill, and the 22-23% improvement should not be read as one. Under
+strictly proper scores NOCTUA does win pinball, CRPS and log score, and it does
+carry real discrimination -- see `BENCHMARK.md` for the numbers that survive,
+including the one it loses.
+
 *Educational research only. Not financial advice.*

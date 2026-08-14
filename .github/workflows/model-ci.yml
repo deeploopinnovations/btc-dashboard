@@ -51,3 +51,9 @@ jobs:
 
       - name: History / live-path self-test
         run: python model/tests/test_history.py
+
+      # Guards the causality of the volatility recalibration. A look-ahead
+      # leak here would be silent -- the forecasts would simply look better
+      # than they are -- so it is gated rather than trusted.
+      - name: Adaptive-calibration self-test
+        run: python model/tests/test_adaptive.py
