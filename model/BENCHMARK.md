@@ -212,7 +212,25 @@ barrier discrimination* — there it is tied with Log-HAR + Gaussian, and by DSC
 marginally behind. The committee's contribution is calibration and distribution
 shape, not sharper event prediction.
 
-**Still unmeasured.** The head-to-head against Kronos. `huggingface.co` weight
+**Measured, but only as compute.** The Kronos head-to-head has not produced
+accuracy numbers, but one hard figure did come out of trying. Running
+Kronos-small on a CPU runner over this project's own production episodes --
+512-hour context, 19-hour horizon, 32 sampled paths -- costs
+
+    117.4 seconds per episode
+
+and it is remarkably steady: 117.36 s at episode 1, 117.37 s at episode 161,
+across five and a half hours. NOCTUA answers the same question in 0.6 ms.
+That is a factor of roughly **196,000**, against a parameter ratio of 1,300
+(24.7 M vs 19,134), because Kronos must autoregressively generate 32 paths
+while NOCTUA evaluates four matmuls and a cumulative sum.
+
+None of that says which model is more ACCURATE, and it must not be read that
+way. It does bound what is deployable on a free 2-vCPU Space: at 117 s per
+forecast with a 30-minute refresh, Kronos-small would spend 6.5% of its life
+computing one number.
+
+**Still unmeasured.** Kronos's accuracy. `huggingface.co` weight
 downloads are blocked from this environment (HTTP 403 via the proxy); only
 metadata is reachable, which confirms Kronos-small at 24.7 M parameters and
 Kronos-base at 102.3 M against NOCTUA's 19,134 — roughly 1,300× and 5,300×
