@@ -31,6 +31,13 @@ on:
 permissions:
   contents: write
 
+# Both jobs commit to the same branch, so two in flight would race each other's
+# push. Newest wins: a re-push supersedes the run it replaces rather than
+# competing with it.
+concurrency:
+  group: harvest-assets-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   harvest:
     runs-on: ubuntu-latest
