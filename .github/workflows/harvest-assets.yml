@@ -31,12 +31,16 @@ on:
 permissions:
   contents: write
 
-# Both jobs commit to the same branch, so two in flight would race each other's
-# push. Newest wins: a re-push supersedes the run it replaces rather than
-# competing with it.
+# Serialise runs, but do NOT cancel the one already going. cancel-in-progress
+# looks right and is not: re-running an older failed run counts as "newest" and
+# kills a newer, fixed run that was already most of the way through a harvest.
+# That happened here -- a re-run of the pre-fix workflow cancelled the fixed
+# one at 09:24 and then failed in exactly the way the fix addressed. Now that
+# the commit step re-parents onto the current tip, overlapping runs are
+# harmless, so queueing is strictly safer than pre-empting.
 concurrency:
   group: harvest-assets-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   harvest:

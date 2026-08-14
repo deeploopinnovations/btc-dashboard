@@ -35,10 +35,13 @@ on:
 permissions:
   contents: write
 
-# Hours-long rollouts committing to one branch; never overlap them.
+# Serialise, but never pre-empt: a re-run of an older failed run counts as
+# "newest" under cancel-in-progress and would kill a fixed run partway through
+# hours of rollouts. The commit step re-parents onto the current tip, so
+# overlapping runs are harmless and queueing is safer.
 concurrency:
   group: kronos-eval-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   kronos:
