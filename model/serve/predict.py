@@ -42,7 +42,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from noctua.features import build_features                    # noqa: E402
 from serve.fetch import fetch_bars                            # noqa: E402
 from serve.history import get_hours, load_bundle              # noqa: E402
-from serve.runtime import NumpyNoctua                         # noqa: E402
+from serve.runtime import NoctuaV2, NumpyNoctua               # noqa: E402
+
+_MODEL_TAG = ["NOCTUA-v1"]   # set by main() once the artifact is chosen
 
 PROD_H = 19
 PROD_ANCHOR_UTC = 17
@@ -57,7 +59,7 @@ def _next_anchor(now_ts: int) -> int:
     return int(anchor.timestamp())
 
 
-def forecast(model: NumpyNoctua, hours: pd.DataFrame, H: int = PROD_H,
+def forecast(model, hours: pd.DataFrame, H: int = PROD_H,
              anchor_ts: int | None = None, source: str = "unknown") -> dict:
     """Run one forecast anchored at `anchor_ts` (default: the latest full hour).
 
@@ -132,7 +134,7 @@ def forecast(model: NumpyNoctua, hours: pd.DataFrame, H: int = PROD_H,
     }
 
 
-def model_prob_rv_above(model: NumpyNoctua, pred: dict, threshold: float) -> float:
+def model_prob_rv_above(model, pred: dict, threshold: float) -> float:
     """P(realized vol over the window exceeds `threshold`), from Stage A."""
     qa = pred["qa"][0]
     H = pred["H"][0]
@@ -171,7 +173,7 @@ def to_legacy(f: dict) -> dict:
         "fetchedAt": now_ms,
         "proxy": "noctua-local",
         "_updatedMs": now_ms,
-        "model": "NOCTUA-v1",
+        "model": _MODEL_TAG[0],
         "upside_is_informative": False,
         "warning": (
             "upside is pinned to 50.0 on purpose: direction is NOT predictable at "
@@ -185,7 +187,8 @@ def to_legacy(f: dict) -> dict:
 
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(description="Run one NOCTUA forecast")
-    p.add_argument("--weights", type=Path, default=Path(__file__).with_name("noctua_weights.npz"))
+    p.add_argument("--weights", type=Path, default=None,
+                   help="explicit weights file; defaults to v2 if present, else v1")
     p.add_argument("--out-dir", type=Path, default=Path("data"))
     p.add_argument("--offline", action="store_true",
                    help="use the committed history bundle only, no network fetch")
@@ -193,13 +196,23 @@ def main(argv=None) -> int:
     p.add_argument("--H", type=int, default=PROD_H)
     a = p.parse_args(argv)
 
-    model = NumpyNoctua(a.weights)
+    # Prefer the v2 committee artifact; fall back to v1 if it is absent.
+    v2 = Path(__file__).with_name("noctua_v2.npz")
+    if a.weights is not None:
+        model = NoctuaV2(a.weights) if "v2" in a.weights.name else NumpyNoctua(a.weights)
+    elif v2.exists():
+        model = NoctuaV2(v2)
+    else:
+        model = NumpyNoctua(Path(__file__).with_name("noctua_weights.npz"))
+    print(f"[predict] model = {model.meta.get('version', 'NOCTUA-v1')} "
+          f"({model.meta.get('n_params_total', model.meta.get('n_params')):,} params)")
     if a.offline:
         hours, src = load_bundle(), "offline:bundle"
     else:
         hours, info = get_hours(fetch_bars)
         src = info["source"]
 
+    _MODEL_TAG[0] = model.meta.get("version", "NOCTUA-v1")
     f = forecast(model, hours, H=a.H, anchor_ts=a.anchor, source=src)
     legacy = to_legacy(f)
 
