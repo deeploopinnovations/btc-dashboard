@@ -40,6 +40,7 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from noctua.features import build_features                    # noqa: E402
+from serve.adaptive import apply_correction, volatility_correction  # noqa: E402
 from serve.fetch import fetch_bars                            # noqa: E402
 from serve.history import get_hours, load_bundle              # noqa: E402
 from serve.runtime import load_model                          # noqa: E402
@@ -86,6 +87,15 @@ def forecast(model, hours: pd.DataFrame, H: int = PROD_H,
     d = model.prepare(X, np.array([float(H)]))
     pred = model.predict(d)
 
+    # Causal volatility-level recalibration. Measured out of sample on
+    # 2024-07 onward, the raw forecast runs high -- realized vol lands below
+    # it 66.4% of the time -- which pushes every quoted strike too far out and
+    # costs premium. The correction is estimated only from episodes that have
+    # already settled, so it carries no look-ahead. See serve/adaptive.py.
+    cal = volatility_correction(model, hours, row, H)
+    if cal["applied"]:
+        pred = apply_correction(pred, cal["factor"])
+
     spot = float(hours["close"].to_numpy()[row - 1])
     sigma = float(pred["sigma_med"][0])
 
@@ -130,6 +140,13 @@ def forecast(model, hours: pd.DataFrame, H: int = PROD_H,
         "safe_levels": safe,
         "barrier_curves": curves,
         "model": model.meta.get("version", "NOCTUA-v1"),
+        "vol_calibration": {
+            "factor": round(float(cal["factor"]), 4),
+            "applied": bool(cal["applied"]),
+            "n_settled_episodes": int(cal["n_episodes"]),
+            "window_days": int(cal["window_days"]),
+            "note": cal["reason"],
+        },
         "source": source,
         "history_hours": int(len(hours)),
     }
