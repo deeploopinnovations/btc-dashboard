@@ -169,6 +169,30 @@ def main(argv=None) -> int:
 
     ts = hours["hour_ts"].to_numpy(np.int64)
     records, t1 = [], time.time()
+
+    def snapshot(done: bool):
+        """Write what exists so far.
+
+        Rollouts take hours. Writing only at the end means a timeout, an OOM
+        or one bad episode discards the entire run, and the whole point of
+        moving this to CI was that the compute is not cheap to repeat. A
+        partial file with 120 episodes is a usable comparison; an empty one
+        after 300 minutes is not.
+        """
+        a.out.parent.mkdir(parents=True, exist_ok=True)
+        el = time.time() - t1
+        a.out.write_text(json.dumps({
+            "model": a.kronos_model, "tokenizer": a.kronos_tokenizer,
+            "samples_per_episode": a.samples, "context_hours": CONTEXT,
+            "H_hours": H, "barrier_pct": BARRIER_PCT.tolist(),
+            "temperature": a.temperature, "top_p": a.top_p,
+            "n_episodes": len(records), "complete": done,
+            "episodes_requested": len(rows),
+            "load_seconds": load_sec, "total_seconds": el,
+            "seconds_per_episode": el / max(len(records), 1),
+            "episodes": records,
+        }, indent=2, default=float) + "\n")
+
     for i, row in enumerate(rows):
         try:
             k = kronos_episode(predictor, hours, int(row), a.samples,
@@ -184,8 +208,11 @@ def main(argv=None) -> int:
             el = time.time() - t1
             print(f"  {i+1}/{len(rows)}  {el:.0f}s elapsed  "
                   f"{el/max(i+1,1):.2f}s/episode", flush=True)
+        if len(records) % 20 == 0:
+            snapshot(False)
 
     total = time.time() - t1
+    snapshot(True)
     payload = {
         "model": a.kronos_model, "tokenizer": a.kronos_tokenizer,
         "samples_per_episode": a.samples, "context_hours": CONTEXT,

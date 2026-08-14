@@ -78,7 +78,21 @@ jobs:
           git add -A data/assets/
           if git diff --cached --quiet; then
             echo "nothing new to commit"
-          else
-            git commit -m "chore(data): harvest cross-asset hourly bundles"
-            git push origin HEAD:${{ github.ref_name }}
+            exit 0
           fi
+          git commit -m "chore(data): harvest cross-asset hourly bundles"
+          # The branch may have moved while this job ran -- it takes many
+          # minutes and development continues meanwhile. Re-parent onto the
+          # current tip rather than failing on a non-fast-forward: reset --soft
+          # keeps the harvested files in the index and just moves HEAD.
+          for attempt in 1 2 3; do
+            git fetch origin "${{ github.ref_name }}"
+            git reset --soft "origin/${{ github.ref_name }}"
+            git add -A data/assets/
+            git diff --cached --quiet && { echo "already up to date"; exit 0; }
+            git commit -m "chore(data): harvest cross-asset hourly bundles"
+            git push origin "HEAD:${{ github.ref_name }}" && exit 0
+            echo "push attempt $attempt rejected; retrying"
+            sleep 5
+          done
+          echo "could not push after 3 attempts"; exit 1

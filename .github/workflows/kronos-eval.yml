@@ -35,6 +35,11 @@ on:
 permissions:
   contents: write
 
+# Hours-long rollouts committing to one branch; never overlap them.
+concurrency:
+  group: kronos-eval-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   kronos:
     runs-on: ubuntu-latest
@@ -87,6 +92,14 @@ jobs:
                 f"({d['seconds_per_episode']:.2f}s/episode)")
           PY
 
+      - name: Upload predictions as an artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kronos-predictions
+          path: data/kronos_predictions.json
+          if-no-files-found: warn
+
       - name: Commit predictions
         run: |
           git config user.name  "github-actions[bot]"
@@ -94,7 +107,19 @@ jobs:
           git add -A data/kronos_predictions.json
           if git diff --cached --quiet; then
             echo "nothing new to commit"
-          else
-            git commit -m "chore(eval): Kronos raw predictions from CI"
-            git push origin HEAD:${{ github.ref_name }}
+            exit 0
           fi
+          # This job runs for hours; the branch will almost certainly have
+          # moved. Re-parent rather than lose the whole run to a
+          # non-fast-forward at the very last step.
+          for attempt in 1 2 3; do
+            git fetch origin "${{ github.ref_name }}"
+            git reset --soft "origin/${{ github.ref_name }}"
+            git add -A data/kronos_predictions.json
+            git diff --cached --quiet && { echo "already up to date"; exit 0; }
+            git commit -m "chore(eval): Kronos raw predictions from CI"
+            git push origin "HEAD:${{ github.ref_name }}" && exit 0
+            echo "push attempt $attempt rejected; retrying"
+            sleep 5
+          done
+          echo "could not push after 3 attempts"; exit 1
