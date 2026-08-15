@@ -50,7 +50,11 @@ the training split (n = 189,831):
     concurrency  mean 60.9       max 61
     normalised weight multiplier: min 1.0000, max 1.0000, sd 0.0000
 
-Every episode has uniqueness EXACTLY 1/61, at every horizon. Our episodes are
+Every episode ON THE TRAINING SPLIT has uniqueness EXACTLY 1/61, at every
+horizon -- and the training split is the only place the weights are applied.
+(Across the FULL episode set the CV is 0.032 rather than 0, entirely from the
+first and last few days of the sample where the grid is not yet full. The
+diagnostic prints the full-set figure, so the two numbers are not in conflict.) Our episodes are
 generated on a COMPLETE REGULAR GRID -- every hour, every horizon -- so the
 concurrency count c(t) is a constant of the grid rather than a property of the
 data, uniqueness is its reciprocal, and after normalisation the weights are
