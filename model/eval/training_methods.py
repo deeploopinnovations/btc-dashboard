@@ -138,46 +138,45 @@ def average_uniqueness(ep: pd.DataFrame) -> np.ndarray:
     return (cum[end] - cum[start]) / np.maximum(span, 1)
 
 
-def crossfit_sigma(ep: pd.DataFrame, X: pd.DataFrame, fin: np.ndarray,
-                   n_blocks: int = 5) -> np.ndarray:
-    """Causal Log-HAR volatility forecast, cross-fitted over time blocks.
+def causal_sigma_factory(ep: pd.DataFrame, X: pd.DataFrame):
+    """A stage-B denominator that CANNOT leak, and a correction to what came before.
 
-    Each episode's sigma comes from an OLS fitted on the OTHER blocks, so no
-    episode contributes to the forecast it is then normalised by. Cross-fitting
-    matters here specifically: an in-sample forecast is optimistically close to
-    RV, which would reproduce the very train/serve gap this arm exists to close.
+    The first version of this cross-fitted an OLS over time blocks and fitted
+    each held-out block on every OTHER block -- including LATER ones. That is
+    ordinary K-fold, and ordinary K-fold is not causal for a time series: the
+    sigma attached to a 2021 training episode was computed partly from 2025
+    data, so the `serve_consistent` arm was optimistically biased and its first
+    run is not reportable. Caught in review, and the run was discarded.
+
+    The replacement fits nothing at all. `har_1d` is a FEATURE -- log hourly
+    realized vol over the day BEFORE the anchor -- so
+    exp(har_1d) * sqrt(H) is a volatility forecast that is causal by
+    construction. No estimator, no folds, nothing to leak.
+
+    It still needs clipping: the raw trailing estimate has a near-zero tail
+    that drives sd(M_up/sigma) to 315.8. The clip bounds are quantiles of the
+    forecast on the FOLD'S TRAINING EPISODES ONLY, which is why this is a
+    factory rather than an array -- the bounds have to be refitted per fold to
+    stay causal.
+
+    Measured, with bounds from the training split (clip [0.005, 0.995]):
+
+        sd( M_up / RV_true       ) = 0.5490   <- the skewed default
+        sd( M_up / sigma_causal  ) = 0.9272   <- this
+        sd( M_up / sigma_served  ) = 0.9312   <- what serving actually faces
+
+    i.e. it reproduces the serving regime almost exactly, and does so with a
+    weaker forecast than the deployed one, which makes the arm conservative
+    rather than flattering.
     """
-    ts = ep["anchor_ts"].to_numpy(np.int64)
     H = ep["H"].to_numpy(np.float64)
-    y = B.har_target(ep["RV"].to_numpy(np.float64), H)
-    edges = np.quantile(ts, np.linspace(0, 1, n_blocks + 1))
-    block = np.clip(np.searchsorted(edges, ts, side="right") - 1, 0, n_blocks - 1)
+    raw = np.exp(X["har_1d"].to_numpy(np.float64)) * np.sqrt(H)
 
-    out = np.full(len(ep), np.nan)
-    for k in range(n_blocks):
-        tr = fin & (block != k) & np.isfinite(y)
-        te = block == k
-        if tr.sum() < 500 or te.sum() == 0:
-            continue
-        ols = B.OLS(BASE_COLS).fit(X.loc[tr, BASE_COLS], y[tr].astype(np.float64),
-                                   np.ones(int(tr.sum())))
-        # Clip to the range of log-vol actually OBSERVED in the fitting blocks.
-        #
-        # Not cosmetic. An unclipped OLS extrapolates: on this data it emitted
-        # a log hourly vol rate of -10.19 where the true minimum is -8.35,
-        # i.e. a sigma forecast 5% of the realized value. That happened in 8
-        # episodes out of 4,965 and those 8 alone drove M_up/sigma to a maximum
-        # of 508.9 and its sd to 7.26 -- against 0.85 once clipped, which is
-        # where the model's own sigma sits. Training stage B on the unclipped
-        # version would have measured a broken denominator, not the hypothesis.
-        #
-        # The bounds come from the FITTING blocks only, so this stays causal.
-        lo, hi = np.quantile(y[tr], [0.005, 0.995])
-        out[te] = np.clip(ols.predict(X.loc[te]), lo, hi)
-    # exp(log hourly vol rate) * sqrt(H) = window volatility, the same
-    # composition serving uses.
-    sig = np.exp(np.nan_to_num(out, nan=np.nanmedian(out))) * np.sqrt(H)
-    return np.maximum(sig, 1e-12)
+    def fn(train_mask: np.ndarray) -> np.ndarray:
+        lo, hi = np.quantile(raw[train_mask], [0.005, 0.995])
+        return np.maximum(np.clip(raw, lo, hi), 1e-12)
+
+    return fn
 
 
 def main(argv=None) -> int:
@@ -193,7 +192,7 @@ def main(argv=None) -> int:
     fin = np.isfinite(X.to_numpy()).all(1)
 
     uniq = average_uniqueness(ep)
-    sig_cf = crossfit_sigma(ep, X, fin)
+    sigma_fn = causal_sigma_factory(ep, X)
     prod = S.production_mask(ep)
     rv = ep.RV.to_numpy(np.float64)
 
@@ -210,15 +209,17 @@ def main(argv=None) -> int:
           + ("   <- CONSTANT: reweighting is vacuous on a regular grid"
              if cv < 1e-6 else ""))
     m = prod & fin
-    print(f"  cross-fitted sigma / RV on production: median "
-          f"{np.median(sig_cf[m]/rv[m]):.4f}")
+    sig_dx = sigma_fn(S.time_splits(ep)["train"] & fin)     # diagnostics only
+    print(f"  causal sigma / RV on production: median "
+          f"{np.median(sig_dx[m]/rv[m]):.4f}")
     print(f"  sd(M_up/RV)={np.std(np.abs(ep.M_up.to_numpy()[m])/rv[m]):.4f}  "
-          f"sd(M_up/sigma_cf)={np.std(np.abs(ep.M_up.to_numpy()[m])/sig_cf[m]):.4f}")
+          f"sd(M_up/sigma_causal)={np.std(np.abs(ep.M_up.to_numpy()[m])/sig_dx[m]):.4f}"
+          f"   (serving faces ~0.93)")
     print(f"  non-overlapping training episodes available: {(prod & fin).sum():,}\n")
 
     arms = {
         "baseline":         dict(),
-        "serve_consistent": dict(sigma_ref_all=sig_cf),
+        "serve_consistent": dict(sigma_ref_fn=sigma_fn),
         "uniqueness":       dict(extra_w=uniq),
         # capacity/threshold relaxed only because this arm HAS less data --
         # that is the point of it, not a concession.

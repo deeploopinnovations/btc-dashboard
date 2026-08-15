@@ -148,6 +148,7 @@ def main(argv=None) -> int:
     n_sam = kd["samples_per_episode"]
 
     rowsout = []
+    P_noctua, P_kronos, Y_all = [], [], []      # kept for the controls below
     for j, pct in enumerate(barriers):
         for side, M, kp in (("up", M_up, k_up), ("dn", M_dn, k_dn)):
             y = (M >= bu[j]).astype(float)
@@ -159,6 +160,7 @@ def main(argv=None) -> int:
             # is finite. This HELPS Kronos and is applied only to Kronos.
             kpv = np.clip(kp[:, j], 0.5 / n_sam, 1 - 0.5 / n_sam)
             const = np.full(len(eps), float(y.mean()))
+            P_noctua.append(npv); P_kronos.append(kpv); Y_all.append(y)
             for name, p in (("noctua", npv), ("kronos", kpv), ("climatology", const)):
                 rowsout.append({"barrier_pct": float(pct), "side": side,
                                 "model": name, **corp(p, y)})
@@ -172,6 +174,8 @@ def main(argv=None) -> int:
     print("=" * 72)
     print(agg.round(6).to_string())
 
+    dsc_noctua = float(agg.loc["noctua", "DSC"])
+    dsc_kronos = float(agg.loc["kronos", "DSC"])
     c_dsc = float(agg.loc["climatology", "DSC"])
     print(f"\nsanity: climatology DSC = {c_dsc:.8f} "
           f"({'OK, harness sound' if abs(c_dsc) < 1e-9 else 'BROKEN -- ignore every number above'})")
@@ -201,6 +205,69 @@ def main(argv=None) -> int:
         {"kronos_meta": {k: v for k, v in kd.items() if k != "episodes"},
          "n_scored": len(eps), "per_barrier": rowsout,
          "pooled": json.loads(agg.to_json(orient="index"))}, indent=2, default=float) + "\n")
+    # ------------------------------------------------------------------
+    # TWO CONTROLS THE FIRST VERSION OF THIS FILE DID NOT HAVE
+    # ------------------------------------------------------------------
+    print("\n" + "=" * 72)
+    print("CONTROLS")
+    print("=" * 72)
+
+    # (1) THE DSC NOISE FLOOR.
+    #
+    # Climatology scoring DSC = 0.000000 is a weaker check than it looks.
+    # A CONSTANT forecaster is pinned to zero by construction, so it cannot
+    # reveal discrimination MANUFACTURED by the scorer. CORP fits its isotonic
+    # regression on the same 120 outcomes it then scores, so any forecaster
+    # with variation -- including one whose ordering is pure noise -- collects
+    # some positive DSC from that in-sample fit.
+    #
+    # The right control keeps each model's marginal distribution of forecasts
+    # intact and destroys only its ALIGNMENT with the outcomes. Whatever DSC
+    # survives that is the floor, and a real DSC has to clear it.
+    rng = np.random.default_rng(0)
+    floor = {}
+    for name, P in (("noctua", P_noctua), ("kronos", P_kronos)):
+        vals = []
+        for _ in range(200):
+            perm = rng.permutation(len(Y_all[0]))
+            vals.append(np.mean([corp(p[perm], y)["DSC"]
+                                 for p, y in zip(P, Y_all)]))
+        floor[name] = (float(np.mean(vals)), float(np.quantile(vals, 0.95)))
+    print("\nshuffled control -- predictions permuted against outcomes:")
+    print(f"{'model':>10} {'real DSC':>10} {'shuffled mean':>14} {'shuffled p95':>13} {'clears?':>9}")
+    for name, real in (("noctua", dsc_noctua), ("kronos", dsc_kronos)):
+        mu, p95 = floor[name]
+        print(f"{name:>10} {real:10.6f} {mu:14.6f} {p95:13.6f} "
+              f"{'YES' if real > p95 else 'NO':>9}")
+
+    # (2) SERIAL DEPENDENCE.
+    #
+    # The episodes are consecutive days and volatility clusters, so adjacent
+    # score differences are correlated. An IID bootstrap over episodes ignores
+    # that and reports intervals that are too narrow -- which is how the first
+    # version of this comparison produced P(better) = 1.000. A moving-block
+    # bootstrap resamples CONTIGUOUS runs of days and keeps the dependence.
+    n = len(Y_all[0])
+    L = max(2, int(round(n ** (1 / 3))))          # standard n^(1/3) block length
+    nb = int(np.ceil(n / L))
+    def block_idx(g):
+        st = g.integers(0, max(n - L, 1), nb)
+        return np.concatenate([np.arange(s, s + L) for s in st])[:n] % n
+    g = np.random.default_rng(1)
+    db, dd = [], []
+    for _ in range(2000):
+        i = block_idx(g)
+        db.append(np.mean([((pk[i] - y[i]) ** 2).mean() - ((pn[i] - y[i]) ** 2).mean()
+                           for pn, pk, y in zip(P_noctua, P_kronos, Y_all)]))
+        dd.append(np.mean([corp(pn[i], y[i])["DSC"] - corp(pk[i], y[i])["DSC"]
+                           for pn, pk, y in zip(P_noctua, P_kronos, Y_all)]))
+    db, dd = np.array(db), np.array(dd)
+    print(f"\nmoving-block bootstrap, block length {L} days, 2000 resamples:")
+    print(f"  Brier advantage to NOCTUA  {np.percentile(db,2.5):+.6f} .. "
+          f"{np.percentile(db,97.5):+.6f}   P(better) {(db>0).mean():.3f}")
+    print(f"  DSC   advantage to NOCTUA  {np.percentile(dd,2.5):+.6f} .. "
+          f"{np.percentile(dd,97.5):+.6f}   P(better) {(dd>0).mean():.3f}")
+
     print(f"\nwritten -> {a.out}")
     return 0
 

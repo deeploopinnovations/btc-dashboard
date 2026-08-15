@@ -93,8 +93,19 @@ jobs:
           BR="${{ github.ref_name }}"
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          # Stash the harvest OUTSIDE the work tree before touching git state.
-          mkdir -p /tmp/bundles && cp data/assets/*.parquet /tmp/bundles/ 2>/dev/null || true
+          # Stash ONLY the bundles this run actually wrote.
+          #
+          # Copying every *.parquet would also pick up assets not in --symbols
+          # and assets whose harvest failed, and restoring those after
+          # re-parenting would silently revert a concurrent update to an
+          # unrelated bundle and commit the reversion as part of "the harvest".
+          # `git diff --name-only` names exactly what this run changed.
+          mkdir -p /tmp/bundles
+          git diff --name-only -- data/assets/ > /tmp/changed.txt || true
+          git ls-files --others --exclude-standard -- data/assets/ >> /tmp/changed.txt || true
+          sort -u /tmp/changed.txt -o /tmp/changed.txt
+          echo "bundles produced by this run:"; cat /tmp/changed.txt
+          while read -r f; do [ -n "$f" ] && cp "$f" /tmp/bundles/; done < /tmp/changed.txt
           for attempt in 1 2 3; do
             git fetch origin "$BR"
             # checkout -B, NOT reset --soft.
@@ -114,7 +125,9 @@ jobs:
             # workflow file and the Actions token has no `workflows` permission
             # -- a check this job was never designed to rely on.
             git checkout -B "$BR" "origin/$BR"
-            cp /tmp/bundles/*.parquet data/assets/ 2>/dev/null || true
+            while read -r f; do
+              [ -n "$f" ] && cp "/tmp/bundles/$(basename "$f")" "$f" 2>/dev/null || true
+            done < /tmp/changed.txt
             git add data/assets/
             if git diff --cached --quiet; then
               echo "nothing new to commit"; exit 0

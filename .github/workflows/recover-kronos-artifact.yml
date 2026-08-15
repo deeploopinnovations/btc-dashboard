@@ -31,15 +31,23 @@
 # exactly one path, so its diff cannot contain anything else.
 name: recover-kronos-artifact
 
+# MANUAL ONLY, and with no default run id. Both of those matter.
+#
+# The first version triggered on pushes to this file AND defaulted run_id to
+# the run it was written for. Any later edit -- a comment, a permission tweak --
+# would have re-run it with that stale default and overwritten
+# data/kronos_predictions.json with an old artifact, silently clobbering
+# whatever newer evaluation had landed. A recovery tool must never fire on its
+# own maintenance.
 on:
   workflow_dispatch:
     inputs:
       run_id:
-        description: 'Workflow run id holding the kronos-predictions artifact'
-        default: '31864108027'
-  push:
-    paths:
-      - '.github/workflows/recover-kronos-artifact.yml'
+        description: 'Workflow run id holding the kronos-predictions artifact (required)'
+        required: true
+      expect_episodes:
+        description: 'Reject the artifact unless it has at least this many episodes'
+        default: '120'
 
 permissions:
   contents: write
@@ -56,11 +64,13 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: kronos-predictions
-          run-id: ${{ github.event.inputs.run_id || '31864108027' }}
+          run-id: ${{ github.event.inputs.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path: recovered
 
       - name: Validate the ensemble BEFORE committing anything
+        env:
+          EXPECT_EPISODES: ${{ github.event.inputs.expect_episodes || '120' }}
         run: |
           python - <<'PY'
           import json, pathlib, sys
@@ -68,8 +78,10 @@ jobs:
           if not p.exists():
               print("artifact did not contain kronos_predictions.json")
               sys.exit(1)
+          import os
           d = json.loads(p.read_text())
           eps = d["episodes"]
+          want = int(os.environ.get("EXPECT_EPISODES", "120"))
           npaths = {e["n_paths"] for e in eps}
           sds    = [e.get("sigma_path_sd", 0.0) for e in eps]
           probs  = {p for e in eps for p in e["p_up_barrier"] + e["p_dn_barrier"]}
@@ -88,6 +100,16 @@ jobs:
               bad.append("some episode has zero dispersion across paths")
           if not interior:
               bad.append("every probability is exactly 0 or 1")
+          # kronos_ci.py checkpoints every 20 episodes and the upload runs with
+          # if: always(), so a timed-out run leaves a WELL-FORMED artifact with
+          # a fraction of the episodes. Every ensemble gate above passes on it.
+          # Without this check, recovery would happily replace a complete
+          # 120-episode file with a partial one.
+          if len(eps) < want or d.get("n_episodes", 0) < want:
+              bad.append(f"only {len(eps)} episodes, expected at least {want} "
+                         "-- this looks like a partial/checkpoint artifact")
+          if d.get("complete") is False:
+              bad.append("artifact is flagged complete=false")
           if bad:
               print("\nENSEMBLE STILL COLLAPSED: " + "; ".join(bad))
               sys.exit(1)
@@ -117,7 +139,7 @@ jobs:
               echo "REFUSING: staged more than the predictions:"; echo "$changed"
               exit 1
             fi
-            git commit -m "chore(eval): recover Kronos predictions from run ${{ github.event.inputs.run_id || '31864108027' }}"
+            git commit -m "chore(eval): recover Kronos predictions from run ${{ github.event.inputs.run_id }}"
             git push origin "HEAD:$BR" && exit 0
             echo "push attempt $attempt rejected; retrying"
             sleep 5

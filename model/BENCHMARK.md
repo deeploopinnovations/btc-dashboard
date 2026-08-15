@@ -266,20 +266,40 @@ Four things must be said alongside that, because none of them flatters us.
 
 **Climatology's Brier and log score are the lowest in the table and are
 IN-SAMPLE.** Its base rate is estimated from the evaluation set itself, so those
-two columns are not a fair comparison and neither model "loses" to it. Only
-`DSC = 0.000000` is a valid control — and it is the one that matters, since it
-confirms the harness cannot manufacture discrimination from nothing.
+two columns are not a fair comparison and neither model "loses" to it.
+
+**And `DSC = 0` from climatology is a WEAKER control than it looks.** A constant
+forecaster is pinned to zero by construction, so it cannot detect
+discrimination manufactured by the scorer. CORP fits its isotonic regression on
+the same 120 outcomes it then scores, so ANY forecaster with variation collects
+some DSC from that in-sample fit — including one whose ordering is pure noise.
+The control that actually measures this keeps each model's marginal forecast
+distribution and destroys only its alignment with outcomes:
+
+| model | real DSC | shuffled mean | shuffled p95 | clears the floor? |
+|---|---|---|---|---|
+| noctua_v2 | 0.018148 | 0.005096 | 0.008546 | **yes** |
+| kronos-small | 0.005683 | 0.003722 | 0.006238 | **no** |
+
+The isotonic manufactures DSC of roughly 0.004–0.006 out of noise alone.
 
 **Kronos is genuinely better calibrated on the volatility LEVEL.** Median
 predicted/realized: Kronos **1.172**, NOCTUA **1.232**. Both over-forecast; the
 24.7 M-parameter general-purpose model is closer to unbiased than the
 purpose-built one. That is a real result and it is not softened here.
 
-**Kronos carries real conditional information.** DSC 0.006580 is not zero and
-not close to it — it is 36% of NOCTUA's, from a model that has never been told
-what a barrier is. At the 1% barrier it is nearly level (0.018317 vs 0.020565).
-Its weakness is calibration (MCB 0.080062, 3.3× NOCTUA's), which is what you
-would expect from sampled paths that were never fitted to this question.
+**RETRACTED: "Kronos carries real conditional information."** An earlier
+version of this section said exactly that, on the strength of DSC 0.0057–0.0066
+being "not zero and not close to it". It does not survive the shuffled control
+above: Kronos's DSC falls INSIDE the noise band the in-sample isotonic produces
+from randomly-ordered predictions (p95 = 0.006238). On this evidence Kronos's
+barrier discrimination is **not distinguishable from zero**, and the honest
+statement is that 120 episodes cannot resolve it either way — not that it is
+absent. NOCTUA's DSC clears the same floor by a wide margin.
+
+Kronos's miscalibration is separately large and is measurable: MCB 0.077150,
+3.3× NOCTUA's, which is what you would expect from sampled paths never fitted
+to this question.
 
 **Three earlier runs were invalid, and two of those were our fault.** Run 1
 used `top_p=0.9`, whose nucleus truncation removes exactly the tail where large

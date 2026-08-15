@@ -337,7 +337,8 @@ class ScaledClimatology(Forecaster):
 # one walk-forward fold
 # ==========================================================================
 def run_fold(ep, X, fold, hidden=32, seeds=3, verbose=False, shape_cols=None,
-             sigma_ref_all=None, extra_w=None, train_filter=None, min_train=5000):
+             sigma_ref_all=None, sigma_ref_fn=None, extra_w=None,
+             train_filter=None, min_train=5000):
     fin = np.isfinite(X.to_numpy()).all(1)
     prod = S.production_mask(ep)
     m_tr, m_va = fold["train"] & fin, fold["calib"] & fin
@@ -351,6 +352,11 @@ def run_fold(ep, X, fold, hidden=32, seeds=3, verbose=False, shape_cols=None,
     # instead of the realized RV. It applies to train and calib only: at
     # prediction time infer.predict conditions on its own sigma_atoms and
     # ignores d["log_sigma"] entirely, so the test slice needs no counterpart.
+    # A CALLABLE is the causal form: its clip bounds are refitted on THIS
+    # fold's training episodes, so nothing downstream of the fold boundary can
+    # influence the reference. The array form is kept only for diagnostics.
+    if sigma_ref_fn is not None:
+        sigma_ref_all = sigma_ref_fn(m_tr)
     sr_tr = None if sigma_ref_all is None else np.asarray(sigma_ref_all)[m_tr]
     sr_va = None if sigma_ref_all is None else np.asarray(sigma_ref_all)[m_va]
     tr, stds = prepare(ep, X, m_tr, shape_cols=shape_cols, sigma_ref=sr_tr)
