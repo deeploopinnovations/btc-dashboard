@@ -1,0 +1,125 @@
+# .github/workflows/recover-kronos-artifact.yml
+# =====================================================================
+# Recover the Kronos predictions from a run whose COMPUTE succeeded and whose
+# COMMIT STEP failed, without paying for the compute twice.
+#
+# Run 31864108027 spent 3h49m producing 120 genuine 32-path episodes -- the
+# first ensemble that was not collapsed -- and then failed at the last step.
+# The artifact upload succeeded, so the data exists; it is simply on the wrong
+# side of a network boundary. The development container cannot fetch it
+# (the egress proxy returns 403 on blob.core.windows.net, where Actions
+# artifacts are served), but a runner can, which is the same observation that
+# unblocked the exchange data and the Hugging Face weights.
+#
+# WHY THE ORIGINAL COMMIT FAILED, because this job must not repeat it
+#
+# kronos-eval.yml did `git reset --soft origin/<branch>` to re-parent onto a
+# branch that had moved. `--soft` moves HEAD and KEEPS THE INDEX, so the index
+# still described the OLD checkout. Committing that against the new parent
+# produced a diff that DELETED everything added in between:
+#
+#   23 files changed, 1597 insertions(+), 2764 deletions(-)
+#    delete mode 100644 model/LITERATURE.md
+#    delete mode 100644 model/eval/efficiency.py
+#    delete mode 100644 model/serve/selfimprove.py
+#    delete mode 100644 model/tests/test_selfimprove.py
+#
+# That commit was then REJECTED -- because the same revert also touched
+# .github/workflows/harvest-assets.yml and the Actions token has no `workflows`
+# permission. A permission failure is the only reason the branch still has its
+# history. This job therefore checks out the branch tip cleanly and writes
+# exactly one path, so its diff cannot contain anything else.
+name: recover-kronos-artifact
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'Workflow run id holding the kronos-predictions artifact'
+        default: '31864108027'
+  push:
+    paths:
+      - '.github/workflows/recover-kronos-artifact.yml'
+
+permissions:
+  contents: write
+  actions: read          # required to read an artifact from a DIFFERENT run
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download the predictions from the earlier run
+        uses: actions/download-artifact@v4
+        with:
+          name: kronos-predictions
+          run-id: ${{ github.event.inputs.run_id || '31864108027' }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: recovered
+
+      - name: Validate the ensemble BEFORE committing anything
+        run: |
+          python - <<'PY'
+          import json, pathlib, sys
+          p = pathlib.Path("recovered/kronos_predictions.json")
+          if not p.exists():
+              print("artifact did not contain kronos_predictions.json")
+              sys.exit(1)
+          d = json.loads(p.read_text())
+          eps = d["episodes"]
+          npaths = {e["n_paths"] for e in eps}
+          sds    = [e.get("sigma_path_sd", 0.0) for e in eps]
+          probs  = {p for e in eps for p in e["p_up_barrier"] + e["p_dn_barrier"]}
+          interior = sorted(x for x in probs if 0.0 < x < 1.0)
+          print(f"episodes      {d['n_episodes']}")
+          print(f"top_p         {d['top_p']}")
+          print(f"n_paths       {sorted(npaths)}")
+          print(f"sigma_path_sd min {min(sds):.6f}  max {max(sds):.6f}")
+          print(f"interior probabilities: {len(interior)} distinct")
+          # The whole point of the re-run. A collapsed ensemble is not worth
+          # committing and must not be scored.
+          bad = []
+          if npaths != {d["samples_per_episode"]}:
+              bad.append(f"n_paths {sorted(npaths)} != {d['samples_per_episode']}")
+          if min(sds) <= 0.0:
+              bad.append("some episode has zero dispersion across paths")
+          if not interior:
+              bad.append("every probability is exactly 0 or 1")
+          if bad:
+              print("\nENSEMBLE STILL COLLAPSED: " + "; ".join(bad))
+              sys.exit(1)
+          print("\nensemble is genuine")
+          PY
+
+      - name: Commit ONLY the predictions
+        run: |
+          set -euo pipefail
+          BR="${{ github.ref_name }}"
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          for attempt in 1 2 3; do
+            git fetch origin "$BR"
+            # checkout -B, NOT reset --soft. This puts the working tree AND the
+            # index at the branch tip, so the only difference this job can
+            # possibly commit is the one file it writes next.
+            git checkout -B "$BR" "origin/$BR"
+            cp recovered/kronos_predictions.json data/kronos_predictions.json
+            git add data/kronos_predictions.json
+            if git diff --cached --quiet; then
+              echo "already up to date"; exit 0
+            fi
+            # Belt and braces: refuse to push if anything else crept in.
+            changed=$(git diff --cached --name-only)
+            if [ "$changed" != "data/kronos_predictions.json" ]; then
+              echo "REFUSING: staged more than the predictions:"; echo "$changed"
+              exit 1
+            fi
+            git commit -m "chore(eval): recover Kronos predictions from run ${{ github.event.inputs.run_id || '31864108027' }}"
+            git push origin "HEAD:$BR" && exit 0
+            echo "push attempt $attempt rejected; retrying"
+            sleep 5
+          done
+          echo "could not push after 3 attempts"; exit 1
