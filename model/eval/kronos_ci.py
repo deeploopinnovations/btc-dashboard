@@ -37,6 +37,13 @@ from, and generous sampling -- more Monte-Carlo paths than this dashboard's own
 retired kronos_local/app.py used. Sampling is how a generative model states a
 probability, so this is its natural form and not a handicap. Wall clock is
 recorded so the compute asymmetry is measured rather than asserted.
+
+Fairness is not automatic, and it failed twice here. The obvious call --
+`predict(sample_count=32)` -- silently AVERAGES its 32 draws and returns one
+path, which made Kronos look 2.7x too calm and reduced its probabilities to 0/1
+indicators. That was this harness's bug, not Kronos's behaviour. See
+draw_paths() for the mechanism and assert_ensemble() for the guard that now
+stops a collapsed ensemble in the first episode instead of the last.
 """
 from __future__ import annotations
 
@@ -102,6 +109,52 @@ def realized(hours: pd.DataFrame, row: int) -> dict:
     }
 
 
+def draw_paths(predictor, x_df, x_ts, y_ts, n_samples: int,
+               temperature: float, top_p: float) -> list:
+    """Return n_samples INDEPENDENT rollouts.
+
+    This is the subtle part, and getting it wrong invalidated two full CI runs.
+
+    `KronosPredictor.predict(..., sample_count=N)` does NOT return N paths. It
+    draws N and averages them before returning -- `kronos.py:467`,
+    `preds = np.mean(preds, axis=1)`, and the `predict_batch` docstring says so
+    outright: "Number of parallel samples per series, automatically averaged
+    internally." What comes back is one smoothed conditional-mean path.
+
+    Two things follow, and both are fatal to a probability forecast:
+
+      * Averaging 32 rollouts cancels their independent components, so the
+        surviving path's volatility is far below the process's. Measured:
+        sampled sigma / realized RV had median 0.259 at top_p=0.9 and 0.373 at
+        top_p=1.0. Neither was Kronos being wrong about volatility; both were
+        this average.
+      * With a single path there is no Monte-Carlo distribution at all. Every
+        touch "probability" came out exactly 0.0 or 1.0 -- an indicator on the
+        mean path. Scoring that against NOCTUA's calibrated curve would have
+        been a comparison of a probability against a point forecast, and Kronos
+        would have lost on a handicap I built for it.
+
+    `predict_batch` with the same context repeated n_samples times and
+    sample_count=1 gives what was wanted all along: n_samples separate rollouts,
+    each returned intact, batched exactly as before so the compute is unchanged.
+    """
+    if hasattr(predictor, "predict_batch"):
+        out = predictor.predict_batch(
+            df_list=[x_df] * n_samples,
+            x_timestamp_list=[x_ts] * n_samples,
+            y_timestamp_list=[y_ts] * n_samples,
+            pred_len=H, T=temperature, top_p=top_p,
+            sample_count=1, verbose=False)
+        if isinstance(out, list) and len(out) == n_samples:
+            return out
+    # Fallback for a Kronos without predict_batch: loop single draws. Slower --
+    # no batching -- but still n_samples genuinely independent paths.
+    return [predictor.predict(df=x_df, x_timestamp=x_ts, y_timestamp=y_ts,
+                              pred_len=H, T=temperature, top_p=top_p,
+                              sample_count=1, verbose=False)
+            for _ in range(n_samples)]
+
+
 def kronos_episode(predictor, hours: pd.DataFrame, row: int, n_samples: int,
                    temperature: float, top_p: float) -> dict:
     """Roll Kronos out n_samples times; reduce the paths to touch probabilities."""
@@ -123,12 +176,7 @@ def kronos_episode(predictor, hours: pd.DataFrame, row: int, n_samples: int,
     dn_hits = np.zeros(len(BARRIER_U))
     sig_paths, up_paths = [], []
 
-    # `pred_len` steps per rollout; sample_count draws them jointly where the
-    # predictor supports it, otherwise loop.
-    out = predictor.predict(df=x_df, x_timestamp=x_ts, y_timestamp=y_ts,
-                            pred_len=H, T=temperature, top_p=top_p,
-                            sample_count=n_samples, verbose=False)
-    paths = out if isinstance(out, list) else [out]
+    paths = draw_paths(predictor, x_df, x_ts, y_ts, n_samples, temperature, top_p)
 
     for p in paths:
         hi = np.log(np.asarray(p["high"], dtype=np.float64))
@@ -145,9 +193,32 @@ def kronos_episode(predictor, hours: pd.DataFrame, row: int, n_samples: int,
         "p_up_barrier": (up_hits / n).tolist(),
         "p_dn_barrier": (dn_hits / n).tolist(),
         "sigma": float(np.median(sig_paths)) if sig_paths else float("nan"),
+        # Dispersion ACROSS paths. The bug that invalidated the first two runs
+        # collapsed the ensemble to one path, where this is exactly 0. Recording
+        # it makes the failure visible in the output rather than only in the
+        # touch probabilities, where it looked like miscalibration.
+        "sigma_path_sd": float(np.std(sig_paths)) if len(sig_paths) > 1 else 0.0,
         "p_up": float(np.mean(up_paths)) if up_paths else float("nan"),
         "n_paths": int(n),
     }
+
+
+def assert_ensemble(rec: dict, n_samples: int) -> None:
+    """Fail in two minutes rather than three and a half hours.
+
+    Both invalid runs looked healthy for their entire duration and were only
+    caught by reading the output afterwards. These are the two signatures of a
+    collapsed ensemble; either one means the numbers cannot be scored.
+    """
+    if rec["n_paths"] != n_samples:
+        raise SystemExit(
+            f"[kronos] ABORT: asked for {n_samples} paths, got {rec['n_paths']}. "
+            "The predictor is averaging internally -- see draw_paths().")
+    if rec["sigma_path_sd"] <= 0.0:
+        raise SystemExit(
+            "[kronos] ABORT: all sampled paths have identical volatility. "
+            "The ensemble is degenerate and its touch probabilities would be "
+            "0/1 indicators, not probabilities.")
 
 
 def main(argv=None) -> int:
@@ -223,6 +294,10 @@ def main(argv=None) -> int:
         rec = {"anchor_ts": int(ts[row]),
                "anchor_utc": str(pd.Timestamp(ts[row], unit="s", tz="UTC")),
                "row": int(row), **k, **realized(hours, int(row))}
+        if not records:
+            assert_ensemble(rec, a.samples)
+            print(f"[kronos] ensemble check passed: {rec['n_paths']} paths, "
+                  f"path-sigma sd {100 * rec['sigma_path_sd']:.4f}%", flush=True)
         records.append(rec)
         if i % 10 == 0:
             el = time.time() - t1

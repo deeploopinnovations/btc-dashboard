@@ -230,12 +230,42 @@ way. It does bound what is deployable on a free 2-vCPU Space: at 117 s per
 forecast with a 30-minute refresh, Kronos-small would spend 6.5% of its life
 computing one number.
 
-**Still unmeasured.** Kronos's accuracy. `huggingface.co` weight
-downloads are blocked from this environment (HTTP 403 via the proxy); only
-metadata is reachable, which confirms Kronos-small at 24.7 M parameters and
+**Still unmeasured.** Kronos's accuracy — and the two attempts that failed
+are worth recording, because the second one nearly produced a false claim about
+somebody else's model.
+
+Getting Kronos to run at all took moving it into CI: `huggingface.co` weight
+downloads are blocked from the development environment (HTTP 403 via the proxy);
+only metadata is reachable, which confirms Kronos-small at 24.7 M parameters and
 Kronos-base at 102.3 M against NOCTUA's 19,134 — roughly 1,300× and 5,300×
-larger — but says nothing about accuracy. Every claim in this repo is against
-Log-HAR and the baselines above, which is the harder comparison, and none of
-them is a measurement of Kronos.
+larger — but says nothing about accuracy.
+
+Run 1 was invalid for an honest reason: `top_p=0.9` truncates the token
+distribution exactly where large moves live, and the sampled paths came out at
+0.377 % volatility against 1.467 % realized.
+
+Run 2 was invalid because of **a bug in this repo**. `KronosPredictor.predict(
+sample_count=32)` does not return 32 paths — it averages them internally
+(`kronos.py:467`; the `predict_batch` docstring says "automatically averaged
+internally") and returns one smoothed path. So:
+
+| | run 1 | run 2 | what it actually was |
+|---|---|---|---|
+| sampled σ / realized RV | 0.259 | 0.373 | the average of 32 paths, not Kronos's σ |
+| paths per episode | 1 | 1 | asked for 32 |
+| touch probabilities | {0, 1} | {0, 1} | an indicator on the mean path |
+
+The tempting read of run 2 — *"Kronos under-states volatility by 2.7×"* — is
+false, and it is the kind of claim that is easy to publish because it flatters
+the model doing the measuring. Scoring those 0/1 indicators against NOCTUA's
+calibrated curve would have compared a probability forecast to a point forecast
+and called the result a win.
+
+`eval/kronos_ci.py` now draws paths via `predict_batch` with the context
+repeated and `sample_count=1`, which returns each rollout intact at unchanged
+compute, and `assert_ensemble()` aborts in the first episode — not the last —
+if the ensemble is ever collapsed again. Until that run lands, every claim in
+this repo is against Log-HAR and the baselines above, which is the harder
+comparison, and **none of them is a measurement of Kronos**.
 
 *Educational research only. Not financial advice.*
