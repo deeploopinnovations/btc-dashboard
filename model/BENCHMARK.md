@@ -236,9 +236,21 @@ of one set of rules.
 
 | model | Brier | log score | DSC ↑ | MCB ↓ |
 |---|---|---|---|---|
-| **noctua_v2** | **0.146371** | **0.443084** | **0.018334** | **0.023980** |
-| kronos-small | 0.214208 | 0.661172 | 0.006580 | 0.080062 |
-| climatology | *0.140725* | *0.431316* | 0.000000 | 0.000000 |
+| **noctua_v2** | **0.145176** | **0.440193** | **0.018148** | **0.023733** |
+| kronos-small | 0.211059 | 0.651811 | 0.005683 | 0.077150 |
+| climatology | *0.139591* | *0.428622* | 0.000000 | 0.000000 |
+
+**It replicated, by accident.** Two Kronos runs finished independently — one on
+this branch, one on `main` — 119 of their 120 anchors shared, neither aware of
+the other. Agreement across two separate Monte-Carlo samplings:
+
+| | σ/RV | noctua Brier | kronos Brier | noctua DSC | kronos DSC |
+|---|---|---|---|---|---|
+| run A | 1.172 | 0.146371 | 0.214208 | 0.018334 | 0.006580 |
+| run B | 1.184 | 0.145176 | 0.211059 | 0.018148 | 0.005683 |
+
+Same ordering, same margins to within a few percent. The table above reports
+run B, which is the file on `main`.
 
 NOCTUA wins Brier, log score and discrimination. Paired episode-level bootstrap
 (2,000 resamples over the 120 episodes, which preserves the within-episode
