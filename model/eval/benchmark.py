@@ -336,17 +336,29 @@ class ScaledClimatology(Forecaster):
 # ==========================================================================
 # one walk-forward fold
 # ==========================================================================
-def run_fold(ep, X, fold, hidden=32, seeds=3, verbose=False, shape_cols=None):
+def run_fold(ep, X, fold, hidden=32, seeds=3, verbose=False, shape_cols=None,
+             sigma_ref_all=None, extra_w=None, train_filter=None, min_train=5000):
     fin = np.isfinite(X.to_numpy()).all(1)
     prod = S.production_mask(ep)
     m_tr, m_va = fold["train"] & fin, fold["calib"] & fin
+    if train_filter is not None:
+        m_tr = m_tr & train_filter
     m_te = fold["test"] & fin & prod
-    if m_tr.sum() < 5000 or m_te.sum() < 30 or m_va.sum() < 500:
+    if m_tr.sum() < min_train or m_te.sum() < 30 or m_va.sum() < 500:
         return None
 
-    tr, stds = prepare(ep, X, m_tr, shape_cols=shape_cols)
+    # `sigma_ref_all` retargets stage B onto a CAUSAL volatility forecast
+    # instead of the realized RV. It applies to train and calib only: at
+    # prediction time infer.predict conditions on its own sigma_atoms and
+    # ignores d["log_sigma"] entirely, so the test slice needs no counterpart.
+    sr_tr = None if sigma_ref_all is None else np.asarray(sigma_ref_all)[m_tr]
+    sr_va = None if sigma_ref_all is None else np.asarray(sigma_ref_all)[m_va]
+    tr, stds = prepare(ep, X, m_tr, shape_cols=shape_cols, sigma_ref=sr_tr)
     wtr = S.sample_weights(ep, m_tr)
-    va, _ = prepare(ep, X, m_va, *stds, shape_cols=shape_cols)
+    if extra_w is not None:
+        wtr = wtr * np.asarray(extra_w)[m_tr]
+        wtr = wtr / max(wtr.mean(), 1e-12)
+    va, _ = prepare(ep, X, m_va, *stds, shape_cols=shape_cols, sigma_ref=sr_va)
     H = ep.H.to_numpy(np.float64)
     yall = B.har_target(ep.RV.to_numpy(), H)
 

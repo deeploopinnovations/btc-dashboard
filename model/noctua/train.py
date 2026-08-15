@@ -58,7 +58,7 @@ class Standardizer:
 
 
 def prepare(ep, X, mask, std_all=None, std_shape=None, std_base=None,
-            shape_cols=None):
+            shape_cols=None, sigma_ref=None):
     """Slice + standardize the three input blocks and build targets.
 
     `shape_cols` overrides the stage-B column list. It exists for the ablation
@@ -83,7 +83,28 @@ def prepare(ep, X, mask, std_all=None, std_shape=None, std_base=None,
     H = e["H"].to_numpy(np.float64)
     RV = e["RV"].to_numpy(np.float64)
     y = B.har_target(RV, H)                       # log hourly vol rate
-    sigma = RV                                     # total window vol
+
+    # THE SCALE STAGE B IS TRAINED AGAINST.
+    #
+    # Default is RV, the REALIZED window volatility, and that is a train/serve
+    # skew rather than a convenience. Stage B learns quantiles of M_up/sigma
+    # conditioned on log sigma; at serving `sigma` is the model's own FORECAST,
+    # so the target it was fitted to is not the target it faces. Dividing by
+    # the realized value quietly removes the volatility-forecast error from the
+    # problem. Measured on the production training slice:
+    #
+    #   sd( M_up / RV_true    ) = 0.5611   <- what training fits
+    #   sd( M_up / sigma_hat  ) = 0.9312   <- what serving faces, 1.66x wider
+    #
+    # It also manufactures dependence: RV appears in the denominator of the
+    # target AND in the conditioner, so noise in RV alone produces Spearman
+    # -0.4331 between them (verified by permuting RV, which destroys every
+    # economic relationship and leaves the correlation nearly intact). That is
+    # Pearson's spurious correlation of ratios, and stage B is free to fit it.
+    #
+    # Passing `sigma_ref` -- a CAUSAL, cross-fitted volatility forecast -- makes
+    # the training target the one serving actually uses.
+    sigma = RV if sigma_ref is None else np.asarray(sigma_ref, np.float64)
     r = e["R"].to_numpy(np.float64) / np.maximum(sigma, EPS)
     m_up = e["M_up"].to_numpy(np.float64) / np.maximum(sigma, EPS)
     m_dn = -e["M_dn"].to_numpy(np.float64) / np.maximum(sigma, EPS)
