@@ -257,8 +257,10 @@ at mean +0.00083. Behind → level. Not ahead.
 episodes sit on a complete regular grid — every hour, every horizon — so
 concurrency is a constant of the grid (61), average uniqueness is exactly 1/61
 on the training split, and the normalised multiplier is 1.0000 to machine
-precision. It reproduced the baseline bit-for-bit in every fold. López de
-Prado's uniqueness weighting is built for *event-driven* labels with
+precision. Measured, it moves DSC/UNC by ~1e-5 against the ~4e-3 that
+`serve_consistent` moves — about 100× smaller and not in a consistent direction
+(3 folds up, 3 down), i.e. effectively equivalent rather than exactly equal.
+López de Prado's uniqueness weighting is built for *event-driven* labels with
 data-dependent holding periods; on a regular grid there is nothing for it to
 grip. The 60.9× redundancy (8,380 effective observations from 510,496 episodes)
 is real and must be attacked by removing samples or shrinking capacity, not by

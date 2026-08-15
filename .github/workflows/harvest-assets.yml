@@ -124,7 +124,37 @@ jobs:
             # bundles". It was rejected only because the same revert touched a
             # workflow file and the Actions token has no `workflows` permission
             # -- a check this job was never designed to rely on.
-            git checkout -B "$BR" "origin/$BR"
+            # -f because the work tree is DIRTY here by design: the job has
+            # already written its output, and `checkout -B` refuses to move
+            # when tracked files differ from the target. That is exactly what
+            # failed at 12:02Z --
+            #   error: Your local changes to the following files would be
+            #   overwritten by checkout: data/assets/*.parquet ... Aborting
+            # The output is already safe in /tmp at this point, so discarding
+            # the work tree copy loses nothing and is what makes the re-parent
+            # possible.
+            git checkout -f -B "$BR" "origin/$BR"
+            # REFUSE to publish this run's bundles onto a tip whose HARVESTER
+            # has changed.
+            #
+            # concurrency is cancel-in-progress: false, so if harvest.py is
+            # edited while a run is going, the old run finishes, force-checks
+            # out the NEW tip and would commit bundles built by the OLD code.
+            # If the queued run then fails, those stale -- possibly
+            # schema-incompatible -- bundles sit next to the new harvester
+            # indefinitely, and nothing in the tree says so.
+            #
+            # The artifact upload already happened, so nothing is lost by
+            # declining: the queued run will produce bundles from the current
+            # code, and this run's output stays recoverable from its artifact.
+            if ! git diff --quiet "$GITHUB_SHA" HEAD -- model/eval/harvest.py \
+                                                        model/serve/fetch.py; then
+              echo "REFUSING to commit: the harvester changed between this"
+              echo "run's commit ($GITHUB_SHA) and the branch tip. These"
+              echo "bundles were built by the older code; the queued run will"
+              echo "rebuild them. Output remains in the asset-bundles artifact."
+              exit 0
+            fi
             while read -r f; do
               [ -n "$f" ] && cp "/tmp/bundles/$(basename "$f")" "$f" 2>/dev/null || true
             done < /tmp/changed.txt

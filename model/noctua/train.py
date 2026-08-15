@@ -91,10 +91,10 @@ def prepare(ep, X, mask, std_all=None, std_shape=None, std_base=None,
     # conditioned on log sigma; at serving `sigma` is the model's own FORECAST,
     # so the target it was fitted to is not the target it faces. Dividing by
     # the realized value quietly removes the volatility-forecast error from the
-    # problem. Measured on the production training slice:
+    # problem. Measured on the production slice:
     #
-    #   sd( M_up / RV_true    ) = 0.5611   <- what training fits
-    #   sd( M_up / sigma_hat  ) = 0.9312   <- what serving faces, 1.66x wider
+    #   sd( M_up / RV_true    ) = 0.5490   <- what training fits
+    #   sd( M_up / sigma_hat  ) = 0.9312   <- what serving faces, 1.7x wider
     #
     # It also manufactures dependence: RV appears in the denominator of the
     # target AND in the conditioner, so noise in RV alone produces Spearman
@@ -102,8 +102,11 @@ def prepare(ep, X, mask, std_all=None, std_shape=None, std_base=None,
     # economic relationship and leaves the correlation nearly intact). That is
     # Pearson's spurious correlation of ratios, and stage B is free to fit it.
     #
-    # Passing `sigma_ref` -- a CAUSAL, cross-fitted volatility forecast -- makes
-    # the training target the one serving actually uses.
+    # Passing `sigma_ref` makes the training target the one serving actually
+    # uses. What ships is exp(har_1d)*sqrt(H) -- a FEATURE, so nothing is
+    # fitted and nothing can leak -- clipped to the training episodes' range.
+    # NOT a cross-fitted estimator: that version used ordinary K-fold, which
+    # fits each held-out block on later blocks too, and was discarded.
     sigma = RV if sigma_ref is None else np.asarray(sigma_ref, np.float64)
     r = e["R"].to_numpy(np.float64) / np.maximum(sigma, EPS)
     m_up = e["M_up"].to_numpy(np.float64) / np.maximum(sigma, EPS)
