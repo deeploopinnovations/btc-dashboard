@@ -307,6 +307,57 @@ and is not reported. Caught in review; the replacement fits nothing at all.
 
 ---
 
+## 6c. Training on other crypto: volatility transfers, barrier shape does not
+
+The question the 3300-day harvest existed to answer. BTC, ETH, LTC and XRP all
+reach back to 2017-08-02, so altcoin episodes pass through the *same*
+`splits.time_splits` boundaries as BTC's and contribute genuine pre-`TRAIN_END`
+training data. SOL is **excluded from training**: it lists later (899 days, all
+of it inside BTC's test era) and pooling it would reintroduce exactly the
+contemporaneous cross-sectional leak the long harvest was run to avoid.
+
+Test and calib slices are forced BTC-only in both arms — adding assets must be
+judged on the instrument that ships, not on a pool average a strong altcoin
+could carry.
+
+| metric | BTC-only | pooled | folds won | t-like |
+|---|---|---|---|---|
+| DSC/UNC | 0.049802 | 0.049355 | 3/6 | −0.41 |
+| pinball | 0.003633 | 0.003624 | 4/6 | +1.17 |
+| CRPS | 0.005307 | 0.005308 | 3/6 | −0.12 |
+| **QLIKE** | **0.299840** | **0.291768** | **6/6** | **+2.74** |
+
+**Volatility improves in every fold — 2.69 % mean, 6/6.** Barrier
+discrimination does not move: 3/6 folds and a t-like of −0.41 is noise, and the
+fold-level swings (−6.6 % to +7.2 %) dwarf the −0.9 % mean. CRPS is flat.
+
+| fold | n_train BTC → pooled | DSC/UNC | QLIKE |
+|---|---|---|---|
+| 2021 | 102,087 → 302,552 | −6.6 % | −2.1 % |
+| 2022 | 137,127 → 442,640 | +2.2 % | −3.5 % |
+| 2023 | 172,167 → 582,796 | −5.5 % | −4.9 % |
+| 2024 | 207,207 → 722,924 | +0.7 % | −0.6 % |
+| 2025 | 242,343 → 863,456 | +7.2 % | −1.7 % |
+| 2026 | 277,383 → 1,003,600 | −4.3 % | −1.7 % |
+
+The split is mechanically sensible rather than surprising. Crypto volatility is
+strongly correlated across assets, so 845,000 extra episodes sharpen the
+volatility cascade. Excursion *shape* — how far a path travels per unit of
+realized vol — reflects each asset's own microstructure, liquidity and tick
+size, so pooling it adds variance without adding signal. That is the same
+boundary `eval/cross_asset.py` found from the other direction: σ transfers
+zero-shot to unseen altcoins, and the excursion shape is where transfer gets
+shakier.
+
+**Not shipped.** The deployed product is a barrier forecast, and pooling does
+not improve barrier discrimination. A 2.7 % QLIKE gain would justify pooling
+for a volatility product; it does not justify tripling the training set and
+adding three assets' data-quality risk to a model whose output is a touch
+probability. Recorded as a real, replicated, mechanism-consistent effect on
+the wrong metric.
+
+---
+
 ## 7. Where this leaves the model
 
 **Established.** It carries genuine conditional information (DSC ≫ 0, and
