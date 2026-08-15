@@ -51,8 +51,23 @@ def main(argv=None) -> int:
     H = ep.H.to_numpy(np.float64)
     yall = B.har_target(ep.RV.to_numpy(), H)
 
-    tr, stds = prepare(ep, X, m_tr)
-    va, _ = prepare(ep, X, m_va, *stds)
+    # Stage B is trained against a CAUSAL volatility reference, not the
+    # realized RV. Measured: training on RV fits a target with sd 0.5490 while
+    # serving faces 0.9312, and RV in both the target's denominator and its
+    # conditioner manufactures Spearman -0.4331 out of pure arithmetic. The
+    # replacement is exp(har_1d)*sqrt(H) -- a FEATURE, built from bars strictly
+    # before the anchor, so nothing is fitted and nothing can leak -- clipped to
+    # the [0.5%, 99.5%] range observed on the TRAINING episodes.
+    #
+    # Walk-forward, 6 folds, 3 seeds: DSC/UNC 0.04980 -> 0.05382, better in
+    # 6/6 folds, with pinball and CRPS improving in 5/6 and QLIKE unchanged.
+    # See BENCHMARK.md section 6b.
+    raw_sig = np.exp(X["har_1d"].to_numpy(np.float64)) * np.sqrt(H)
+    lo, hi = np.quantile(raw_sig[m_tr], [0.005, 0.995])
+    sigma_ref = np.maximum(np.clip(raw_sig, lo, hi), 1e-12)
+
+    tr, stds = prepare(ep, X, m_tr, sigma_ref=sigma_ref[m_tr])
+    va, _ = prepare(ep, X, m_va, *stds, sigma_ref=sigma_ref[m_va])
     wtr = S.sample_weights(ep, m_tr)
 
     ols_std = B.OLS(BASE_COLS).fit(pd.DataFrame(tr["Xb"], columns=BASE_COLS),
@@ -97,11 +112,15 @@ def main(argv=None) -> int:
 
     meta = {
         "version": "NOCTUA-v2",
-        "feat_cols": list(X.columns), "base_cols": BASE_COLS, "shape_cols": SHAPE_COLS,
+        # From prepare(), NOT list(X.columns): features.parquet may carry
+        # research columns the model deliberately does not consume.
+        "feat_cols": tr["cols"]["all"],
+        "base_cols": tr["cols"]["base"], "shape_cols": tr["cols"]["shape"],
         "hidden": a.hidden, "seeds": a.seeds,
         "blend_w": I.BLEND_W,
         "specialists": ["neural", "gaussian", "empirical", "evt"],
         "weights": "equal",   # measured: fitted and gated weights both degenerate
+        "stage_b_sigma_ref": "causal_har_1d_clipped",
         "n_params_total": int(n_par * a.seeds),
     }
     arrays["meta_json"] = np.frombuffer(json.dumps(meta).encode(), dtype=np.uint8)

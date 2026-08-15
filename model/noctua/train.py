@@ -113,6 +113,14 @@ def prepare(ep, X, mask, std_all=None, std_shape=None, std_base=None,
         std_all, std_shape, std_base = Standardizer().fit(Xa), Standardizer().fit(Xs), Standardizer().fit(Xb)
 
     return dict(
+        # The columns ACTUALLY consumed, so callers record the model's real
+        # input rather than assuming it equals features.parquet's columns.
+        # train_v2 stored `list(X.columns)` as feat_cols, which was correct
+        # only while every column in the frame was a model input. Adding one
+        # research column (eff_*) made the artifact's metadata disagree with
+        # its own weight shapes -- 42 declared against 39 trained -- and
+        # serving failed with a matmul dimension error.
+        cols=dict(all=list(all_cols), base=list(BASE_COLS), shape=list(shape_cols)),
         Xa=std_all(Xa).astype(np.float32),
         Xb=std_base(Xb).astype(np.float32),
         Xs=std_shape(Xs).astype(np.float32),
