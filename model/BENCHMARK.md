@@ -322,23 +322,39 @@ could carry.
 
 | metric | BTC-only | pooled | folds won | t-like |
 |---|---|---|---|---|
-| DSC/UNC | 0.049802 | 0.049355 | 3/6 | −0.41 |
-| pinball | 0.003633 | 0.003624 | 4/6 | +1.17 |
-| CRPS | 0.005307 | 0.005308 | 3/6 | −0.12 |
-| **QLIKE** | **0.299840** | **0.291768** | **6/6** | **+2.74** |
+| DSC/UNC | 0.049802 | 0.048905 | 2/6 | −0.94 |
+| pinball | 0.003633 | 0.003627 | 5/6 | +0.77 |
+| CRPS | 0.005307 | 0.005312 | 3/6 | −0.51 |
+| **QLIKE** | **0.299840** | **0.294241** | **5/6** | **+1.63** |
 
-**Volatility improves in every fold — 2.69 % mean, 6/6.** Barrier
-discrimination does not move: 3/6 folds and a t-like of −0.41 is noise, and the
-fold-level swings (−6.6 % to +7.2 %) dwarf the −0.9 % mean. CRPS is flat.
+**Volatility improves in 5 of 6 folds, 1.87 % mean.** Barrier discrimination
+does not move and if anything drifts negative: 2/6 and a t-like of −0.94, with
+fold swings (−6.6 % to +5.3 %) dwarfing the −1.8 % mean. CRPS flat.
+
+**These numbers are WEAKER than the ones first published here, and the reason
+matters more than the numbers.** The first version of this section reported
+QLIKE 6/6, 2.69 %, t-like +2.74. It was computed before the ETH gap filter
+existed, i.e. with 2,924 mislabelled episodes in the pooled arm. Review caught
+the gap; refiltering and re-running gives 5/6, 1.87 %, t-like +1.63.
+
+I predicted the opposite. The commit that added the filter argued that
+stretched windows inflate RV, so the defect must have biased *against* pooling
+and "the re-run confirms rather than rescues the result". It did not: it
+weakened it, on five of six folds, and fold 2026 flipped sign entirely
+(−1.7 % → +1.3 %). The mechanism reasoning was plausible and untested, which is
+the same habit that produced the venue-cap error earlier in this file.
+
+At t-like +1.63 on n = 6 this is a modest effect, not a strong one, and it
+should be read that way.
 
 | fold | n_train BTC → pooled | DSC/UNC | QLIKE |
 |---|---|---|---|
-| 2021 | 102,087 → 302,552 | −6.6 % | −2.1 % |
-| 2022 | 137,127 → 442,640 | +2.2 % | −3.5 % |
-| 2023 | 172,167 → 582,796 | −5.5 % | −4.9 % |
-| 2024 | 207,207 → 722,924 | +0.7 % | −0.6 % |
-| 2025 | 242,343 → 863,456 | +7.2 % | −1.7 % |
-| 2026 | 277,383 → 1,003,600 | −4.3 % | −1.7 % |
+| 2021 | 102,087 → 301,821 | −5.2 % | −0.9 % |
+| 2022 | 137,127 → 441,421 | +1.5 % | −2.6 % |
+| 2023 | 172,167 → 581,520 | −4.2 % | −4.9 % |
+| 2024 | 207,207 → 721,477 | −2.7 % | −0.6 % |
+| 2025 | 242,343 → 861,895 | +5.3 % | −1.0 % |
+| 2026 | 277,383 → 1,001,925 | −6.6 % | **+1.3 %** |
 
 The split is mechanically sensible rather than surprising. Crypto volatility is
 strongly correlated across assets, so 845,000 extra episodes sharpen the
@@ -349,34 +365,24 @@ boundary `eval/cross_asset.py` found from the other direction: σ transfers
 zero-shot to unseen altcoins, and the excursion shape is where transfer gets
 shakier.
 
-### Does the gain depend on the expiry? Under-powered, and it says so
+### Does the gain depend on the expiry?
 
-`--by-expiry` scores both arms per horizon on ONE train/test split, because the
-horizon breakdown needs the test slice widened past the production H = 19 that
-the walk-forward scoring is restricted to.
+The table that stood here is withdrawn. It was invalid twice over: computed
+before the ETH gap filter, and scored with `infer.touch_prob` on the averaged
+NEURAL head, upside barriers only — while the headline DSC/UNC comes from the
+equal-weight committee (neural + Gaussian + empirical + EVT) across both sides.
+Its DSC column was therefore a different estimator wearing the headline's
+label, so its "decomposition" decomposed something else.
 
-| H | n | QLIKE BTC | QLIKE pooled | Δ | DSC/UNC BTC | DSC/UNC pooled | Δ |
-|---|---|---|---|---|---|---|---|
-| 6 | 770 | 0.3673 | 0.3524 | **−4.0 %** | 0.12641 | 0.12653 | +0.1 % |
-| 12 | 769 | 0.2884 | 0.2842 | −1.5 % | 0.07980 | 0.07922 | −0.7 % |
-| 19 | 769 | 0.2478 | 0.2498 | **+0.8 %** | 0.07779 | 0.07911 | +1.7 % |
-| 24 | 769 | 0.2361 | 0.2357 | −0.2 % | 0.07578 | 0.07473 | −1.4 % |
+`--by-expiry` now scores through `run_fold` with `prod_override`, one horizon
+at a time, so every figure comes from the same committee, both barriers and the
+same grid as the aggregate. Regenerated numbers replace this paragraph once
+that run lands.
 
-The tempting reading is that the volatility gain concentrates at short
-horizons and decays to nothing by H = 24. **Do not take it.** At H = 19 this
-table says pooling is 0.8 % WORSE, while the six-fold walk-forward above —
-which scores H = 19 and nothing else — says 2.69 % BETTER in 6 of 6 folds.
-Same horizon, opposite sign.
-
-That disagreement is the useful part. One train/test split cannot resolve a
-1–3 % QLIKE difference on ~770 episodes; six refits with consistent sign can.
-So the walk-forward is the measurement and this table is a decomposition whose
-per-cell precision is visibly inadequate. The H = 6 figure (−4.0 %) is the
-largest and most likely to be real, but it rests on the same single split and
-is not independent evidence.
-
-Reported rather than dropped, because the sign flip is a cleaner statement
-about how much precision a single split buys than any of the numbers in it.
+Worth keeping in view: I attributed the old table's H = 19 sign flip entirely to
+single-split imprecision. That holds for QLIKE, which uses the identical
+`sigma_med` in both paths, and was incomplete for DSC, which was measuring a
+different model.
 
 **Not shipped.** The deployed product is a barrier forecast, and pooling does
 not improve barrier discrimination. A 2.7 % QLIKE gain would justify pooling
