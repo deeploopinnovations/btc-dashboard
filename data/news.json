@@ -1,112 +1,105 @@
 {
   "items": [
     {
-      "headline": "Goldman Sachs Expands Bitcoin Push With $2 . 25B Asset Manager Deal",
-      "url": "https://finance.yahoo.com/markets/crypto/articles/goldman-sachs-expands-bitcoin-push-143000957.html",
+      "headline": "Popular crypto stock falls sharply after twin announcements",
+      "url": "https://finance.yahoo.com/markets/stocks/articles/popular-crypto-stock-falls-sharply-183633572.html",
       "src": "finance.yahoo.com",
-      "date": "20260813T151500Z",
+      "date": "20260814T190000Z",
+      "sent": "neg"
+    },
+    {
+      "headline": "MicroStrategy sends harsh response to fresh MSCI delisting threat",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/microstrategy-sends-harsh-response-fresh-172733180.html",
+      "src": "finance.yahoo.com",
+      "date": "20260814T181500Z",
       "sent": "neu"
     },
     {
-      "headline": "Baystreet . ca - Goldman Sachs Gains Access To Crypto ETFs With Neos Purchase",
-      "url": "http://baystreet.ca/cryptonews/1368/Goldman-Sachs-Gains-Access-To-Crypto-ETFs-With-Neos-Purchase",
+      "headline": "Israel Largest Bank Will Give Bitcoin Trading Another Try",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/israel-largest-bank-bitcoin-trading-171402560.html",
+      "src": "finance.yahoo.com",
+      "date": "20260814T174500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Baystreet . ca - Bitcoin Price Slips To $62 , 000 As Catalysts Remain Elusive",
+      "url": "http://baystreet.ca/cryptonews/1369/Bitcoins-Price-Slips-To-62000-As-Catalysts-Remain-Elusive",
       "src": "baystreet.ca",
-      "date": "20260813T151500Z",
-      "sent": "pos"
+      "date": "20260814T173000Z",
+      "sent": "neu"
     },
     {
-      "headline": "Zerohash Fails To Secure U . S . Trust Bank Charter",
-      "url": "https://finance.yahoo.com/markets/crypto/articles/zerohash-fails-secure-u-trust-140800122.html",
+      "headline": "Kraken Parent Payward Posts $508M Q2 Revenue , Up 17 % Year Over Year",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/kraken-parent-payward-posts-508m-165200686.html",
       "src": "finance.yahoo.com",
-      "date": "20260813T151500Z",
+      "date": "20260814T173000Z",
       "sent": "neu"
     },
     {
-      "headline": "Stocks rise on broad sector strength : AlphaCheck",
-      "url": "https://finance.yahoo.com/markets/article/stocks-rise-on-broad-sector-strength-alphacheck-135545759.html",
+      "headline": "FinancialContent - Why Strategy ( MSTR ) Shares Are Trading Lower Today",
+      "url": "https://markets.financialcontent.com/stocks/article/stockstory-2026-8-14-why-strategy-mstr-shares-are-trading-lower-today",
+      "src": "markets.financialcontent.com",
+      "date": "20260814T171500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "YieldMax Bitcoin Option Income ETF ( NYSEARCA : YBIT ) Short Interest Update",
+      "url": "https://www.tickerreport.com/banking-finance/13543334/yieldmax-bitcoin-option-income-etf-nysearcaybit-short-interest-update.html",
+      "src": "tickerreport.com",
+      "date": "20260814T164500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Cryptos Drop Amidst Volatile Crude Oil Prices , Spike In Bond Yields",
+      "url": "https://www.rttnews.com/3680759/cryptos-drop-amidst-volatile-crude-oil-prices-spike-in-bond-yields.aspx",
+      "src": "rttnews.com",
+      "date": "20260814T160000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Morgan Stanley , JPMorgan Increase Crypto ETF Holdings in Q2",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/morgan-stanley-jpmorgan-increase-crypto-153100825.html",
       "src": "finance.yahoo.com",
-      "date": "20260813T143000Z",
+      "date": "20260814T160000Z",
       "sent": "neu"
     },
     {
-      "headline": "GoldPro Token Self Reported Market Cap Reaches $11 . 08 Million ( GPRO ) ",
-      "url": "https://www.themarketsdaily.com/2026/08/13/goldpro-token-self-reported-market-cap-reaches-11-08-million-gpro.html",
-      "src": "themarketsdaily.com",
-      "date": "20260813T114500Z",
+      "headline": "Bitcoin Eyes New August Lows As Binance Longs Face A  Cleanout  ",
+      "url": "https://cointelegraph.com/markets/bitcoin-liquidation-cleanout-open-interest-falls-btc",
+      "src": "cointelegraph.com",
+      "date": "20260814T150000Z",
       "sent": "neu"
     },
     {
-      "headline": "Staked USD0 Trading 0 % Higher This Week ( USD0++ ) ",
-      "url": "https://www.themarketsdaily.com/2026/08/13/staked-usd0-trading-0-higher-this-week-usd0.html",
-      "src": "themarketsdaily.com",
-      "date": "20260813T114500Z",
-      "sent": "pos"
+      "headline": "Bitcoin Slips From Weekly Close Target In Drop To $62 , 500",
+      "url": "https://cointelegraph.com/markets/bitcoin-price-drops-trader-warns-weekly-close-may-spark-more-losses",
+      "src": "cointelegraph.com",
+      "date": "20260814T150000Z",
+      "sent": "neg"
     },
     {
-      "headline": "AUSD ( AUSD ) Achieves Self Reported Market Capitalization of $149 . 45 Million",
-      "url": "https://www.themarketsdaily.com/2026/08/13/ausd-ausd-achieves-self-reported-market-capitalization-of-149-45-million.html",
-      "src": "themarketsdaily.com",
-      "date": "20260813T114500Z",
+      "headline": "Crypto Exchange Gemini Reports $108 Million Net Loss",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/crypto-exchange-gemini-reports-108-142800020.html",
+      "src": "finance.yahoo.com",
+      "date": "20260814T150000Z",
+      "sent": "neg"
+    },
+    {
+      "headline": "August 2026 Bybit Referral Code BTC9149 | Complete Contract Trading Guide - web3高手的部落格",
+      "url": "https://blog.udn.com:443/G_109197366056535183/192079876",
+      "src": "blog.udn.com",
+      "date": "20260814T150000Z",
       "sent": "neu"
     },
     {
-      "headline": "LOFI Trading 10 . 5 % Higher This Week ( LOFI ) ",
-      "url": "https://www.themarketsdaily.com/2026/08/13/lofi-trading-10-5-higher-this-week-lofi.html",
-      "src": "themarketsdaily.com",
-      "date": "20260813T114500Z",
-      "sent": "pos"
-    },
-    {
-      "headline": "Zama Reaches Self Reported Market Capitalization of $112 . 73 Million ( ZAMA ) ",
-      "url": "https://www.themarketsdaily.com/2026/08/13/zama-reaches-self-reported-market-capitalization-of-112-73-million-zama.html",
-      "src": "themarketsdaily.com",
-      "date": "20260813T114500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Dentacoin Tops One Day Volume of $0 . 04 ( DCN ) ",
-      "url": "https://www.themarketsdaily.com/2026/08/13/dentacoin-tops-one-day-volume-of-0-04-dcn.html",
-      "src": "themarketsdaily.com",
-      "date": "20260813T114500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "AI Rig Complex ( ARC ) Hits Self Reported Market Capitalization of $72 . 82 Million",
-      "url": "https://www.themarketsdaily.com/2026/08/13/ai-rig-complex-arc-hits-self-reported-market-capitalization-of-72-82-million.html",
-      "src": "themarketsdaily.com",
-      "date": "20260813T114500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Sahara AI Price Reaches $0 . 0078 on Major Exchanges ( SAHARA ) ",
-      "url": "https://www.themarketsdaily.com/2026/08/13/sahara-ai-price-reaches-0-0078-on-major-exchanges-sahara.html",
-      "src": "themarketsdaily.com",
-      "date": "20260813T113000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Bybit Staked SOL ( BBSOL ) Price Hits $88 . 18 on Exchanges",
-      "url": "https://www.themarketsdaily.com/2026/08/13/bybit-staked-sol-bbsol-price-hits-88-18-on-exchanges.html",
-      "src": "themarketsdaily.com",
-      "date": "20260813T113000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Bitcoin : Will Patience Be Rewarded ? ",
-      "url": "https://www.actionforex.com/contributors/fundamental-analysis/650504-bitcoin-will-patience-be-rewarded/",
-      "src": "actionforex.com",
-      "date": "20260813T113000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Alchemix USD ( ALUSD ) Price Tops $0 . 94",
-      "url": "https://www.themarketsdaily.com/2026/08/13/alchemix-usd-alusd-price-tops-0-94.html",
-      "src": "themarketsdaily.com",
-      "date": "20260813T113000Z",
+      "headline": "Morgan Stanley BlackRock Bitcoin ETF Holdings Rise 23 % in Q2",
+      "url": "https://cointelegraph.com/news/morgan-stanley-buys-blackrock-bitcoin-etf-q2",
+      "src": "cointelegraph.com",
+      "date": "20260814T150000Z",
       "sent": "neu"
     }
   ],
-  "ts": 1786636605993,
+  "ts": 1786737868821,
   "source": "GDELT",
-  "_updatedMs": 1786636605993
+  "_updatedMs": 1786737868821
 }
