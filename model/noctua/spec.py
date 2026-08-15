@@ -47,3 +47,18 @@ SHAPE_COLS = [
     "reg_post_etf", "cal_hour_sin", "cal_hour_cos", "cal_dow_sin",
     "cal_dow_cos", "cal_H", "cal_weekend_frac",
 ]
+
+# Path efficiency -- range per unit realized vol over the trailing window.
+# BUILT by features.py, and DELIBERATELY NOT IN SHAPE_COLS: the walk-forward
+# ablation in eval/efficiency.py measured no gain in what it was built for.
+# Kept because the mechanism is sound and the negative result is worth being
+# able to reproduce, not because it is on its way in.
+EFFICIENCY_COLS = ["eff_1d", "eff_3d", "eff_7d"]
+
+# Columns present in features.parquet that the model must NOT consume. Without
+# this, adding a column to features.py silently widens the wide block Xa and
+# changes the shipped artifact -- a research feature would leak into production
+# by the mere act of being computed.
+NON_MODEL_COLS = tuple(EFFICIENCY_COLS)
+
+SHAPE_COLS_WITH_EFF = SHAPE_COLS + EFFICIENCY_COLS

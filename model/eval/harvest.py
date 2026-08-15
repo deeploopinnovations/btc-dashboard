@@ -30,14 +30,28 @@ in a direction the benchmark can name.
 USD pairs throughout. A USDT pair would fold stablecoin depeg risk into the
 excursion distribution and confound the comparison.
 
-HOW MUCH HISTORY
+HOW MUCH HISTORY, AND WHY 900 DAYS WAS SILENTLY WRONG FOR TRAINING
 
 `reg_rv_vs_year` looks back 365 days, so an anchor is only usable once the
 bundle reaches a full year behind it: usable anchors ~= days - 365. A 400-day
 bundle yields ~29 production anchors per asset, far too few to estimate
-discrimination. The default is 900 days, which leaves ~500.
+discrimination, which is why the first harvest asked for 900.
 
-    python -m model.eval.harvest --symbols btc,eth,sol,xrp,ltc --days 900
+900 days is enough for ZERO-SHOT EVALUATION and not enough for TRAINING, and
+the difference is a leak. 900 days back from 2026-08 starts at 2024-02-26.
+BTC's test split starts 2024-07-01. So every altcoin bar in those bundles is
+from the test era, and pooling them into a training set would put ETH's
+2025 volatility -- which is roughly 0.8 correlated with BTC's -- into a model
+whose out-of-sample claim is measured on BTC in 2025. Not label leakage
+exactly; contemporaneous cross-sectional leakage, which is worse for being
+harder to see. Any "pooling improves BTC" result built on that would be an
+artifact.
+
+The honest requirement is altcoin history that ENDS before TRAIN_END
+(2023-01-01), which from 2026 means ~3300 days. Bitstamp has BTC, ETH, LTC and
+XRP back that far; SOL starts later and will simply return what exists.
+
+    python -m model.eval.harvest --symbols btc,eth,sol,xrp,ltc --days 3300
 """
 from __future__ import annotations
 
@@ -98,7 +112,7 @@ def harvest_symbol(symbol: str, days: int, verbose: bool = True) -> pd.DataFrame
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(description="Harvest hourly bundles for other assets")
     p.add_argument("--symbols", default="btc,eth,sol,xrp,ltc")
-    p.add_argument("--days", type=int, default=900)
+    p.add_argument("--days", type=int, default=3300)
     p.add_argument("--out-dir", type=Path, default=OUT_DIR)
     a = p.parse_args(argv)
 
@@ -120,6 +134,19 @@ def main(argv=None) -> int:
             failed.append(s)
             continue
         path = a.out_dir / f"{s}_history.parquet"
+        # Never let a short harvest destroy a long one. These bundles are
+        # committed research data that eval/cross_asset.py already depends on,
+        # and a venue that answers with a truncated series -- or answers at all
+        # for a pair that only lists recently -- would otherwise silently
+        # replace good history with less of it. Refusing is the safe default;
+        # a deliberate shortening can still be done by deleting the file.
+        if path.exists():
+            have = len(pd.read_parquet(path, columns=["hour_ts"]))
+            if len(hours) < have:
+                print(f"  {s}: KEEPING existing bundle -- fetched {len(hours):,} "
+                      f"hours but {have:,} are already committed")
+                failed.append(f"{s} (shorter than existing)")
+                continue
         hours.to_parquet(path, index=False, compression="zstd")
         print(f"  {s}: wrote {path} ({path.stat().st_size/1024:.0f} KB)")
         ok.append(s)

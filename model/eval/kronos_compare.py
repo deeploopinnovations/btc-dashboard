@@ -48,6 +48,9 @@ from serve.history import load_bundle                               # noqa: E402
 from serve.runtime import load_model                                # noqa: E402
 
 H = 19
+# Mirrors kronos_ci.LOOKBACK_HOURS: reg_rv_vs_year looks back 365 days, so an
+# anchor is only scorable once the bundle reaches a year behind it.
+LOOKBACK_HOURS = 24 * 370
 
 
 def corp(p: np.ndarray, y: np.ndarray) -> dict:
@@ -66,6 +69,9 @@ def corp(p: np.ndarray, y: np.ndarray) -> dict:
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="Kronos vs NOCTUA, one scorer")
     ap.add_argument("--kronos", type=Path, default=Path("data/kronos_predictions.json"))
+    # Must match kronos_ci.py's --bundle. See the note at the load site.
+    ap.add_argument("--bundle", type=Path,
+                    default=Path("data/assets/btc_history.parquet"))
     ap.add_argument("--out", type=Path, default=Path("model/artifacts/kronos_vs_noctua.json"))
     a = ap.parse_args(argv)
 
@@ -86,7 +92,23 @@ def main(argv=None) -> int:
 
     # ---- NOCTUA on the SAME anchors ---------------------------------------
     model = load_model()
-    hours = load_bundle()
+    # THE SAME BUNDLE kronos_ci.py ran on, not the serving bundle.
+    #
+    # This defaulted to load_bundle() -- the ~400-day SERVING bundle -- while
+    # kronos_ci.py runs on the 900-day harvested one. Both models then answer
+    # the same anchors, but NOCTUA's build_features needs 365 days of lookback
+    # WITHIN the bundle it is given, so a 400-day bundle leaves only its last
+    # ~30 anchors with finite features. The result was a head-to-head that
+    # matched 117 of 120 anchors and then scored 35 of them, silently, with the
+    # loss appearing as an `np.isfinite` filter rather than as an error.
+    #
+    # kronos_ci.py's docstring already names this exact trap and was fixed for
+    # it; this file was not. Same bundle on both sides, or the comparison
+    # throws away two thirds of a run that costs three and a half hours.
+    hours = load_bundle(a.bundle)
+    if len(hours) < LOOKBACK_HOURS + 24:
+        print(f"  bundle has {len(hours)} hours; features need "
+              f"{LOOKBACK_HOURS} of lookback before the first scorable anchor")
     ts_all = hours["hour_ts"].to_numpy(np.int64)
     want = np.array([e["anchor_ts"] for e in eps], dtype=np.int64)
     rows = np.searchsorted(ts_all, want)
@@ -103,6 +125,16 @@ def main(argv=None) -> int:
     ok = np.isfinite(X.to_numpy()).all(1)
     X, ep_df, rows = X[ok], ep_df[ok], rows[ok]
     eps = [e for e, k in zip(eps, ok) if k]
+    # Loud, because the failure this catches is silent by nature: episodes
+    # vanish through an np.isfinite filter, the run still prints a tidy table,
+    # and the only symptom is that the table was computed on a third of the
+    # data that three and a half hours of compute produced.
+    if len(eps) < 0.8 * kd["n_episodes"]:
+        print(f"  WARNING: only {len(eps)} of {kd['n_episodes']} Kronos episodes "
+              f"are scorable.\n  NOCTUA's features need {LOOKBACK_HOURS}h "
+              f"({LOOKBACK_HOURS//24}d) of lookback inside --bundle "
+              f"({len(hours)}h available).\n  Check that --bundle matches the "
+              f"one kronos_ci.py ran on.")
     print(f"  scoring {len(eps)} episodes both models answered\n")
 
     pred = model.predict(model.prepare(X, ep_df.H.to_numpy(np.float64)))
