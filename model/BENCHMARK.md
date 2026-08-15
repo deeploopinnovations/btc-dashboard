@@ -365,24 +365,38 @@ boundary `eval/cross_asset.py` found from the other direction: σ transfers
 zero-shot to unseen altcoins, and the excursion shape is where transfer gets
 shakier.
 
-### Does the gain depend on the expiry?
+### Does the gain depend on the expiry? Yes — and it is gone by H = 19
 
-The table that stood here is withdrawn. It was invalid twice over: computed
-before the ETH gap filter, and scored with `infer.touch_prob` on the averaged
-NEURAL head, upside barriers only — while the headline DSC/UNC comes from the
-equal-weight committee (neural + Gaussian + empirical + EVT) across both sides.
-Its DSC column was therefore a different estimator wearing the headline's
-label, so its "decomposition" decomposed something else.
+Scored through `run_fold` with `prod_override`, one horizon at a time, so every
+figure comes from the same committee, both barriers and the same grid as the
+aggregate above. One train/test split, not six folds.
 
-`--by-expiry` now scores through `run_fold` with `prod_override`, one horizon
-at a time, so every figure comes from the same committee, both barriers and the
-same grid as the aggregate. Regenerated numbers replace this paragraph once
-that run lands.
+| H | n | QLIKE BTC | QLIKE pooled | Δ | DSC/UNC BTC | DSC/UNC pooled | Δ |
+|---|---|---|---|---|---|---|---|
+| 6 | 770 | 0.3673 | 0.3553 | **−3.3 %** | 0.08341 | 0.08146 | −2.3 % |
+| 12 | 769 | 0.2884 | 0.2858 | −0.9 % | 0.04565 | 0.04535 | −0.6 % |
+| **19** | 769 | 0.2478 | 0.2509 | **+1.2 %** | 0.03957 | 0.03830 | −3.2 % |
+| 24 | 769 | 0.2361 | 0.2373 | +0.5 % | 0.03830 | 0.03698 | −3.5 % |
 
-Worth keeping in view: I attributed the old table's H = 19 sign flip entirely to
-single-split imprecision. That holds for QLIKE, which uses the identical
-`sigma_med` in both paths, and was incomplete for DSC, which was measuring a
-different model.
+**The volatility gain is a short-horizon effect.** −3.3 % at H = 6, decaying
+through −0.9 % at H = 12, and *negative* by the deployed H = 19. Discrimination
+is negative at every horizon. Both survived the ETH gap fix and the switch to
+committee scoring, so neither is an artifact of the two defects this section
+has already had.
+
+That is a sharper reason not to ship pooling than the aggregate gave. The
+aggregate said "helps a metric the product does not optimise"; this says the
+help is not even present at the expiry the product is sold at.
+
+**The H = 19 sign flip persists, and now means something narrower.** This table
+says +1.2 % worse at H = 19; the six-fold walk-forward, which scores H = 19 and
+nothing else, says 1.87 % better in 5 of 6 folds. Fixing the estimator removed
+the *DSC* half of that discrepancy — the old table's DSC column was the neural
+head alone on upside barriers, and its H = 6 baseline read 0.12641 against
+0.08341 here, a 34 % difference — but the QLIKE half is unchanged. So the
+original attribution stands for QLIKE: one split of ~770 episodes cannot
+resolve a 1–2 % difference that six refits can. Six folds beat one, and the
+walk-forward remains the measurement.
 
 **Not shipped.** The deployed product is a barrier forecast, and pooling does
 not improve barrier discrimination. A 2.7 % QLIKE gain would justify pooling
