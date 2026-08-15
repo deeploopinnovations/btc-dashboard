@@ -338,9 +338,15 @@ class ScaledClimatology(Forecaster):
 # ==========================================================================
 def run_fold(ep, X, fold, hidden=32, seeds=3, verbose=False, shape_cols=None,
              sigma_ref_all=None, sigma_ref_fn=None, extra_w=None,
-             train_filter=None, min_train=5000):
+             train_filter=None, min_train=5000, prod_override=None):
     fin = np.isfinite(X.to_numpy()).all(1)
-    prod = S.production_mask(ep)
+    # `prod_override` lets a caller score a DIFFERENT slice (e.g. one
+    # horizon at a time) through this same path, so its numbers stay
+    # comparable to the headline: same committee, both sides, same
+    # barriers. Reimplementing the scoring elsewhere is how a
+    # 'decomposition' quietly ends up measuring a different estimator.
+    prod = (S.production_mask(ep) if prod_override is None
+            else np.asarray(prod_override, bool))
     m_tr, m_va = fold["train"] & fin, fold["calib"] & fin
     if train_filter is not None:
         m_tr = m_tr & train_filter
