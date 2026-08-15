@@ -57,3 +57,13 @@ jobs:
       # than they are -- so it is gated rather than trusted.
       - name: Adaptive-calibration self-test
         run: python model/tests/test_adaptive.py
+
+      # Gates the online-adaptation guard: ACI's coverage guarantee, Ville's
+      # bound on the e-processes, and the promotion/veto asymmetry. A
+      # regression in any of these is SILENT -- the system keeps forecasting
+      # and keeps reporting that it is safe. The gate-direction check
+      # reproduces a bug that shipped once: promotion tested whether the
+      # e-process had EVER crossed its threshold, so one early spike unlocked
+      # it permanently.
+      - name: Self-improvement guard self-test
+        run: python model/tests/test_selfimprove.py
