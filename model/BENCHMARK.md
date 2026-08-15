@@ -349,6 +349,35 @@ boundary `eval/cross_asset.py` found from the other direction: σ transfers
 zero-shot to unseen altcoins, and the excursion shape is where transfer gets
 shakier.
 
+### Does the gain depend on the expiry? Under-powered, and it says so
+
+`--by-expiry` scores both arms per horizon on ONE train/test split, because the
+horizon breakdown needs the test slice widened past the production H = 19 that
+the walk-forward scoring is restricted to.
+
+| H | n | QLIKE BTC | QLIKE pooled | Δ | DSC/UNC BTC | DSC/UNC pooled | Δ |
+|---|---|---|---|---|---|---|---|
+| 6 | 770 | 0.3673 | 0.3524 | **−4.0 %** | 0.12641 | 0.12653 | +0.1 % |
+| 12 | 769 | 0.2884 | 0.2842 | −1.5 % | 0.07980 | 0.07922 | −0.7 % |
+| 19 | 769 | 0.2478 | 0.2498 | **+0.8 %** | 0.07779 | 0.07911 | +1.7 % |
+| 24 | 769 | 0.2361 | 0.2357 | −0.2 % | 0.07578 | 0.07473 | −1.4 % |
+
+The tempting reading is that the volatility gain concentrates at short
+horizons and decays to nothing by H = 24. **Do not take it.** At H = 19 this
+table says pooling is 0.8 % WORSE, while the six-fold walk-forward above —
+which scores H = 19 and nothing else — says 2.69 % BETTER in 6 of 6 folds.
+Same horizon, opposite sign.
+
+That disagreement is the useful part. One train/test split cannot resolve a
+1–3 % QLIKE difference on ~770 episodes; six refits with consistent sign can.
+So the walk-forward is the measurement and this table is a decomposition whose
+per-cell precision is visibly inadequate. The H = 6 figure (−4.0 %) is the
+largest and most likely to be real, but it rests on the same single split and
+is not independent evidence.
+
+Reported rather than dropped, because the sign flip is a cleaner statement
+about how much precision a single split buys than any of the numbers in it.
+
 **Not shipped.** The deployed product is a barrier forecast, and pooling does
 not improve barrier discrimination. A 2.7 % QLIKE gain would justify pooling
 for a volatility product; it does not justify tripling the training set and
