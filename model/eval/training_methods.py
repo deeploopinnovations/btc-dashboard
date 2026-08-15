@@ -37,13 +37,35 @@ refitted on held-out time blocks so each episode's sigma comes from a model
 that never saw it.
 
 ---------------------------------------------------------------------
-ARM 2 -- uniqueness: 510,000 episodes are not 510,000 observations
+ARM 2 -- uniqueness: PROVABLY VACUOUS HERE, and that is the finding
 ---------------------------------------------------------------------
-A 19-hour window opened at 17:00 shares 18 hours with the one opened at 18:00.
-The 510k training episodes carry roughly 2,500 independent observations, a ~76x
-inflation, and training currently weights only by time decay. Average
-uniqueness (concurrency-weighted) down-weights an episode by how much of its
-span is shared with others, so redundant windows stop voting repeatedly.
+The redundancy is real. Average uniqueness puts the effective sample size at
+8,380 against 510,496 episodes -- a 60.9x inflation, with 19,134 parameters
+fitted to it.
+
+The standard remedy does not apply, and not as a matter of degree. Measured on
+the training split (n = 189,831):
+
+    uniqueness   mean 0.016393   sd 0.000000   CV 0.0000
+    concurrency  mean 60.9       max 61
+    normalised weight multiplier: min 1.0000, max 1.0000, sd 0.0000
+
+Every episode has uniqueness EXACTLY 1/61, at every horizon. Our episodes are
+generated on a COMPLETE REGULAR GRID -- every hour, every horizon -- so the
+concurrency count c(t) is a constant of the grid rather than a property of the
+data, uniqueness is its reciprocal, and after normalisation the weights are
+uniform to machine precision. The arm cannot change the fit, and no experiment
+was needed to know it.
+
+This is worth stating because average uniqueness and the sequential bootstrap
+(Lopez de Prado 2018) were recommended to us for exactly this problem. They are
+built for EVENT-DRIVEN labels -- triple-barrier sampling with data-dependent
+holding periods -- where concurrency genuinely varies episode to episode. On a
+regular grid there is nothing for them to grip: uniqueness weighting is a
+RELATIVE reweighting and the redundancy here is UNIFORM.
+
+So the redundancy has to be attacked by removing samples or by shrinking
+capacity, not by reweighting. Which is what ARM 3 tests.
 
 ---------------------------------------------------------------------
 ARM 3 -- nonoverlap: does the augmentation help at all?
@@ -179,6 +201,14 @@ def main(argv=None) -> int:
     print(f"  average uniqueness: median {np.median(uniq):.5f}  "
           f"=> {uniq.sum():,.0f} effective from {len(ep):,} episodes "
           f"({len(ep)/max(uniq.sum(),1):.1f}x inflation)")
+    # If this is ~0 the uniqueness arm is a no-op BY CONSTRUCTION -- a regular
+    # episode grid gives constant concurrency, hence constant uniqueness. Say
+    # so loudly rather than letting a vacuous arm sit in the table looking like
+    # an experimental null.
+    cv = float(uniq.std() / max(uniq.mean(), 1e-12))
+    print(f"  uniqueness CV: {cv:.6f}"
+          + ("   <- CONSTANT: reweighting is vacuous on a regular grid"
+             if cv < 1e-6 else ""))
     m = prod & fin
     print(f"  cross-fitted sigma / RV on production: median "
           f"{np.median(sig_cf[m]/rv[m]):.4f}")
