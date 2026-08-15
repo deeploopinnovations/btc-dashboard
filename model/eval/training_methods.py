@@ -66,9 +66,16 @@ horizon, and the training split is the only place the weights are applied.
 The reason is structural. Our episodes are generated on a COMPLETE REGULAR GRID
 -- every hour, every horizon -- so the concurrency count c(t) is a constant of
 the grid rather than a property of the data, uniqueness is its reciprocal, and
-after normalisation the weights are uniform to machine precision. The arm
-cannot change the fit, and no experiment was needed to know it. (It was run
-anyway, and reproduced the baseline bit-for-bit in all six folds.)
+after normalisation the weights are uniform up to floating point. The arm
+essentially cannot change the fit.
+
+It was run anyway, and the measured difference is 1e-5 in DSC/UNC against the
+4e-3 that serve_consistent moves -- about 100x smaller, and not in a consistent
+direction (3 folds up, 3 down). NOT bit-for-bit, and an earlier version of this
+file wrongly said so while the table two sections down showed 0.04980 against
+0.04981. Two reasons it is not exact: the walk-forward training windows include
+the sample-start boundary where the grid is not yet full, and `w * c / mean(w *
+c)` is not bitwise identity even for constant c.
 
 Across the FULL episode set the CV is 0.032 rather than 0, entirely from the
 first and last days where the grid is not yet full. The diagnostic prints the

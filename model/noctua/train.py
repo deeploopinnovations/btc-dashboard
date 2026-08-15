@@ -91,7 +91,7 @@ def prepare(ep, X, mask, std_all=None, std_shape=None, std_base=None,
     # conditioned on log sigma; at serving `sigma` is the model's own FORECAST,
     # so the target it was fitted to is not the target it faces. Dividing by
     # the realized value quietly removes the volatility-forecast error from the
-    # problem. Measured on the production training slice:
+    # problem. Measured on the production slice:
     #
     #   sd( M_up / RV_true    ) = 0.5490   <- what training fits
     #   sd( M_up / sigma_hat  ) = 0.9312   <- what serving faces, 1.7x wider
