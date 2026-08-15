@@ -126,6 +126,31 @@ def build_features(hours: pd.DataFrame, episodes: pd.DataFrame) -> pd.DataFrame:
         F[f"rng_park_{name}"] = 0.5 * _safe_log(_trailing_sum(park, k) / k)
         F[f"rng_gk_{name}"] = 0.5 * _safe_log(np.maximum(_trailing_sum(gk, k), EPS) / k)
 
+    # ---- path efficiency ----------------------------------------------------
+    # How much of the volatility became NET TRAVEL. The estimators above are
+    # per-bar: Parkinson sums squared HOURLY ranges and tracks RV almost
+    # exactly. This is the different, window-SPANNING quantity
+    #
+    #     (max over k hours - min over k hours) / sqrt(sum of RV over k hours)
+    #
+    # which is dimensionless and asks whether the path trended or chopped.
+    # Under Brownian motion it is the constant sqrt(8/pi) = 1.5958, which is
+    # precisely the assumption Gaussian first-passage makes. On BTC it is not
+    # constant: median 1.295 with an IQR of [1.017, 1.612], it is PERSISTENT
+    # (Spearman +0.38 from trailing to forward at every lookback tried), and it
+    # is essentially UNCORRELATED with realized vol itself (Spearman -0.036).
+    #
+    # That last number is why these are shape features and not level features:
+    # a second axis the volatility cascade cannot see, aimed at the one thing
+    # BENCHMARK.md says the committee does not win -- binary barrier
+    # discrimination, where the competitor is exactly a first-passage formula
+    # holding this ratio fixed.
+    lhi, llo = _safe_log(high), _safe_log(low)
+    for name, k in (("1d", 24), ("3d", 72), ("7d", 168)):
+        span = _trailing_max(lhi, k) + _trailing_max(-llo, k)   # max - min
+        F[f"eff_{name}"] = _safe_log(np.maximum(span, EPS)) - 0.5 * _safe_log(
+            np.maximum(_trailing_sum(rv5, k), EPS))
+
     # ---- momentum / trend ---------------------------------------------------
     logc = _safe_log(close)
     for name, k in (("1d", 24), ("5d", 120), ("22d", 528)):

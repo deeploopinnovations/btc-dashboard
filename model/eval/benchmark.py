@@ -336,7 +336,7 @@ class ScaledClimatology(Forecaster):
 # ==========================================================================
 # one walk-forward fold
 # ==========================================================================
-def run_fold(ep, X, fold, hidden=32, seeds=3, verbose=False):
+def run_fold(ep, X, fold, hidden=32, seeds=3, verbose=False, shape_cols=None):
     fin = np.isfinite(X.to_numpy()).all(1)
     prod = S.production_mask(ep)
     m_tr, m_va = fold["train"] & fin, fold["calib"] & fin
@@ -344,9 +344,9 @@ def run_fold(ep, X, fold, hidden=32, seeds=3, verbose=False):
     if m_tr.sum() < 5000 or m_te.sum() < 30 or m_va.sum() < 500:
         return None
 
-    tr, stds = prepare(ep, X, m_tr)
+    tr, stds = prepare(ep, X, m_tr, shape_cols=shape_cols)
     wtr = S.sample_weights(ep, m_tr)
-    va, _ = prepare(ep, X, m_va, *stds)
+    va, _ = prepare(ep, X, m_va, *stds, shape_cols=shape_cols)
     H = ep.H.to_numpy(np.float64)
     yall = B.har_target(ep.RV.to_numpy(), H)
 
@@ -357,7 +357,7 @@ def run_fold(ep, X, fold, hidden=32, seeds=3, verbose=False):
                           verbose=verbose, ols_beta=ols.beta)[0] for s in range(seeds)]
 
     def predict_avg(mask):
-        d, _ = prepare(ep, X, mask, *stds)
+        d, _ = prepare(ep, X, mask, *stds, shape_cols=shape_cols)
         lp = bl["log_har_cal"].predict(X[mask])
         preds = [I.predict(m, d, har_logvol=lp) for m in models]
         out = dict(preds[0])

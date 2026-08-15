@@ -28,6 +28,7 @@ from . import infer as I
 from . import splits as S
 from .calibrate import NoctuaCalibration
 from .model import BASE_COLS, LEVELS, SHAPE_COLS, Noctua, coupling_penalty, pinball_loss
+from .spec import NON_MODEL_COLS
 
 EPS = 1e-12
 
@@ -56,11 +57,27 @@ class Standardizer:
         return np.nan_to_num((A - self.mu) / self.sd, nan=0.0, posinf=0.0, neginf=0.0)
 
 
-def prepare(ep, X, mask, std_all=None, std_shape=None, std_base=None):
-    """Slice + standardize the three input blocks and build targets."""
-    Xa = X.loc[mask, :].to_numpy(np.float64)
+def prepare(ep, X, mask, std_all=None, std_shape=None, std_base=None,
+            shape_cols=None):
+    """Slice + standardize the three input blocks and build targets.
+
+    `shape_cols` overrides the stage-B column list. It exists for the ablation
+    in eval/efficiency.py: an arm that is meant not to see a feature must not
+    see it in the wide block either, so the override drops those columns from
+    BOTH Xs and Xa. Passing the same columns a second time through a different
+    input would have made the ablation measure nothing.
+    """
+    shape_cols = list(SHAPE_COLS if shape_cols is None else shape_cols)
+    # Anything the model must not consume, minus whatever this arm explicitly
+    # asked for. NON_MODEL_COLS is what keeps a research column in
+    # features.parquet from silently widening Xa and changing the artifact.
+    dropped = [c for c in set(SHAPE_COLS) | set(NON_MODEL_COLS)
+               if c not in shape_cols]
+    all_cols = [c for c in X.columns if c not in dropped]
+
+    Xa = X.loc[mask, all_cols].to_numpy(np.float64)
     Xb = X.loc[mask, BASE_COLS].to_numpy(np.float64)
-    Xs = X.loc[mask, SHAPE_COLS].to_numpy(np.float64)
+    Xs = X.loc[mask, shape_cols].to_numpy(np.float64)
 
     e = ep.loc[mask]
     H = e["H"].to_numpy(np.float64)
