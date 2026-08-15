@@ -327,15 +327,27 @@ could carry.
 | CRPS | 0.005307 | 0.005312 | 3/6 | −0.51 |
 | **QLIKE** | **0.299840** | **0.294241** | **5/6** | **+1.63** |
 
-**Volatility improves in 5 of 6 folds, 1.87 % mean.** Barrier discrimination
-does not move and if anything drifts negative: 2/6 and a t-like of −0.94, with
-fold swings (−6.6 % to +5.3 %) dwarfing the −1.8 % mean. CRPS flat.
+**Volatility improves in 5 of 6 folds, 1.87 %.** Barrier discrimination does
+not move and if anything drifts negative: 2/6 and a t-like of −0.94, with fold
+swings (−6.6 % to +5.3 %) dwarfing the −1.8 %. CRPS flat.
+
+A note on what "1.87 %" is, because the two available averages differ and the
+larger one is the one quoted. Every percentage in this section is a ratio of
+the columns above, i.e. of fold-AVERAGED scores. Averaging the six per-fold
+percentages instead gives **1.45 %** for QLIKE — smaller, because a ratio of
+means weights each fold by its own QLIKE level, and the levels line up with
+the effect: the fold pooling helps most is the highest-QLIKE one (2023, 0.435,
+−4.9 %) and the one fold it HURTS is the lowest (2026, 0.204, +1.3 %). For DSC/UNC
+the two agree (−1.80 % vs −2.00 %). Neither convention changes the direction
+of anything here, and both are reported so the reader can pick.
 
 **These numbers are WEAKER than the ones first published here, and the reason
 matters more than the numbers.** The first version of this section reported
 QLIKE 6/6, 2.69 %, t-like +2.74. It was computed before the ETH gap filter
 existed, i.e. with 2,924 mislabelled episodes in the pooled arm. Review caught
-the gap; refiltering and re-running gives 5/6, 1.87 %, t-like +1.63.
+the gap; refiltering and re-running gives 5/6, 1.87 %, t-like +1.63. Both
+figures are ratios of fold-averaged QLIKE, so the comparison is like for like;
+under the per-fold average the same pair reads 2.42 % → 1.45 %.
 
 I predicted the opposite. The commit that added the filter argued that
 stretched windows inflate RV, so the defect must have biased *against* pooling
@@ -399,11 +411,13 @@ resolve a 1–2 % difference that six refits can. Six folds beat one, and the
 walk-forward remains the measurement.
 
 **Not shipped.** The deployed product is a barrier forecast, and pooling does
-not improve barrier discrimination. A 2.7 % QLIKE gain would justify pooling
-for a volatility product; it does not justify tripling the training set and
-adding three assets' data-quality risk to a model whose output is a touch
-probability. Recorded as a real, replicated, mechanism-consistent effect on
-the wrong metric.
+not improve barrier discrimination — and the QLIKE gain that survives the gap
+fix is concentrated at horizons shorter than the one that ships. A 1.9 % gain
+at H = 19 would be worth arguing about for a volatility product; +1.2 % in the
+wrong direction there does not justify tripling the training set and adding
+three assets' data-quality risk to a model whose output is a touch
+probability. Recorded as a modest, replicated effect on the wrong metric, at
+the wrong expiry.
 
 ---
 
