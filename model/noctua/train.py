@@ -93,7 +93,7 @@ def prepare(ep, X, mask, std_all=None, std_shape=None, std_base=None,
     # the realized value quietly removes the volatility-forecast error from the
     # problem. Measured on the production training slice:
     #
-    #   sd( M_up / RV_true    ) = 0.5611   <- what training fits
+    #   sd( M_up / RV_true    ) = 0.5490   <- what training fits
     #   sd( M_up / sigma_hat  ) = 0.9312   <- what serving faces, 1.66x wider
     #
     # It also manufactures dependence: RV appears in the denominator of the

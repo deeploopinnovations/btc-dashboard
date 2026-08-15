@@ -14,10 +14,10 @@ THE DEFECT. Stage B learns quantiles of M_up/sigma conditioned on log sigma,
 and `sigma` in training is RV -- the REALIZED window volatility. At serving it
 is the model's own forecast. So the target fitted is not the target faced, and
 dividing by the realized value silently removes the volatility-forecast error
-from the problem. On the production training slice:
+from the problem. Measured on the production slice:
 
-    sd( M_up / RV_true   ) = 0.5611     <- what training fits
-    sd( M_up / sigma_hat ) = 0.9312     <- what serving faces, 1.66x wider
+    sd( M_up / RV_true   ) = 0.5490     <- what training fits
+    sd( M_up / sigma_hat ) = 0.9312     <- what serving faces, 1.7x wider
 
 Stage B is therefore fitted to a distribution 40% narrower than the one its
 output is applied to, and its quantiles are correspondingly too tight.
@@ -30,11 +30,21 @@ correlation of ratios (1897), and nothing stops stage B fitting it. The
 observed training-regime correlation is -0.0556, i.e. the real relationship is
 SMALLER than the arithmetic artifact sitting on top of it.
 
-THE FIX. Train stage B against a causal, CROSS-FITTED Log-HAR volatility
-forecast. Cross-fitted because a forecast fitted on the same episode it scores
-is optimistic in exactly the way that would hide the problem; the estimator is
-refitted on held-out time blocks so each episode's sigma comes from a model
-that never saw it.
+THE FIX. Train stage B against a volatility reference that FITS NOTHING, so
+there is no estimator that could leak: exp(har_1d) * sqrt(H), where har_1d is a
+FEATURE built from bars strictly before the anchor. Clip bounds are quantiles
+of that forecast on the fold's TRAINING episodes only.
+
+    sd( M_up / sigma_causal ) = 0.9272   <- reproduces the serving regime
+
+It is a WEAKER forecast than the deployed one, which makes the arm conservative
+rather than flattering.
+
+(An earlier version of this fix cross-fitted an OLS over time blocks and is
+DISCARDED. Ordinary K-fold fits each held-out block on every OTHER block,
+including LATER ones, so a 2021 episode's sigma was computed partly from 2025
+data. That run was 5/6 positive and is not reported. See
+causal_sigma_factory().)
 
 ---------------------------------------------------------------------
 ARM 2 -- uniqueness: PROVABLY VACUOUS HERE, and that is the finding
@@ -51,15 +61,18 @@ the training split (n = 189,831):
     normalised weight multiplier: min 1.0000, max 1.0000, sd 0.0000
 
 Every episode ON THE TRAINING SPLIT has uniqueness EXACTLY 1/61, at every
-horizon -- and the training split is the only place the weights are applied.
-(Across the FULL episode set the CV is 0.032 rather than 0, entirely from the
-first and last few days of the sample where the grid is not yet full. The
-diagnostic prints the full-set figure, so the two numbers are not in conflict.) Our episodes are
-generated on a COMPLETE REGULAR GRID -- every hour, every horizon -- so the
-concurrency count c(t) is a constant of the grid rather than a property of the
-data, uniqueness is its reciprocal, and after normalisation the weights are
-uniform to machine precision. The arm cannot change the fit, and no experiment
-was needed to know it.
+horizon, and the training split is the only place the weights are applied.
+
+The reason is structural. Our episodes are generated on a COMPLETE REGULAR GRID
+-- every hour, every horizon -- so the concurrency count c(t) is a constant of
+the grid rather than a property of the data, uniqueness is its reciprocal, and
+after normalisation the weights are uniform to machine precision. The arm
+cannot change the fit, and no experiment was needed to know it. (It was run
+anyway, and reproduced the baseline bit-for-bit in all six folds.)
+
+Across the FULL episode set the CV is 0.032 rather than 0, entirely from the
+first and last days where the grid is not yet full. The diagnostic prints the
+full-set figure, so the two numbers are not in conflict.
 
 This is worth stating because average uniqueness and the sequential bootstrap
 (Lopez de Prado 2018) were recommended to us for exactly this problem. They are
