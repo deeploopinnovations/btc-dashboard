@@ -197,10 +197,32 @@ def build_episodes(hours: pd.DataFrame, horizons=DEFAULT_HORIZONS) -> pd.DataFra
     close = hours["close"].to_numpy(np.float64)
     high = hours["high"].to_numpy(np.float64)
     low = hours["low"].to_numpy(np.float64)
-    high_c = hours["high_clean"].to_numpy(np.float64)
-    low_c = hours["low_clean"].to_numpy(np.float64)
     rv5 = hours["rv5"].to_numpy(np.float64)
-    rv1 = hours["rv1"].to_numpy(np.float64)
+
+    # Bundles harvested from an exchange's 5-MINUTE bars (data/assets/*.parquet)
+    # cannot carry the 1-minute-derived columns that build_hourly produces from
+    # the BTC tick file. Fall back rather than refuse, because nothing the model
+    # trains on depends on them:
+    #
+    #   high_clean/low_clean  feed ONLY M_up_clean / M_dn_clean, which have no
+    #                         references in train.py or any eval. Note that
+    #                         M_up/M_dn -- the columns training actually uses --
+    #                         are built from RAW high/low for BTC as well, so
+    #                         the fallback introduces no asymmetry between
+    #                         pooled assets.
+    #   rv1                   feeds ONLY RV1, which is FORWARD-looking
+    #                         (correlates 0.953 with the target) and is
+    #                         deliberately avoided everywhere for that reason.
+    #
+    # If either becomes load-bearing later, this fallback must go and the
+    # harvested bundles must be rebuilt from 1-minute data instead.
+    def _opt(name: str, fallback: str) -> np.ndarray:
+        col = name if name in hours.columns else fallback
+        return hours[col].to_numpy(np.float64)
+
+    high_c = _opt("high_clean", "high")
+    low_c = _opt("low_clean", "low")
+    rv1 = _opt("rv1", "rv5")
 
     # S_tau is the close of the PREVIOUS hour: the last price known at tau
     s_tau = np.full(n, np.nan)
