@@ -230,9 +230,67 @@ way. It does bound what is deployable on a free 2-vCPU Space: at 117 s per
 forecast with a 30-minute refresh, Kronos-small would spend 6.5% of its life
 computing one number.
 
-**Still unmeasured.** Kronos's accuracy — and the two attempts that failed
-are worth recording, because the second one nearly produced a false claim about
-somebody else's model.
+**Measured at last.** Kronos-small, 120 production episodes, 32 independent
+sampled paths each, same anchors, same barriers, graded by one implementation
+of one set of rules.
+
+| model | Brier | log score | DSC ↑ | MCB ↓ |
+|---|---|---|---|---|
+| **noctua_v2** | **0.146371** | **0.443084** | **0.018334** | **0.023980** |
+| kronos-small | 0.214208 | 0.661172 | 0.006580 | 0.080062 |
+| climatology | *0.140725* | *0.431316* | 0.000000 | 0.000000 |
+
+NOCTUA wins Brier, log score and discrimination. Paired episode-level bootstrap
+(2,000 resamples over the 120 episodes, which preserves the within-episode
+dependence between barriers and sides):
+
+    Brier advantage to NOCTUA   +0.0504 .. +0.0868    P(better) = 1.000
+    DSC   advantage to NOCTUA   +0.0055 .. +0.0202    P(better) = 1.000
+
+Both intervals exclude zero. Against a model **1,291× larger** (24.7 M
+parameters against 19,134), on the task this repo was built for.
+
+Four things must be said alongside that, because none of them flatters us.
+
+**Climatology's Brier and log score are the lowest in the table and are
+IN-SAMPLE.** Its base rate is estimated from the evaluation set itself, so those
+two columns are not a fair comparison and neither model "loses" to it. Only
+`DSC = 0.000000` is a valid control — and it is the one that matters, since it
+confirms the harness cannot manufacture discrimination from nothing.
+
+**Kronos is genuinely better calibrated on the volatility LEVEL.** Median
+predicted/realized: Kronos **1.172**, NOCTUA **1.232**. Both over-forecast; the
+24.7 M-parameter general-purpose model is closer to unbiased than the
+purpose-built one. That is a real result and it is not softened here.
+
+**Kronos carries real conditional information.** DSC 0.006580 is not zero and
+not close to it — it is 36% of NOCTUA's, from a model that has never been told
+what a barrier is. At the 1% barrier it is nearly level (0.018317 vs 0.020565).
+Its weakness is calibration (MCB 0.080062, 3.3× NOCTUA's), which is what you
+would expect from sampled paths that were never fitted to this question.
+
+**Three earlier runs were invalid, and two of those were our fault.** Run 1
+used `top_p=0.9`, whose nucleus truncation removes exactly the tail where large
+moves live. Runs 1 and 2 both then hit a worse defect:
+`KronosPredictor.predict(sample_count=32)` **averages** its draws
+(`kronos.py:467`) and returns one smoothed path, so `n_paths` was 1, every
+"probability" was exactly 0.0 or 1.0, and the sampled volatility ratio read
+0.259 and 0.373. That reads as "Kronos is 2.7× too calm" and it is not — with
+genuine sampling the ratio is **1.172**. Publishing the earlier number would
+have been a false claim about someone else's model, produced by our harness and
+flattering to ours. `eval/kronos_ci.py` now draws via `predict_batch` and
+`assert_ensemble()` aborts on episode 1 rather than 120.
+
+A fourth run was lost to plumbing rather than science: the compute succeeded and
+the commit step failed, and the predictions were recovered from the Actions
+artifact by `recover-kronos-artifact.yml` rather than paying 3h49m again.
+
+**Compute.** 114.2 s/episode for Kronos against 0.6 ms for NOCTUA — a factor of
+roughly 190,000, against a parameter ratio of 1,291.
+
+**Scope.** 120 daily non-overlapping episodes from one asset over one four-month
+window, against Kronos-**small**. It is not a claim about Kronos-base, about
+other horizons, or about other instruments.
 
 Getting Kronos to run at all took moving it into CI: `huggingface.co` weight
 downloads are blocked from the development environment (HTTP 403 via the proxy);

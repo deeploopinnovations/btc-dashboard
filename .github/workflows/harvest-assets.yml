@@ -75,27 +75,58 @@ jobs:
                     f"{f.stat().st_size/1024:>6.0f} KB")
           PY
 
+      # Insurance. The 3300-day harvest takes over an hour, and a run whose
+      # COMPUTE succeeded and whose COMMIT failed lost all of it -- exactly what
+      # happened at 05:35Z. kronos-eval survived the same failure only because
+      # it happened to upload an artifact first.
+      - name: Upload bundles as an artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: asset-bundles
+          path: data/assets/*.parquet
+          if-no-files-found: warn
+
       - name: Commit bundles
         run: |
+          set -euo pipefail
+          BR="${{ github.ref_name }}"
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A data/assets/
-          if git diff --cached --quiet; then
-            echo "nothing new to commit"
-            exit 0
-          fi
-          git commit -m "chore(data): harvest cross-asset hourly bundles"
-          # The branch may have moved while this job ran -- it takes many
-          # minutes and development continues meanwhile. Re-parent onto the
-          # current tip rather than failing on a non-fast-forward: reset --soft
-          # keeps the harvested files in the index and just moves HEAD.
+          # Stash the harvest OUTSIDE the work tree before touching git state.
+          mkdir -p /tmp/bundles && cp data/assets/*.parquet /tmp/bundles/ 2>/dev/null || true
           for attempt in 1 2 3; do
-            git fetch origin "${{ github.ref_name }}"
-            git reset --soft "origin/${{ github.ref_name }}"
-            git add -A data/assets/
-            git diff --cached --quiet && { echo "already up to date"; exit 0; }
+            git fetch origin "$BR"
+            # checkout -B, NOT reset --soft.
+            #
+            # `reset --soft` moves HEAD and KEEPS THE INDEX. When this job runs
+            # for an hour and the branch moves underneath it, the index still
+            # describes the OLD checkout, so committing it against the NEW
+            # parent produces a diff that DELETES everything added in between.
+            # That is not hypothetical: at 05:35Z this step built
+            #
+            #   20 files changed, 151 insertions(+), 1411 deletions(-)
+            #    delete mode 100644 model/LITERATURE.md
+            #    delete mode 100644 model/serve/selfimprove.py
+            #
+            # under the message "chore(data): harvest cross-asset hourly
+            # bundles". It was rejected only because the same revert touched a
+            # workflow file and the Actions token has no `workflows` permission
+            # -- a check this job was never designed to rely on.
+            git checkout -B "$BR" "origin/$BR"
+            cp /tmp/bundles/*.parquet data/assets/ 2>/dev/null || true
+            git add data/assets/
+            if git diff --cached --quiet; then
+              echo "nothing new to commit"; exit 0
+            fi
+            # Refuse to push anything but the bundles.
+            if git diff --cached --name-only | grep -qv '^data/assets/'; then
+              echo "REFUSING: staged files outside data/assets/:"
+              git diff --cached --name-only
+              exit 1
+            fi
             git commit -m "chore(data): harvest cross-asset hourly bundles"
-            git push origin "HEAD:${{ github.ref_name }}" && exit 0
+            git push origin "HEAD:$BR" && exit 0
             echo "push attempt $attempt rejected; retrying"
             sleep 5
           done
