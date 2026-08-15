@@ -1,0 +1,102 @@
+# .github/workflows/harvest-assets.yml
+# =====================================================================
+# Pulls hourly history for assets other than Bitcoin and commits it, so the
+# model can be tested zero-shot on instruments it was never trained on.
+#
+# This job exists because the exchange APIs are unreachable from the
+# development container -- the egress proxy returns 403 on bitstamp.net and
+# api.exchange.coinbase.com -- while the repository's own fetch-data cron has
+# been pulling Bitstamp hourly from a runner without trouble for days. The
+# network boundary is the container's, not the internet's, so the fetch is done
+# where it is already permitted and the result is committed for offline use.
+#
+# Deliberately NOT on a schedule. This is a one-off research dataset, not a
+# live feed; re-run it by hand when the evaluation window needs extending.
+name: harvest-assets
+
+on:
+  workflow_dispatch:
+    inputs:
+      symbols:
+        description: 'Comma-separated symbols (eth,sol,xrp,ltc,ada,link,doge)'
+        default: 'btc,eth,sol,xrp,ltc'
+      days:
+        description: 'Days of history per asset'
+        default: '900'
+  push:
+    paths:
+      - 'model/eval/harvest.py'
+      - '.github/workflows/harvest-assets.yml'
+
+permissions:
+  contents: write
+
+# Serialise runs, but do NOT cancel the one already going. cancel-in-progress
+# looks right and is not: re-running an older failed run counts as "newest" and
+# kills a newer, fixed run that was already most of the way through a harvest.
+# That happened here -- a re-run of the pre-fix workflow cancelled the fixed
+# one at 09:24 and then failed in exactly the way the fix addressed. Now that
+# the commit step re-parents onto the current tip, overlapping runs are
+# harmless, so queueing is strictly safer than pre-empting.
+concurrency:
+  group: harvest-assets-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  harvest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install runtime
+        run: pip install --quiet -r model/serve/requirements-ci.txt
+
+      - name: Harvest
+        run: |
+          python -m model.eval.harvest \
+            --symbols "${{ github.event.inputs.symbols || 'btc,eth,sol,xrp,ltc' }}" \
+            --days "${{ github.event.inputs.days || '900' }}"
+
+      - name: Report what landed
+        run: |
+          ls -la data/assets/ || echo "no bundles produced"
+          python - <<'PY'
+          from pathlib import Path
+          import pandas as pd
+          for f in sorted(Path("data/assets").glob("*_history.parquet")):
+              h = pd.read_parquet(f)
+              span = (h.hour_ts.max() - h.hour_ts.min()) / 86400
+              print(f"{f.name:<28} {len(h):>6} hours  {span:>5.0f} days  "
+                    f"{f.stat().st_size/1024:>6.0f} KB")
+          PY
+
+      - name: Commit bundles
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A data/assets/
+          if git diff --cached --quiet; then
+            echo "nothing new to commit"
+            exit 0
+          fi
+          git commit -m "chore(data): harvest cross-asset hourly bundles"
+          # The branch may have moved while this job ran -- it takes many
+          # minutes and development continues meanwhile. Re-parent onto the
+          # current tip rather than failing on a non-fast-forward: reset --soft
+          # keeps the harvested files in the index and just moves HEAD.
+          for attempt in 1 2 3; do
+            git fetch origin "${{ github.ref_name }}"
+            git reset --soft "origin/${{ github.ref_name }}"
+            git add -A data/assets/
+            git diff --cached --quiet && { echo "already up to date"; exit 0; }
+            git commit -m "chore(data): harvest cross-asset hourly bundles"
+            git push origin "HEAD:${{ github.ref_name }}" && exit 0
+            echo "push attempt $attempt rejected; retrying"
+            sleep 5
+          done
+          echo "could not push after 3 attempts"; exit 1

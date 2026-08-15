@@ -42,8 +42,23 @@ STEP = 300                       # 5-minute bars
 MAX_PER_CALL = 1000              # Bitstamp's limit
 DEFAULT_TAIL_HOURS = 72          # comfortably covers a missed cron or two
 
-BITSTAMP = "https://www.bitstamp.net/api/v2/ohlc/btcusd/"
-COINBASE = "https://api.exchange.coinbase.com/products/BTC-USD/candles"
+BITSTAMP = "https://www.bitstamp.net/api/v2/ohlc/{pair}/"
+COINBASE = "https://api.exchange.coinbase.com/products/{product}/candles"
+
+# Venue symbols per asset. BTC is the production path and its defaults are
+# unchanged; the rest exist so the model can be tested on instruments it was
+# never trained on. Same quote currency (USD) throughout, because a USDT pair
+# would fold stablecoin depeg risk into the excursion distribution.
+SYMBOLS = {
+    "btc": ("btcusd", "BTC-USD"),
+    "eth": ("ethusd", "ETH-USD"),
+    "sol": ("solusd", "SOL-USD"),
+    "xrp": ("xrpusd", "XRP-USD"),
+    "ltc": ("ltcusd", "LTC-USD"),
+    "ada": ("adausd", "ADA-USD"),
+    "link": ("linkusd", "LINK-USD"),
+    "doge": ("dogeusd", "DOGE-USD"),
+}
 UA = {"User-Agent": "noctua/1.1 (+https://github.com/deeploopinnovations/btc-dashboard)"}
 
 
@@ -65,13 +80,16 @@ def _finish(rows: list[dict], source: str) -> pd.DataFrame:
 
 
 # --------------------------------------------------------------------------
-def fetch_bitstamp(tail_hours: int = DEFAULT_TAIL_HOURS) -> pd.DataFrame:
-    """Recent 5-minute BTC/USD bars, oldest-first.
+def fetch_bitstamp(tail_hours: int = DEFAULT_TAIL_HOURS,
+                   symbol: str = "btc") -> pd.DataFrame:
+    """Recent 5-minute bars for `symbol`, oldest-first.
 
     Paginates forward using `start` alone. Passing `end` as well makes the API
     anchor to the end of the window and re-serve the same final page, which is
     what broke the previous implementation.
     """
+    pair = SYMBOLS[symbol][0]
+    base = BITSTAMP.format(pair=pair)
     now = int(time.time())
     start = now - tail_hours * 3600
     need_calls = max(1, int(np.ceil(tail_hours * 3600 / (STEP * MAX_PER_CALL))))
@@ -79,7 +97,7 @@ def fetch_bitstamp(tail_hours: int = DEFAULT_TAIL_HOURS) -> pd.DataFrame:
     rows: list[dict] = []
     cursor = start
     for _ in range(need_calls + 2):          # +2 slack for partial pages
-        data = _get(f"{BITSTAMP}?step={STEP}&limit={MAX_PER_CALL}&start={cursor}")
+        data = _get(f"{base}?step={STEP}&limit={MAX_PER_CALL}&start={cursor}")
         page = data.get("data", {}).get("ohlc", [])
         if not page:
             break
@@ -93,23 +111,25 @@ def fetch_bitstamp(tail_hours: int = DEFAULT_TAIL_HOURS) -> pd.DataFrame:
         time.sleep(0.25)                     # polite to a free public endpoint
 
     if not rows:
-        raise RuntimeError("bitstamp returned no candles")
-    return _finish(rows, "bitstamp:btcusd")
+        raise RuntimeError(f"bitstamp returned no candles for {pair}")
+    return _finish(rows, f"bitstamp:{pair}")
 
 
-def fetch_coinbase(tail_hours: int = DEFAULT_TAIL_HOURS) -> pd.DataFrame:
-    """Fallback: Coinbase Exchange BTC-USD, max 300 candles per request.
+def fetch_coinbase(tail_hours: int = DEFAULT_TAIL_HOURS,
+                   symbol: str = "btc") -> pd.DataFrame:
+    """Fallback: Coinbase Exchange, max 300 candles per request.
 
     Same asset and quote currency as the training venue, and reachable from US
     runners -- unlike Binance, which returns 451 there.
     """
+    product = SYMBOLS[symbol][1]
     now = int(time.time())
     start = now - tail_hours * 3600
     rows: list[dict] = []
     cursor = start
     while cursor < now:
         end = min(cursor + 300 * STEP, now)
-        url = (f"{COINBASE}?granularity={STEP}"
+        url = (f"{COINBASE.format(product=product)}?granularity={STEP}"
                f"&start={pd.Timestamp(cursor, unit='s', tz='UTC').isoformat()}"
                f"&end={pd.Timestamp(end, unit='s', tz='UTC').isoformat()}")
         page = _get(url)                     # [[time, low, high, open, close, volume], ...]
@@ -123,8 +143,8 @@ def fetch_coinbase(tail_hours: int = DEFAULT_TAIL_HOURS) -> pd.DataFrame:
         time.sleep(0.25)
 
     if not rows:
-        raise RuntimeError("coinbase returned no candles")
-    return _finish(rows, "coinbase:BTC-USD (FALLBACK - venue mismatch)")
+        raise RuntimeError(f"coinbase returned no candles for {product}")
+    return _finish(rows, f"coinbase:{product} (FALLBACK - venue mismatch)")
 
 
 # --------------------------------------------------------------------------
@@ -151,12 +171,16 @@ def validate_bars(df: pd.DataFrame, tail_hours: int) -> pd.DataFrame:
     return df
 
 
-def fetch_bars(tail_hours: int = DEFAULT_TAIL_HOURS) -> pd.DataFrame:
-    """Primary venue, then fallback. Every failure is reported, not swallowed."""
+def fetch_bars(tail_hours: int = DEFAULT_TAIL_HOURS,
+               symbol: str = "btc") -> pd.DataFrame:
+    """Primary venue, then fallback. Every failure is reported, not swallowed.
+
+    `symbol` defaults to btc, so the production call site is unchanged.
+    """
     errors = []
     for fn in (fetch_bitstamp, fetch_coinbase):
         try:
-            return validate_bars(fn(tail_hours=tail_hours), tail_hours)
+            return validate_bars(fn(tail_hours=tail_hours, symbol=symbol), tail_hours)
         except Exception as e:  # noqa: BLE001 - surface every source that failed
             detail = ""
             if isinstance(e, urllib.error.HTTPError):
