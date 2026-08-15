@@ -148,7 +148,16 @@ jobs:
             # labelled "chore(eval): Kronos raw predictions from CI". It was
             # rejected only because the revert also touched a workflow file and
             # the token lacks `workflows` permission -- luck, not design.
-            git checkout -B "$BR" "origin/$BR"
+            # -f because the work tree is DIRTY here by design: the job has
+            # already written its output, and `checkout -B` refuses to move
+            # when tracked files differ from the target. That is exactly what
+            # failed at 12:02Z --
+            #   error: Your local changes to the following files would be
+            #   overwritten by checkout: data/assets/*.parquet ... Aborting
+            # The output is already safe in /tmp at this point, so discarding
+            # the work tree copy loses nothing and is what makes the re-parent
+            # possible.
+            git checkout -f -B "$BR" "origin/$BR"
             cp /tmp/kp.json data/kronos_predictions.json
             git add data/kronos_predictions.json
             if git diff --cached --quiet; then
