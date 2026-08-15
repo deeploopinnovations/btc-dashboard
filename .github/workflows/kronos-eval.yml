@@ -27,10 +27,14 @@ on:
       episodes:
         description: 'Number of production episodes'
         default: '120'
+  # Deliberately NOT self-triggering. Listing this workflow file in its own
+  # paths means every plumbing fix -- a timeout, a commit step, a comment --
+  # launches a fresh 3h49m run before the previous one's output has even been
+  # looked at. That happened repeatedly. The trigger should fire when the
+  # SCIENCE changes, which is kronos_ci.py, and not when the scaffolding does.
   push:
     paths:
       - 'model/eval/kronos_ci.py'
-      - '.github/workflows/kronos-eval.yml'
 
 permissions:
   contents: write
@@ -121,23 +125,42 @@ jobs:
 
       - name: Commit predictions
         run: |
+          set -euo pipefail
+          BR="${{ github.ref_name }}"
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A data/kronos_predictions.json
-          if git diff --cached --quiet; then
-            echo "nothing new to commit"
-            exit 0
-          fi
-          # This job runs for hours; the branch will almost certainly have
-          # moved. Re-parent rather than lose the whole run to a
-          # non-fast-forward at the very last step.
+          # Move the output out of the work tree BEFORE touching git state.
+          cp data/kronos_predictions.json /tmp/kp.json
           for attempt in 1 2 3; do
-            git fetch origin "${{ github.ref_name }}"
-            git reset --soft "origin/${{ github.ref_name }}"
-            git add -A data/kronos_predictions.json
-            git diff --cached --quiet && { echo "already up to date"; exit 0; }
+            git fetch origin "$BR"
+            # checkout -B, NOT reset --soft.
+            #
+            # `reset --soft` moves HEAD and KEEPS THE INDEX. This job runs for
+            # nearly four hours; the branch moves underneath it; the index then
+            # still describes the OLD checkout, and committing it against the
+            # NEW parent yields a diff that DELETES everything added meanwhile.
+            # At 08:08Z this step produced
+            #
+            #   23 files changed, 1597 insertions(+), 2764 deletions(-)
+            #    delete mode 100644 model/LITERATURE.md
+            #    delete mode 100644 model/tests/test_selfimprove.py
+            #
+            # labelled "chore(eval): Kronos raw predictions from CI". It was
+            # rejected only because the revert also touched a workflow file and
+            # the token lacks `workflows` permission -- luck, not design.
+            git checkout -B "$BR" "origin/$BR"
+            cp /tmp/kp.json data/kronos_predictions.json
+            git add data/kronos_predictions.json
+            if git diff --cached --quiet; then
+              echo "nothing new to commit"; exit 0
+            fi
+            changed=$(git diff --cached --name-only)
+            if [ "$changed" != "data/kronos_predictions.json" ]; then
+              echo "REFUSING: staged more than the predictions:"; echo "$changed"
+              exit 1
+            fi
             git commit -m "chore(eval): Kronos raw predictions from CI"
-            git push origin "HEAD:${{ github.ref_name }}" && exit 0
+            git push origin "HEAD:$BR" && exit 0
             echo "push attempt $attempt rejected; retrying"
             sleep 5
           done
