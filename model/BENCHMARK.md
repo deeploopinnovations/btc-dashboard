@@ -199,6 +199,112 @@ only the drifting *level* is tracked.
 
 ---
 
+## 6b. The training defect, and the one change that fixed it
+
+Sections 1–2 say NOCTUA wins the full predictive distribution and is *behind*
+`log_har_gauss` on binary barrier discrimination. That gap had a cause in the
+training setup, not in the features.
+
+**Stage B was trained on an easier problem than it faces.** It learns quantiles
+of `M_up/sigma` conditioned on `log sigma`, and in training `sigma` was `RV` —
+the *realized* window volatility. At serving it is the model's own forecast.
+Dividing by the realized value removes the volatility-forecast error from the
+training problem but not from the deployed one:
+
+| | sd |
+|---|---|
+| `M_up / RV_true` — what training fitted | 0.5490 |
+| `M_up / sigma_served` — what serving faces | 0.9312 |
+
+Stage B was fitted to a distribution 40 % narrower than the one its output is
+applied to. Worse, `RV` sat in the target's *denominator* and in the
+*conditioner*, so noise in `RV` alone manufactures dependence: permuting `RV`,
+which destroys every economic relationship it has with `M_up`, still leaves
+Spearman −0.4331 against −0.0556 actually observed. The arithmetic artifact was
+larger than the real relationship (Pearson's spurious correlation of ratios,
+1897).
+
+**The fix** retargets stage B onto a volatility reference that is causal by
+construction: `exp(har_1d) * sqrt(H)`, where `har_1d` is a feature built from
+bars strictly before the anchor. Nothing is fitted, so nothing can leak; clip
+bounds come from each fold's training episodes only. It lands at sd 0.9272
+against the 0.9312 serving faces — and it is a *weaker* forecast than the
+deployed one, which makes the arm conservative.
+
+Six walk-forward folds, three seeds, identical in every other respect:
+
+| arm | DSC/UNC | vs base | folds won | t-like | pinball | CRPS | QLIKE |
+|---|---|---|---|---|---|---|---|
+| baseline | 0.04980 | — | — | — | 0.003633 | 0.005307 | 0.2998 |
+| **serve_consistent** | **0.05382** | **+8.1 %** | **6/6** | **+3.78** | **0.003594** | **0.005277** | 0.2996 |
+| uniqueness | 0.04981 | +0.0 % | 3/6 | +0.80 | 0.003633 | 0.005307 | 0.2998 |
+| nonoverlap | 0.04493 | −9.8 % | 0/6 | −3.90 | 0.003734 | 0.005477 | 0.2953 |
+
+Discrimination improves in **every fold**, and pinball (5/6) and CRPS (5/6)
+improve with it, so this is not discrimination bought by wrecking the
+distribution. QLIKE is unchanged, as expected — the change is to stage B.
+
+**What this does NOT establish.** It does not put NOCTUA ahead of
+`log_har_gauss`. The +8.1 % is against our own baseline; against log_har the
+correct paired statistic is **4/6 folds, mean +0.00083, t-like +0.46** — noise,
+with one fold at −13.4 %. The honest reading is that the gap *closed*: baseline
+won 1 of 6 folds against log_har at mean −0.00318, serve_consistent wins 4 of 6
+at mean +0.00083. Behind → level. Not ahead.
+
+**Two arms that did not work, both informative.**
+
+*uniqueness* is **provably vacuous here**, not an experimental null. Our
+episodes sit on a complete regular grid — every hour, every horizon — so
+concurrency is a constant of the grid (61), average uniqueness is exactly 1/61
+on the training split, and the normalised multiplier is 1.0000 to machine
+precision. It reproduced the baseline bit-for-bit in every fold. López de
+Prado's uniqueness weighting is built for *event-driven* labels with
+data-dependent holding periods; on a regular grid there is nothing for it to
+grip. The 60.9× redundancy (8,380 effective observations from 510,496 episodes)
+is real and must be attacked by removing samples or shrinking capacity, not by
+reweighting.
+
+*nonoverlap* — training only on the 4,965 non-overlapping episodes — is worse
+in **0/6 folds won**, −9.8 % DSC/UNC, and worse on pinball and CRPS. The 100×
+overlapping augmentation is genuinely buying barrier discrimination and
+distribution shape. It does slightly improve QLIKE (0.2953), so the redundancy
+does cost something on the volatility level, but not enough to justify the
+trade.
+
+**Checked at the deployment configuration before shipping.** Walk-forward is
+six refits; the deployed model is one fit applied to 2024-07 onward, so the two
+can disagree. On that single split the raw model gains less (DSC/UNC +1.2 %)
+and its raw coverage error gets *worse* (2.073 → 2.593 pp). That regression is
+entirely a level effect, and `serve/adaptive.py` — which always runs in
+production — absorbs it:
+
+| | raw coverage | after the adaptive correction |
+|---|---|---|
+| old (trained on RV) | 2.073 pp | 1.360 pp |
+| **new (causal reference)** | 2.593 pp | **1.284 pp** |
+
+So as actually deployed the new artifact is better on discrimination *and* on
+coverage (−5.6 %), with QLIKE unchanged. Shipped: `train_v2.py` now trains
+stage B against the causal reference and the artifact records
+`stage_b_sigma_ref: causal_har_1d_clipped`.
+
+**A packaging bug this surfaced.** `train_v2` recorded
+`"feat_cols": list(X.columns)` — correct only while every column in
+features.parquet was a model input. Adding the `eff_*` research columns made
+the artifact declare 42 inputs while its weights expected 39, and serving died
+with a matmul dimension error. `prepare()` now returns the columns it actually
+consumed and the artifact records those. The research columns were added
+several commits earlier and the mismatch was invisible until the artifact was
+next rebuilt.
+
+**An earlier version of this result was discarded.** The first cross-fitted
+reference used ordinary K-fold, fitting each held-out block on every *other*
+block including later ones — not causal for a time series, so a 2021 training
+episode's sigma was computed partly from 2025 data. That run was 5/6 positive
+and is not reported. Caught in review; the replacement fits nothing at all.
+
+---
+
 ## 7. Where this leaves the model
 
 **Established.** It carries genuine conditional information (DSC ≫ 0, and
