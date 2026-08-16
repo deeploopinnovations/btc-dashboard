@@ -27,9 +27,9 @@ second.
 
   1. the no-lookahead contract holds NUMERICALLY, at both lag settings:
      corrupting the future must not move a single feature
-  2. the freshest permitted hour is actually USED at extra_lag_hours=0 and
-     actually DISCARDED at the default -- the two settings must differ, or
-     the parameter is a lie
+  2. the freshest permitted hour is actually USED at the default
+     (extra_lag_hours=0) and actually DISCARDED at the old setting of 1 --
+     the two must differ, or the parameter is a lie
   3. every column the SHIPPED ARTIFACT declares it consumes is present in
      build_features' output, with no extras silently widening the matrix
   4. the output is finite outside the warm-up region, so `nan_to_num` in
@@ -135,7 +135,7 @@ def main() -> int:
     check("lag 0: har_1h is the realized vol of the last complete hour",
           np.allclose(X0["har_1h"].to_numpy(), want, rtol=1e-9),
           f"max diff {np.nanmax(np.abs(X0['har_1h'].to_numpy() - want)):.3e}")
-    check("lag 1 (shipped): har_1h is NOT that hour -- one hour is discarded",
+    check("lag 1 (the OLD default): har_1h is NOT that hour -- an hour is lost",
           not np.allclose(X1["har_1h"].to_numpy(), want, rtol=1e-9))
 
     # calendar features describe the anchor itself and must not shift with lag

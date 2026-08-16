@@ -391,12 +391,43 @@ the serving anchor.
 Separately, anchor the forecast at the *next* hour boundary rather than the
 last closed one, so the published window is one the reader can still act on.
 
-### 5.2 Recover the discarded hour *(cheap, bounded upside)*
+### 5.2 Recover the discarded hour — **DONE, and it is the largest measured gain in the project**
 
-Run `eval/freshness.py`. Pure information recovery with no modelling risk —
-the causality audit already passes at the tighter setting. **Decision rule:**
-ship `extra_lag_hours=0` only if it wins on DSC/UNC or QLIKE in ≥ 5 of 6
-folds; a 4/6 is noise and gets reported as null.
+The decision rule, written before the run: *ship `extra_lag_hours=0` only if
+it wins on DSC/UNC or QLIKE in ≥ 5 of 6 folds; a 4/6 is noise and gets
+reported as null.* It cleared that bar on QLIKE at 6/6.
+
+Same six walk-forward folds, same seeds, same committee, same causal stage-B
+reference rebuilt from each arm's own features. One variable changed.
+
+| metric | lag 1 (shipped) | lag 0 (fresh) | relative | folds won | t-like |
+|---|---|---|---|---|---|
+| **QLIKE** | 0.299623 | **0.289636** | **−3.33 %** | **6/6** | **+4.06** |
+| **pinball** | 0.003594 | **0.003574** | −0.54 % | **6/6** | **+4.99** |
+| **CRPS** | 0.005277 | **0.005250** | −0.51 % | **6/6** | **+3.63** |
+| DSC/UNC | 0.053817 | 0.055256 | +2.67 % | 4/6 | +1.68 |
+
+Barrier discrimination moves in the right direction but 4/6 with t-like +1.68
+is not a result, and is reported as the null it is. The volatility and
+distributional scores are unambiguous: **6/6 on all three, with the strongest
+t-like statistics this project has produced.**
+
+For scale against everything else measured here:
+
+| change | best metric | folds | t-like | shipped? |
+|---|---|---|---|---|
+| **feature freshness** | **QLIKE −3.33 %** | **6/6** | **+4.06** | **yes** |
+| `serve_consistent` stage-B target | DSC/UNC +8.1 % | 6/6 | +3.78 | yes |
+| multi-asset pooling | QLIKE −1.87 % | 5/6 | +1.63 | no |
+| path-efficiency features | — | 2/6 | — | no |
+| more capacity | — | — | — | no |
+
+The mechanism is not mysterious and does not need one: `har_1h` is a
+one-hour window, so at the old setting it was not the last hour's realized
+volatility but the hour before it — mean absolute shift 0.613 in log-vol
+units when corrected. 31 of 42 features move. The causality audit passes at
+the new setting with max feature change 0.000e+00 over 306,261 episodes, so
+this is information recovery, not a loosened constraint.
 
 ### 5.3 Back-port the two v1 fixes, or delete the v1 path
 

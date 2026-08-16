@@ -421,6 +421,59 @@ the wrong expiry.
 
 ---
 
+## 6d. The hour the feature builder was throwing away
+
+The largest single gain measured in this project, and it came from an audit of
+the pipeline rather than from any modelling idea.
+
+`features.py` states its no-lookahead contract as "hourly rows with index
+≤ a−1". It was delivering ≤ a−2. `_trailing_sum(x,k)[i]` is already
+`sum(x[i-k:i])`, exclusive of `i`, and the result was **then** indexed at
+`a−1` as well — a second shift, applied on top of one that already satisfied
+the contract. The last complete hour before the anchor was discarded on every
+episode, in training and in serving alike.
+
+The consequence is sharpest for `har_1h`, which *is* a one-hour window: at the
+old setting it was not the last hour's realized volatility but the hour before
+it. Mean absolute shift when corrected: **0.613 in log-vol units**. 31 of 42
+features move.
+
+The double shift was defensive, not accidental — the contract note says it
+means "an off-by-one cannot silently leak the anchor hour itself" — and it is
+safe in the only direction that matters. But the safety was redundant.
+`audit_lookahead()` verifies the contract **numerically**, by corrupting every
+bar at or after each probed anchor and confirming no feature moves, and it
+passes at the tighter setting with max feature change **0.000e+00 over 306,261
+probed episodes**.
+
+Same six walk-forward folds, same seeds, same committee, same causal stage-B
+reference rebuilt from each arm's own features. One variable changed.
+
+| metric | lag 1 (old) | lag 0 (contract) | relative | folds won | t-like |
+|---|---|---|---|---|---|
+| **QLIKE** | 0.299623 | **0.289636** | **−3.33 %** | **6/6** | **+4.06** |
+| **pinball** | 0.003594 | **0.003574** | −0.54 % | **6/6** | **+4.99** |
+| **CRPS** | 0.005277 | **0.005250** | −0.51 % | **6/6** | **+3.63** |
+| DSC/UNC | 0.053817 | 0.055256 | +2.67 % | 4/6 | +1.68 |
+
+The decision rule was written before the run — *ship only on ≥ 5 of 6 folds on
+DSC/UNC or QLIKE* — and QLIKE cleared it at 6/6 with the strongest t-like this
+project has produced. **Barrier discrimination did not clear it: 4/6 at +1.68
+is not a result and is recorded as the null it is.**
+
+`extra_lag_hours` is now a parameter with default 0. The old behaviour remains
+exactly reproducible at 1, which matters because **every number in this file
+above this section was measured at 1.** They are not wrong; they describe a
+model fitted on features that were an hour staler than they needed to be.
+
+**Why this counts as information recovery rather than a loosened constraint.**
+Nothing was relaxed. The contract is unchanged, the numerical audit is
+unchanged and still passes, and the aggregates still end strictly before the
+anchor. What changed is that the implementation now meets the contract exactly
+instead of with an hour to spare.
+
+---
+
 ## 7. Where this leaves the model
 
 **Established.** It carries genuine conditional information (DSC ≫ 0, and

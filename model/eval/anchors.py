@@ -92,6 +92,9 @@ def main(argv=None) -> int:
     ap.add_argument("--artifacts", type=Path, default=Path("model/artifacts"))
     ap.add_argument("--seeds", type=int, default=3)
     ap.add_argument("--hidden", type=int, default=32)
+    ap.add_argument("--max-episodes", type=int, default=6000,
+                    help="cap on episodes per non-reference arm; the "
+                         "17:00 arm is never subsampled")
     ap.add_argument("--out", type=Path, default=Path("model/artifacts/anchors.json"))
     a = ap.parse_args(argv)
 
@@ -106,8 +109,29 @@ def main(argv=None) -> int:
         "anchor_00_06_quiet":    h19 & (hour >= 0) & (hour < 6),
         "anchor_12_18_active":   h19 & (hour >= 12) & (hour < 18),
     }
-    for k, m in arms.items():
-        print(f"  {k:24} {m.sum():7,} episodes")
+
+    # Scoring cost is linear in episodes and the committee is not cheap: every
+    # episode costs a 32-atom mixing integral across 8 barrier cells. The wide
+    # arms hold 128,000 episodes against the benchmarked slice's 5,325, which
+    # turns a 40-second fold into a many-minute one for no statistical gain --
+    # the question here is whether the anchor MOVES the score, and a few
+    # thousand episodes answers that as well as a hundred thousand.
+    #
+    # Subsample deterministically (fixed seed, drawn once over the whole
+    # panel) so the arms stay directly comparable across folds, and keep the
+    # 17:00 arm whole so the reference is exactly the published slice.
+    rng = np.random.default_rng(20260816)
+    for k in list(arms):
+        m = arms[k]
+        if k != "anchor_17_benchmarked" and m.sum() > a.max_episodes:
+            idx = np.flatnonzero(m)
+            keep = rng.choice(idx, size=a.max_episodes, replace=False)
+            m2 = np.zeros_like(m)
+            m2[keep] = True
+            arms[k] = m2
+            print(f"  {k:24} {m.sum():7,} -> {m2.sum():7,} episodes (subsampled)")
+        else:
+            print(f"  {k:24} {m.sum():7,} episodes")
     print()
 
     folds = S.walk_forward_folds(ep)
@@ -124,7 +148,7 @@ def main(argv=None) -> int:
                 continue
             s = summarise(out["rows"])
             s["qlike"] = out["vol"]["noctua"]
-            s["qlike_har"] = out["vol"]["log_har_cal"]
+            s["qlike_har"] = out["vol"]["log_har"]
             s["n"] = int(out["rows"][0]["n"])
             line[name] = s
             print(f"  {f['year']}  {name:24} n={s['n']:6,}  "
