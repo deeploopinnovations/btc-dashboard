@@ -474,6 +474,59 @@ instead of with an hour to spare.
 
 ---
 
+## 6e. Every number above describes an anchor the product almost never uses
+
+`splits.production_mask` is `H == 19 AND anchor_hour == 17`, and every headline
+in this file is measured on it. `serve/predict.py:74` anchors at the last
+**closed** hour instead, and the publishing cron never overrides it —
+`_next_anchor()`, the function that would pin serving to 17:00 UTC, is defined
+and called from nowhere.
+
+Measured over the 102 published forecasts in this repository's git history:
+
+| | |
+|---|---|
+| anchored at 17:00 UTC | **5 of 102 (4.9 %)** |
+| anchor hours actually used | all 24, roughly uniform |
+| lag from window start to publication | median **1.33 h**, max 8.87 h |
+
+So ~95 % of what has ever been shown to a user came from a configuration this
+file had never scored. That is not a leak — it is a claim-versus-product
+mismatch, and it was the most serious thing the end-to-end audit turned up.
+
+`eval/anchors.py` settles it. Six folds, three arms, identical models per fold
+(`run_fold` is deterministic given its seeds, so only the scored slice moves);
+the wide arms subsampled to 6,000 episodes drawn once with a fixed seed so
+per-fold sample sizes match the 17:00 arm and the comparison is paired on the
+anchor rather than on power.
+
+| arm | DSC/UNC | QLIKE | **vs Log-HAR** |
+|---|---|---|---|
+| 17:00 — the benchmarked slice | 0.05526 | 0.2896 | **−6.14 %** |
+| all served anchors | 0.06196 | 0.2715 | **−6.06 %** |
+| every anchor except 17:00 | 0.06465 | 0.2668 | **−7.13 %** |
+
+**The claim holds.** The advantage over a calibrated Log-HAR is 6.14 % at the
+benchmarked anchor and 6.06 % across all served anchors — a gap of 0.08 pp.
+Barrier discrimination is *higher* away from 17:00, not lower.
+
+The absolute QLIKE gaps between arms are a level effect: 17:00 UTC sits just
+after the US equity open, near the intraday volatility peak, so those episodes
+are harder in absolute terms. The ratio against Log-HAR, which faces the same
+episodes, is what transfers — and it is flat.
+
+`BLEND_W`, the committee's equal weighting and the adaptive correction were all
+tuned on the 17:00 slice alone. The reasonable worry was that constants fitted
+at the seasonal peak would not hold at the trough. They do.
+
+**Scope, restated honestly.** The headlines in this file may be read as
+applying across anchor hours, not only at 17:00. What remains unfixed is the
+publication lag: anchoring at the last closed hour means the window has been
+running a median 1.33 hours before the forecast is published. That is a
+product defect, not a model one.
+
+---
+
 ## 7. Where this leaves the model
 
 **Established.** It carries genuine conditional information (DSC ≫ 0, and

@@ -221,7 +221,7 @@ model forecasts 6–24 **hours** ahead.
 
 Ordered by consequence. Every one verified directly.
 
-### 3.1 The model is served at anchors it was never scored at — **highest-consequence finding**
+### 3.1 The model is served at anchors it was never scored at — **raised as highest-consequence; measured, and it holds**
 
 `splits.production_mask` is `H == 19 AND anchor_hour == 17`. Every headline in
 `BENCHMARK.md` — QLIKE, DSC/UNC, barrier calibration, the `BLEND_W` sweep, the
@@ -252,8 +252,12 @@ Two distinct problems sit here:
 
 1. **~95 % of everything ever shown to a user was produced at a configuration
    that has never been scored.** Not a leak and not a modelling error — a
-   claim-versus-product mismatch. `eval/anchors.py` measures whether the
-   benchmark survives at the served anchors.
+   claim-versus-product mismatch. **Now measured, and the claim survives:**
+   NOCTUA beats Log-HAR by 6.14 % at the benchmarked anchor and 6.06 % across
+   all served anchors, with *higher* barrier discrimination away from 17:00.
+   See §5.1. This was the audit's most serious finding and it resolved in the
+   model's favour — which is worth stating as plainly as it would have been
+   had it gone the other way.
 2. **The forecast is anchored in the past.** Because the anchor is the last
    *closed* hour, the 19-hour window has already been running for a median
    1.33 hours by the time the forecast is published, and the quoted `spot` is
@@ -378,18 +382,49 @@ UTC", and that is 5 % of what ships.
 Ordered by expected value per unit of work, with the decision rule that ends
 each one written before it starts.
 
-### 5.1 Close the served-configuration gap *(cheap, highest value)*
+### 5.1 Close the served-configuration gap — **DONE, and the claim generalizes**
 
-Run `eval/anchors.py`. If the benchmark holds across anchor hours, the
-headline generalizes and the claim can be restated honestly. If it does not,
-either pin serving to the benchmarked anchor via the already-written
-`_next_anchor()`, or re-tune `BLEND_W`, the committee weights and the adaptive
-correction per anchor bucket. **Decision rule:** if QLIKE-vs-HAR at served
-anchors is within 1 pp of the 17:00 figure, restate the claim; otherwise fix
-the serving anchor.
+The decision rule, written before the run: *if QLIKE-vs-HAR at served anchors
+is within 1 pp of the 17:00 figure, restate the claim; otherwise fix the
+serving anchor.*
 
-Separately, anchor the forecast at the *next* hour boundary rather than the
-last closed one, so the published window is one the reader can still act on.
+Six walk-forward folds, three arms, identical models per fold (`run_fold` is
+deterministic given its seeds, so only the scored slice changes). The wide arms
+are subsampled to 6,000 episodes drawn once with a fixed seed, which matches
+their per-fold sample size to the 17:00 arm's and makes the comparison paired
+on the anchor rather than on power.
+
+| arm | DSC/UNC | QLIKE | **vs Log-HAR** | ΔDSC vs 17:00 | ΔQLIKE vs 17:00 |
+|---|---|---|---|---|---|
+| 17:00 — the benchmarked slice | 0.05526 | 0.2896 | **−6.14 %** | — | — |
+| all served anchors | 0.06196 | 0.2715 | **−6.06 %** | +0.0067 | −6.25 % |
+| every anchor except 17:00 | 0.06465 | 0.2668 | **−7.13 %** | +0.0094 | −7.90 % |
+
+**The product claim holds at the anchors that ship.** NOCTUA's advantage over
+a calibrated Log-HAR is 6.14 % at the benchmarked anchor and 6.06 % across all
+served anchors — a gap of **0.08 pp**, comfortably inside the 1 pp rule.
+Barrier discrimination is not merely preserved but *higher* away from 17:00
+(0.06465 against 0.05526).
+
+The absolute QLIKE differences between arms are a level effect, not a skill
+effect: 17:00 UTC sits just after the US equity open, near the intraday
+volatility peak, so its episodes are simply harder in absolute terms. The
+ratio against Log-HAR — which faces the same episodes — is the comparison that
+transfers, and it is flat across anchors.
+
+**So the concern raised in §3.1 is resolved for model validity and remains
+open for product honesty.** The benchmark did not need the anchor it was
+measured at; the headline generalizes and should now be stated as "across
+anchor hours" rather than silently as "at 17:00 UTC". `BLEND_W`, the committee
+weights and the adaptive correction were tuned at the peak-volatility anchor
+and evidently did not overfit to it.
+
+What is *not* resolved is the second half of §3.1: the forecast is anchored at
+the last **closed** hour, so the 19-hour window has been running a median 1.33
+hours by the time it is published. That is a product defect independent of
+model quality — anchoring at the next hour boundary instead would publish a
+window the reader can still act on — and it is the one piece of §3.1 still
+worth fixing.
 
 ### 5.2 Recover the discarded hour — **DONE, and it is the largest measured gain in the project**
 
