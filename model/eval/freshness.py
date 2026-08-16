@@ -54,7 +54,8 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from eval.benchmark import run_fold, summarise                            # noqa: E402
+from eval.benchmark import run_fold                                       # noqa: E402
+from eval.efficiency import summarise                                      # noqa: E402
 from noctua import splits as S                                            # noqa: E402
 from noctua.features import audit_lookahead, build_features               # noqa: E402
 from noctua.train import load_all                                         # noqa: E402
