@@ -140,8 +140,32 @@ def prepare(ep, X, mask, std_all=None, std_shape=None, std_base=None,
 # --------------------------------------------------------------------------
 def train_model(
     tr, wtr, va, *, hidden=128, epochs=40, bs=4096, lr=2e-3, lam_couple=1.0,
-    lam_anchor=0.0, seed=0, verbose=True, ols_beta=None,
+    lam_anchor=0.0, seed=0, verbose=True, ols_beta=None, lam_r=1.0,
 ):
+    """Fit one Noctua network.
+
+    `lam_r` weights the TERMINAL-RETURN head `q_r` in the objective. It exists
+    because two independent measurements collided:
+
+      * `eval/direction.py` established that the sign of the return carries no
+        usable information at this horizon -- NOCTUA's own `prob_up`, which is
+        read off `q_r`, loses 0.071 nats to a constant and is not published.
+      * instrumenting the training loop showed `pinball_loss(q_r, r)` is the
+        LARGEST term in the objective, roughly 2.4x the stage-A volatility
+        term.
+
+    So the model spends the largest single share of its loss budget fitting
+    the one thing it has been shown it cannot predict -- while `eval/
+    firstpassage.py` shows 92% of the barrier error lives in the excursion
+    shape, i.e. in `q_up` and `q_dn`. Whether down-weighting `q_r` frees
+    capacity for the heads that matter is an empirical question, and
+    `eval/losshead.py` answers it. Default 1.0 preserves the shipped
+    behaviour exactly.
+
+    `q_r` cannot simply be deleted: `coupling_penalty` enforces
+    `m_up >= max(0, r)` and `m_dn >= max(0, -r)`, which are real path
+    identities and a genuine regulariser on the excursion tails.
+    """
     torch.manual_seed(seed)
     np.random.seed(seed)
 
@@ -176,7 +200,7 @@ def train_model(
             loss = (
                 pinball_loss(qa, T["y"][idx], lv, W[idx])
                 + lam_anchor * (res_med**2).mean()
-                + pinball_loss(qr, T["r"][idx], lv, W[idx])
+                + lam_r * pinball_loss(qr, T["r"][idx], lv, W[idx])
                 + pinball_loss(qu, T["m_up"][idx], lv, W[idx])
                 + pinball_loss(qd, T["m_dn"][idx], lv, W[idx])
                 + lam_couple * coupling_penalty(qr, qu, qd)

@@ -338,7 +338,8 @@ class ScaledClimatology(Forecaster):
 # ==========================================================================
 def run_fold(ep, X, fold, hidden=32, seeds=3, verbose=False, shape_cols=None,
              sigma_ref_all=None, sigma_ref_fn=None, extra_w=None,
-             train_filter=None, min_train=5000, prod_override=None):
+             train_filter=None, min_train=5000, prod_override=None,
+             lam_r=1.0):
     fin = np.isfinite(X.to_numpy()).all(1)
     # `prod_override` lets a caller score a DIFFERENT slice (e.g. one
     # horizon at a time) through this same path, so its numbers stay
@@ -378,7 +379,8 @@ def run_fold(ep, X, fold, hidden=32, seeds=3, verbose=False, shape_cols=None,
                                tr["y"].astype(np.float64), wtr)
     bl = B.fit_vol_baselines(X[m_tr], yall[m_tr], wtr)
     models = [train_model(tr, wtr, va, hidden=hidden, epochs=40, seed=s,
-                          verbose=verbose, ols_beta=ols.beta)[0] for s in range(seeds)]
+                          verbose=verbose, ols_beta=ols.beta, lam_r=lam_r)[0]
+              for s in range(seeds)]
 
     def predict_avg(mask):
         d, _ = prepare(ep, X, mask, *stds, shape_cols=shape_cols)

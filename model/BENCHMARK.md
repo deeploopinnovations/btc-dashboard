@@ -157,6 +157,66 @@ knowing before pointing it at anything but BTC.
 
 ---
 
+## 5b. "But Kronos shows an upside probability" — what that number is
+
+The natural objection to §6f's conclusion that direction is not predictable is
+empirical and fair: the Kronos dashboard displays **Upside Probability (Next
+24h): 66.7 %**, so evidently something can do it.
+
+It cannot. 66.7 % is 2/3.
+
+`kronos_local/app.py:133` computes
+
+```python
+"upside": round(100.0 * ups / N_SAMPLES, 1)
+```
+
+— the fraction of Monte-Carlo rollouts that happened to finish higher. Every
+one of the 120 stored `p_up` values in `data/kronos_predictions.json` is an
+exact multiple of 1/32. It is a **count of coin flips, not a calibrated
+probability**, and the count carries sampling error nobody displays:
+
+| | |
+|---|---|
+| Monte-Carlo standard error at p = 0.5, n = 32 | **8.8 pp** |
+| displayed precision | 0.1 pp — **88× more precision than it has** |
+| episodes asserting 0 % or 100 % certainty | **9 of 120** |
+
+A displayed "66.7 %" has a 95 % interval of roughly [50 %, 83 %] from
+Monte-Carlo noise alone, before asking whether the model knows anything. And
+on nine occasions it claimed *absolute certainty* about the direction of
+Bitcoin 19 hours ahead, on the strength of 32 rollouts landing the same way.
+
+That is an argument about sampling error. The stored episodes carry realized
+outcomes, so `eval/kronos_direction.py` simply scores it:
+
+| forecaster | log loss | DSC | shuffled null p95 | clears? | vs base rate | 95 % CI |
+|---|---|---|---|---|---|---|
+| base rate (constant) | **0.68967** | 0 | — | — | 0 | — |
+| constant 0.5 | 0.69315 | 0 | 0 | — | −0.00348 | [−0.016, +0.009] |
+| **Kronos `p_up`** | **1.20547** | 0.011105 | 0.016231 | **no** | **−0.51580** | **[−0.991, −0.183]** |
+
+**Kronos's direction call scores 75 % worse than a constant**, and its
+discrimination does not clear the shuffled null — so there is no conditional
+information in it either. The 0 %/100 % episodes are what destroy it: when a
+forecast asserts certainty and is wrong, log loss is unbounded.
+
+For scale, NOCTUA's own `prob_up` — which is *not published*, precisely
+because it was known to be unreliable — loses 0.071 nats to a constant.
+Kronos loses 0.516, **seven times worse**.
+
+On the barrier task, from the paired 120-episode run in §5: NOCTUA DSC
+0.01815 (clears its shuffled p95 of 0.008546), Kronos 0.00568 (does **not**
+clear its 0.006238). Kronos's Brier of 0.2111 is worse than climatology's
+0.1396.
+
+**So the answer to "how is Kronos doing it" is that it is not.** It is
+displaying a 32-sample proportion to one decimal place. Producing a number is
+not the same as having skill, and the only way to tell the difference is to
+score it against what happened.
+
+---
+
 ## 6. What this found, and the fix
 
 Marginal calibration was concealing a real defect. Out of sample from
@@ -524,6 +584,102 @@ applying across anchor hours, not only at 17:00. What remains unfixed is the
 publication lag: anchoring at the last closed hour means the window has been
 running a median 1.33 hours before the forecast is published. That is a
 product defect, not a model one.
+
+---
+
+## 6f. The ceiling on volatility work — 92 % of the barrier error is not volatility
+
+The most consequential measurement in this file, because it redirects the
+whole research programme.
+
+A barrier forecast composes two independent claims:
+
+    P(touch u)  =  f( sigma_hat , shape )
+
+the **volatility** claim (how big will the moves be) and the **shape** claim
+(given moves of that size, how far does the path actually travel before
+settlement). Reported together, the blame is unassignable — and they call for
+completely different work.
+
+`eval/firstpassage.py` separates them the only clean way available: give the
+Gaussian first-passage law the **realized** volatility — a perfect forecast no
+one could have made — and see what error survives. Whatever remains is pure
+shape error, and it is the part no volatility model can ever remove.
+
+### BTC paths chop; they do not travel like Brownian motion
+
+Under driftless Brownian motion, `E[range] / sqrt(realized variance)` is the
+constant `sqrt(8/π) = 1.5958`. Measured on the 5,325 production episodes:
+
+| | |
+|---|---|
+| Brownian theory | 1.5958 |
+| **BTC measured** | mean **1.3311**, median **1.2942** |
+| IQR | [1.0157, 1.6120] |
+| 5–95 pct | [0.5899, 2.1835] |
+| mean − Brownian | **−0.2646**, block-bootstrap 95 % CI **[−0.298, −0.234]** |
+
+BTC burns realized variance without travelling. The interval is nowhere near
+zero. (The literature search in `LITERATURE.md` §5 located the theory —
+Feller's 1951 range distribution — but **no published empirical measurement of
+this ratio on real financial data**. Reported here as a measurement, not a
+novelty claim: absence of a located precedent is not proof of absence. It
+independently reproduces the figure already quoted in `features.py`'s
+`eff_*` docstring, to four decimals.)
+
+### What that does to the textbook barrier formula
+
+One-sided (where the reflection principle is exact — a two-sided version needs
+the full Feller series, and approximating it as twice the one-sided
+probability would manufacture the very overstatement being tested for):
+
+| barrier | realized touch rate | Gaussian **fed realized vol** | ratio | error |
+|---|---|---|---|---|
+| 0.5 % | 0.7762 | 0.8302 | 1.070 | **+5.40 pp** |
+| 1.0 % | 0.5932 | 0.6800 | 1.146 | **+8.68 pp** |
+| 2.0 % | 0.3643 | 0.4526 | 1.242 | **+8.83 pp** |
+| 3.0 % | 0.2338 | 0.3060 | 1.309 | **+7.22 pp** |
+| 5.0 % | 0.1065 | 0.1528 | 1.435 | **+4.63 pp** |
+
+**Given a perfect volatility forecast, the textbook formula still overstates
+touch risk at every barrier**, and the error grows in relative terms as the
+strike moves out — 1.07× at 0.5 %, 1.44× at 5 %.
+
+### The number that redirects the programme
+
+Comparing the oracle against the same formula fed a causal forecast
+(`exp(har_1d)·sqrt(H)`), on the 5,324 episodes where both exist:
+
+| barrier | oracle error | causal-forecast error | **share removable by perfect volatility** |
+|---|---|---|---|
+| 0.5 % | 5.41 pp | 5.85 pp | **7.6 %** |
+| 1.0 % | 8.68 pp | 9.42 pp | **7.8 %** |
+| 2.0 % | 8.84 pp | 9.65 pp | **8.5 %** |
+| 3.0 % | 7.23 pp | 7.86 pp | **8.0 %** |
+| 5.0 % | 4.64 pp | 4.94 pp | **6.0 %** |
+
+**A perfect volatility forecast — omniscience — would remove only 6–8.5 % of
+the barrier error. The other 91.5–94 % is shape.**
+
+Three consequences, stated plainly:
+
+1. **Further volatility work has a hard ceiling on the deployed task.** The
+   `serve_consistent` fix and the freshness fix were both worth having, and
+   between them they moved QLIKE by ~3 %. But QLIKE is the volatility metric;
+   on the barrier question that the product is actually sold on, the entire
+   volatility channel is worth at most 8.5 %.
+2. **This is precisely what NOCTUA already does differently, and why it
+   wins.** It does not assume a Brownian first-passage law — Stage B learns
+   the excursion distribution from data, conditioned on shape features and
+   mixed over 32 volatility atoms. That is why its deep-tail calibration is
+   1.09 pp against the Gaussian's 3.33 pp. The model's advantage was always in
+   the 92 %, and now that is measured rather than asserted.
+3. **The next research effort belongs in the shape, not the level.** Concretely:
+   the excursion head, the coupling penalty, the mixing integral and the
+   conditioning features that describe *path geometry* rather than path size.
+   `eff_*` — range per unit of realized vol — was ablated and found null for
+   discrimination, but that ablation now looks under-powered rather than
+   decisive given how much of the error it was aimed at.
 
 ---
 
