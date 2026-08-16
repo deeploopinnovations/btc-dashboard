@@ -73,8 +73,32 @@ def _safe_log(x: np.ndarray) -> np.ndarray:
     return np.log(np.maximum(x, EPS))
 
 
-def build_features(hours: pd.DataFrame, episodes: pd.DataFrame) -> pd.DataFrame:
-    """Return a feature matrix aligned row-for-row with `episodes`."""
+def build_features(hours: pd.DataFrame, episodes: pd.DataFrame,
+                   extra_lag_hours: int = 1) -> pd.DataFrame:
+    """Return a feature matrix aligned row-for-row with `episodes`.
+
+    `extra_lag_hours` controls how much MORE than the contract requires the
+    trailing aggregates are held back.
+
+    The contract at the top of this file is "rows with index <= a-1". The
+    trailing aggregates satisfy it twice over: `_trailing_sum(x, k)[i]` is
+    already `sum(x[i-k:i])`, exclusive of `i`, and the result is then indexed
+    at `a - extra_lag_hours`. With the default of 1 the freshest hour actually
+    reaching the model is `a-2` -- the last COMPLETE hour before the anchor,
+    `a-1`, is discarded. That is one hour of the most recent, most informative
+    data thrown away on every episode.
+
+    The double shift was defensive, not accidental (see the contract note
+    about off-by-one), and safe in the only direction that matters. But belt
+    and braces has a price, and `extra_lag_hours=0` is what the contract
+    actually licenses: aggregates ending at `a-1` inclusive, still strictly
+    before the anchor. `audit_lookahead()` verifies either setting
+    numerically, so the tighter one is checkable rather than merely argued.
+
+    Kept as a parameter rather than simply changed because the shipped
+    artifact was fitted at the default, and every number in BENCHMARK.md was
+    measured there; `eval/freshness.py` is what decides whether 0 is better.
+    """
     rv5 = hours["rv5"].to_numpy(np.float64)
     rv_pos = hours["rv5_pos"].to_numpy(np.float64)
     rv_neg = hours["rv5_neg"].to_numpy(np.float64)
@@ -195,7 +219,11 @@ def build_features(hours: pd.DataFrame, episodes: pd.DataFrame) -> pd.DataFrame:
     # gather per-episode
     # ------------------------------------------------------------------
     rows = episodes["row"].to_numpy(np.int64)
-    prev_rows = rows - 1  # the last hour STRICTLY before the anchor
+    # `_trailing_sum` is already exclusive of its own index, so indexing at
+    # `rows` yields aggregates over [a-k, a-1] -- strictly before the anchor,
+    # exactly what the contract allows. Any extra_lag_hours > 0 discards that
+    # many further hours of real information; see build_features' docstring.
+    prev_rows = np.maximum(rows - int(extra_lag_hours), 0)
     out = {k: v[prev_rows] for k, v in F.items()}
 
     # ---- seasonal HAR: same clock window on prior days ----------------------
@@ -254,7 +282,8 @@ def build_features(hours: pd.DataFrame, episodes: pd.DataFrame) -> pd.DataFrame:
     return X
 
 
-def audit_lookahead(hours: pd.DataFrame, episodes: pd.DataFrame, n_probe: int = 200) -> dict:
+def audit_lookahead(hours: pd.DataFrame, episodes: pd.DataFrame, n_probe: int = 200,
+                    extra_lag_hours: int = 1) -> dict:
     """Numerically verify the no-lookahead contract.
 
     Corrupt every hourly row at or after each probed anchor, rebuild features,
@@ -262,7 +291,7 @@ def audit_lookahead(hours: pd.DataFrame, episodes: pd.DataFrame, n_probe: int = 
     feature reads the anchor hour or beyond, this catches it.
     """
     rng = np.random.default_rng(0)
-    base = build_features(hours, episodes)
+    base = build_features(hours, episodes, extra_lag_hours=extra_lag_hours)
 
     lo = int(len(hours) * 0.6)
     probe_rows = rng.choice(np.arange(lo, len(hours) - 30), size=n_probe, replace=False)
@@ -275,7 +304,7 @@ def audit_lookahead(hours: pd.DataFrame, episodes: pd.DataFrame, n_probe: int = 
         v[mask] = v[mask] * rng.uniform(2.0, 5.0, size=mask.sum())
         corrupt[c] = v
 
-    after = build_features(corrupt, episodes)
+    after = build_features(corrupt, episodes, extra_lag_hours=extra_lag_hours)
     sel = episodes["row"].to_numpy() <= cut  # anchors whose features predate the cut
     a = base.loc[sel].to_numpy(np.float64)
     b = after.loc[sel].to_numpy(np.float64)

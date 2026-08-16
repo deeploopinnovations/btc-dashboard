@@ -539,7 +539,7 @@ A fourth run was lost to plumbing rather than science: the compute succeeded and
 the commit step failed, and the predictions were recovered from the Actions
 artifact by `recover-kronos-artifact.yml` rather than paying 3h49m again.
 
-**Compute.** 114.2 s/episode for Kronos against 0.6 ms for NOCTUA — a factor of
+**Compute.** 114.8 s/episode for Kronos against 0.6 ms for NOCTUA — a factor of
 roughly 190,000, against a parameter ratio of 1,291.
 
 **Scope.** 120 daily non-overlapping episodes from one asset over one four-month
