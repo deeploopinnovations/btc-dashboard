@@ -572,14 +572,37 @@ destroys information nothing else holds and it collects full credit. The
 ranking measures *redundancy*, not importance, and the two are not the same.
 **Nothing was changed on the strength of it.**
 
-**SUSPICIOUS, and now under test.** `pinball_loss(q_r, r)` — the
+**SUSPICIOUS — tested, and the result is NULL.** `pinball_loss(q_r, r)` — the
 terminal-return head — is the **largest single term in the objective**,
 measured at the validation minimum: `a = 0.0654, r = 0.1560, up = 0.1059,
 dn = 0.0985`. Roughly 2.4× the stage-A volatility term. Combined with §2
 (the sign is not predictable) and §5c (92 % of the barrier error is excursion
-shape), the model spends its largest share of gradient budget on the one
-quantity it has been shown it cannot forecast. `eval/losshead.py` ablates the
-weight; the adopt rule is ≥ 5 of 6 folds on DSC/UNC, fixed before the run.
+shape), the model appeared to be spending its largest share of gradient budget
+on the one quantity it cannot forecast.
+
+`eval/losshead.py` down-weights it, six folds, adopt rule ≥ 5/6 on DSC/UNC
+fixed before the run:
+
+| `lam_r` | DSC/UNC | pinball | CRPS | QLIKE | folds better than shipped | t-like |
+|---|---|---|---|---|---|---|
+| **1.0 (shipped)** | 0.05526 | 0.003574 | 0.005250 | 0.2896 | — | — |
+| 0.25 | 0.05554 | 0.003574 | 0.005249 | 0.2897 | **4/6** | +1.46 |
+| 0.0 | 0.05568 | 0.003577 | 0.005249 | 0.2894 | **4/6** | +0.78 |
+
+**4 of 6 does not clear the rule, so this is reported as the null it is and
+nothing ships.** The direction is consistently favourable — every arm's mean
+DSC/UNC is above the shipped one, and the first fold looked convincing at
+0.04155 → 0.04295 — but +0.5 % relative on 4/6 folds with t-like +1.46 is
+exactly the size of effect this project has already watched fail to replicate
+twice (the pooling result, the path-efficiency features).
+
+Worth stating plainly because it is the third time: a hypothesis motivated by
+three independent measurements, with a favourable first fold, still did not
+survive six. The pre-registered rule is what stopped it from being written up
+as a win, and that is the rule's whole purpose.
+
+The cost of the return head is therefore **not** the capacity it consumes —
+that turns out to be nearly free. It stays at 1.0.
 
 **INERT.** The coupling penalty falls to exactly 0.00000 from epoch 3 onward
 (from 0.00332 at initialisation). The path identities it enforces are
