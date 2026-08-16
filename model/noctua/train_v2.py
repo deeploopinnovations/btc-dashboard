@@ -41,10 +41,33 @@ def main(argv=None) -> int:
     p.add_argument("--artifacts", type=Path, default=Path("model/artifacts"))
     p.add_argument("--hidden", type=int, default=HIDDEN)
     p.add_argument("--seeds", type=int, default=SEEDS)
+    p.add_argument("--extra-lag-hours", type=int, default=0,
+                   help="recorded into the artifact; must match the setting "
+                        "features.parquet was built at")
     p.add_argument("--out", type=Path, default=Path("model/serve/noctua_v2.npz"))
     a = p.parse_args(argv)
 
     ep, X = load_all(a.artifacts)
+
+    # Refuse to record a lag the feature matrix was not actually built at.
+    # `--extra-lag-hours` only ends up in the artifact's metadata; it does not
+    # rebuild anything. Without this check a stale features.parquet plus a
+    # fresh flag would produce weights whose metadata confidently describes a
+    # setting they were never fitted at -- the exact failure mode (metadata
+    # disagreeing with weights) that took serving down once already.
+    rep = a.artifacts / "features_report.json"
+    if rep.exists():
+        built_at = json.loads(rep.read_text()).get("extra_lag_hours")
+        if built_at is not None and int(built_at) != int(a.extra_lag_hours):
+            raise SystemExit(
+                f"features.parquet was built at extra_lag_hours={built_at} but "
+                f"--extra-lag-hours={a.extra_lag_hours} was requested. Rebuild "
+                f"with `python -m model.noctua.features --extra-lag-hours "
+                f"{a.extra_lag_hours} --audit`, or pass the matching value.")
+    else:
+        print("[train_v2] WARNING: no features_report.json; the feature lag "
+              "recorded in the artifact is unverified")
+
     fin = np.isfinite(X.to_numpy()).all(1)
     sp = S.time_splits(ep)
     m_tr, m_va = sp["train"] & fin, sp["calib"] & fin
@@ -121,6 +144,12 @@ def main(argv=None) -> int:
         "specialists": ["neural", "gaussian", "empirical", "evt"],
         "weights": "equal",   # measured: fitted and gated weights both degenerate
         "stage_b_sigma_ref": "causal_har_1d_clipped",
+        # Which feature-lag setting these weights were fitted at. Recorded
+        # because the artifact's metadata disagreeing with its own weights is
+        # a defect this repo has shipped before, and `extra_lag_hours` is now
+        # a knob: a reader who finds the default changed under them needs the
+        # artifact to say what IT was built with, not what the source says today.
+        "feature_extra_lag_hours": int(a.extra_lag_hours),
         "n_params_total": int(n_par * a.seeds),
     }
     arrays["meta_json"] = np.frombuffer(json.dumps(meta).encode(), dtype=np.uint8)

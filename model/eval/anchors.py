@@ -92,6 +92,9 @@ def main(argv=None) -> int:
     ap.add_argument("--artifacts", type=Path, default=Path("model/artifacts"))
     ap.add_argument("--seeds", type=int, default=3)
     ap.add_argument("--hidden", type=int, default=32)
+    ap.add_argument("--buckets", action="store_true",
+                    help="also score quiet/active intraday buckets; the "
+                         "three core arms answer the question on their own")
     ap.add_argument("--max-episodes", type=int, default=6000,
                     help="cap on episodes per non-reference arm; the "
                          "17:00 arm is never subsampled")
@@ -106,9 +109,10 @@ def main(argv=None) -> int:
         "anchor_17_benchmarked": h19 & (hour == 17),
         "anchor_all_served":     h19,
         "anchor_not_17":         h19 & (hour != 17),
-        "anchor_00_06_quiet":    h19 & (hour >= 0) & (hour < 6),
-        "anchor_12_18_active":   h19 & (hour >= 12) & (hour < 18),
     }
+    if a.buckets:
+        arms["anchor_00_06_quiet"] = h19 & (hour >= 0) & (hour < 6)
+        arms["anchor_12_18_active"] = h19 & (hour >= 12) & (hour < 18)
 
     # Scoring cost is linear in episodes and the committee is not cheap: every
     # episode costs a 32-atom mixing integral across 8 barrier cells. The wide
