@@ -47,7 +47,9 @@ claim: absence of a located precedent is not proof of absence.
 
 WHY IT MATTERS FOR THE SELLER
 
-If the ratio is BELOW 1.5958, real paths chop -- they burn realized variance
+If the ratio is BELOW the SAMPLED benchmark (1.5218 at this resolution --
+see brownian_control; 1.5958 is the continuous-time value and comparing
+against it overstates the gap by ~28%), real paths chop -- they burn realized variance
 without travelling, so a Gaussian first-passage formula fed a correct sigma
 will OVERSTATE the chance of touching a given strike, and a seller using it
 quotes strikes further out than necessary and leaves premium on the table.

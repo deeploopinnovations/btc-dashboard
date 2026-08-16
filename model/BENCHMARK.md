@@ -746,6 +746,94 @@ and reproducibly.
 
 ---
 
+## 6h. Stage B: modelling the max excursion directly — a capability, not an accuracy win
+
+§6f established that ~92 % of the barrier error is excursion shape, so Stage B
+is where the work belongs. This is the first attempt, and it did not deliver
+what I predicted.
+
+### The defect is real and was measured first
+
+A seller short both wings is exposed to **either** barrier breaking. The model
+produced no such number — anyone needing it had to build `1 − (1−p_up)(1−p_dn)`
+from the two marginals, which assumes independence. The sides are strongly
+negatively dependent: a path with a fixed realized-variance budget cannot spend
+it travelling both ways.
+
+| | Spearman(M_up/RV, M_dn/RV) |
+|---|---|
+| independence (what the construction assumes) | 0 |
+| **BTC measured**, 5,324 production episodes | **−0.687** |
+| **driftless Brownian**, continuous limit | **−0.806** |
+
+The Brownian figure is my own simulation, converged over 228 → 16,000 steps
+(−0.8069, −0.8058, −0.8047, −0.8047, −0.8070) and agreeing with the analytic
+value attributed to Jaworski & Dąbrowski (2024), *Mathematics* 12(17) 2707.
+*Caveat: the series as relayed to me did not reproduce that value when I
+evaluated it — it summed to 0.9516 — so I am relying on the simulation and
+citing the paper for the analytic result without having reproduced its
+algebra.*
+
+The useful reading is that **BTC sits between the two extremes and much nearer
+Brownian than independence.** Assuming independence is therefore a *larger*
+error than assuming the textbook diffusion would have been.
+
+Its cost runs against a seller: independence understates P(either breaks) —
+realized 0.8922 against 0.8368 at 1 %, 0.6362 against 0.5995 at 2 %.
+
+### The fix, and the result
+
+`StageB` gained `q_mx`, a fourth monotone-quantile head predicting the
+standardized max(M_up, M_dn) directly. Six folds; adopt rule ≥ 5/6 at each
+barrier, fixed before the run:
+
+| barrier | model | log loss | DSC/UNC | vs independence | 95 % CI | folds |
+|---|---|---|---|---|---|---|
+| **1.0 %** | **q_mx head** | **0.27819** | **20.47 %** | **+0.02533** | **[+0.013, +0.042]** | 4/6 |
+| 1.0 % | independence | 0.30352 | 18.72 % | — | — | — |
+| 1.0 % | two-sided Gaussian | 0.79083 | 17.61 % | −0.48731 | [−0.608, −0.359] | 1/6 |
+| 2.0 % | q_mx head | 0.62897 | 13.34 % | −0.00215 | [−0.013, +0.010] | 4/6 |
+| 2.0 % | independence | **0.62682** | 13.18 % | — | — | — |
+| 2.0 % | two-sided Gaussian | 0.74216 | **23.60 %** | −0.11534 | [−0.205, −0.039] | 2/6 |
+| 3.0 % | q_mx head | 0.63089 | 12.77 % | −0.00345 | [−0.010, +0.004] | 3/6 |
+| 3.0 % | independence | 0.62744 | 12.70 % | — | — | — |
+| 3.0 % | **two-sided Gaussian** | **0.60385** | **22.59 %** | +0.02359 | [−0.015, +0.061] | 5/6 |
+
+**The rule is not met at any barrier — 11 of 18 (barrier, fold) cells. This is
+a null result on the accuracy claim and nothing is claimed as an improvement.**
+
+Three things are worth keeping from it:
+
+1. **At the 1 % barrier the head is genuinely better** — +0.025 nats with a CI
+   that excludes zero, and 20.47 % against 18.72 % discrimination. But 4/6
+   folds is not consistency, and by the pre-registered rule that is not enough.
+2. **At 2–3 % the head and independence are indistinguishable**, and the
+   plain **two-sided Gaussian beats both at 3 %** (log loss 0.60385, 5/6
+   folds) while discriminating far better at 2–3 % (23.6 % / 22.6 % against
+   ~13 %). That is an uncomfortable result and it is reported rather than
+   buried: the textbook formula, on the model's own sigma, is the best
+   available answer for the wider strikes a seller actually writes.
+3. **Folds 2025 and 2026 show every model-based arm overstating badly**
+   (realized 0.397 / 0.418 against head 0.614 / 0.636). The recent-era
+   marginals are too wide. That is a calibration problem shared by both
+   constructions and is the more promising thread than the head was.
+
+### What ships
+
+`q_mx` stays in the code, because the model previously **could not answer the
+question at all** and now can, at no measured accuracy cost. That is a
+capability addition, not an accuracy improvement, and the distinction is the
+whole point. The shipped artifact is unchanged — no retrain was performed on
+the strength of a null.
+
+**Second failed prediction in a row.** The `lam_r` ablation (§AUDIT 5b) and
+this one were both well-motivated by independent measurements, both looked
+good on the first fold, and neither survived six. The pre-registered rules are
+what makes that visible instead of quietly rewriting the hypothesis around the
+result.
+
+---
+
 ## 7. Where this leaves the model
 
 **Established.** It carries genuine conditional information (DSC ≫ 0, and
