@@ -683,6 +683,59 @@ Three consequences, stated plainly:
 
 ---
 
+## 6g. The sell-versus-straddle call — the model's strongest validated output
+
+The dashboard publishes `p_vol_amplify`: the probability that realized
+volatility over the forward window will exceed the trailing realized
+volatility over a window of the same length. In the seller's language, *will
+it get wilder than it has been?* — the decision between collecting premium on
+a short strangle and paying for a long straddle.
+
+**It had never been scored.** The volatility level (QLIKE) and the barrier
+probabilities (CORP, Christoffersen) were measured exhaustively; this binary
+call was derived in `serve/predict.py:155`, published on every refresh, and
+appeared in no evaluation anywhere. Same asymmetry of attention that left
+direction unmeasured.
+
+A good level forecast does not imply a good exceedance probability. The
+amplification call reads the predictive *spread*, not the centre — it is
+`1 − F(trailing)` on Stage A's own quantile curve — so a model with a perfect
+median and a 20 % too-tight distribution would systematically understate the
+chance of a wild night, which is exactly the error that breaks a seller.
+
+Six walk-forward folds, production slice, against a causal climatology:
+
+| forecaster | log loss | MCB | **DSC/UNC** | clears null? | gain vs climatology | 95 % CI | folds |
+|---|---|---|---|---|---|---|---|
+| **NOCTUA** | **0.61005** | 0.01227 | **20.303 %** | **yes** | **+0.07485** | [+0.047, +0.103] | **6/6** |
+| HAR + lognormal | 0.61265 | **0.00915** | 16.943 % | yes | +0.07226 | [+0.060, +0.084] | 6/6 |
+| persistence (0.5) | 0.69315 | 0.00509 | 0 % | no | −0.00824 | [−0.014, −0.002] | 3/6 |
+| climatology | 0.68491 | 0.00097 | 0 % | no | 0 | — | 0/6 |
+
+**This is the model's strongest measured skill by a wide margin.** A Brier
+skill score of 20.3 % against 4.98 % on barrier discrimination and 0.18 % on
+direction — the amplification question is **113× more answerable than the
+direction question** and **4× more than the barrier question**, on the same
+episodes, from the same model.
+
+Two honest qualifications:
+
+- **NOCTUA leads on discrimination, not on everything.** Its DSC/UNC is 3.4 pp
+  above the HAR-plus-lognormal competitor, but its *calibration is worse*
+  (MCB 0.01227 against 0.00915), and the log-loss gap is only 0.0026 nats.
+  The neural model discriminates better and is calibrated slightly worse. A
+  recalibration layer on this specific output is an obvious, cheap next step
+  and is not yet done.
+- **The naive route already gets most of it.** HAR with a lognormal spread
+  fitted on training residuals reaches 16.9 % skill. The sophisticated model
+  adds a fifth on top of that, not an order of magnitude.
+
+The base rate is 0.4286 — **43 % of production nights are wilder than the day
+before them**, and both real forecasters move that number around substantially
+and reproducibly.
+
+---
+
 ## 7. Where this leaves the model
 
 **Established.** It carries genuine conditional information (DSC ≫ 0, and

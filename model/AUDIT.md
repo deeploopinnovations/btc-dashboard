@@ -22,6 +22,7 @@ is recorded rather than quietly dropped. Section 6 lists what they got wrong.
 |---|---|---|
 | **Volatility** | **achieved** | 4.04 % QLIKE better than a calibrated Log-HAR, p = 0.0002; beats persistence, climatology, scaled climatology and a shuffled control on the full adversarial benchmark |
 | **Barrier / excursion** | **achieved against the naive baselines; level with the strong one** | deep-tail calibration error 1.09 pp vs 3.33 pp for Gaussian first-passage at α = 1 %; leads persistence, climatology, scaled climatology and a shuffled control on pinball. The Gaussian is better in the body (α ≥ 10 %) |
+| **Volatility amplification** — *will it get wilder?* | **achieved, and the strongest skill in the model** | DSC/UNC **20.3 %**, beats climatology 6/6 folds, CI [+0.047, +0.103] nats. See `BENCHMARK.md` §6g |
 | **Direction** | **not achieved — and now measured properly** | §2 |
 
 Two honest qualifications on the middle row, both established earlier and not
@@ -363,13 +364,23 @@ than asserting it, and the literature in §2.5 says the ceiling is where it is
 for everyone. The work that would move it is a change of *data*, not of
 architecture.
 
-**Volatility is not blocked; it is bounded by evaluation power.** Six folds on
-~365 production episodes each is a small sample for distinguishing 1–2 %
-effects, which is why the pooling result moved when a defect was fixed and why
-`t`-like statistics near 2 have repeatedly failed to replicate. The binding
-constraint on further volatility work is the number of independent test
-episodes, not model capacity — the capacity sweep already showed more
-parameters do not help.
+**Volatility is not blocked; it is bounded by two ceilings, and the second one
+is the real answer to "what is stopping this model".**
+
+*Statistical ceiling:* six folds on ~365 production episodes each cannot
+resolve 1–2 % effects, which is why the pooling result moved when a defect was
+fixed and why `t`-like statistics near 2 have repeatedly failed to replicate.
+The binding constraint there is independent test episodes, not capacity — the
+capacity sweep already showed more parameters do not help.
+
+*Structural ceiling, and the more important one:* on the barrier question the
+product is actually sold on, **a perfect volatility forecast is worth only
+6–8.5 %** (§5c). Ninety-two per cent of the error is the shape of the
+excursion — how far a path travels per unit of volatility — and BTC does not
+travel like Brownian motion. So "make the volatility model as accurate as
+possible" has a measured, hard limit that further volatility work cannot pass.
+The leverage is in Stage B: the excursion heads, the mixing integral, and
+features describing path *geometry* rather than path *size*.
 
 **The product claim is bounded by §3.1.** Until the benchmark is measured at
 the anchors actually served, the honest scope of every headline is "at 17:00
@@ -514,6 +525,96 @@ confirmed at the current sample size no matter how good the model is.
 - **Path-efficiency features.** Ablated, null.
 - **ACI self-improvement.** The guard vetoed its own candidate at
   e = 9.75e-186; the mechanism works, the candidate was worthless.
+
+---
+
+## 5b. Inside the network — is it learning correctly, or scoring well by accident?
+
+An instrumented training run, reported with its caveats attached because they
+change what may be concluded. **Configuration: hidden 64, a 50,000-row
+training subsample, 18 epochs.** The shipped model is hidden 32 on 189,831
+rows for 40 epochs. Relative sizes of loss terms and importance *rankings*
+should survive that reduction; anything about overfitting or absolute loss
+levels should not, and is not relied on below.
+
+**HEALTHY — the neural residual is not decorative.** The obvious failure mode
+for a model with a linear Log-HAR base plus a learned residual is that the
+linear term does all the work. Measured: residual/base variance ratio
+**0.322**, with a base–residual correlation of **0.043**. The network
+contributes about a third of the base's variance and does so almost
+orthogonally to it — it is adding information rather than re-fitting the
+regression it was initialised from.
+
+**HEALTHY — seeds agree.** Best validation loss across three seeds 0.42583 /
+0.42626 / 0.42858, spread **0.00275**. Permutation-importance rank
+correlation between seeds **0.78–0.83**. Early stopping fires at epoch 4–5 in
+this configuration and the tracked best state is restored.
+
+**A FINDING I REJECTED, and the reason matters more than the finding.** The
+permutation ranking puts `cal_dow_sin` top of the Stage A inputs at **+16.7 %
+of loss** — three times `har_6h`, six times `har_1d`. Read naively that says
+the day of the week matters more to this volatility model than the HAR
+cascade does, which would be alarming.
+
+It is an artifact of the method. Permutation importance splits credit among
+correlated predictors, and the HAR cascade is strongly intercorrelated —
+measured on the real data:
+
+| | har_1h | har_6h | har_1d | har_5d | har_22d |
+|---|---|---|---|---|---|
+| har_1d | 0.302 | 0.654 | 1.000 | **0.851** | 0.753 |
+| har_22d | 0.151 | 0.462 | 0.753 | **0.880** | 1.000 |
+
+Permuting `har_1d` leaves `har_5d` (r = 0.851) and `har_22d` (r = 0.753) to
+carry the same signal, so the measured loss increase is small. `cal_dow_sin`
+is essentially orthogonal to the whole block (|r| ≤ 0.094), so permuting it
+destroys information nothing else holds and it collects full credit. The
+ranking measures *redundancy*, not importance, and the two are not the same.
+**Nothing was changed on the strength of it.**
+
+**SUSPICIOUS, and now under test.** `pinball_loss(q_r, r)` — the
+terminal-return head — is the **largest single term in the objective**,
+measured at the validation minimum: `a = 0.0654, r = 0.1560, up = 0.1059,
+dn = 0.0985`. Roughly 2.4× the stage-A volatility term. Combined with §2
+(the sign is not predictable) and §5c (92 % of the barrier error is excursion
+shape), the model spends its largest share of gradient budget on the one
+quantity it has been shown it cannot forecast. `eval/losshead.py` ablates the
+weight; the adopt rule is ≥ 5 of 6 folds on DSC/UNC, fixed before the run.
+
+**INERT.** The coupling penalty falls to exactly 0.00000 from epoch 3 onward
+(from 0.00332 at initialisation). The path identities it enforces are
+satisfied almost immediately and it contributes nothing to the gradient
+thereafter. Not harmful — it is a constraint, and a satisfied constraint
+costing nothing is the desired state — but it is not the regulariser it might
+be assumed to be, and that matters for the `lam_r` ablation, where deleting
+`q_r` outright would remove it.
+
+**Candidates for pruning, not yet tested.** Seven Stage A inputs and six
+Stage B inputs have *negative* permutation importance — permuting them
+improves held-out loss. Stage A: `vov_5d` (−0.44 %), `vov_22d` (−0.25 %),
+`cal_month_cos`, `semi_signed_jump_5d`, `reg_post_etf`, `semi_neg_share_1d`,
+`mom_dist_ma100`. The magnitudes are small but well outside the reported
+per-feature noise (std ~1e-5). Worth an ablation; not acted on yet.
+
+**One literature warning that does NOT apply here.** Brini (2026) reports
+realized-quarticity (HARQ) terms being badly unstable out of sample — QLIKE
+ratios up to 5.13×. This model's `rq_noise_1d` has *positive* importance
+(+1.87 % of Stage A loss). The warning is real in general and does not
+transfer to this implementation, which is worth recording so it is not
+"fixed" on the strength of a citation.
+
+---
+
+## 5c. Where the barrier error actually lives
+
+Moved to `BENCHMARK.md` §6f in full. The headline, because it governs §7:
+feeding the Gaussian first-passage law the **realized** volatility — perfect
+foresight — still leaves 91.5–94 % of the causal forecaster's barrier error
+in place. Volatility work has a hard ceiling of **6–8.5 %** on the task the
+product is sold on. BTC's range per unit of realized volatility is **1.331**
+against the Brownian **1.5958** (CI on the difference [−0.298, −0.234]): the
+price chops rather than travels, and the textbook barrier formula overstates
+touch risk at every strike from 0.5 % to 5 % even when handed the right sigma.
 
 ---
 
