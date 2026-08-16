@@ -834,7 +834,147 @@ result.
 
 ---
 
-## 7. Where this leaves the model
+## 6i. The market the model was fitted on no longer exists
+
+Prompted by a domain observation that turned out to be both correct and larger
+than expected: BTC volatility has fallen year on year, with a step at the
+spot-ETF launch, and the model's training era is dominated by a regime that no
+longer occurs.
+
+Median 19-hour realized volatility, production anchors:
+
+| year | median RV | p95 RV | P(move > 2 %) | return kurtosis |
+|---|---|---|---|---|
+| 2013 | 5.280 % | 21.283 % | 78.4 % | **15.04** |
+| 2017 | 4.012 % | 10.265 % | 85.5 % | 3.30 |
+| 2021 | 3.315 % | 7.952 % | 89.6 % | 3.96 |
+| 2023 | 1.710 % | 3.498 % | 46.0 % | 5.26 |
+| 2024 | 2.049 % | 4.154 % | 61.2 % | 5.41 |
+| 2025 | 1.520 % | 3.480 % | 39.7 % | 2.94 |
+| 2026 | 1.606 % | 3.258 % | 41.8 % | **0.41** |
+
+**Volatility down ~60–70 %, and the fat tails went with it** — kurtosis 15.04
+→ 0.41, p95 realized vol 21.3 % → 3.3 %. Split at the ETF launch
+(2024-01-11):
+
+| | n | median RV | p95 RV |
+|---|---|---|---|
+| pre | 4,384 | 2.975 % | 9.188 % |
+| post | 941 | **1.736 %** | **3.827 %** |
+
+Ratio **0.584**, Mann-Whitney **p = 3.1e-156**, KS **0.4344**. Not drift — a
+different market.
+
+This is the mechanism behind two things already measured independently and
+attributed only vaguely before: `eval/either.py` finding every model arm
+over-forecasting in 2025–26 (realized P(either at 2 %) 0.397 / 0.418 against
+0.614 / 0.636), and `serve/adaptive.py` quietly applying a 0.93–0.96 shrink
+every night. The model is being asked about a market 42 % quieter than its
+training median, and it says so.
+
+### The defect this exposed: an untrained weight switched on in production
+
+`reg_post_etf` is the flag `hour_ts >= 2024-01-11`. In the **shipped** split
+(train ends 2023-01-01):
+
+| | rows | value | standardizes to |
+|---|---|---|---|
+| train | 189,831 | identically **0** | exactly 0.0 |
+| test | 73,867 | identically **1** | exactly 1.0 |
+
+A constant input receives zero gradient, so its first-layer weight never
+leaves random initialization. Measured on the shipped artifact, that weight is
+of **completely ordinary magnitude** — mean |contribution| 0.088–0.114 per
+seed against a mean |W| over all inputs of 0.096–0.116.
+
+So at serve time **every hidden unit in both stages receives a full-strength,
+never-trained random offset that was identically absent during training.** It
+is not a weak feature; it is noise injected only in production. A flag that
+never varies in training carries no information by construction, so there is
+nothing to lose by removing it.
+
+**Why the walk-forward mostly hides it.** Fold 2021 trains to 2020-07 and
+tests 2021 — the flag is 0 on both sides and nothing flips. Only folds 2024
+and 2025 straddle the launch at all. The shipped split exposes it fully, which
+is why `eval/regime.py` reports the training standard deviation of the flag
+per fold alongside the scores: the folds where it is 0.000 are the ones where
+the defect is live.
+
+*(A cosmetic wrinkle in that script's output: it prints the test-set standard
+deviation of the flag as 0.000000 too, which is correct — the test set is
+identically 1 — but reads as though nothing differs. The means, 0.0 and 1.0,
+are the informative numbers.)*
+
+### Removing the flag: measured, and it is a wash
+
+Six folds, with and against:
+
+| metric | with flag | without | delta | folds better |
+|---|---|---|---|---|
+| DSC/UNC | 0.055477 | 0.055577 | +0.000101 | 3/6 |
+| pinball | 0.003577 | 0.003578 | +0.000001 | 2/6 |
+| CRPS | 0.005251 | 0.005243 | −0.000008 | 2/6 |
+| QLIKE | 0.290346 | 0.291492 | **+0.001146 (worse)** | 2/6 |
+
+**No detectable effect, and QLIKE is marginally worse without it. Third failed
+prediction in a row.**
+
+The distinction from the previous two nulls is worth drawing, because it
+changes what to do. There the *mechanism* was speculative. Here the mechanism
+is proven — a constant input receives zero gradient, its weight demonstrably
+sits at initialization, and I measured that weight to be of ordinary magnitude
+— but the *effect* is below detection: one input's worth of random offset among
+39, apparently absorbed by the rest of the network.
+
+So the flag is **not removed on the strength of a null**, and no improvement is
+claimed from touching it. It is documented as a design defect to fix at the
+next retrain, when the split moves forward anyway.
+
+### The real finding is the split, not the flag
+
+The flag is a symptom. `eval/regime.py`'s weight audit gives the disease:
+
+| year of training data | share of the shipped model's fitted weight |
+|---|---|
+| 2017 | 3.49 % |
+| 2018 | 10.18 % |
+| 2019 | 13.49 % |
+| 2020 | 17.93 % |
+| 2021 | 23.69 % |
+| 2022 | 31.22 % |
+| **post-ETF (2024-01-11 onward)** | **0.00 %** |
+
+`TRAIN_END` is 2023-01-01 and the last training anchor is 2022-12-30 — over a
+year before the launch. **100 % of the shipped model's fitted weight comes from
+a regime that has since ended.** The 900-day half-life redistributes recency
+*within* the old regime; it cannot reach the new one. Its reference clock is
+the training set's own end date, now ~3.6 years stale against a 2026 serve
+date.
+
+And the shift reaches every volatility-scale input, not just the flag —
+train-vs-test KS on the shipped split:
+
+| feature | KS | sd train → test |
+|---|---|---|
+| `har_22d` | **0.614** | 0.417 → 0.262 |
+| `rng_gk_5d` | 0.523 | 0.481 → 0.332 |
+| `har_5d` | 0.490 | 0.488 → 0.320 |
+| `vov_22d` | 0.427 | 0.097 → 0.068 |
+| `har_1d` | 0.403 | 0.551 → 0.444 |
+| `cal_hour_sin` (control) | **0.0001** | 0.707 → 0.707 |
+
+The calendar features are unmoved, which is the control that says this is a
+volatility-regime effect and not a data artifact. Every RV-scale feature is
+served on a distribution 25–40 % narrower than the one its weights were fitted
+against.
+
+**That is the honest answer to "what is stopping the model".** Not capacity,
+not architecture, not the loss. The deployed artifact is a well-built estimator
+of a market that stopped existing in January 2024, held together in production
+by `serve/adaptive.py`'s nightly 0.93–0.96 shrink — a patch doing structural
+work. The fix is to move the training window forward and re-fit, which is a
+larger change than anything attempted in this session and should be measured
+the same way: pre-registered, walk-forward, and reported as a null if it is one.
 
 **Established.** It carries genuine conditional information (DSC ≫ 0, and
 shuffling the features destroys it). It beats every baseline on the full

@@ -373,6 +373,15 @@ fixed and why `t`-like statistics near 2 have repeatedly failed to replicate.
 The binding constraint there is independent test episodes, not capacity — the
 capacity sweep already showed more parameters do not help.
 
+*Regime ceiling, and the one a user spotted before the benchmark did:* the
+model is fitted on a market that no longer exists. Median 19-hour realized
+volatility has fallen ~60–70 % since 2013 and ~42 % across the spot-ETF launch
+alone (2.975 % → 1.736 %, Mann-Whitney p = 3.1e-156), and the fat tails went
+with it (return kurtosis 15.04 → 0.41). Every model arm over-forecasts in the
+2025–26 folds, and `serve/adaptive.py` has been silently shrinking by 0.93–0.96
+for months. `BENCHMARK.md` §6i has the full table and the untrained-flag defect
+it exposed.
+
 *Structural ceiling, and the more important one:* on the barrier question the
 product is actually sold on, **a perfect volatility forecast is worth only
 6–8.5 %** (§5c). Ninety-two per cent of the error is the shape of the
