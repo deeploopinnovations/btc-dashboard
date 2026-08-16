@@ -75,7 +75,36 @@ from noctua import splits as S                                               # n
 from noctua.train import load_all                                            # noqa: E402
 
 BARRIER_PCT = np.array([0.5, 1.0, 2.0, 3.0, 5.0])
-BROWNIAN_RATIO = np.sqrt(8.0 / np.pi)          # 1.5958
+BROWNIAN_RATIO = np.sqrt(8.0 / np.pi)          # 1.5958, CONTINUOUS time
+
+
+def brownian_control(n: int = 200_000, H: int = 19, sub: int = 12, seed: int = 0) -> dict:
+    """Simulate the benchmark at the SAMPLING RESOLUTION THE DATA ACTUALLY HAS.
+
+    sqrt(8/pi) = 1.5958 is the continuous-time value, and comparing a
+    discretely-sampled measurement against it overstates the gap. A running
+    maximum observed at finitely many points is always below the true
+    continuous maximum, while the realized variance built from the same
+    increments is unbiased -- so the ratio is biased DOWN by discretization
+    alone, before any question of whether the price process is Brownian.
+
+    Episodes measure `RV` from 5-minute bars over an H-hour window, i.e.
+    12*H increments, so the control uses exactly that. This was got wrong
+    first time round: the -0.2646 gap originally reported here compared BTC
+    against the continuous constant, and roughly 28% of it was discretization
+    rather than anything about Bitcoin.
+    """
+    rng = np.random.default_rng(seed)
+    inc = rng.standard_normal((n, H * sub)) / np.sqrt(H * sub)
+    path = np.cumsum(inc, axis=1)
+    m_up = np.maximum(path.max(axis=1), 0.0)
+    m_dn = np.maximum(-path.min(axis=1), 0.0)
+    rv = np.sqrt((inc ** 2).sum(axis=1))
+    from scipy.stats import spearmanr
+    rho, _ = spearmanr(m_up / rv, m_dn / rv)
+    return {"ratio_mean": float(((m_up + m_dn) / rv).mean()),
+            "ratio_median": float(np.median((m_up + m_dn) / rv)),
+            "spearman_up_dn": float(rho), "n": n, "H": H, "sub_steps": sub}
 
 
 def gaussian_touch(u: np.ndarray, sigma: np.ndarray) -> np.ndarray:
@@ -106,16 +135,27 @@ def main(argv=None) -> int:
     # ---- the shape statistic --------------------------------------------
     ratio = rng / np.maximum(RV, 1e-12)
     q = np.quantile(ratio, [0.05, 0.25, 0.5, 0.75, 0.95])
-    lo, hi = block_bootstrap_ci(ratio - BROWNIAN_RATIO, seed=3)
+    ctl = brownian_control(H=int(np.median(e["H"])))
+    ref = ctl["ratio_mean"]
+    lo, hi = block_bootstrap_ci(ratio - ref, seed=3)
     print(f"RANGE / sqrt(realized variance)")
-    print(f"  Brownian theory      : {BROWNIAN_RATIO:.4f}")
+    print(f"  Brownian, continuous : {BROWNIAN_RATIO:.4f}  (NOT the right "
+          f"comparison -- see brownian_control)")
+    print(f"  Brownian, SAMPLED as the data is ({ctl['H']}h x {ctl['sub_steps']} "
+          f"5-min steps): {ref:.4f}")
     print(f"  BTC measured  median : {q[2]:.4f}   mean {ratio.mean():.4f}")
     print(f"                  IQR  : [{q[1]:.4f}, {q[3]:.4f}]")
     print(f"            5-95 pct   : [{q[0]:.4f}, {q[4]:.4f}]")
-    print(f"  mean - 1.5958        : {ratio.mean()-BROWNIAN_RATIO:+.4f}  "
+    print(f"  mean - sampled ref   : {ratio.mean()-ref:+.4f}  "
           f"block-bootstrap 95% CI [{lo:+.4f}, {hi:+.4f}]")
+    print(f"  (against the continuous constant the gap would read "
+          f"{ratio.mean()-BROWNIAN_RATIO:+.4f}; ~{100*(1-abs(ratio.mean()-ref)/abs(ratio.mean()-BROWNIAN_RATIO)):.0f}% "
+          f"of that is discretization, not Bitcoin)")
+    print(f"  Spearman(M_up/RV, M_dn/RV): BTC "
+          f"{__import__('scipy.stats', fromlist=['spearmanr']).spearmanr(M_up/np.maximum(RV,1e-12), M_dn/np.maximum(RV,1e-12))[0]:+.4f}"
+          f"   Brownian control {ctl['spearman_up_dn']:+.4f}")
     verdict = ("CHOPS -- less travel per unit of volatility than Brownian"
-               if ratio.mean() < BROWNIAN_RATIO else
+               if ratio.mean() < ref else
                "TRENDS -- more travel per unit of volatility than Brownian")
     print(f"  -> BTC {verdict}\n")
 
@@ -178,12 +218,14 @@ def main(argv=None) -> int:
     a.out.parent.mkdir(parents=True, exist_ok=True)
     a.out.write_text(json.dumps({
         "n_episodes": int(len(e)),
-        "brownian_ratio": BROWNIAN_RATIO,
+        "brownian_ratio_continuous": BROWNIAN_RATIO,
+        "brownian_control_sampled": ctl,
         "range_over_sqrt_rv": {
             "mean": float(ratio.mean()), "median": float(q[2]),
             "p05": float(q[0]), "p25": float(q[1]), "p75": float(q[3]),
             "p95": float(q[4]),
-            "mean_minus_brownian": float(ratio.mean() - BROWNIAN_RATIO),
+            "mean_minus_brownian_sampled": float(ratio.mean() - ref),
+            "mean_minus_brownian_continuous": float(ratio.mean() - BROWNIAN_RATIO),
             "ci95": [lo, hi]},
         "barriers": rows}, indent=2, default=float) + "\n")
     print(f"\nwrote {a.out}")

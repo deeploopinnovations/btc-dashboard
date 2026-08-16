@@ -158,8 +158,9 @@ def run_fold(ep, X, fold, trail, y_amp, hidden=32, seeds=3):
     lp = bl["log_har_cal"].predict(X[m_te])
     preds = [I.predict(m, d, har_logvol=lp) for m in models]
     avg = dict(preds[0])
-    for k in ("qa", "sigma_atoms", "sigma_med", "q_r", "q_up", "q_dn"):
-        avg[k] = np.mean([p[k] for p in preds], axis=0)
+    for k in ("qa", "sigma_atoms", "sigma_med", "q_r", "q_up", "q_dn", "q_mx"):
+        if all(k in p for p in preds):
+            avg[k] = np.mean([p[k] for p in preds], axis=0)
 
     # lognormal spread fitted on the TRAINING residuals only
     lp_tr = bl["log_har_cal"].predict(X[m_tr])

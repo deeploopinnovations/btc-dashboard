@@ -387,8 +387,9 @@ def run_fold(ep, X, fold, hidden=32, seeds=3, verbose=False, shape_cols=None,
         lp = bl["log_har_cal"].predict(X[mask])
         preds = [I.predict(m, d, har_logvol=lp) for m in models]
         out = dict(preds[0])
-        for k in ("qa", "sigma_atoms", "sigma_med", "q_r", "q_up", "q_dn"):
-            out[k] = np.mean([p[k] for p in preds], axis=0)
+        for k in ("qa", "sigma_atoms", "sigma_med", "q_r", "q_up", "q_dn", "q_mx"):
+            if all(k in p for p in preds):
+                out[k] = np.mean([p[k] for p in preds], axis=0)
         return out, lp
 
     # ---- calibration slice: fit the committee (equal weights, as shipped) --

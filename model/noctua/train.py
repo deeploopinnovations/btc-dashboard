@@ -111,6 +111,10 @@ def prepare(ep, X, mask, std_all=None, std_shape=None, std_base=None,
     r = e["R"].to_numpy(np.float64) / np.maximum(sigma, EPS)
     m_up = e["M_up"].to_numpy(np.float64) / np.maximum(sigma, EPS)
     m_dn = -e["M_dn"].to_numpy(np.float64) / np.maximum(sigma, EPS)
+    # The MAX of the two excursions: what a strangle seller actually faces,
+    # and not recoverable from the two marginals without an independence
+    # assumption the data rejects (Spearman -0.687). See StageB's docstring.
+    m_mx = np.maximum(m_up, m_dn)
 
     if std_all is None:
         std_all, std_shape, std_base = Standardizer().fit(Xa), Standardizer().fit(Xs), Standardizer().fit(Xb)
@@ -133,6 +137,7 @@ def prepare(ep, X, mask, std_all=None, std_shape=None, std_base=None,
         r=r.astype(np.float32),
         m_up=m_up.astype(np.float32),
         m_dn=m_dn.astype(np.float32),
+        m_mx=m_mx.astype(np.float32),
         H=H, RV=RV,
     ), (std_all, std_shape, std_base)
 
@@ -141,6 +146,7 @@ def prepare(ep, X, mask, std_all=None, std_shape=None, std_base=None,
 def train_model(
     tr, wtr, va, *, hidden=128, epochs=40, bs=4096, lr=2e-3, lam_couple=1.0,
     lam_anchor=0.0, seed=0, verbose=True, ols_beta=None, lam_r=1.0,
+    lam_mx=1.0,
 ):
     """Fit one Noctua network.
 
@@ -177,10 +183,10 @@ def train_model(
     lv = torch.tensor(LEVELS, dtype=torch.float32, device=dev)
 
     T = {k: torch.tensor(v, device=dev) for k, v in tr.items()
-         if k in ("Xa", "Xb", "Xs", "y", "log_sigma", "r", "m_up", "m_dn")}
+         if k in ("Xa", "Xb", "Xs", "y", "log_sigma", "r", "m_up", "m_dn", "m_mx")}
     W = torch.tensor(wtr.astype(np.float32), device=dev)
     V = {k: torch.tensor(v, device=dev) for k, v in va.items()
-         if k in ("Xa", "Xb", "Xs", "y", "log_sigma", "r", "m_up", "m_dn")}
+         if k in ("Xa", "Xb", "Xs", "y", "log_sigma", "r", "m_up", "m_dn", "m_mx")}
 
     opt = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
     n = len(T["y"])
@@ -195,7 +201,7 @@ def train_model(
         for i in range(steps):
             idx = perm[i * bs : (i + 1) * bs]
             qa, res_med = model.a(T["Xa"][idx], T["Xb"][idx], return_parts=True)
-            qr, qu, qd = model.b(T["Xs"][idx], T["log_sigma"][idx][:, None])
+            qr, qu, qd, qm = model.b(T["Xs"][idx], T["log_sigma"][idx][:, None])
 
             loss = (
                 pinball_loss(qa, T["y"][idx], lv, W[idx])
@@ -203,6 +209,7 @@ def train_model(
                 + lam_r * pinball_loss(qr, T["r"][idx], lv, W[idx])
                 + pinball_loss(qu, T["m_up"][idx], lv, W[idx])
                 + pinball_loss(qd, T["m_dn"][idx], lv, W[idx])
+                + lam_mx * pinball_loss(qm, T["m_mx"][idx], lv, W[idx])
                 + lam_couple * coupling_penalty(qr, qu, qd)
             )
             opt.zero_grad()
@@ -215,12 +222,13 @@ def train_model(
         model.eval()
         with torch.no_grad():
             qa = model.a(V["Xa"], V["Xb"])
-            qr, qu, qd = model.b(V["Xs"], V["log_sigma"][:, None])
+            qr, qu, qd, qm = model.b(V["Xs"], V["log_sigma"][:, None])
             vl = float(
                 pinball_loss(qa, V["y"], lv)
                 + pinball_loss(qr, V["r"], lv)
                 + pinball_loss(qu, V["m_up"], lv)
                 + pinball_loss(qd, V["m_dn"], lv)
+                + lam_mx * pinball_loss(qm, V["m_mx"], lv)
             )
         if verbose and (ep_i % 5 == 0 or ep_i == epochs - 1):
             print(f"  epoch {ep_i:3d}  train {tot/steps:.5f}  val {vl:.5f}")

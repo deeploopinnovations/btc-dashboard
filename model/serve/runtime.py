@@ -71,11 +71,22 @@ class NumpyNoctua:
     def stage_a(self, Xa: np.ndarray, Xb: np.ndarray) -> np.ndarray:
         return self._lin("a.base", Xb) + self._qhead("a.head", self._body("a.body", Xa), False)
 
+    def has_mx(self) -> bool:
+        """Whether this artifact carries the max-excursion head.
+
+        Artifacts exported before `q_mx` existed do not, and serving must keep
+        working against them rather than dying on a missing key -- the whole
+        point of versioned metadata is that an old artifact stays loadable.
+        """
+        return "b.q_mx.weight" in self.w or "m0.b.q_mx.weight" in self.w
+
     def stage_b(self, Xs: np.ndarray, log_sigma: np.ndarray):
         h = self._body("b.body", np.concatenate([Xs, log_sigma], axis=1))
-        return (self._qhead("b.q_r", h, False),
-                self._qhead("b.q_up", h, True),
-                self._qhead("b.q_dn", h, True))
+        out = [self._qhead("b.q_r", h, False),
+               self._qhead("b.q_up", h, True),
+               self._qhead("b.q_dn", h, True)]
+        out.append(self._qhead("b.q_mx", h, True) if self.has_mx() else None)
+        return tuple(out)
 
     # ---- standardization / feature assembly -------------------------------
     def _std(self, name: str, A: np.ndarray) -> np.ndarray:
@@ -113,13 +124,15 @@ class NumpyNoctua:
         H = d["H"]
         sigma_atoms = np.exp(atoms_y) * np.sqrt(H)[:, None]
 
-        qr, qu, qd = [], [], []
+        qr, qu, qd, qm = [], [], [], []
         for i in range(n_atoms):
             ls = np.log(np.maximum(sigma_atoms[:, i], 1e-12))[:, None]
-            r_, u_, d_ = self.stage_b(d["Xs"], ls)
+            r_, u_, d_, m_ = self.stage_b(d["Xs"], ls)
             qr.append(r_); qu.append(u_); qd.append(d_)
+            if m_ is not None:
+                qm.append(m_)
 
-        return {
+        out = {
             "qa": qa,
             "sigma_atoms": sigma_atoms,
             "sigma_med": np.exp(qa[:, self.median_idx]) * np.sqrt(H),
@@ -129,6 +142,9 @@ class NumpyNoctua:
             "q_dn": np.stack(qd, 1),
             "H": H,
         }
+        if qm:
+            out["q_mx"] = np.stack(qm, 1)
+        return out
 
     # ---- calibrated served quantities -------------------------------------
     def _cal_map(self, side: str) -> tuple[np.ndarray, np.ndarray] | None:
@@ -218,8 +234,13 @@ class NoctuaV2(NumpyNoctua):
         finally:
             self.w = full
         avg = dict(outs[0])
-        for k in ("qa", "sigma_atoms", "sigma_med", "sigma_mean", "q_r", "q_up", "q_dn"):
-            avg[k] = np.mean([o[k] for o in outs], axis=0)
+        # `q_mx` is absent from artifacts exported before that head existed,
+        # so average only the keys every seed actually produced. Assuming a
+        # key is present is how a backward-compatible loader stops being one.
+        for k in ("qa", "sigma_atoms", "sigma_med", "sigma_mean",
+                  "q_r", "q_up", "q_dn", "q_mx"):
+            if all(k in o for o in outs):
+                avg[k] = np.mean([o[k] for o in outs], axis=0)
         return avg
 
     # ---- specialists -------------------------------------------------------

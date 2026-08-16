@@ -609,23 +609,33 @@ shape error, and it is the part no volatility model can ever remove.
 ### BTC paths chop; they do not travel like Brownian motion
 
 Under driftless Brownian motion, `E[range] / sqrt(realized variance)` is the
-constant `sqrt(8/π) = 1.5958`. Measured on the 5,325 production episodes:
+constant `sqrt(8/π) = 1.5958` **in continuous time**.
+
+> **Correction.** This section first compared BTC against that constant and
+> reported a gap of −0.2646. That was wrong, and in the flattering direction.
+> A running maximum observed at finitely many points is always below the true
+> continuous maximum, while realized variance built from the same increments
+> is unbiased — so the ratio is biased **down by discretization alone**,
+> before any question about Bitcoin. Episodes measure RV from 5-minute bars
+> over 19 hours, i.e. 228 increments, so the benchmark must be simulated at
+> that resolution. `brownian_control()` does it: **1.5218**, not 1.5958.
+> **About 28 % of the originally reported gap was my own sampling artifact.**
 
 | | |
 |---|---|
-| Brownian theory | 1.5958 |
+| Brownian, continuous time | 1.5958 |
+| **Brownian, sampled as the data is** (19 h × 12 five-minute steps) | **1.5218** |
 | **BTC measured** | mean **1.3311**, median **1.2942** |
 | IQR | [1.0157, 1.6120] |
 | 5–95 pct | [0.5899, 2.1835] |
-| mean − Brownian | **−0.2646**, block-bootstrap 95 % CI **[−0.298, −0.234]** |
+| **mean − sampled benchmark** | **−0.1907**, block-bootstrap 95 % CI **[−0.2239, −0.1600]** |
 
-BTC burns realized variance without travelling. The interval is nowhere near
-zero. (The literature search in `LITERATURE.md` §5 located the theory —
-Feller's 1951 range distribution — but **no published empirical measurement of
-this ratio on real financial data**. Reported here as a measurement, not a
-novelty claim: absence of a located precedent is not proof of absence. It
-independently reproduces the figure already quoted in `features.py`'s
-`eff_*` docstring, to four decimals.)
+BTC still burns realized variance without travelling, and the interval is
+still nowhere near zero — the conclusion survives, at about 72 % of the
+originally claimed size. (`LITERATURE.md` §5 located the theory — Feller's
+1951 range distribution — but no published empirical measurement of this ratio
+on real financial data. Reported as a measurement, not a novelty claim. It
+reproduces the figure in `features.py`'s `eff_*` docstring to four decimals.)
 
 ### What that does to the textbook barrier formula
 
