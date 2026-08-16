@@ -1,6 +1,34 @@
 {
   "items": [
     {
+      "headline": "Calamos Bitcoin 80 Series Structured Alt Protection ETF – January ( BATS : CBTJ ) Short Interest Update",
+      "url": "https://www.tickerreport.com/banking-finance/13545150/calamos-bitcoin-80-series-structured-alt-protection-etf-january-batscbtj-short-interest-update.html",
+      "src": "tickerreport.com",
+      "date": "20260816T080000Z",
+      "sent": "neg"
+    },
+    {
+      "headline": "2026 OKX ( 欧易 ) Exchange Registration Complete Guide _ How Beginners Can Fill in the Lifetime Rebate Referral Code 【 34978585 】 - 风停以后 的部落格",
+      "url": "https://blog.udn.com:443/54f207e5/192101351",
+      "src": "blog.udn.com",
+      "date": "20260816T071500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "2026 Bitget Latest Referral Code 【 BG3388 】 Tested 20 % Fee Rebate – A Real - Money Beginner Guide to Avoiding Pitfalls - 像素之光 的部落格",
+      "url": "https://blog.udn.com:443/b1889fd7/192101064",
+      "src": "blog.udn.com",
+      "date": "20260816T070000Z",
+      "sent": "neg"
+    },
+    {
+      "headline": "WisdomTree Bitcoin Fund ( BATS : BTCW ) Short Interest Update",
+      "url": "https://www.themarketsdaily.com/2026/08/16/wisdomtree-bitcoin-fund-batsbtcw-short-interest-update.html",
+      "src": "themarketsdaily.com",
+      "date": "20260816T064500Z",
+      "sent": "neu"
+    },
+    {
       "headline": "Israel Largest Bank Partners With Galaxy Digital To Offer Crypto Trading",
       "url": "https://finance.yahoo.com/markets/crypto/articles/israel-largest-bank-partners-galaxy-193000565.html",
       "src": "finance.yahoo.com",
@@ -76,37 +104,9 @@
       "src": "finance.yahoo.com",
       "date": "20260815T013000Z",
       "sent": "neg"
-    },
-    {
-      "headline": "Otoh Collection returns with part VIII in Heritage ANA Physical Cryptocurrency auction",
-      "url": "https://artdaily.com/news/199123/Otoh-Collection-returns-with-part-VIII-in-Heritage-s-ANA-Physical-Cryptocurrency-auction",
-      "src": "artdaily.com",
-      "date": "20260815T000000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Metaplanet Denies Selling $320M in Bitcoin as Firm Launches BitBonds",
-      "url": "https://finance.yahoo.com/markets/crypto/articles/metaplanet-denies-selling-320m-bitcoin-164049182.html",
-      "src": "finance.yahoo.com",
-      "date": "20260815T000000Z",
-      "sent": "neg"
-    },
-    {
-      "headline": "Bitcoin ( BTC ) Price Prediction : Bitcoin Coiled Market Faces Major Breakout as $62K Support Is Tested",
-      "url": "https://bravenewcoin.com/insights/bitcoin-btc-price-prediction-bitcoins-coiled-market-faces-major-breakout-as-62k-support-is-tested",
-      "src": "bravenewcoin.com",
-      "date": "20260814T231500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Crypto Market Today , Aug . 14 : Bitcoin Slips as SEC Tokenization Progress Stalls",
-      "url": "https://www.fool.com/coverage/stock-market-today/2026/08/14/crypto-market-today-aug-14-bitcoin-slips-as-tokenization-regulation-stalls/?source=iedfolrf0000001",
-      "src": "fool.com",
-      "date": "20260814T231500Z",
-      "sent": "neu"
     }
   ],
-  "ts": 1786857910760,
+  "ts": 1786877313958,
   "source": "GDELT",
-  "_updatedMs": 1786857910760
+  "_updatedMs": 1786877313958
 }

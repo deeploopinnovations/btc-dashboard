@@ -7,9 +7,9 @@
   "tz": "UTC",
   "ageHrs": 0.0,
   "freshness": "fresh",
-  "fetchedAt": 1786875559959,
+  "fetchedAt": 1786877298970,
   "proxy": "noctua-local",
-  "_updatedMs": 1786875559959,
+  "_updatedMs": 1786877298970,
   "model": "NOCTUA-v2",
   "upside_is_informative": false,
   "warning": "upside is pinned to 50.0 on purpose: direction is NOT predictable at this horizon (walk-forward log-loss 0.6941 vs 0.6931 for a coin flip), and src/data.js uses this field to skew strike recommendations. The model's raw P(up) is in p_up_raw, wired to nothing. volAmp and the barrier levels in noctua.json ARE validated."
