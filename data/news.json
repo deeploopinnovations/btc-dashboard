@@ -1,6 +1,41 @@
 {
   "items": [
     {
+      "headline": "Strategy Leaves Bitcoin Untouched , Raises $334M Selling MSTR Stock",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/strategy-leaves-bitcoin-untouched-raises-125655857.html",
+      "src": "finance.yahoo.com",
+      "date": "20260817T133000Z",
+      "sent": "neg"
+    },
+    {
+      "headline": "Stocks primed for a firmer open in quiet newsflow , while Dollar weakens on easing Fed tightening bets - Newsquawk US Market Open",
+      "url": "https://www.zerohedge.com/markets/stocks-primed-firmer-open-quiet-newsflow-while-dollar-weakens-easing-fed-tightening-bets",
+      "src": "zerohedge.com",
+      "date": "20260817T133000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Bitmine Immersion Technologies ( BMNR ) Announces ETH Holdings Reach 5 . 82 Million Tokens , and Total Crypto and Total Cash Holdings of $11 . 4 Billion",
+      "url": "https://www.manilatimes.net/2026/08/17/tmt-newswire/pr-newswire/bitmine-immersion-technologies-bmnr-announces-eth-holdings-reach-582-million-tokens-and-total-crypto-and-total-cash-holdings-of-114-billion/2406844",
+      "src": "manilatimes.net",
+      "date": "20260817T133000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Nietzschean Penguin Price Down 7 . 3 % This Week ( PENGUIN ) ",
+      "url": "https://www.themarketsdaily.com/2026/08/17/nietzschean-penguin-price-down-7-3-this-week-penguin.html",
+      "src": "themarketsdaily.com",
+      "date": "20260817T113000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Bitcoin Holds $62 , 819 as Stablecoins Dominate LatAm",
+      "url": "https://www.riotimesonline.com/crypto-markets-bitcoin-majors-monday-august-17-2026/",
+      "src": "riotimesonline.com",
+      "date": "20260817T104500Z",
+      "sent": "neu"
+    },
+    {
       "headline": "Bitcoin yön arıyor : Gözler bu seviyelerde olacak",
       "url": "https://www.haberler.com/kripto-para/bitcoin-yon-ariyor-gozler-bu-seviyelerde-olacak-20151115-haberi/",
       "src": "haberler.com",
@@ -62,44 +97,9 @@
       "src": "investinglive.com",
       "date": "20260816T181500Z",
       "sent": "neg"
-    },
-    {
-      "headline": "Why Chainlink Rose as Bitcoin and Uniswap Weakened",
-      "url": "https://www.dailyforex.com/forex-technical-analysis/2026/08/crypto-forecast-16-august-2026/248721",
-      "src": "dailyforex.com",
-      "date": "20260816T160000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "xSUSHI ( XSUSHI ) Price Tops $0 . 25 on Exchanges",
-      "url": "https://www.themarketsdaily.com/2026/08/16/xsushi-xsushi-price-tops-0-25-on-exchanges.html",
-      "src": "themarketsdaily.com",
-      "date": "20260816T154500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Ampleforth Reaches Self Reported Market Cap of $13 . 16 Million ( AMPL ) ",
-      "url": "https://www.themarketsdaily.com/2026/08/16/ampleforth-reaches-self-reported-market-cap-of-13-16-million-ampl.html",
-      "src": "themarketsdaily.com",
-      "date": "20260816T154500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Efforce ( WOZX ) Price Tops $0 . 0030 on Top Exchanges",
-      "url": "https://www.themarketsdaily.com/2026/08/16/efforce-wozx-price-tops-0-0030-on-top-exchanges.html",
-      "src": "themarketsdaily.com",
-      "date": "20260816T154500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Huobi BTC ( HBTC ) Price Tops $1 , 885 . 94 on Exchanges",
-      "url": "https://www.themarketsdaily.com/2026/08/16/huobi-btc-hbtc-price-tops-1885-94-on-exchanges.html",
-      "src": "themarketsdaily.com",
-      "date": "20260816T154500Z",
-      "sent": "neu"
     }
   ],
-  "ts": 1786953039780,
+  "ts": 1786976679061,
   "source": "GDELT",
-  "_updatedMs": 1786953039780
+  "_updatedMs": 1786976679061
 }
