@@ -1,6 +1,27 @@
 {
   "items": [
     {
+      "headline": "Bitwise Bitcoin ETF ( NYSEARCA : BITB ) Short Interest Update",
+      "url": "https://www.themarketsdaily.com/2026/08/17/bitwise-bitcoin-etf-nysearcabitb-short-interest-update.html",
+      "src": "themarketsdaily.com",
+      "date": "20260817T164500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Stan Druckenmiller Reveals $23 Million PURR Bet as Hyperliquid Takes On Polymarket",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/stan-druckenmiller-reveals-23-million-152610961.html",
+      "src": "finance.yahoo.com",
+      "date": "20260817T160000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Strategy Raises $334M Through Stock Sales but Buys No Bitcoin",
+      "url": "https://cointelegraph.com/news/strategy-stock-sales-buys-no-bitcoin",
+      "src": "cointelegraph.com",
+      "date": "20260817T153000Z",
+      "sent": "pos"
+    },
+    {
       "headline": "Strategy Leaves Bitcoin Untouched , Raises $334M Selling MSTR Stock",
       "url": "https://finance.yahoo.com/markets/crypto/articles/strategy-leaves-bitcoin-untouched-raises-125655857.html",
       "src": "finance.yahoo.com",
@@ -83,23 +104,9 @@
       "src": "finance.yahoo.com",
       "date": "20260816T190000Z",
       "sent": "neu"
-    },
-    {
-      "headline": "Michael Saylor Frames Bitcoin As A  Deep Freeze  For Wealth Preservation",
-      "url": "https://www.foreignpolicyjournal.com/2026/08/16/michael-saylor-frames-bitcoin-as-a-deep-freeze-for-wealth-preservation/",
-      "src": "foreignpolicyjournal.com",
-      "date": "20260816T184500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Bitcoin analysis shows what bulls need to do next to end this bearish 2026",
-      "url": "https://investinglive.com/cryptocurrency/bitcoin-analysis-shows-what-bulls-need-to-do-next-to-end-this-bearish-2026/",
-      "src": "investinglive.com",
-      "date": "20260816T181500Z",
-      "sent": "neg"
     }
   ],
-  "ts": 1786981754909,
+  "ts": 1786987432367,
   "source": "GDELT",
-  "_updatedMs": 1786981754909
+  "_updatedMs": 1786987432367
 }
