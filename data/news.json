@@ -1,6 +1,41 @@
 {
   "items": [
     {
+      "headline": "Data of 54K Wallet Users Leaked , Clarity Odds Just 10 %: Hodler Digest , Aug . 16",
+      "url": "https://cointelegraph.com/magazine/data-of-54000-wallet-users-leaked-clarity-odds-just-10-hodlers-digest",
+      "src": "cointelegraph.com",
+      "date": "20260817T011500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Kripto hazine şirketleri ve kurumsal sermaye",
+      "url": "https://www.dunya.com/kose-yazisi/kripto-hazine-sirketleri-ve-kurumsal-sermaye/836420",
+      "src": "dunya.com",
+      "date": "20260817T004500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "4 Reasons This Could Be the Most Important Week of August for Bitcoin and XRP",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/4-reasons-could-most-important-210327553.html",
+      "src": "finance.yahoo.com",
+      "date": "20260816T220000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Bitcoin Has Never Faced Global Bond Yields This High Since It Was Born",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/bitcoin-never-faced-global-bond-185854880.html",
+      "src": "finance.yahoo.com",
+      "date": "20260816T210000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Bitcoin Is Down 44 % and Its Miners Are Up 90 %. The AI Pivot Explains Everything . ",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/bitcoin-down-44-miners-90-182147021.html",
+      "src": "finance.yahoo.com",
+      "date": "20260816T190000Z",
+      "sent": "neu"
+    },
+    {
       "headline": "Michael Saylor Frames Bitcoin As A  Deep Freeze  For Wealth Preservation",
       "url": "https://www.foreignpolicyjournal.com/2026/08/16/michael-saylor-frames-bitcoin-as-a-deep-freeze-for-wealth-preservation/",
       "src": "foreignpolicyjournal.com",
@@ -62,51 +97,9 @@
       "src": "themarketsdaily.com",
       "date": "20260816T153000Z",
       "sent": "neu"
-    },
-    {
-      "headline": "Bancor ( BNT ) 24 Hour Volume Hits $1 . 22 Million",
-      "url": "https://www.themarketsdaily.com/2026/08/16/bancor-bnt-24-hour-volume-hits-1-22-million.html",
-      "src": "themarketsdaily.com",
-      "date": "20260816T153000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Tectum ( TET ) Price Reaches $0 . 23 on Major Exchanges",
-      "url": "https://www.themarketsdaily.com/2026/08/16/tectum-tet-price-reaches-0-23-on-major-exchanges.html",
-      "src": "themarketsdaily.com",
-      "date": "20260816T153000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Request ( REQ ) Trading Down 1 % Over Last 7 Days",
-      "url": "https://www.themarketsdaily.com/2026/08/16/request-req-trading-down-1-over-last-7-days.html",
-      "src": "themarketsdaily.com",
-      "date": "20260816T153000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Qtum ( QTUM ) Price Up 1 % This Week",
-      "url": "https://www.themarketsdaily.com/2026/08/16/qtum-qtum-price-up-1-this-week.html",
-      "src": "themarketsdaily.com",
-      "date": "20260816T153000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Loopring ( LRC ) Price Reaches $0 . 0087",
-      "url": "https://www.themarketsdaily.com/2026/08/16/loopring-lrc-price-reaches-0-0087.html",
-      "src": "themarketsdaily.com",
-      "date": "20260816T153000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Lido Staked Matic Self Reported Market Capitalization Achieves $720 . 41 Thousand ( STMATIC ) ",
-      "url": "https://www.themarketsdaily.com/2026/08/16/lido-staked-matic-self-reported-market-capitalization-achieves-720-41-thousand-stmatic.html",
-      "src": "themarketsdaily.com",
-      "date": "20260816T153000Z",
-      "sent": "neu"
     }
   ],
-  "ts": 1786907962287,
+  "ts": 1786941489715,
   "source": "GDELT",
-  "_updatedMs": 1786907962287
+  "_updatedMs": 1786941489715
 }
