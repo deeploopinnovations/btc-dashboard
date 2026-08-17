@@ -1,6 +1,20 @@
 {
   "items": [
     {
+      "headline": "Bitcoin yön arıyor : Gözler bu seviyelerde olacak",
+      "url": "https://www.haberler.com/kripto-para/bitcoin-yon-ariyor-gozler-bu-seviyelerde-olacak-20151115-haberi/",
+      "src": "haberler.com",
+      "date": "20260817T071500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Calamos Bitcoin 80 Series Structured Alt Protection ETF – January ( BATS : CBTJ ) Sees Large Decline in Short Interest",
+      "url": "https://www.dailypolitical.com/2026/08/16/calamos-bitcoin-80-series-structured-alt-protection-etf-january-batscbtj-sees-large-decline-in-short-interest-2.html",
+      "src": "dailypolitical.com",
+      "date": "20260817T060000Z",
+      "sent": "neg"
+    },
+    {
       "headline": "Data of 54K Wallet Users Leaked , Clarity Odds Just 10 %: Hodler Digest , Aug . 16",
       "url": "https://cointelegraph.com/magazine/data-of-54000-wallet-users-leaked-clarity-odds-just-10-hodlers-digest",
       "src": "cointelegraph.com",
@@ -83,23 +97,9 @@
       "src": "themarketsdaily.com",
       "date": "20260816T154500Z",
       "sent": "neu"
-    },
-    {
-      "headline": "UNUS SED LEO Price Tops $9 . 35 on Major Exchanges ( LEO ) ",
-      "url": "https://www.themarketsdaily.com/2026/08/16/unus-sed-leo-price-tops-9-35-on-major-exchanges-leo.html",
-      "src": "themarketsdaily.com",
-      "date": "20260816T154500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Ordinals Tops One Day Trading Volume of $6 . 60 Million ( ORDI ) ",
-      "url": "https://www.themarketsdaily.com/2026/08/16/ordinals-tops-one-day-trading-volume-of-6-60-million-ordi.html",
-      "src": "themarketsdaily.com",
-      "date": "20260816T153000Z",
-      "sent": "neu"
     }
   ],
-  "ts": 1786941489715,
+  "ts": 1786953039780,
   "source": "GDELT",
-  "_updatedMs": 1786941489715
+  "_updatedMs": 1786953039780
 }
