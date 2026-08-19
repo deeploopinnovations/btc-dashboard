@@ -1,6 +1,13 @@
 {
   "items": [
     {
+      "headline": "Bitcoin climbs near $65 , 000 despite equity weakness : What driving the rally ? ",
+      "url": "https://www.moneycontrol.com/news/business/personal-finance/bitcoin-climbs-near-65-000-despite-equity-weakness-what-s-driving-the-rally-14009973.html",
+      "src": "moneycontrol.com",
+      "date": "20260819T064500Z",
+      "sent": "neu"
+    },
+    {
       "headline": "SICC Grants Freezing of Crypto Assets Worth S$75 Million in Transfers Dispute",
       "url": "http://www.asiabulletin.com/news/279250423/sicc-grants-freezing-of-crypto-assets-worth-s75-million-in-transfers-dispute",
       "src": "asiabulletin.com",
@@ -41,16 +48,9 @@
       "src": "fool.com",
       "date": "20260819T011500Z",
       "sent": "neu"
-    },
-    {
-      "headline": "Strategy ( NASDAQ : MSTR ) Lags Bitcoin ETF By Nine Points As Dollar Reserve Climbs To $4 . 8 Billion",
-      "url": "https://www.foreignpolicyjournal.com/2026/08/18/strategy-nasdaq-mstr-lags-bitcoin-etf-by-nine-points-as-dollar-reserve-climbs-to-4-8-billion/",
-      "src": "foreignpolicyjournal.com",
-      "date": "20260819T000000Z",
-      "sent": "neu"
     }
   ],
-  "ts": 1787121701226,
+  "ts": 1787135103471,
   "source": "GDELT",
-  "_updatedMs": 1787121701226
+  "_updatedMs": 1787135103471
 }
