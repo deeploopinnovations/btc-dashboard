@@ -1,6 +1,48 @@
 {
   "items": [
     {
+      "headline": "Hyperliquid $589 Million Cliff Lands Before Fed Week",
+      "url": "https://www.forbes.com/sites/digital-assets/2026/08/19/largely-mechanical-hyperliquids-589m-cliff-lands-before-fed-week/",
+      "src": "forbes.com",
+      "date": "20260819T170000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Bitcoin tops a 2 - month high and clears the 100 - day moving average",
+      "url": "https://seekingalpha.com/news/4635034-bitcoin-tops-a-2-month-high-and-clears-the-100-day-moving-average",
+      "src": "seekingalpha.com",
+      "date": "20260819T170000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Corporate crypto crunch : 80 % of public treasuries submerged ( BTC - USD : Cryptocurrency ) ",
+      "url": "https://seekingalpha.com/news/4635005-corporate-crypto-crunch-80-percent-of-public-treasuries-submerged",
+      "src": "seekingalpha.com",
+      "date": "20260819T170000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Webull Climbs 7 % Ahead of Q2 Earnings , Robinhood Gains 7 % on Tokenization Push",
+      "url": "https://finance.yahoo.com/markets/stocks/articles/webull-climbs-7-ahead-q2-162223269.html",
+      "src": "finance.yahoo.com",
+      "date": "20260819T170000Z",
+      "sent": "pos"
+    },
+    {
+      "headline": "Crypto stocks break higher ; Trump , Bitcoin emerge as double catalysts ( MSTR : NASDAQ ) ",
+      "url": "https://seekingalpha.com/news/4634991-crypto-stocks-break-higher-trump-bitcoin-emerge-as-double-catalysts",
+      "src": "seekingalpha.com",
+      "date": "20260819T170000Z",
+      "sent": "pos"
+    },
+    {
+      "headline": "Gemini Cameron Winklevoss Says Bitcoin Is Trading At 50 % Discount",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/gemini-cameron-winklevoss-says-bitcoin-132200813.html",
+      "src": "finance.yahoo.com",
+      "date": "20260819T140000Z",
+      "sent": "neu"
+    },
+    {
       "headline": "Bitmine Immersion Technologies ( NYSE : BMNR ) Snaps Up Nearly 10 , 000 Ethereum In Latest Weekly Purchase",
       "url": "https://www.foreignpolicyjournal.com/2026/08/19/bitmine-immersion-technologies-nyse-bmnr-snaps-up-nearly-10000-ethereum-in-latest-weekly-purchase/",
       "src": "foreignpolicyjournal.com",
@@ -27,37 +69,9 @@
       "src": "finance.yahoo.com",
       "date": "20260819T033000Z",
       "sent": "neu"
-    },
-    {
-      "headline": "SHRMiner Bitcoin Mining App : A Guide to Earning Up to $11 , 700 in Crypto Rewards",
-      "url": "https://gisuser.com/2026/08/shrminer-bitcoin-mining-app-a-guide-to-earning-up-to-11700-in-crypto-rewards/",
-      "src": "gisuser.com",
-      "date": "20260819T013000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Morning Minute : Trump To Meet Crypto , Prediction Market CEOs This Week",
-      "url": "https://finance.yahoo.com/markets/crypto/articles/morning-minute-trump-meet-crypto-130317331.html",
-      "src": "finance.yahoo.com",
-      "date": "20260819T011500Z",
-      "sent": "neg"
-    },
-    {
-      "headline": "Strategy CEO Phong Le Says Bitcoin Accumulation Will Continue Later This Year . Is It Time to Give MSTR Stock Another Chance ? ",
-      "url": "https://www.fool.com/investing/2026/08/18/strategy-ceo-phong-le-expects-bitcoin-accumulation/?source=iedfolrf0000001",
-      "src": "fool.com",
-      "date": "20260819T011500Z",
-      "sent": "pos"
-    },
-    {
-      "headline": "Fold ( FLD ) Q2 2026 Earnings Call Transcript",
-      "url": "https://www.fool.com/earnings/call-transcripts/2026/08/18/fold-fld-q2-2026-earnings-call-transcript/?source=iedfolrf0000001",
-      "src": "fool.com",
-      "date": "20260819T011500Z",
-      "sent": "neu"
     }
   ],
-  "ts": 1787146893207,
+  "ts": 1787160237786,
   "source": "GDELT",
-  "_updatedMs": 1787146893207
+  "_updatedMs": 1787160237786
 }
