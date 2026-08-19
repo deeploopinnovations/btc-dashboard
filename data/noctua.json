@@ -11,29 +11,29 @@
   "safe_levels": [
     {
       "alpha": 0.01,
-      "call_strike": 73620.23,
+      "call_strike": 73620.2,
       "put_strike": 63180.66,
       "call_pct": 7.997,
       "put_pct": -7.317
     },
     {
       "alpha": 0.02,
-      "call_strike": 72490.46,
-      "put_strike": 64159.58,
+      "call_strike": 72490.43,
+      "put_strike": 64159.59,
       "call_pct": 6.34,
       "put_pct": -5.881
     },
     {
       "alpha": 0.05,
-      "call_strike": 71213.5,
-      "put_strike": 65321.44,
+      "call_strike": 71213.47,
+      "put_strike": 65321.45,
       "call_pct": 4.466,
       "put_pct": -4.177
     },
     {
       "alpha": 0.1,
-      "call_strike": 70536.83,
-      "put_strike": 65938.1,
+      "call_strike": 70536.81,
+      "put_strike": 65938.11,
       "call_pct": 3.474,
       "put_pct": -3.272
     },
