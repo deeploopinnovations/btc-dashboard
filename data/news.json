@@ -1,6 +1,20 @@
 {
   "items": [
     {
+      "headline": "Bitcoin Approaches $70 , 000 After Treasury Announces Buyback Expansion",
+      "url": "https://www.forbes.com/sites/digital-assets/2026/08/19/bitcoin-approaches-70000-after-treasury-announces-buyback-expansion/",
+      "src": "forbes.com",
+      "date": "20260819T211500Z",
+      "sent": "pos"
+    },
+    {
+      "headline": "Michael Saylor Says Dont Invest in Bitcoin Unless Youll Hold It for Over 4 Years MSTR Chair Offers No  Useful Wisdom  for Short - Term Traders ( UPDATED ) ",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/michael-saylor-says-dont-invest-043320815.html",
+      "src": "finance.yahoo.com",
+      "date": "20260819T211500Z",
+      "sent": "neu"
+    },
+    {
       "headline": "Toronto Realtor Sam Kamra Expands Real Estate Technology Footprint ... ",
       "url": "https://www.pr-inside.com/toronto-realtor-sam-kamra-expands-real-estate-technology-footprint-r5214126.htm",
       "src": "pr-inside.com",
@@ -90,23 +104,9 @@
       "src": "seekingalpha.com",
       "date": "20260819T170000Z",
       "sent": "neu"
-    },
-    {
-      "headline": "Gemini Cameron Winklevoss Says Bitcoin Is Trading At 50 % Discount",
-      "url": "https://finance.yahoo.com/markets/crypto/articles/gemini-cameron-winklevoss-says-bitcoin-132200813.html",
-      "src": "finance.yahoo.com",
-      "date": "20260819T140000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Bitmine Immersion Technologies ( NYSE : BMNR ) Snaps Up Nearly 10 , 000 Ethereum In Latest Weekly Purchase",
-      "url": "https://www.foreignpolicyjournal.com/2026/08/19/bitmine-immersion-technologies-nyse-bmnr-snaps-up-nearly-10000-ethereum-in-latest-weekly-purchase/",
-      "src": "foreignpolicyjournal.com",
-      "date": "20260819T124500Z",
-      "sent": "neu"
     }
   ],
-  "ts": 1787174526225,
+  "ts": 1787183182178,
   "source": "GDELT",
-  "_updatedMs": 1787174526225
+  "_updatedMs": 1787183182178
 }
