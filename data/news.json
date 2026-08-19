@@ -1,6 +1,13 @@
 {
   "items": [
     {
+      "headline": "Bitmine Immersion Technologies ( NYSE : BMNR ) Snaps Up Nearly 10 , 000 Ethereum In Latest Weekly Purchase",
+      "url": "https://www.foreignpolicyjournal.com/2026/08/19/bitmine-immersion-technologies-nyse-bmnr-snaps-up-nearly-10000-ethereum-in-latest-weekly-purchase/",
+      "src": "foreignpolicyjournal.com",
+      "date": "20260819T124500Z",
+      "sent": "neu"
+    },
+    {
       "headline": "Bitcoin climbs near $65 , 000 despite equity weakness : What driving the rally ? ",
       "url": "https://www.moneycontrol.com/news/business/personal-finance/bitcoin-climbs-near-65-000-despite-equity-weakness-what-s-driving-the-rally-14009973.html",
       "src": "moneycontrol.com",
@@ -50,7 +57,7 @@
       "sent": "neu"
     }
   ],
-  "ts": 1787135103471,
+  "ts": 1787146893207,
   "source": "GDELT",
-  "_updatedMs": 1787135103471
+  "_updatedMs": 1787146893207
 }
