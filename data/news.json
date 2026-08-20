@@ -1,6 +1,20 @@
 {
   "items": [
     {
+      "headline": "Bitcoin Blasts Past $70 , 000 as Viral  Coordinated Manipulation  Claim Puts Exchange BTC Flows Under Scrutiny",
+      "url": "https://www.ibtimes.co.uk/bitcoin-surges-past-70000-regulatory-optimism-short-covering-1815413",
+      "src": "ibtimes.co.uk",
+      "date": "20260820T220000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Why Does Bitcoin Keep Gaining ? | The Motley Fool",
+      "url": "https://www.fool.com/investing/2026/08/20/why-does-bitcoin-keep-gaining/?source=iedfolrf0000001",
+      "src": "fool.com",
+      "date": "20260820T210000Z",
+      "sent": "pos"
+    },
+    {
       "headline": "XRP Notches Best Week Since 2024 Election Pump on Bitcoin Short Squeeze",
       "url": "https://finance.yahoo.com/markets/crypto/articles/xrp-notches-best-week-since-174608633.html",
       "src": "finance.yahoo.com",
@@ -90,23 +104,9 @@
       "src": "themarketsdaily.com",
       "date": "20260820T153000Z",
       "sent": "neu"
-    },
-    {
-      "headline": "Decimal Price Down 1 . 1 % Over Last Week ( DEL ) ",
-      "url": "https://www.themarketsdaily.com/2026/08/20/decimal-price-down-1-1-over-last-week-del.html",
-      "src": "themarketsdaily.com",
-      "date": "20260820T153000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "BitTorrent Price Reaches $0 . 0003 ( BTTOLD ) ",
-      "url": "https://www.dailypolitical.com/2026/08/20/bittorrent-price-reaches-0-0003-bttold.html",
-      "src": "dailypolitical.com",
-      "date": "20260820T151500Z",
-      "sent": "neu"
     }
   ],
-  "ts": 1787255811623,
+  "ts": 1787264615166,
   "source": "GDELT",
-  "_updatedMs": 1787255811623
+  "_updatedMs": 1787264615166
 }
