@@ -104,13 +104,29 @@ def main(argv=None) -> int:
     ap.add_argument("--artifacts", type=Path, default=Path("model/artifacts"))
     ap.add_argument("--seeds", type=int, default=3)
     ap.add_argument("--hidden", type=int, default=32)
+    ap.add_argument("--wide", action="store_true",
+                    help="score EVERY H=19 anchor hour in each window, not just "
+                         "17:00 -- ~24x more test episodes per window")
+    ap.add_argument("--max-test", type=int, default=1200,
+                    help="cap on test episodes per window under --wide, drawn "
+                         "once with a fixed seed so windows stay comparable")
     ap.add_argument("--out", type=Path,
                     default=Path("model/artifacts/rolling_refresh.json"))
     a = ap.parse_args(argv)
 
     ep, X = load_all(a.artifacts)
     sig_fn = causal_sigma_fn(ep, X)
+    # The 17:00 production slice gives ~90 episodes per quarter, which cannot
+    # resolve the effects being tested: a 6-window sign test is p=0.109 even at
+    # 5/6. eval/anchors.py already established the model's edge is flat across
+    # anchor hours (-6.14% at 17:00 vs -6.06% across all), so scoring every
+    # H=19 anchor is legitimate and multiplies test episodes by ~24. Capped and
+    # drawn once with a fixed seed so windows stay comparable to each other.
     prod = S.production_mask(ep)
+    if a.wide:
+        prod = (ep["H"] == 19).to_numpy()
+        print(f"--wide: scoring all H=19 anchors "
+              f"({prod.sum():,} candidates) instead of the 17:00 slice")
 
     # quarterly test windows through the unseen era
     qs = ["2025-01-01", "2025-04-01", "2025-07-01", "2025-10-01",
@@ -125,7 +141,15 @@ def main(argv=None) -> int:
             "frozen":    masks(ep, "2023-01-01", "2024-07-01", lo, hi, seed=i),
             "refreshed": masks(ep, cal_start, lo, lo, hi, seed=i),
         }
-        n_te = int((arms["frozen"]["test"] & prod).sum())
+        te_mask = arms["frozen"]["test"] & prod
+        if a.wide and te_mask.sum() > a.max_test:
+            idx = np.flatnonzero(te_mask)
+            keep = np.random.default_rng(4242 + i).choice(
+                idx, size=a.max_test, replace=False)
+            te_mask = np.zeros_like(te_mask); te_mask[keep] = True
+        for f in arms.values():
+            f["test"] = te_mask
+        n_te = int(te_mask.sum())
         if n_te < 40:
             print(f"  {lo}: SKIPPED (only {n_te} production episodes)")
             continue

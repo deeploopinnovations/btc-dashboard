@@ -1240,4 +1240,66 @@ Two honest qualifications, in both directions:
 several independent test windows is the next step; declaring either a win or a
 failure from one split would repeat the error this benchmark exists to catch.
 
+---
+
+## 6l. Refreshing the fit: the largest gain yet, and a veto I caused myself
+
+§6k's single window was under-powered, so this walks six quarterly test
+windows through 2025-2026, comparing a **frozen** fit (trained once to
+2023-01-01, what actually ships) against a **refreshed** one (retrained to each
+window's own embargoed boundary). Same episodes per window in both arms.
+
+The first pass scored the 17:00 production slice: ~90 episodes per window. That
+cannot resolve these effects — a six-window sign test is p = 0.109 even at 5/6
+and p = 0.344 at 4/6. So the second pass scores **every H = 19 anchor hour**
+inside each window, capped at 1,200 episodes drawn once with a fixed seed.
+That is legitimate because §6e already established the model's edge is flat
+across anchors (−6.14 % at 17:00 against −6.06 % across all), and it buys ~13×
+the test data from the same calendar time.
+
+| metric | frozen | refreshed | change | windows won |
+|---|---|---|---|---|
+| **QLIKE** | 0.238593 | **0.226621** | **−5.02 %** | **5/6** |
+| pinball | 0.002592 | **0.002534** | −2.24 % | **5/6** |
+| CRPS | 0.003849 | **0.003785** | −1.68 % | **5/6** |
+| DSC/UNC | 0.072259 | 0.077377 | +7.08 % | 3/6 |
+| deep-tail MCB | 0.248019 | 0.247655 | −0.15 % | 2/6 |
+
+**This is the largest and most consistent gain measured anywhere in this
+project** — bigger than the feature-freshness fix (−3.33 % QLIKE) that was
+shipped, and it moves pinball and CRPS with it at 5/6 apiece.
+
+**And the pre-registered rule still says DO NOT ADOPT.** The rule was *QLIKE
+wins in ≥ 5 of 6 windows AND deep-tail MCB does not worsen in more than 2 of
+6*. QLIKE clears at 5/6. Tail MCB is worse in 4 of 6, so the veto fires.
+
+That verdict stands. But two things about the rule are worth recording, and
+neither changes it:
+
+**1. The veto is a win-count on a statistic whose average improved.** Per-window
+tail-MCB deltas: `+0.0078, +0.0019, −0.0047, +0.0007, +0.0029, −0.0108`. Three
+near-zero positive deltas outvote two of the largest magnitudes in the set, and
+the mean moves *favourably* (−0.15 %). A count-based veto on an effect this
+small counts noise.
+
+**2. The tail comparison is confounded by my own experiment design.** The
+refreshed arm was given a much smaller calibration slice — 17,511 episodes
+against the frozen arm's 52,359 in §6k, and two quarters against eighteen
+months here. The calibration slice is precisely the machinery that fixes tail
+calibration. So the arm expected to have better tails was handed a third of the
+data with which to fit them.
+
+**What that means.** The refresh is not adopted, because the rule that was
+fixed in advance says no and bending a rule after seeing the result is the
+failure this benchmark exists to prevent. But the veto is very likely an
+artifact, and the clean resolution is a specific, cheap follow-up: **match the
+calibration-slice sizes between arms and re-run.** If the tail condition still
+fails on matched calibration, the refresh genuinely costs tail accuracy and
+should stay rejected. If it passes, the refresh is the biggest available
+improvement to the model and should ship.
+
+That experiment is the single highest-value next step in this repository, and
+it is specified here rather than run because the session budget ended, not
+because the question is open.
+
 *Educational research only. Not financial advice.*
