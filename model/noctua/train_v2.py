@@ -44,6 +44,25 @@ def main(argv=None) -> int:
     p.add_argument("--extra-lag-hours", type=int, default=0,
                    help="recorded into the artifact; must match the setting "
                         "features.parquet was built at")
+    # The production fit and the RESEARCH split are deliberately separable.
+    #
+    # BENCHMARK.md 6m adopted a rolling refresh: on six quarterly windows with
+    # calibration size controlled, a fit brought forward to each window's own
+    # boundary beat the 2023-frozen fit on QLIKE (-4.97%, 5/6), pinball (6/6),
+    # CRPS (5/6) and deep-tail MCB (5/6). But adopting it must NOT be done by
+    # editing splits.TRAIN_END, because every number in BENCHMARK.md is scored
+    # on `ts >= CALIB_END`: advancing that constant would silently eat the
+    # held-out set the tables are computed on, and the benchmark would go on
+    # printing numbers that no longer mean what they say.
+    #
+    # So the boundaries are arguments with the frozen research split as their
+    # default. Refreshing production is then an explicit, dated act that shows
+    # up in the artifact's own metadata, and scoring is unaffected.
+    p.add_argument("--train-end", default=S.TRAIN_END,
+                   help=f"train on episodes ending before this (default "
+                        f"{S.TRAIN_END}, the frozen research split)")
+    p.add_argument("--calib-end", default=S.CALIB_END,
+                   help=f"calibrate on train-end..this (default {S.CALIB_END})")
     p.add_argument("--out", type=Path, default=Path("model/serve/noctua_v2.npz"))
     a = p.parse_args(argv)
 
@@ -69,8 +88,22 @@ def main(argv=None) -> int:
               "recorded in the artifact is unverified")
 
     fin = np.isfinite(X.to_numpy()).all(1)
-    sp = S.time_splits(ep)
+    sp = S.time_splits(ep, train_end=a.train_end, calib_end=a.calib_end)
     m_tr, m_va = sp["train"] & fin, sp["calib"] & fin
+    if (a.train_end, a.calib_end) != (S.TRAIN_END, S.CALIB_END):
+        print(f"[v2] NON-DEFAULT split: train <= {a.train_end}, calib -> "
+              f"{a.calib_end}. BENCHMARK.md scores the frozen split and does "
+              f"NOT describe this artifact.")
+    # 6m measured that the calibration slice is worth +0.005013 of deep-tail
+    # MCB when it shrinks from 52,359 episodes to 17,511 -- larger than the
+    # refresh gain it was masking. A refreshed fit that quietly halves this
+    # slice trades away more tail accuracy than it buys.
+    print(f"[v2] split: train {m_tr.sum():,} (<= {a.train_end})  "
+          f"calib {m_va.sum():,} ({a.train_end} -> {a.calib_end})")
+    if m_va.sum() < 30_000:
+        print(f"[v2] WARNING: calibration slice is {m_va.sum():,} episodes. "
+              f"BENCHMARK.md 6m measured a deep-tail MCB cost of +0.005 when "
+              f"this fell to ~17,500. Widen --train-end..--calib-end.")
     H = ep.H.to_numpy(np.float64)
     yall = B.har_target(ep.RV.to_numpy(), H)
 
@@ -150,6 +183,14 @@ def main(argv=None) -> int:
         # a knob: a reader who finds the default changed under them needs the
         # artifact to say what IT was built with, not what the source says today.
         "feature_extra_lag_hours": int(a.extra_lag_hours),
+        # Which data this artifact was actually fitted on. Without these an
+        # artifact refreshed under 6m's policy is indistinguishable from the
+        # frozen one it replaced, and the benchmark tables would be read as
+        # describing it when they do not.
+        "train_end": str(a.train_end), "calib_end": str(a.calib_end),
+        "n_train": int(m_tr.sum()), "n_calib": int(m_va.sum()),
+        "frozen_research_split": bool((a.train_end, a.calib_end)
+                                      == (S.TRAIN_END, S.CALIB_END)),
         "n_params_total": int(n_par * a.seeds),
     }
     arrays["meta_json"] = np.frombuffer(json.dumps(meta).encode(), dtype=np.uint8)
