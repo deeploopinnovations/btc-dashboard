@@ -40,7 +40,52 @@ QLIKE in >= 5 of 6 windows AND does not worsen aggregate deep-tail (alpha <=
 degradation stay rejected -- the veto that fired in forward_split.py is kept,
 just measured with enough windows to mean something.
 
-    python -m model.eval.rolling_refresh
+THE CONFOUND IN THE FIRST RUN, AND WHY --match-calib EXISTS
+
+The first `--wide` run won QLIKE 5/6 (-5.02%) and lost the tail condition 4/6,
+so the rule vetoed it. That verdict stands only if the two arms were otherwise
+comparable, and they were NOT: the frozen arm calibrates over the 18 months
+from 2023-01-01 to 2024-07-01 while the refreshed arm calibrates over the two
+quarters before its own window -- roughly a THIRD as many episodes. Isotonic
+calibration is a nonparametric fit, so its sampling variance falls with n; the
+arm handed a third of the data has a noisier calibration map before any
+question of which training window is better. `tail_mcb` is a sum of six
+MISCALIBRATION terms. Feeding one arm less calibration data and then judging
+it on miscalibration measures the slice size at least as much as the refresh.
+
+`--match-calib` removes that. Both arms are truncated to the SAME number of
+calibration episodes -- the smaller of the two, kept most-recent-first, so each
+arm still calibrates on the data closest to its own test window and stays
+strictly causal. The training windows still differ; that is the treatment.
+
+There is a real tension here that cannot be designed away: with the data
+ending where it does, the refreshed arm cannot have both a maximally fresh
+training set and an 18-month calibration slice -- every month given to
+calibration is a month taken from training. Matching DOWN to the smaller count
+is the choice that leaves the treatment intact, and it costs the frozen arm
+the advantage it was never entitled to.
+
+AND WHAT MATCHING DOWN REVEALED, WHICH IS WHY --big-calib EXISTS
+
+Matching moved the frozen arm's mean deep-tail MCB from 0.248019 to 0.253032
+while its training set, its seeds and its test episodes were untouched. The
+refreshed arm's numbers are bit-identical between the two runs, because it was
+always the smaller slice and was never truncated. So **the entire veto was the
+calibration slice**: +0.005013 of tail miscalibration bought purely by handing
+one arm three times the data to calibrate on.
+
+That is a finding in its own right, and it is larger than the effect under
+test: the refresh's own tail gain is -0.005377. A deployment therefore needs
+BOTH a fresh training window and a large calibration slice, and neither of the
+two arms above is that configuration. `--big-calib` adds it -- the refreshed
+arm trains to 18 months before its window and calibrates over those 18 months,
+so it is simultaneously ~2 years fresher than the frozen fit and calibrated on
+a comparable number of episodes. It is the arm that could actually ship, and
+it is scored against the frozen arm exactly as it stands today, with the full
+18-month calibration the frozen arm really has.
+
+    python -m model.eval.rolling_refresh --wide --match-calib   # the clean test
+    python -m model.eval.rolling_refresh --wide --big-calib     # the deployable one
 """
 from __future__ import annotations
 
@@ -94,6 +139,26 @@ def masks(ep, train_end: str, calib_end: str, win_lo: str, win_hi: str,
             "test":  base & (ts >= lo) & (ts < hi)}
 
 
+def equalize_calib(arms: dict, ep) -> int:
+    """Truncate every arm's calibration slice to the same episode count.
+
+    Kept MOST RECENT first, per arm: an arm's calibration data is the episodes
+    immediately before its own cutoff, which is both what a deployment would
+    use and what keeps the slice causal. Only the SIZE is equalized -- the
+    windows still sit where each arm's split puts them.
+    """
+    ts = ep["anchor_ts"].to_numpy(np.int64)
+    n = min(int(f["calib"].sum()) for f in arms.values())
+    for f in arms.values():
+        idx = np.flatnonzero(f["calib"])
+        if len(idx) > n:
+            keep = idx[np.argsort(ts[idx])[-n:]]        # the n latest
+            m = np.zeros_like(f["calib"])
+            m[keep] = True
+            f["calib"] = m
+    return n
+
+
 def tail_mcb(rows) -> float:
     r = next(x for x in rows if x["model"] == "noctua_v2")
     return float(sum(r[f"MCB_{s}_{p}"] for s in ("up", "dn") for p in TAIL_BARRIERS))
@@ -107,12 +172,26 @@ def main(argv=None) -> int:
     ap.add_argument("--wide", action="store_true",
                     help="score EVERY H=19 anchor hour in each window, not just "
                          "17:00 -- ~24x more test episodes per window")
+    ap.add_argument("--big-calib", action="store_true",
+                    help="refreshed arm trains to 18 months before its window "
+                         "and calibrates over those 18 months -- fresher than "
+                         "frozen AND comparably calibrated. The deployable arm.")
+    ap.add_argument("--match-calib", action="store_true",
+                    help="truncate both arms to the same number of calibration "
+                         "episodes, so `tail_mcb` is not measuring the fact "
+                         "that the frozen arm got 3x more calibration data")
     ap.add_argument("--max-test", type=int, default=1200,
                     help="cap on test episodes per window under --wide, drawn "
                          "once with a fixed seed so windows stay comparable")
-    ap.add_argument("--out", type=Path,
-                    default=Path("model/artifacts/rolling_refresh.json"))
+    ap.add_argument("--out", type=Path, default=None)
     a = ap.parse_args(argv)
+    if a.out is None:
+        a.out = Path("model/artifacts/rolling_refresh"
+                     + ("_wide" if a.wide else "")
+                     + ("_matchcal" if a.match_calib else "")
+                     + ("_bigcal" if a.big_calib else "") + ".json")
+    if a.match_calib and a.big_calib:
+        raise SystemExit("--match-calib and --big-calib are different questions")
 
     ep, X = load_all(a.artifacts)
     sig_fn = causal_sigma_fn(ep, X)
@@ -136,7 +215,13 @@ def main(argv=None) -> int:
         lo, hi = qs[i], qs[i + 1]
         # the refreshed arm calibrates on the two quarters before the window
         # and trains on everything before that; the frozen arm never moves.
-        cal_start = qs[i - 2] if i >= 2 else "2024-07-01"
+        if a.big_calib:
+            # 18 months of calibration ending at the window, so the refreshed
+            # arm is not judged on miscalibration with a third of the data.
+            cal_start = str(pd.Timestamp(lo, tz="UTC").date()
+                            - pd.DateOffset(months=18))[:10]
+        else:
+            cal_start = qs[i - 2] if i >= 2 else "2024-07-01"
         arms = {
             "frozen":    masks(ep, "2023-01-01", "2024-07-01", lo, hi, seed=i),
             "refreshed": masks(ep, cal_start, lo, lo, hi, seed=i),
@@ -149,13 +234,20 @@ def main(argv=None) -> int:
             te_mask = np.zeros_like(te_mask); te_mask[keep] = True
         for f in arms.values():
             f["test"] = te_mask
+        n_cal = {k: int(f["calib"].sum()) for k, f in arms.items()}
+        if a.match_calib:
+            n_eq = equalize_calib(arms, ep)
+            print(f"  {lo}  calib {n_cal['frozen']:,}/{n_cal['refreshed']:,} "
+                  f"-> both {n_eq:,}")
+            n_cal = {k: n_eq for k in n_cal}
         n_te = int(te_mask.sum())
         if n_te < 40:
             print(f"  {lo}: SKIPPED (only {n_te} production episodes)")
             continue
         if not np.array_equal(arms["frozen"]["test"], arms["refreshed"]["test"]):
             raise SystemExit("REFUSING: arms differ on the test window")
-        line = {"window": lo, "n_prod": n_te}
+        line = {"window": lo, "n_prod": n_te, "n_calib": n_cal,
+                "match_calib": bool(a.match_calib)}
         for nm, f in arms.items():
             t0 = time.time()
             out = run_fold(ep, X, f, hidden=a.hidden, seeds=a.seeds,
@@ -167,8 +259,10 @@ def main(argv=None) -> int:
             s["qlike"] = out["vol"]["noctua"]
             s["tail_mcb"] = tail_mcb(out["rows"])
             s["n_train"] = int(f["train"].sum())
+            s["n_calib"] = int(f["calib"].sum())
             line[nm] = s
-            print(f"  {lo}  {nm:10} n_tr={s['n_train']:7,} n_te={n_te:3}  "
+            print(f"  {lo}  {nm:10} n_tr={s['n_train']:7,} "
+                  f"n_ca={s['n_calib']:6,} n_te={n_te:4,}  "
                   f"QLIKE {s['qlike']:.4f}  DSC/UNC {s['DSS']:.5f}  "
                   f"tailMCB {s['tail_mcb']:.5f}  ({time.time()-t0:.0f}s)",
                   flush=True)
@@ -202,7 +296,9 @@ def main(argv=None) -> int:
     a.out.parent.mkdir(parents=True, exist_ok=True)
     a.out.write_text(json.dumps({"windows": recs, "qlike_wins": q_win,
                                  "dsc_wins": d_win, "tail_worse": t_bad,
-                                 "n_windows": n, "adopt": bool(ok)},
+                                 "n_windows": n, "adopt": bool(ok),
+                                 "match_calib": bool(a.match_calib),
+                                 "wide": bool(a.wide)},
                                 indent=2, default=float) + "\n")
     print(f"wrote {a.out}")
     return 0

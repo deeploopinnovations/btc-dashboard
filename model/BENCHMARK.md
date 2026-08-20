@@ -1303,3 +1303,87 @@ it is specified here rather than run because the session budget ended, not
 because the question is open.
 
 *Educational research only. Not financial advice.*
+
+## 6m. Matched calibration: the veto was mine, not the market's
+
+§6l vetoed the refresh and named the follow-up that would settle it — *match
+the calibration-slice sizes between arms and re-run* — together with the
+verdict each outcome would carry. That is a pre-registration, written before
+this run, and it is quoted here so the rule cannot be read as chosen after the
+fact:
+
+> If the tail condition still fails on matched calibration, the refresh
+> genuinely costs tail accuracy and should stay rejected. If it passes, the
+> refresh is the biggest available improvement to the model and should ship.
+
+**It passes.**
+
+`equalize_calib()` truncates both arms to the same number of calibration
+episodes — the smaller of the two, kept most-recent-first, so each arm still
+calibrates on the data nearest its own window and stays strictly causal. Same
+six quarterly windows, same 1,200 test episodes per window drawn with the same
+fixed seed, same three seeds, same everything else.
+
+| metric | frozen | refreshed | change | windows won |
+|---|---|---|---|---|
+| **QLIKE** | 0.238468 | **0.226621** | **−4.97 %** | **5/6** |
+| pinball | 0.002606 | **0.002534** | −2.76 % | **6/6** |
+| CRPS | 0.003869 | **0.003785** | −2.17 % | **5/6** |
+| **deep-tail MCB** | 0.253032 | **0.247655** | **−2.13 %** | **5/6** |
+| DSC/UNC | 0.075862 | 0.077377 | +2.00 % | 3/6 |
+
+Pre-registered rule: QLIKE wins ≥ 5/6 **and** deep-tail MCB worse in ≤ 2/6.
+QLIKE clears at 5/6; tail MCB is worse in **1** of 6. **ADOPT.**
+
+### The whole veto was one experimental-design error, and it can be measured exactly
+
+The refreshed arm was never truncated — it was always the smaller slice — so
+its results are **bit-identical** between the two runs. Only the frozen arm
+changed, and only in how much data it calibrated on:
+
+| arm | tail MCB, §6l run | tail MCB, matched | Δ |
+|---|---|---|---|
+| refreshed | 0.247655 | 0.247655 | **0.000000** |
+| frozen | 0.248019 | 0.253032 | **+0.005013** |
+
+Identical network, identical training episodes, identical test episodes,
+identical seeds. The only difference is 52,359 calibration episodes against
+17,511. That one change is the entire margin the veto rested on. Per window,
+the tail delta flips sign in four of six:
+
+| window | Δ tail (§6l) | Δ tail (matched) | Δ QLIKE |
+|---|---|---|---|
+| 2025-01 | +0.00776 | **−0.00085** | −4.38 % |
+| 2025-04 | +0.00191 | **−0.00827** | −4.82 % |
+| 2025-07 | −0.00470 | **−0.01302** | −11.51 % |
+| 2025-10 | +0.00072 | **−0.00159** | +6.87 % |
+| 2026-01 | +0.00293 | +0.00510 | −6.93 % |
+| 2026-04 | −0.01081 | **−0.01363** | −14.88 % |
+
+§6l guessed the veto was "very likely an artifact." It was, and the artifact
+was mine: I built the arms, gave one of them three times the calibration data,
+and then scored them on a miscalibration statistic.
+
+### The finding hiding inside the correction
+
+**Calibration slice size is worth more tail accuracy than the refresh itself.**
+Cutting the frozen arm from 52k to 17k calibration episodes cost +0.005013 of
+deep-tail MCB. The refresh's own tail gain is −0.005377. These are the same
+order of magnitude, and nothing in this project had measured the first one.
+
+That has a direct consequence for what ships. Neither arm above is a
+deployable configuration: the frozen arm is stale, and the refreshed arm is
+fresh but thinly calibrated. A deployment wants both, and §6n measures that
+arm rather than assuming the two effects add.
+
+### What "adopt" does and does not license
+
+It licenses a **maintenance policy** — retrain on a rolling window instead of
+serving a fit frozen at 2023-01-01 — not a change to the model. And it must
+not be implemented by moving `splits.TRAIN_END` forward, because every number
+in this document is scored on `ts >= CALIB_END`; advancing that boundary would
+silently consume the held-out set that makes these tables mean anything. The
+research split stays frozen for scoring. The production fit is a separate,
+explicitly-dated artifact.
+
+*Educational research only. Not financial advice.*
