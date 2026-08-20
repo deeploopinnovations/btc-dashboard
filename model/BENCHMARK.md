@@ -1133,4 +1133,111 @@ if the ensemble is ever collapsed again. Until that run lands, every claim in
 this repo is against Log-HAR and the baselines above, which is the harder
 comparison, and **none of them is a measurement of Kronos**.
 
+---
+
+## 6j. How accurate can a volatility forecast be? An answer to "within 10 %"
+
+A reasonable target — *get predicted volatility within ~10 % of realized* — is
+not attainable by any model, and that is worth establishing with a number
+rather than an argument.
+
+Realized volatility over a 19-hour window is not a hidden constant waiting to
+be estimated. It is one draw from a distribution. A forecaster holding the
+exactly correct conditional distribution is still wrong on any individual
+night, because the night itself is random.
+
+Regressing log realized volatility on **all 22 usable features, in-sample** —
+deliberately a generous upper bound, since an in-sample fit cannot be beaten
+out of sample:
+
+| | |
+|---|---|
+| in-sample R2 of the full feature set (upper bound) | **0.665** |
+| R2 of the causal `har_1d` reference alone | 0.453 |
+| residual standard deviation, log units | **0.378** |
+
+**A third of log-volatility variance is not explainable from trailing
+information at all**, and that is the optimistic reading. What the residual
+means for a forecast with perfect coefficients:
+
+| coverage | realized / forecast lands within |
+|---|---|
+| 50 % of episodes | [0.79x, 1.21x] |
+| 68 % of episodes | [0.73x, 1.38x] |
+| 90 % of episodes | [0.60x, 1.98x] |
+
+So "within 10 %" is achieved on roughly **40-45 % of nights by an oracle**, and
+no amount of architecture, data or compute moves that materially — the limit is
+the randomness of the outcome, not the quality of the estimator.
+
+**What is attainable, and is what a seller actually needs:**
+
+1. **Calibration** — when the model says a 3 % barrier has a 5 % chance of
+   breaking, it breaks about 5 % of the time. Currently 1.09 pp error at
+   alpha = 1 % against the Gaussian's 3.33 pp.
+2. **Median unbiasedness** — realized/forecast centred on 1.0 rather than
+   running high. Exactly what the regime shift broke and what
+   `serve/adaptive.py` patches nightly.
+3. **Discrimination** — ranking wild nights above calm ones. The amplification
+   call does this at 20.3 % Brier skill, the most useful number the model
+   produces.
+
+A forecaster that is well calibrated and discriminating, but "only" within
+21 % on half its nights, is a good volatility model. One that hits within 10 %
+more often while being miscalibrated in the tail will bankrupt a seller.
+
+---
+
+## 6k. Training through the post-ETF era: better on average, vetoed on the tail
+
+The fix §6i implies, tested. Both arms are scored on **exactly the same
+held-out window** — production anchors from 2025-01-01 onward, unseen by
+either — so the comparison isolates the training data rather than the
+difficulty of the test years.
+
+| arm | train | of which post-ETF | calib | common test |
+|---|---|---|---|---|
+| shipped | <= 2023-01-01, 189,831 | **0** | 52,359 | 585 production episodes |
+| forward | <= 2024-07-01, 242,343 | **16,359** | 17,511 | the same 585 |
+
+Identical test masks, asserted in code rather than assumed.
+
+| metric | shipped | forward | change |
+|---|---|---|---|
+| **QLIKE** | 0.240829 | **0.238357** | **-1.03 %** better |
+| **DSC/UNC** | 0.045829 | **0.047199** | **+2.99 %** better |
+| pinball | 0.002555 | 0.002550 | better |
+| CRPS | 0.003805 | 0.003811 | marginally worse |
+
+**But the pre-registered rule had a veto**, and it fires. Aggregate deep-tail
+miscalibration (MCB, alpha <= 2 %, up and down summed):
+
+| barrier | shipped | forward | |
+|---|---|---|---|
+| 0.5 % | 0.101023 | 0.101023 | identical |
+| 1.0 % | 0.008405 | 0.008342 | better |
+| **2.0 %** | **0.029823** | **0.033246** | **worse** |
+| **total** | **0.139251** | **0.142610** | **+2.41 % worse** |
+
+The rule was *adopt only if QLIKE improves AND deep-tail calibration does not
+worsen*, precisely because an average-case win bought with tail degradation is
+the wrong trade for someone short options. **So this is not adopted.**
+
+Two honest qualifications, in both directions:
+
+- **This is the most promising result of the recent attempts.** The three
+  preceding experiments (`lam_r`, `q_mx`, dropping `reg_post_etf`) were flat.
+  This one moves QLIKE and discrimination together, in the direction theory
+  predicts, and the mechanism is understood.
+- **It is one window of 585 episodes.** That is far too little to resolve a
+  2.4 % change in a calibration statistic, and the veto may be noise as easily
+  as the gain may be. The identical 0.5 % figure across two independently
+  trained models is itself a warning: ~98 % of episodes touch a 0.5 % barrier,
+  so the isotonic fit there is nearly degenerate and MCB carries little
+  information at that level.
+
+**The correct response is more power, not a verdict.** A rolling version with
+several independent test windows is the next step; declaring either a win or a
+failure from one split would repeat the error this benchmark exists to catch.
+
 *Educational research only. Not financial advice.*
