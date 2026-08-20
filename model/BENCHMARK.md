@@ -1378,6 +1378,10 @@ arm rather than assuming the two effects add.
 
 ### What "adopt" does and does not license
 
+**Read §6n before acting on this verdict.** The arm this section adopted is
+not deployable, the deployable one was measured next, and it fails the same
+rule at 3/6. What survives both is the average-case gain, not the tail claim.
+
 It licenses a **maintenance policy** — retrain on a rolling window instead of
 serving a fit frozen at 2023-01-01 — not a change to the model. And it must
 not be implemented by moving `splits.TRAIN_END` forward, because every number
@@ -1385,5 +1389,101 @@ in this document is scored on `ts >= CALIB_END`; advancing that boundary would
 silently consume the held-out set that makes these tables mean anything. The
 research split stays frozen for scoring. The production fit is a separate,
 explicitly-dated artifact.
+
+*Educational research only. Not financial advice.*
+
+## 6n. The deployable arm fails the same rule, and that settles a different question
+
+§6m adopted a refreshed fit under matched calibration. That arm cannot ship:
+it calibrates on ~17,500 episodes, and §6m itself measured that shrinking the
+calibration slice to that size costs +0.005013 of deep-tail MCB. §6m therefore
+named this follow-up before running it — *"§6n measures that arm rather than
+assuming the two effects add"* — because a deployment wants a fresh training
+window **and** a large calibration slice, and nothing had established that the
+two gains combine.
+
+`--big-calib` builds that arm: the refreshed fit trains to 18 months before its
+window and calibrates over those 18 months, so it is 6–21 months fresher than
+the frozen fit while calibrating on 52,359–52,647 episodes against the frozen
+arm's 52,359. The frozen arm is left exactly as it ships. Its numbers reproduce
+§6l to every printed digit, which is the determinism check for this comparison.
+
+| metric | frozen | refreshed | change | windows won |
+|---|---|---|---|---|
+| **QLIKE** | 0.238593 | **0.232179** | **−2.69 %** | **5/6** |
+| CRPS | 0.003849 | **0.003811** | −1.00 % | 5/6 |
+| DSC/UNC | 0.072259 | **0.077620** | **+7.42 %** | 4/6 |
+| pinball | 0.002592 | **0.002559** | −1.27 % | 4/6 |
+| deep-tail MCB | 0.248019 | **0.245390** | −1.06 % | 3/6 |
+
+QLIKE clears at 5/6. Deep-tail MCB is worse in **3** of 6, one over the
+allowance. **DO NOT ADOPT** — the same rule, applied the same way, on the arm
+that could actually be deployed.
+
+**I predicted the opposite.** The `--big-calib` docstring, written before the
+run, calls this "the arm that could actually ship" on the reasoning that it is
+simultaneously fresh and properly calibrated. It is the weakest of the three on
+tail calibration and it more than halves the QLIKE gain. Recorded as the failed
+prediction it is, alongside `lam_r`, `q_mx`, dropping `reg_post_etf` and the
+forward split.
+
+### Three designs, and what actually replicates
+
+| | refreshed trains to | refreshed n_calib | ΔQLIKE | QLIKE wins | tail wins | mean Δtail | verdict |
+|---|---|---|---|---|---|---|---|
+| §6l | window − 6 mo | ~17.5 k | −5.02 % | 5/6 | 2/6 | −0.00036 | reject |
+| §6m | window − 6 mo | ~17.5 k (both) | −4.97 % | 5/6 | **5/6** | −0.00538 | adopt |
+| §6n | window − 18 mo | ~52.4 k (both) | −2.69 % | 5/6 | 3/6 | −0.00263 | reject |
+
+**What replicates: the average-case gain.** QLIKE favours the refresh in 5 of 6
+windows in every design — 15 of 18 window-comparisons — and the effect is
+dose-dependent: the arm trained six months from its window gains ~5 %, the arm
+trained eighteen months from it gains ~2.7 %, and the ordering holds
+window-by-window (2026-04: −14.88 % against −7.40 %; 2025-01: −4.38 % against
+−0.05 %). A monotone dose-response across an independent axis is much harder to
+get from noise than a win count is.
+
+**What does not replicate: the tail claim, in either direction.** Per-window
+tail deltas flip sign between designs on the same window and the same test
+episodes — 2026-04 is −0.01363 under §6m and +0.00832 under §6n; 2025-10 is
+−0.00159 and +0.00371. The only stable feature is that the **mean** favours the
+refresh in all three designs (−0.00036, −0.00538, −0.00263). The win count,
+which is what the rule reads, lands on 2, 5 and 3 out of 6 depending on a
+nuisance choice that is not the treatment.
+
+### The rule is what failed here, and I do not get to replace it on this data
+
+The veto was written to catch one thing: *"average-case wins bought with tail
+degradation stay rejected."* Across three designs the tail mean never degrades.
+The condition the rule exists to catch does not occur — and the rule fires
+anyway in two designs out of three, because a 6-sample win count on an effect
+of ~0.003 against per-window scatter of ~0.013 is a coin flip with extra steps.
+
+The disciplined consequence is not to re-decide the tail on a better statistic
+now. Choosing a rule after seeing which one passes is precisely the failure
+this benchmark was built to prevent, and it would be a worse error than the
+confound §6m corrected. So:
+
+- **the average-case improvement is established** and is the part of §6m's
+  ADOPT that survives — QLIKE, CRPS and pinball, replicated three times, dose-
+  dependent;
+- **the deep-tail question is open**, not resolved either way, and six windows
+  cannot resolve it;
+- **no fourth design gets run to break the tie.** Three is already at the edge
+  of what can be reported without multiplicity becoming the story.
+
+**Fixed now, for the next measurement, before it is run:** the tail is to be
+decided on the *mean* deep-tail MCB delta with a moving-block bootstrap CI
+(block length n^(1/3), as `eval/direction.py` uses), on **monthly** rather than
+quarterly windows through the unseen era — 18 windows instead of 6 — with the
+refreshed arm at `window − 6 mo` and calibration matched. Adopt if the CI
+excludes zero on the favourable side, or if it contains zero while QLIKE clears
+5/6, since a tail effect indistinguishable from zero is not degradation. That
+rule is recorded here before that data is scored.
+
+Until then the shipped configuration stays frozen, and `train_v2.py --train-end
+/--calib-end` exists so that refreshing production is an explicit, dated act
+rather than an edit to `splits.TRAIN_END` that would consume the held-out set
+every table above is scored on.
 
 *Educational research only. Not financial advice.*
