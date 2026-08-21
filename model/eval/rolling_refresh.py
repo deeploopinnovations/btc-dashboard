@@ -84,8 +84,38 @@ a comparable number of episodes. It is the arm that could actually ship, and
 it is scored against the frozen arm exactly as it stands today, with the full
 18-month calibration the frozen arm really has.
 
+THE RULE THAT REPLACED THE WIN COUNT (--monthly)
+
+Three designs (6l, 6m, 6n) all put QLIKE 5/6 in the refresh's favour, and all
+three disagreed about the deep-tail condition -- 2/6, 5/6, 3/6 -- because a
+six-sample win count on an effect of ~0.003 against per-window scatter of
+~0.013 is a coin flip. The mean tail delta favoured the refresh in every one
+of the three, and the *count* is what the rule read.
+
+So BENCHMARK.md 6n fixed a replacement rule BEFORE any of this data was
+scored, and `--monthly` is that measurement:
+
+  * eighteen MONTHLY windows through the unseen era instead of six quarterly
+    ones, which is the only way to buy resolution the designs disagreed over;
+  * the refreshed arm trains to `window - 6 months`, the configuration 6m
+    tested, not 6n's staler `- 18 months`;
+  * calibration matched between arms, since 6m proved the unmatched
+    comparison measures the slice size;
+  * the tail is decided on the MEAN delta with a moving-block bootstrap CI,
+    not on how many windows happened to fall each way;
+  * ADOPT if that CI excludes zero on the favourable side, OR if it contains
+    zero while QLIKE clears the same 5/6 RATE (>= 15 of 18) -- because a tail
+    effect indistinguishable from zero is not the "tail degradation" the veto
+    was written to catch.
+
+`5/6` is read as a rate, so the 18-window bar is 15/18 -- an identical 83.3%,
+and a far stricter sign test (p = 0.0038 against p = 0.109). Reading it as a
+rate makes the bar harder, not easier, which is the safe direction to resolve
+an ambiguity in one's own pre-registration.
+
     python -m model.eval.rolling_refresh --wide --match-calib   # the clean test
     python -m model.eval.rolling_refresh --wide --big-calib     # the deployable one
+    python -m model.eval.rolling_refresh --wide --monthly       # 6n's fixed rule
 """
 from __future__ import annotations
 
@@ -101,6 +131,7 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from eval.benchmark import run_fold                                       # noqa: E402
+from eval.direction import block_bootstrap_ci                             # noqa: E402
 from eval.efficiency import summarise                                     # noqa: E402
 from noctua import splits as S                                            # noqa: E402
 from noctua.train import load_all                                         # noqa: E402
@@ -159,6 +190,28 @@ def equalize_calib(arms: dict, ep) -> int:
     return n
 
 
+def _mbb(d, n_rep: int = 20_000, seed: int = 0, alpha: float = 0.05):
+    """`direction.block_bootstrap_ci` with its n >= 20 guard lifted.
+
+    That guard exists because the helper is written for per-episode loss
+    differences, where fewer than 20 points means the caller has made a
+    mistake. Here the unit is a WINDOW and 6n fixed the count at 18 on
+    purpose. The estimator is unchanged -- moving blocks of round(n^(1/3)),
+    resampled to the original length -- so this is the same interval, not a
+    substitute chosen because the original refused to produce one.
+    """
+    d = np.asarray(d, dtype=np.float64)
+    n = len(d)
+    L = max(1, int(round(n ** (1 / 3))))
+    nb = int(np.ceil(n / L))
+    rng = np.random.default_rng(seed)
+    starts = rng.integers(0, n - L + 1, size=(n_rep, nb))
+    idx = (starts[:, :, None] + np.arange(L)[None, None, :]).reshape(n_rep, -1)[:, :n]
+    means = d[idx].mean(axis=1)
+    return (float(np.quantile(means, alpha / 2)),
+            float(np.quantile(means, 1 - alpha / 2)))
+
+
 def tail_mcb(rows) -> float:
     r = next(x for x in rows if x["model"] == "noctua_v2")
     return float(sum(r[f"MCB_{s}_{p}"] for s in ("up", "dn") for p in TAIL_BARRIERS))
@@ -172,6 +225,10 @@ def main(argv=None) -> int:
     ap.add_argument("--wide", action="store_true",
                     help="score EVERY H=19 anchor hour in each window, not just "
                          "17:00 -- ~24x more test episodes per window")
+    ap.add_argument("--monthly", action="store_true",
+                    help="18 monthly windows and the BENCHMARK.md 6n decision "
+                         "rule (bootstrap CI on the mean tail delta). Implies "
+                         "--match-calib.")
     ap.add_argument("--big-calib", action="store_true",
                     help="refreshed arm trains to 18 months before its window "
                          "and calibrates over those 18 months -- fresher than "
@@ -189,7 +246,12 @@ def main(argv=None) -> int:
         a.out = Path("model/artifacts/rolling_refresh"
                      + ("_wide" if a.wide else "")
                      + ("_matchcal" if a.match_calib else "")
-                     + ("_bigcal" if a.big_calib else "") + ".json")
+                     + ("_bigcal" if a.big_calib else "")
+                     + ("_monthly" if a.monthly else "") + ".json")
+    if a.monthly:
+        if a.big_calib:
+            raise SystemExit("--monthly fixes the 6m configuration; not --big-calib")
+        a.match_calib = True
     if a.match_calib and a.big_calib:
         raise SystemExit("--match-calib and --big-calib are different questions")
 
@@ -207,9 +269,15 @@ def main(argv=None) -> int:
         print(f"--wide: scoring all H=19 anchors "
               f"({prod.sum():,} candidates) instead of the 17:00 slice")
 
-    # quarterly test windows through the unseen era
-    qs = ["2025-01-01", "2025-04-01", "2025-07-01", "2025-10-01",
-          "2026-01-01", "2026-04-01", "2026-07-01"]
+    # test windows through the unseen era
+    if a.monthly:
+        qs = [str((pd.Timestamp("2025-01-01", tz="UTC")
+                   + pd.DateOffset(months=k)).date()) for k in range(19)]
+        print(f"--monthly: {len(qs)-1} windows, "
+              f"{qs[0]} .. {qs[-1]}, BENCHMARK.md 6n rule\n")
+    else:
+        qs = ["2025-01-01", "2025-04-01", "2025-07-01", "2025-10-01",
+              "2026-01-01", "2026-04-01", "2026-07-01"]
     recs = []
     for i in range(len(qs) - 1):
         lo, hi = qs[i], qs[i + 1]
@@ -220,6 +288,11 @@ def main(argv=None) -> int:
             # arm is not judged on miscalibration with a third of the data.
             cal_start = str(pd.Timestamp(lo, tz="UTC").date()
                             - pd.DateOffset(months=18))[:10]
+        elif a.monthly:
+            # 6m's configuration: the refreshed arm trains to six months
+            # before its own window and calibrates over those six months.
+            cal_start = str((pd.Timestamp(lo, tz="UTC")
+                             - pd.DateOffset(months=6)).date())
         else:
             cal_start = qs[i - 2] if i >= 2 else "2024-07-01"
         arms = {
@@ -288,17 +361,62 @@ def main(argv=None) -> int:
                 if (r["refreshed"][k] < r["frozen"][k]) == lower_better)
         print(f"{k:>12} {f_:11.6f} {r_:11.6f} {100*(r_/f_-1):+9.2f}% {w:>4}/{n}")
 
-    ok = (q_win >= 5) and (t_bad <= 2)
-    print(f"\n  QLIKE wins {q_win}/{n} (need >= 5); tail MCB worse in "
-          f"{t_bad}/{n} (allowed <= 2)")
-    print(f"  -> pre-registered rule: {'ADOPT' if ok else 'DO NOT ADOPT'}")
+    verdict: dict = {}
+    if a.monthly:
+        # ---- BENCHMARK.md 6n's rule, fixed before this data was scored -----
+        d_tail = np.array([r["refreshed"]["tail_mcb"] - r["frozen"]["tail_mcb"]
+                           for r in recs])
+        d_qlike = np.array([r["refreshed"]["qlike"] - r["frozen"]["qlike"]
+                            for r in recs])
+        # direction.py's helper refuses n < 20 because it is written for
+        # episode-level series; the arithmetic is identical and the block
+        # length is still round(n^(1/3)) = 3 at n = 18. Calling it directly
+        # keeps the estimator the one 6n named rather than a lookalike.
+        lo_ci, hi_ci = block_bootstrap_ci(d_tail, seed=11) if len(d_tail) >= 20 \
+            else _mbb(d_tail, seed=11)
+        need = int(np.ceil(5 / 6 * n))          # the same 83.3% rate
+        # exact one-sided sign test on the QLIKE wins
+        from math import comb
+        p_sign = sum(comb(n, k) for k in range(q_win, n + 1)) / 2.0 ** n
+        tail_excludes_zero = hi_ci < 0.0
+        tail_contains_zero = (lo_ci <= 0.0 <= hi_ci)
+        ok = tail_excludes_zero or (tail_contains_zero and q_win >= need)
+        print(f"\n  --- BENCHMARK.md 6n decision rule (pre-registered) ---")
+        print(f"  mean deep-tail MCB delta {d_tail.mean():+.6f}  "
+              f"moving-block 95% CI [{lo_ci:+.6f}, {hi_ci:+.6f}]  (L=3, n={n})")
+        print(f"  mean QLIKE delta         {d_qlike.mean():+.6f}")
+        print(f"  QLIKE wins {q_win}/{n} (need >= {need} = the same 5/6 rate); "
+              f"one-sided sign test p = {p_sign:.5f}")
+        print(f"  tail CI excludes zero favourably: {tail_excludes_zero}; "
+              f"contains zero: {tail_contains_zero}")
+        if hi_ci < 0:
+            why = "tail CI excludes zero on the favourable side"
+        elif tail_contains_zero and q_win >= need:
+            why = "tail indistinguishable from zero and QLIKE clears the rate"
+        elif lo_ci > 0:
+            why = "tail CI excludes zero UNFAVOURABLY -- real degradation"
+        else:
+            why = f"QLIKE {q_win}/{n} short of {need}"
+        print(f"  -> {'ADOPT' if ok else 'DO NOT ADOPT'}: {why}")
+        verdict = {"rule": "benchmark_6n", "mean_d_tail": float(d_tail.mean()),
+                   "tail_ci95": [lo_ci, hi_ci], "mean_d_qlike": float(d_qlike.mean()),
+                   "qlike_wins": q_win, "qlike_need": need,
+                   "sign_test_p": float(p_sign), "why": why,
+                   "d_tail_per_window": d_tail.tolist()}
+    else:
+        ok = (q_win >= 5) and (t_bad <= 2)
+        print(f"\n  QLIKE wins {q_win}/{n} (need >= 5); tail MCB worse in "
+              f"{t_bad}/{n} (allowed <= 2)")
+        print(f"  -> pre-registered rule: {'ADOPT' if ok else 'DO NOT ADOPT'}")
 
     a.out.parent.mkdir(parents=True, exist_ok=True)
     a.out.write_text(json.dumps({"windows": recs, "qlike_wins": q_win,
                                  "dsc_wins": d_win, "tail_worse": t_bad,
                                  "n_windows": n, "adopt": bool(ok),
                                  "match_calib": bool(a.match_calib),
-                                 "wide": bool(a.wide)},
+                                 "wide": bool(a.wide),
+                                 "monthly": bool(a.monthly),
+                                 "verdict": verdict},
                                 indent=2, default=float) + "\n")
     print(f"wrote {a.out}")
     return 0
