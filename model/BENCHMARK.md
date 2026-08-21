@@ -619,16 +619,19 @@ constant `sqrt(8/π) = 1.5958` **in continuous time**.
 > before any question about Bitcoin. Episodes measure RV from 5-minute bars
 > over 19 hours, i.e. 228 increments, so the benchmark must be simulated at
 > that resolution. `brownian_control()` does it: **1.5218**, not 1.5958.
+>
+> **That correction was itself wrong — see §5b-bis below.** The extremes in
+> this data are not 5-minute closes.
 > **About 28 % of the originally reported gap was my own sampling artifact.**
 
 | | |
 |---|---|
 | Brownian, continuous time | 1.5958 |
-| **Brownian, sampled as the data is** (19 h × 12 five-minute steps) | **1.5218** |
+| ~~Brownian, sampled as the data is~~ (19 h × 12 five-minute steps) | ~~1.5218~~ — superseded, see §5b-bis |
 | **BTC measured** | mean **1.3311**, median **1.2942** |
 | IQR | [1.0157, 1.6120] |
 | 5–95 pct | [0.5899, 2.1835] |
-| **mean − sampled benchmark** | **−0.1907**, block-bootstrap 95 % CI **[−0.2239, −0.1600]** |
+| ~~mean − sampled benchmark~~ | ~~−0.1907 [−0.2239, −0.1600]~~ — superseded by **−0.2519 [−0.2851, −0.2212]**, §5b-bis |
 
 BTC still burns realized variance without travelling, and the interval is
 still nowhere near zero — the conclusion survives, at about 72 % of the
@@ -1485,5 +1488,76 @@ Until then the shipped configuration stays frozen, and `train_v2.py --train-end
 /--calib-end` exists so that refreshing production is an explicit, dated act
 rather than an edit to `splits.TRAIN_END` that would consume the held-out set
 every table above is scored on.
+
+*Educational research only. Not financial advice.*
+
+## 5b-bis. The discretization correction in §5b was itself wrong
+
+§5b corrected an overstated shape gap and, in doing so, understated it. Both
+attempts are recorded because the second one was published for several
+commits and the reasoning that produced it looked sound.
+
+**Attempt 1** compared BTC's `range / sqrt(realized variance)` against the
+continuous-time constant `sqrt(8/pi) = 1.5958` and reported **−0.2646**.
+
+**Attempt 2** objected — correctly in principle — that a running maximum
+observed at finitely many points is always below the true continuous maximum,
+so comparing a discretely-sampled measurement against a continuous constant
+overstates the gap. It simulated 5-minute closes, obtained **1.5218**, and
+revised the gap to **−0.1907**, claiming ~28 % of the original was
+discretization.
+
+**The premise was false.** The measured excursions do not come from 5-minute
+closes. `episodes.build_hourly` sets `hour_high = max of the 1-minute bar
+HIGHS`, and `M_up` is a running max over those hourly highs — so the numerator
+inherits intra-minute tick extremes and sits very close to the *continuous*
+running maximum. The 5-minute object is the **denominator** alone,
+`RV = sqrt(sum of rv5)`. Attempt 2 sampled the numerator four resolutions too
+coarse, which biases the benchmark down and the gap toward zero — it made BTC
+look **more** Brownian than it is.
+
+Measured, n = 60,000 simulated 19-hour paths, RV always at 5 minutes:
+
+| extremes sampled at | benchmark ratio |
+|---|---|
+| 5-minute closes | 1.5190 | 
+| 1-minute closes | 1.5605 |
+| **10-second closes** | **1.5860** |
+| continuous limit `sqrt(8/pi)` | 1.5958 |
+
+`brownian_control()` now samples extremes at 10 seconds and RV at 5 minutes,
+giving **1.5831** at the production horizon. That default is deliberately
+**conservative**: real 1-minute bar highs are built from ticks, so the true
+benchmark sits nearer 1.5958, and 1.5831 understates the gap rather than
+flattering it. The residual ambiguity is ~0.01 against a gap of ~0.25.
+
+### The corrected measurement
+
+| quantity | value |
+|---|---|
+| Brownian benchmark, sampled as the data is | **1.5831** |
+| BTC measured mean | 1.3311 (median 1.2942, IQR [1.0157, 1.6120]) |
+| **gap** | **−0.2519**, block-bootstrap 95 % CI **[−0.2851, −0.2212]** |
+| against the continuous constant | −0.2646 |
+
+The published interval [−0.2239, −0.1600] and the correct one [−0.2851,
+−0.2212] barely overlap, so this is a material change, not a rounding
+adjustment: **the shape gap is ~32 % larger than this document has been
+claiming.** BTC travels **15.9 % less per unit of realized volatility than a
+Brownian path**, not 12.5 %.
+
+Nothing downstream reverses. Every conclusion built on §5b — that BTC chops,
+that a Gaussian first-passage law fed a correct sigma **overstates** touch
+risk, that a seller using one quotes strikes further out than necessary — is
+strengthened, not weakened. The oracle experiment is unaffected because it
+never used the benchmark: a perfect volatility forecast still removes only
+**6.0–8.5 %** of the barrier error, and the Gaussian law fed realized
+volatility still overstates the touch probability at every barrier
+(+5.40, +8.68, +8.83, +7.22, +4.63 pp at 0.5/1/2/3/5 %).
+
+The methodological point is the one worth keeping: a correction is not
+self-verifying because it moves a number in the humbler direction. Attempt 2
+was more careful than attempt 1 and still wrong, because it never checked
+which column the data's extremes actually came from.
 
 *Educational research only. Not financial advice.*

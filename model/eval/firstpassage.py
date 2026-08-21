@@ -47,9 +47,9 @@ claim: absence of a located precedent is not proof of absence.
 
 WHY IT MATTERS FOR THE SELLER
 
-If the ratio is BELOW the SAMPLED benchmark (1.5218 at this resolution --
-see brownian_control; 1.5958 is the continuous-time value and comparing
-against it overstates the gap by ~28%), real paths chop -- they burn realized variance
+If the ratio is BELOW the benchmark (1.5860 -- see brownian_control, which
+documents two earlier attempts at this control that were wrong in opposite
+directions), real paths chop -- they burn realized variance
 without travelling, so a Gaussian first-passage formula fed a correct sigma
 will OVERSTATE the chance of touching a given strike, and a seller using it
 quotes strikes further out than necessary and leaves premium on the table.
@@ -80,33 +80,60 @@ BARRIER_PCT = np.array([0.5, 1.0, 2.0, 3.0, 5.0])
 BROWNIAN_RATIO = np.sqrt(8.0 / np.pi)          # 1.5958, CONTINUOUS time
 
 
-def brownian_control(n: int = 200_000, H: int = 19, sub: int = 12, seed: int = 0) -> dict:
-    """Simulate the benchmark at the SAMPLING RESOLUTION THE DATA ACTUALLY HAS.
+def brownian_control(n: int = 60_000, H: int = 19, steps_per_hour: int = 360,
+                     rv_minutes: int = 5, seed: int = 0) -> dict:
+    """Simulate the benchmark with the NUMERATOR and DENOMINATOR sampled the
+    way the data's actually are -- which are NOT the same resolution.
 
-    sqrt(8/pi) = 1.5958 is the continuous-time value, and comparing a
-    discretely-sampled measurement against it overstates the gap. A running
-    maximum observed at finitely many points is always below the true
-    continuous maximum, while the realized variance built from the same
-    increments is unbiased -- so the ratio is biased DOWN by discretization
-    alone, before any question of whether the price process is Brownian.
+    This has now been got wrong twice, in opposite directions, so the reasoning
+    is written out rather than asserted.
 
-    Episodes measure `RV` from 5-minute bars over an H-hour window, i.e.
-    12*H increments, so the control uses exactly that. This was got wrong
-    first time round: the -0.2646 gap originally reported here compared BTC
-    against the continuous constant, and roughly 28% of it was discretization
-    rather than anything about Bitcoin.
+    Attempt 1 compared BTC's ratio against the continuous constant sqrt(8/pi)
+    = 1.5958 and reported a gap of -0.2646.
+
+    Attempt 2 "corrected" that by simulating 5-minute closes, obtaining 1.5218,
+    and revised the gap to -0.1907 with the claim that ~28% of the original was
+    discretization. **That correction was wrong.** It assumed the measured
+    excursions come from 5-minute closes. They do not. `episodes.build_hourly`
+    sets `hour_high = max of the 1-minute bar HIGHS` and `M_up` is a running
+    max over those hourly highs -- so the numerator inherits intra-minute tick
+    extremes and is very close to the CONTINUOUS running maximum. The
+    denominator is the only 5-minute object: `RV = sqrt(sum of rv5)`.
+
+    Sampling the extremes coarser than the data does biases the benchmark DOWN
+    and therefore biases the measured gap toward zero -- it makes BTC look more
+    Brownian than it is. Measured here, at n = 60,000:
+
+        extremes from  5-min closes   1.5190   <- attempt 2's control
+        extremes from  1-min closes   1.5605
+        extremes from 10-sec closes   1.5860   <- what this function now uses
+        continuous limit sqrt(8/pi)   1.5958
+
+    The default is 10-second resolution, not the continuous constant, and that
+    is deliberately CONSERVATIVE: real 1-minute bar highs come from ticks, so
+    the true benchmark sits nearer 1.5958, and using 1.5860 understates the gap
+    rather than flattering it. The residual ambiguity is ~0.01, against a gap
+    of ~0.26.
     """
     rng = np.random.default_rng(seed)
-    inc = rng.standard_normal((n, H * sub)) / np.sqrt(H * sub)
+    N = H * steps_per_hour
+    inc = rng.standard_normal((n, N)) / np.sqrt(N)
     path = np.cumsum(inc, axis=1)
+    # numerator: running extremes at fine resolution, as bar highs/lows are
     m_up = np.maximum(path.max(axis=1), 0.0)
     m_dn = np.maximum(-path.min(axis=1), 0.0)
-    rv = np.sqrt((inc ** 2).sum(axis=1))
+    # denominator: RV from returns sampled every `rv_minutes`, as rv5 is
+    k = int(rv_minutes * steps_per_hour / 60)
+    p0 = np.concatenate([np.zeros((n, 1)), path], axis=1)
+    r = np.diff(p0[:, ::k], axis=1)
+    rv = np.sqrt((r ** 2).sum(axis=1))
     from scipy.stats import spearmanr
     rho, _ = spearmanr(m_up / rv, m_dn / rv)
     return {"ratio_mean": float(((m_up + m_dn) / rv).mean()),
             "ratio_median": float(np.median((m_up + m_dn) / rv)),
-            "spearman_up_dn": float(rho), "n": n, "H": H, "sub_steps": sub}
+            "spearman_up_dn": float(rho), "n": n, "H": H,
+            "steps_per_hour": steps_per_hour, "rv_minutes": rv_minutes,
+            "note": "extremes fine-sampled (as bar highs are); RV at 5 min"}
 
 
 def gaussian_touch(u: np.ndarray, sigma: np.ndarray) -> np.ndarray:
@@ -143,16 +170,17 @@ def main(argv=None) -> int:
     print(f"RANGE / sqrt(realized variance)")
     print(f"  Brownian, continuous : {BROWNIAN_RATIO:.4f}  (NOT the right "
           f"comparison -- see brownian_control)")
-    print(f"  Brownian, SAMPLED as the data is ({ctl['H']}h x {ctl['sub_steps']} "
-          f"5-min steps): {ref:.4f}")
+    print(f"  Brownian, sampled as the data is (extremes at "
+          f"{3600//ctl['steps_per_hour']}s, RV at {ctl['rv_minutes']}min): "
+          f"{ref:.4f}")
     print(f"  BTC measured  median : {q[2]:.4f}   mean {ratio.mean():.4f}")
     print(f"                  IQR  : [{q[1]:.4f}, {q[3]:.4f}]")
     print(f"            5-95 pct   : [{q[0]:.4f}, {q[4]:.4f}]")
     print(f"  mean - sampled ref   : {ratio.mean()-ref:+.4f}  "
           f"block-bootstrap 95% CI [{lo:+.4f}, {hi:+.4f}]")
     print(f"  (against the continuous constant the gap would read "
-          f"{ratio.mean()-BROWNIAN_RATIO:+.4f}; ~{100*(1-abs(ratio.mean()-ref)/abs(ratio.mean()-BROWNIAN_RATIO)):.0f}% "
-          f"of that is discretization, not Bitcoin)")
+          f"{ratio.mean()-BROWNIAN_RATIO:+.4f}; the control is deliberately "
+          f"conservative, so the true gap is between the two)")
     print(f"  Spearman(M_up/RV, M_dn/RV): BTC "
           f"{__import__('scipy.stats', fromlist=['spearmanr']).spearmanr(M_up/np.maximum(RV,1e-12), M_dn/np.maximum(RV,1e-12))[0]:+.4f}"
           f"   Brownian control {ctl['spearman_up_dn']:+.4f}")

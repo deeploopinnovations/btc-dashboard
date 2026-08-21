@@ -35,11 +35,11 @@ actually travels before settlement.
 And the shape discrepancy is not subtle. Over production episodes:
 
     range / sqrt(realized variance)
-      Brownian, sampled as this data is  1.5218
+      Brownian, sampled as this data is  1.5831
       BTC measured                       1.3311
-      gap                               -0.1907   block-bootstrap 95% CI [-0.2239, -0.1600]
+      gap                               -0.2519   block-bootstrap 95% CI [-0.2851, -0.2212]
 
-BTC travels **12.5 % less per unit of realized volatility than a Brownian path**,
+BTC travels **15.9 % less per unit of realized volatility than a Brownian path**,
 and the interval excludes zero by a wide margin. A first-passage law fed a
 correct sigma therefore **overstates** the chance of touching a strike — which
 for an option seller means quoting strikes further out than necessary and
