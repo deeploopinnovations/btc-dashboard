@@ -452,9 +452,16 @@ def main(argv=None) -> int:
     print(f"  done in {resB['train_seconds']:.1f}s  best_val={resB['best_val']:.6f} "
           f"@epoch {resB['best_epoch']}  final_val={resB['history'][-1]['val_head']['total']:.6f}")
 
+    # THE FAIR COMPARISON: both arms AS THEY WOULD SHIP, i.e. early-stopped /
+    # best-checkpoint-restored, exactly like `train_model` does (see lines
+    # 235-246 of noctua/train.py: it keeps best_state and loads it before
+    # returning). Comparing FINAL-epoch numbers compares two overfit models
+    # and answers the wrong question -- best_val/best_epoch is what ships.
     ols_final = resA["history"][-1]["val_head"]["total"]
     rnd_final = resB["history"][-1]["val_head"]["total"]
-    gap_pct = 100.0 * (rnd_final - ols_final) / ols_final
+    ols_best, ols_best_epoch = resA["best_val"], resA["best_epoch"]
+    rnd_best, rnd_best_epoch = resB["best_val"], resB["best_epoch"]
+    gap_pct = 100.0 * (rnd_best - ols_best) / ols_best
     if gap_pct < INIT_GAP_WARM_START_PCT:
         verdict2 = "WARM START -- random-init matched OLS-init within 2%: the network is fitting."
     elif gap_pct > INIT_GAP_DOMINANT_PCT:
@@ -462,8 +469,12 @@ def main(argv=None) -> int:
                     "the OLS seed, not the training, is carrying the fit.")
     else:
         verdict2 = "IN BETWEEN the two decision thresholds -- reported as-is, no verdict claimed."
-    print(f"  gap at final epoch: OLS {ols_final:.6f} vs random {rnd_final:.6f} "
-          f"({gap_pct:+.2f}%)  -> {verdict2}")
+    print(f"  SHIPPED comparison (best-val, early-stop-equivalent): "
+          f"OLS best={ols_best:.6f} @epoch {ols_best_epoch}   "
+          f"random best={rnd_best:.6f} @epoch {rnd_best_epoch}   "
+          f"gap={gap_pct:+.2f}%  -> {verdict2}")
+    print(f"  (for context only, NOT the decision number -- final-epoch/overfit values: "
+          f"OLS final={ols_final:.6f}  random final={rnd_final:.6f})")
 
     # ---- Part 1 flatline / overfit determination (OLS arm) ---------------
     heads = ["a", "r", "up", "dn", "mx"]
@@ -480,12 +491,35 @@ def main(argv=None) -> int:
         v_final = resA["history"][-1]["val_head"][h]
         overfit[h] = {"train_final": t_final, "val_final": v_final,
                      "val_over_train": v_final / t_final if t_final else float("nan")}
-    print("\n[learning] PART 1 -- per-head verdicts (OLS arm, calibration split):")
+    print("\n[learning] PART 1 -- per-head verdicts (OLS arm, calibration split, FINAL epoch "
+          f"{a.epochs - 1} -- shown for the overfitting picture, NOT what ships):")
     for h in heads:
         f = flat[h]
         print(f"  {h:>3}  epoch1={f['val_epoch1']:.5f} -> final={f['val_final']:.5f}  "
               f"drop={100*f['rel_drop']:.1f}%  {'FLATLINED' if f['flatlined'] else 'learning'}  "
               f"| val/train={overfit[h]['val_over_train']:.3f}")
+
+    # ---- per-head val loss at epoch 0 (the OLS/Log-HAR starting point) vs ---
+    # at the RESTORED BEST EPOCH (what actually ships). This is the honest
+    # version of "how much does the network add over the linear solution it
+    # is seeded from, per head" -- evaluated where training actually stops.
+    epoch0_vs_best = {}
+    for h in heads:
+        v0 = resA["history"][0]["val_head"][h]
+        vbest = resA["history"][ols_best_epoch]["val_head"][h]
+        epoch0_vs_best[h] = {
+            "val_epoch0": v0, "val_best_epoch": vbest,
+            "abs_improvement": v0 - vbest,
+            "rel_improvement_pct": 100.0 * (v0 - vbest) / v0 if v0 else float("nan"),
+        }
+    print(f"\n[learning] PART 1d -- per-head val loss at epoch 0 (OLS/Log-HAR start) vs at the "
+          f"RESTORED BEST EPOCH ({ols_best_epoch}) -- what the network actually adds, per head:")
+    for h in heads:
+        d = epoch0_vs_best[h]
+        tag = "WORSE than its own init" if d["abs_improvement"] < 0 else "improves on init"
+        print(f"  {h:>3}  epoch0={d['val_epoch0']:.5f} -> best_epoch({ols_best_epoch})="
+              f"{d['val_best_epoch']:.5f}  abs_change={d['abs_improvement']:+.5f} "
+              f"({d['rel_improvement_pct']:+.1f}%)  {tag}")
 
     # ---- Part 4: near-constant inputs + zero-grad columns -----------------
     print("\n[learning] PART 4 -- constant/near-constant inputs on the training split")
@@ -513,6 +547,57 @@ def main(argv=None) -> int:
               f"eff_rank_95={c['eff_rank_95']:2d}/{c['n_units']}  "
               f"{'REDUNDANT' if redundant else 'in range'}  "
               f"|W| mean={c['weight_abs']['mean']:.4f} p90={c['weight_abs']['p90']:.4f}")
+
+    # ---- incremental persistence: write parts 1/1d/2/3/4 NOW, before the ----
+    # long run or the fidelity check touch the machine again. A kill or an
+    # OOM past this point (this box is CPU/memory-saturated by another job --
+    # a 10GB run of it was OOM-killed by the cgroup during an earlier attempt
+    # at this file) still leaves a complete, valid JSON on disk.
+    def strip_history(res):
+        return [{k: v for k, v in rec.items()} for rec in res["history"]]
+
+    out["part1_learning_curves"] = {
+        "epochs": a.epochs, "history": strip_history(resA),
+        "flatline_rule_rel_drop_lt": FLATLINE_REL_DROP,
+        "per_head_verdict_at_final_epoch": flat, "per_head_overfit_ratio": overfit,
+    }
+    out["part2_ols_vs_random_init"] = {
+        "epochs": a.epochs,
+        "comparison_basis": "best-val, early-stop-equivalent checkpoint (what train_model ships) "
+                            "-- NOT final-epoch, which compares two overfit models",
+        "ols_arm": {"history": strip_history(resA), "best_val": ols_best,
+                    "best_epoch": ols_best_epoch, "final_val_total": ols_final},
+        "random_arm": {"history": strip_history(resB), "best_val": rnd_best,
+                       "best_epoch": rnd_best_epoch, "final_val_total": rnd_final},
+        "gap_pct_best_val": gap_pct,
+        "decision_thresholds": {"warm_start_below_pct": INIT_GAP_WARM_START_PCT,
+                                "init_dominated_above_pct": INIT_GAP_DOMINANT_PCT},
+        "verdict": verdict2,
+    }
+    out["part1d_epoch0_vs_best_epoch"] = {
+        "best_epoch": ols_best_epoch, "per_head": epoch0_vs_best,
+        "note": "val loss at epoch 0 (OLS/Log-HAR seed, before any gradient step) vs at the "
+               "restored best-validation checkpoint that train_model actually ships",
+    }
+    out["part3_capacity"] = {
+        "source": "OLS-init arm's best-validation checkpoint "
+                 f"(epoch {resA['best_epoch']} of {a.epochs}) -- the RESTORED state train_model "
+                 "actually ships, not the run-out-to-40 weights",
+        "layers": cap,
+        "redundant_rule": f"eff_rank_95 < {EFF_RANK_REDUNDANT_FRAC} * width",
+    }
+    out["part4_gradient_health"] = {
+        "near_constant_inputs_train_split": nci,
+        "constant_on_train": zero_std_cols,
+        "zero_grad_input_cols_confirmed": resA["zero_grad_input_cols"],
+        "zero_grad_confirmed_over": f"all {a.epochs} epochs of the OLS-init arm actually run "
+                                    "in this session (not a shorter smoke test)",
+        "grad_clip_threshold": GRAD_CLIP,
+    }
+    out["status"] = "partial: parts 1, 1d, 2, 3, 4 complete; part 5 / fidelity pending or skipped"
+    a.out.parent.mkdir(parents=True, exist_ok=True)
+    a.out.write_text(json.dumps(out, indent=2, default=float) + "\n")
+    print(f"\n[learning] incremental checkpoint written -> {a.out}")
 
     # ---- Part 5: 150-epoch convergence -------------------------------------
     resC = None
@@ -557,38 +642,7 @@ def main(argv=None) -> int:
     else:
         print("\n[learning] fidelity check skipped (--skip-fidelity)")
 
-    # ---- assemble output ---------------------------------------------------
-    def strip_history(res):
-        return [{k: v for k, v in rec.items()} for rec in res["history"]]
-
-    out["part1_learning_curves"] = {
-        "epochs": a.epochs, "history": strip_history(resA),
-        "flatline_rule_rel_drop_lt": FLATLINE_REL_DROP,
-        "per_head_verdict": flat, "per_head_overfit_ratio": overfit,
-    }
-    out["part2_ols_vs_random_init"] = {
-        "epochs": a.epochs,
-        "ols_arm": {"history": strip_history(resA), "best_val": resA["best_val"],
-                    "best_epoch": resA["best_epoch"], "final_val_total": ols_final},
-        "random_arm": {"history": strip_history(resB), "best_val": resB["best_val"],
-                       "best_epoch": resB["best_epoch"], "final_val_total": rnd_final},
-        "gap_pct_final_epoch": gap_pct,
-        "decision_thresholds": {"warm_start_below_pct": INIT_GAP_WARM_START_PCT,
-                                "init_dominated_above_pct": INIT_GAP_DOMINANT_PCT},
-        "verdict": verdict2,
-    }
-    out["part3_capacity"] = {
-        "source": "OLS-init arm's best-validation checkpoint "
-                 f"(epoch {resA['best_epoch']} of {a.epochs})",
-        "layers": cap,
-        "redundant_rule": f"eff_rank_95 < {EFF_RANK_REDUNDANT_FRAC} * width",
-    }
-    out["part4_gradient_health"] = {
-        "near_constant_inputs_train_split": nci,
-        "constant_on_train": zero_std_cols,
-        "zero_grad_input_cols_confirmed": resA["zero_grad_input_cols"],
-        "grad_clip_threshold": GRAD_CLIP,
-    }
+    # ---- finalize: add part 5 / fidelity if they ran, rewrite the file ------
     if resC is not None:
         out["part5_convergence_150ep"] = {
             "long_epochs": a.long_epochs, "history": strip_history(resC),
@@ -600,6 +654,7 @@ def main(argv=None) -> int:
     if fidelity is not None:
         out["fidelity_check"] = fidelity
 
+    out["status"] = "complete"
     a.out.parent.mkdir(parents=True, exist_ok=True)
     a.out.write_text(json.dumps(out, indent=2, default=float) + "\n")
     print(f"\n[learning] wrote {a.out}")

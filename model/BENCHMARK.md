@@ -1561,3 +1561,147 @@ was more careful than attempt 1 and still wrong, because it never checked
 which column the data's extremes actually came from.
 
 *Educational research only. Not financial advice.*
+
+## 7. Where the error lives, and whether the network learns
+
+Two audits run in parallel, both re-derived against the data before being
+written down. Where an agent's framing was wrong, that is recorded too.
+
+### 7a. The model reacts to volatility; it does not anticipate it
+
+`eval/anatomy.py` scores the **shipped** artifact (`serve.runtime.load_model()`,
+no retraining) over 18,463 served test episodes, cross-checked on the 769
+non-overlapping 17:00 episodes.
+
+| population | share of episodes | share of QLIKE loss | **median RV / σ** |
+|---|---|---|---|
+| normal | 92.3 % | 74.2 % | **0.964** |
+| **volatility spike** | **7.7 %** | **25.8 %** | **1.453** |
+
+Spike episodes are flagged causally — a trailing 180-day 95th percentile of
+production RV using strictly prior days. **On the 7.7 % of nights that carry a
+quarter of the loss, the model under-forecasts volatility by 45 %.** For an
+option seller that is the expensive direction: the strike breaks.
+
+`RV/σ` is a ratio, so this does not depend on the scoring rule. That matters,
+because a second reported finding does:
+
+> **A framing correction.** The audit reported "the worst 100 episodes are
+> 100 % under-forecasts, against a 48.4 % base rate" as evidence of directional
+> bias. It is mostly an artifact of QLIKE. `QLIKE = log σ² + RV²/σ²` diverges as
+> σ → 0 but grows only logarithmically as σ → ∞, so the extreme tail of any
+> QLIKE ranking is dominated by under-forecasts even for a symmetric model.
+> Measured directly: at a factor-2 error the penalty ratio is **1.60×**, at
+> factor-4 it is **4.67×**. The claim is kept, demoted to corroboration. The
+> load-bearing number is the scale-free `RV/σ = 1.453`.
+
+The mechanism is a **one-day lag**, visible on every stress cluster in the test
+era:
+
+| date | realized 19 h RV | predicted σ | vs the model's own median |
+|---|---|---|---|
+| 2024-08-04 | 9.40 % | 2.31 % | 1.29 × |
+| 2024-08-05 | 10.58 % | 5.32 % | 2.96 × |
+| 2025-01-19 | 7.50 % | 2.18 % | 1.21 × |
+| 2025-01-20 | 7.02 % | 3.98 % | 2.22 × |
+| 2026-02-05 | 8.35 % | 3.92 % | 2.18 × |
+| 2026-02-06 | 6.55 % | 4.72 % | 2.63 × |
+| **2025-04-06** | **5.78 %** | **1.56 %** | **0.87 ×** |
+
+On the first day of each cluster the model sits near its unconditional median;
+by the second it has widened 2–3×. On 2025-04-06 — a top-10 volatility day — it
+was **more confident than usual**. Lead/lag correlation of predicted σ against
+realized RV: **0.920** dated one day *after* the realization, **0.507** one day
+*before*.
+
+This is structural rather than a bug: every input the model has is a trailing
+statistic, so a trailing forecast is what the feature set can express. It is
+also the single most decision-relevant limitation for a seller, and it is now
+measured rather than suspected.
+
+### 7b. The US-Iran hypothesis is not supported by the data
+
+The project has been working from the premise that the June 2025 US-Iran
+escalation re-created pre-ETF fat-tail volatility, and that a model failing to
+widen for it would be failing the real test. Measured on production anchors:
+
+| | 19 h realized volatility |
+|---|---|
+| June 2025 window, peak | **2.54 %** (2025-06-12) |
+| June 2025 window, median | 1.17 % |
+| test era median | 1.66 % |
+| test era p90 / p95 / p99 | 2.89 % / 3.62 % / 5.02 % |
+| test era max | 7.84 % (2026-02-05) |
+
+**The June-2025 peak sits at the 84.4th percentile of the test era — below even
+the 90th.** For BTC at a 19-hour horizon it was not a stress event, and its
+in-window median (1.17 %) is *below* the era's median. The real stress events in
+this period are 2024-08-05, 2025-01-19/20, 2026-02-05 and the 2025-10-10 flash
+crash. The premise was reasonable and it is simply not what the data shows;
+§7a's lag finding stands on those events instead, which is a stronger test
+because they are larger.
+
+### 7c. The network does learn — and the OLS seed is not just a warm start
+
+`eval/learning.py`, 1 fold, 1 seed, measured at the **restored best checkpoint**
+that actually ships. (The first pass measured a 40-epoch model; `train.py`
+lines 235-246 keep `best_state` and call `load_state_dict(best_state)`, so the
+deployed weights are the epoch-6 checkpoint and diagnostics on a run-out model
+describe nothing that exists.)
+
+Per head, epoch 0 (the Log-HAR/OLS seed) versus the shipped checkpoint:
+
+| head | epoch 0 | best (epoch 6) | change |
+|---|---|---|---|
+| `mx` max excursion | 0.13105 | 0.08381 | **−36.0 %** |
+| `r` terminal return | 0.22791 | 0.15748 | −30.9 % |
+| `dn` downside | 0.13214 | 0.09916 | −25.0 % |
+| `up` upside | 0.13290 | 0.10702 | −19.5 % |
+| `a` volatility | 0.07709 | 0.06502 | −15.7 % |
+
+Every head beats its linear initialization at the checkpoint that ships. The
+network is doing real work, not decorating an OLS fit.
+
+**Early stopping is load-bearing, and it works.** Validation bottoms at epoch 6
+(0.512490) and degrades monotonically to 0.565905 by epoch 39 — the `a` head
+ends 17 % *worse than its own initialization* if left to run. Because the
+trainer restores the best state, none of that ships. This also settles whether
+more epochs would help: they would not, and the 150-epoch arm was cancelled
+rather than spending hours confirming a direction the data already fixed.
+
+**Initialization, both arms early-stopped** — the only fair comparison, since
+comparing two overfit models answers a different question:
+
+| arm | best val | at epoch |
+|---|---|---|
+| OLS-seeded | **0.512490** | 6 |
+| random init | 0.540947 | 12 |
+
+A **5.55 %** gap. Random-init finds a real minimum of its own, so the network is
+not merely inheriting OLS — but it does not close the gap in the shipped budget
+either. The seed buys a better basin, not just a faster start.
+
+**Capacity is not fully used.** Effective rank of the hidden activations at 95 %
+of variance, out of a nominal width of 32:
+
+| layer | dead units | effective rank |
+|---|---|---|
+| stage A, layer 1 | 0 % | 17 / 32 |
+| stage A, layer 2 | 0 % | 12 / 32 |
+| stage B, layer 1 | 0 % | 13 / 32 |
+| stage B, layer 2 | **21.9 %** | **9 / 32** |
+
+Three of four layers behave like a much narrower network, and Stage B's second
+layer has ~22 % literally dead units. Weight magnitudes are unremarkable
+(0.097–0.113), so the redundancy is in rank, not in weights collapsing to zero.
+This is consistent with §3's capacity study, which found more width does not
+help — the model is not capacity-starved, which is another way of saying more
+parameters are not the missing ingredient.
+
+**`reg_post_etf` confirmed, and it is the only one.** Autograd on every
+minibatch of all 40 epochs: its weight column receives *exactly* zero gradient
+in both stages, reproducing §6i at full scale. All 39 inputs were scanned and
+**no second constant feature exists** (next-lowest std 0.041). The defect is
+isolated, not systemic.
+
+*Educational research only. Not financial advice.*
