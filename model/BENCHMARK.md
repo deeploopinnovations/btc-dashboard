@@ -1705,3 +1705,87 @@ in both stages, reproducing §6i at full scale. All 39 inputs were scanned and
 isolated, not systemic.
 
 *Educational research only. Not financial advice.*
+
+## 6o. Eighteen windows, the replacement rule, and an ADOPT that holds
+
+§6n fixed a rule before this data was scored, because three six-window designs
+had produced 2/6, 5/6 and 3/6 on the same deep-tail effect and a win count on
+~0.003 against per-window scatter of ~0.013 is a coin flip. The replacement:
+monthly windows, the refreshed arm at `window − 6 months`, calibration matched,
+and the tail decided on the **mean** delta with a moving-block bootstrap CI
+rather than on how many windows fell each way.
+
+Eighteen windows were attempted; **16 produced both arms**. February 2025 and
+February 2026 were skipped identically for both arms (train/calib too small),
+so the comparison stays paired and the exclusion is not selective.
+
+| metric | frozen | refreshed | change | windows won |
+|---|---|---|---|---|
+| **QLIKE** | 0.239715 | **0.228761** | **−4.57 %** | 13/16 |
+| pinball | 0.002524 | **0.002432** | −3.65 % | 13/16 |
+| CRPS | 0.003758 | **0.003662** | −2.54 % | 14/16 |
+| DSC/UNC | 0.078198 | **0.085689** | **+9.58 %** | 11/16 |
+| **deep-tail MCB** | 0.223847 | **0.217903** | **−2.66 %** | 11/16 |
+
+**Mean deep-tail MCB delta −0.005943, moving-block 95 % CI [−0.011755,
+−0.002035]** — excludes zero on the favourable side. Mean QLIKE delta
+−0.010954, one-sided sign test p = 0.01064.
+
+**Verdict: ADOPT**, on the rule's first branch — the tail CI excludes zero
+favourably.
+
+### Being exact about what passed and what did not
+
+The QLIKE win count is **13/16 against a bar of 14** (the same 83.3 % rate as
+§6n's "5/6", read as a rate). Under the rule's *second* branch this would not
+adopt. Adoption rests entirely on the tail interval, which is how the rule was
+written — the tail was the veto condition, and a tail that is not merely absent
+but significantly favourable is the strongest outcome available. It would be
+misleading to report this as both conditions passing, so it is not.
+
+The count wobbling again while the mean is decisive (−4.57 %, p = 0.01064) is
+the same pathology §6n diagnosed, showing up one more time. That is a point in
+favour of having replaced the statistic rather than the threshold.
+
+### What was adopted, and what deliberately was not
+
+`train_v2.py --train-end 2026-02-09 --calib-end 2026-08-09` produces a dated
+production fit: **298,791 training episodes against the frozen split's 189,831**
+(+57 %), 17,223 calibration episodes — the same slice size the experiment
+validated — and 6,939 parameters per seed. It is written to
+`serve/noctua_v2_refreshed_2026-08-09.npz`.
+
+**`serve/noctua_v2.npz` was NOT overwritten, and that is a decision, not an
+oversight.** `serve.runtime.load_model()` is what the evaluation code loads:
+`eval/anatomy.py` scored the shipped artifact over test episodes. An artifact
+retrained through 2026-08-09 has those episodes *in sample*, so overwriting the
+default path would silently invalidate every evaluation that reads it, with no
+error and no visible symptom. The frozen artifact stays as the research
+instrument; the refreshed one is dated in its filename and in its own metadata
+(`train_end`, `calib_end`, `n_train`, `n_calib`, `frozen_research_split:
+false`), so the two can never be confused for one another.
+
+The architecture question raised in `AUDIT.md` §7 resolves itself here: the
+refresh was measured through `run_fold` → `train_model`, i.e. on the **current
+four-head source model**, so shipping the refresh ships the architecture the
+experiment actually validated rather than a different one.
+
+### A dead guard, found by exporting the artifact
+
+The refreshed artifact exports 6,939 params/seed — it carries `q_mx` — yet
+`runtime.has_mx()` still reported `False`. Cause: it tested for
+`b.q_mx.weight`, **a key that cannot exist for any artifact**. `q_mx` is a
+`MonotoneQuantileHead`, so its `state_dict` keys are `b.q_mx.median.weight`,
+`b.q_mx.up.weight`, `b.q_mx.dn.weight`; the head has no bare `.weight`. The
+guard returned `False` unconditionally — a constant wearing a guard's name —
+and would have silently dropped the head from serving on any artifact carrying
+it.
+
+It was harmless only by luck: the deployed artifact genuinely lacks the head,
+and nothing in `serve/predict.py` consumes `q_mx`. Fixed, and `test_serving.py`
+now has four regression checks including one asserting the impossible bare-key
+form is *not* treated as present. This is the third defect of this exact
+shape in the repo's history (metadata disagreeing with weights; `feat_cols`
+42-vs-39), and the first caught by a test rather than by an outage.
+
+*Educational research only. Not financial advice.*

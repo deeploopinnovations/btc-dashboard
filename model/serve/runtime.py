@@ -77,8 +77,21 @@ class NumpyNoctua:
         Artifacts exported before `q_mx` existed do not, and serving must keep
         working against them rather than dying on a missing key -- the whole
         point of versioned metadata is that an old artifact stays loadable.
+
+        The first version of this checked `b.q_mx.weight`, which **cannot exist
+        for any artifact**. `q_mx` is a `MonotoneQuantileHead`, so its
+        `state_dict` keys are `b.q_mx.median.weight`, `b.q_mx.up.weight` and
+        `b.q_mx.dn.weight` -- there is no bare `.weight` on the head itself.
+        The guard therefore returned False unconditionally, which made it not a
+        guard but a constant, and silently dropped the head from serving on any
+        artifact that actually carried it. Caught by exporting a refreshed
+        artifact with 6,939 params/seed and watching `has_mx()` still say False.
+
+        Harmless so far only by luck: the deployed artifact genuinely lacks the
+        head, and nothing in `serve/predict.py` consumes `q_mx`. It would have
+        stopped being harmless the moment a re-export shipped the head.
         """
-        return "b.q_mx.weight" in self.w or "m0.b.q_mx.weight" in self.w
+        return any(f"{p}b.q_mx.median.weight" in self.w for p in ("", "m0."))
 
     def stage_b(self, Xs: np.ndarray, log_sigma: np.ndarray):
         h = self._body("b.body", np.concatenate([Xs, log_sigma], axis=1))
