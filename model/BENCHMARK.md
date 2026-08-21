@@ -1789,3 +1789,107 @@ shape in the repo's history (metadata disagreeing with weights; `feat_cols`
 42-vs-39), and the first caught by a test rather than by an outage.
 
 *Educational research only. Not financial advice.*
+
+## 8. Priority 1 returns a negative — and the instrument that posed it is broken
+
+`ROADMAP.md` Priority 1 asked whether the conditional variation in path shape is
+predictable, with a two-part rule fixed before the run: clear a shuffled
+permutation null **and** move the 2 % touch probability by ≥ 1 pp. The answer is
+no, and finding that out invalidated the framing that produced the question.
+
+### The agent's verdict did not survive checking
+
+`eval/shape.py` reported "predictable and useful" on all four arms. Two of its
+three criteria fail:
+
+**Clearing the null was read backwards.** The gradient-boosted arms have
+out-of-sample **R² = −0.016** (range) and **−0.021** (max) — *worse than the
+constant they are scored against*. They "clear" only because the permutation
+null sits at −0.047 / −0.040. Beating a null centred well below zero means
+"less bad than fitting shuffled targets", not "predictive".
+
+**No arm has an R² interval excluding zero favourably**: ridge range
+[−0.0038, +0.0168], ridge max [−0.0066, +0.0116], gbdt range [−0.0364,
++0.0051] all contain zero; gbdt max [−0.0397, −0.0015] excludes zero on the
+*wrong* side.
+
+**The relevance test was an absolute value, so noise passes it.** Reported mean
+|Δ| in P(touch 2 %) is 1.05–2.53 pp while the mean **signed** Δ is 0.01–0.40 pp.
+A random number generator scores well on `mean |Δ|`. ROADMAP asked whether shape
+"moves the 2 % touch probability by ≥ 1 pp" and meant *improves*; the ambiguity
+was in the rule, the correct reading is not ambiguous.
+
+What is real is a weak rank association: Spearman **+0.0795** (p = 0.028), R²
+**+0.019** on 769 held-out production episodes.
+
+### The test that matters, and it is a clean negative
+
+`eval/shape_relevance.py`. Both arms fed the **realized** volatility, so shape
+is the only difference; Brier on the realized touch indicator; moving-block
+bootstrap CI on the paired difference.
+
+| barrier | realized | const shape | predicted shape | Δ | 95 % CI | verdict |
+|---|---|---|---|---|---|---|
+| 0.5 % | 0.9844 | 0.01503 | 0.01502 | −0.00001 | [−0.00007, +0.00005] | no effect |
+| 1.0 % | 0.8518 | 0.12672 | 0.12756 | +0.00084 | [+0.00044, +0.00114] | **HURTS** |
+| 2.0 % | 0.4512 | 0.40217 | 0.40866 | +0.00649 | [+0.00504, +0.00794] | **HURTS** |
+| 3.0 % | 0.2562 | 0.46876 | 0.47959 | +0.01083 | [+0.00867, +0.01300] | **HURTS** |
+| 5.0 % | 0.0702 | 0.42747 | 0.44426 | +0.01679 | [+0.01396, +0.01954] | **HURTS** |
+
+Conditioning on predicted shape makes the touch forecast **significantly worse
+at every barrier a seller cares about**. A Spearman of 0.08 is real, and it is
+far too weak to survive being multiplied into a variance: the noise it injects
+costs more than the ordering it recovers.
+
+**Verdict against the pre-registered rule: shape is NOT predictable-and-useful.**
+Condition (a) is arguable on rank; condition (b) fails decisively once read as
+intended. Recorded as the fifth failed prediction in this project, alongside
+`lam_r`, `q_mx`, dropping `reg_post_etf` and §6n's big-calib arm.
+
+### The larger finding: the diagnostic loses to a constant
+
+The comparison needs a floor, so the base rate was scored too — a forecaster
+ignoring every input:
+
+| barrier | Gaussian + oracle vol + fitted shape | base rate | ratio |
+|---|---|---|---|
+| 0.5 % | 0.01503 | 0.01536 | 0.98 × |
+| 1.0 % | 0.12672 | 0.12627 | 1.00 × |
+| **2.0 %** | 0.40217 | 0.24762 | **1.62 ×** |
+| **3.0 %** | 0.46876 | 0.19055 | **2.46 ×** |
+| **5.0 %** | 0.42747 | 0.06529 | **6.55 ×** |
+
+**Given perfect volatility, the Gaussian first-passage law is up to 6.55×
+worse than quoting the historical frequency.** By this benchmark's own Rule 1
+that is a forecaster with negative skill.
+
+This reaches back into §5b. `eval/firstpassage.py` computes "a perfect
+volatility forecast removes only 6.0–8.5 % of the barrier error" by comparing
+that law fed realized volatility against the same law fed a causal forecast.
+Both arms are the broken instrument, so **the 92 % figure is a property of the
+Gaussian first-passage forecaster and cannot be attributed to NOCTUA.**
+`ROADMAP.md` attributed it to "the model". That was an overreach, made by me,
+and it is corrected there.
+
+**NOCTUA never used that law.** `infer.touch_prob` reads barrier probabilities
+off the learned Stage B quantile heads through `survival_from_quantiles`; the
+only `norm_cdf` in serving is a fallback. And the learned heads do beat the
+constant — at the 2 % up barrier, Brier = MCB − DSC + UNC = 0.01230 − 0.01747
++ 0.20124 = **0.19607** against climatology's 0.01542 − 0 + 0.20124 =
+**0.21666**, a 9.5 % improvement. The architecture was already right on the
+point this whole line of work was set up to investigate.
+
+### What actually survives
+
+- The direct measurement stands: BTC's range / √RV is **1.3311** against a
+  Brownian **1.5831** (§5b-bis). It is a measurement, not a model output, and
+  does not depend on the law.
+- "Stop investing in volatility because 92 % is shape" **does not follow** and
+  is withdrawn.
+- The honest replacement question is the same oracle experiment run through
+  **NOCTUA's own mapping** — feed Stage B `log(realized RV)` in place of the
+  forecast σ and measure how much barrier error that removes. That is the
+  decomposition ROADMAP should have specified, it is cheap, and it is
+  specified here rather than run because this session's budget ended.
+
+*Educational research only. Not financial advice.*

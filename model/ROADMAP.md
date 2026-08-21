@@ -8,6 +8,16 @@ the data is scored.
 
 ## The short version
 
+> **CORRECTED — see BENCHMARK.md §8, one session after this was written.**
+> The "92 %" below is a property of the **Gaussian first-passage law**, which
+> `eval/firstpassage.py` builds as a diagnostic. It is **not** a decomposition
+> of NOCTUA's error: NOCTUA reads barrier probabilities off its learned Stage B
+> quantile heads and does not use that law. And the law is not merely
+> imperfect — fed *perfect* volatility it loses to the historical base rate by
+> 1.62× at 2 %, 2.46× at 3 % and 6.55× at 5 %. Decomposing its error was
+> decomposing an already-broken instrument. Priority 1 was run and returned a
+> **negative** result; §8 has what replaces it.
+
 The model is being improved on the 8 % of the problem it can reach, while the
 92 % sits untouched — and the one previous attempt on that 92 % failed because
 it treated a structural problem as a feature problem.
