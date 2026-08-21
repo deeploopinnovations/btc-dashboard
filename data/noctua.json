@@ -6,41 +6,41 @@
   "sigma_window_pct": 2.673,
   "sigma_annualized_pct": 57.4,
   "trailing_rv_pct": 4.197,
-  "p_up": 0.508,
+  "p_up": 0.5079,
   "p_vol_amplify": 0.1651,
   "safe_levels": [
     {
       "alpha": 0.01,
-      "call_strike": 86719.51,
-      "put_strike": 69017.79,
+      "call_strike": 86719.62,
+      "put_strike": 69017.63,
       "call_pct": 12.089,
       "put_pct": -10.791
     },
     {
       "alpha": 0.02,
-      "call_strike": 84694.02,
-      "put_strike": 70686.91,
+      "call_strike": 84694.09,
+      "put_strike": 70686.78,
       "call_pct": 9.471,
       "put_pct": -8.634
     },
     {
       "alpha": 0.05,
-      "call_strike": 82474.81,
-      "put_strike": 72630.6,
+      "call_strike": 82474.85,
+      "put_strike": 72630.52,
       "call_pct": 6.603,
       "put_pct": -6.121
     },
     {
       "alpha": 0.1,
-      "call_strike": 81358.55,
-      "put_strike": 73625.4,
+      "call_strike": 81358.58,
+      "put_strike": 73625.35,
       "call_pct": 5.16,
       "put_pct": -4.836
     },
     {
       "alpha": 0.2,
-      "call_strike": 80214.24,
-      "put_strike": 74651.85,
+      "call_strike": 80214.26,
+      "put_strike": 74651.8,
       "call_pct": 3.681,
       "put_pct": -3.509
     }
@@ -107,7 +107,7 @@
       {
         "pct": -1.5,
         "price": 76206.01,
-        "touch_prob": 0.623
+        "touch_prob": 0.6231
       },
       {
         "pct": -2.0,
