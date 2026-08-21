@@ -675,3 +675,46 @@ Kept because an audit that hides its own error rate is not an audit.
   it feeds only `M_up_clean`/`M_dn_clean`, which are used nowhere. Confirmed
   by grep. Recorded here so that wiring those columns into training later is
   known to require fixing the detector first.
+
+## 7. The source model and the shipped artifact are different architectures
+
+Found while verifying a parameter count in `eval/learning.py`, and worth
+recording because it is latent rather than broken.
+
+| | parameters per seed |
+|---|---|
+| shipped `serve/noctua_v2.npz` | **6,378** |
+| what `noctua/model.py` builds today at the same config (`n_feat=39`) | **6,939** |
+| difference | **561** — the Stage-B `q_mx` head |
+
+`q_mx` (a head for `max(M_up, M_dn)`) was built, measured, and reported as a
+null at 11/18 cells, so it was correctly not adopted and the artifact was never
+re-exported with it. The head nevertheless still exists in the source. So
+**anyone running `python -m noctua.train_v2` today produces a 6,939-parameter
+artifact containing a head that was measured and rejected**, which is not what
+the currently-deployed file contains.
+
+Nothing is broken right now, and it was checked rather than assumed:
+`serve/runtime.py:74` has an explicit `has_mx()` guard and line 88 appends
+`None` when the head is absent, so loading the current 3-head artifact works,
+and a future 4-head artifact would also load. The averaging paths in
+`noctua/infer.py` were guarded with `if all(k in o for o in outs)` for the same
+reason, after an unguarded version raised `KeyError: 'q_mx'` in two suites.
+
+The exposure is that a re-export silently changes the deployed architecture
+without any decision being taken to adopt `q_mx`. This repo has already shipped
+one defect of exactly that shape — metadata describing weights it did not
+match, and a `feat_cols` mismatch that crashed serving at 42-vs-39. The
+artifact now records `n_params_total`, `train_end`, `calib_end`, `n_train` and
+`n_calib`, so the divergence is at least visible in the file rather than
+inferable only by counting.
+
+Two honest options, neither taken here because neither is a measurement:
+remove the head from the source until it earns adoption, or keep it and have
+`train_v2` refuse to export it unless explicitly asked. Recorded rather than
+fixed, because `q_mx`'s null was measured on a fit whose training data ends
+before the market it was scored on (`ROADMAP.md` §2), and the head may yet be
+re-tested on a refreshed fit. Deleting it now would throw away work that has
+not actually been evaluated under the conditions that matter.
+
+*Educational research only. Not financial advice.*
