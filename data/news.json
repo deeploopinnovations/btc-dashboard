@@ -1,6 +1,55 @@
 {
   "items": [
     {
+      "headline": "Strategy ( NASDAQ : MSTR ) Chairman Michael Saylor Tells Investors To Brace For Years Of Losses As Bitcoin Bet Deepens",
+      "url": "https://www.foreignpolicyjournal.com/2026/08/22/strategy-nasdaq-mstr-chairman-michael-saylor-tells-investors-to-brace-for-years-of-losses-as-bitcoin-bet-deepens/",
+      "src": "foreignpolicyjournal.com",
+      "date": "20260822T163000Z",
+      "sent": "neg"
+    },
+    {
+      "headline": "Standard Chartered predicts Bitcoin will reach $100 , 000 : A guide to cryptocurrency mining that can earn $40 , 000 ⋆ First Comics News",
+      "url": "https://www.firstcomicsnews.com/standard-chartered-predicts-bitcoin-will-reach-100000/",
+      "src": "firstcomicsnews.com",
+      "date": "20260822T153000Z",
+      "sent": "neg"
+    },
+    {
+      "headline": "Bitcoin Price Pulls Back To $77K , Erasing Hundreds Of Millions In Leveraged BTC Long Positions",
+      "url": "https://www.crowdfundinsider.com/2026/08/300082-bitcoin-price-pulls-back-to-77k-erasing-hundreds-of-millions-in-leveraged-btc-long-positions/",
+      "src": "crowdfundinsider.com",
+      "date": "20260822T150000Z",
+      "sent": "neg"
+    },
+    {
+      "headline": "BTC Surges To Over $78 , 000 3 Weeks After Cramer Said He Sold Over Quantum Fears",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/btc-surges-over-78-000-110623301.html",
+      "src": "finance.yahoo.com",
+      "date": "20260822T130000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Divi ( DIVI ) Market Cap Reaches $8 . 60 Million",
+      "url": "https://www.dailypolitical.com/2026/08/22/divi-divi-market-cap-reaches-8-60-million.html",
+      "src": "dailypolitical.com",
+      "date": "20260822T114500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Asian Stocks Slide on Bond Stress : Will Safe Havens BTC and Gold Keep Rallying ? ",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/asian-stocks-slide-bond-stress-034331017.html",
+      "src": "finance.yahoo.com",
+      "date": "20260822T084500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Bitcoin Tops US$78 , 000 as Crypto Rally Widens",
+      "url": "https://www.riotimesonline.com/crypto-markets-bitcoin-majors-saturday-august-22-2026/",
+      "src": "riotimesonline.com",
+      "date": "20260822T083000Z",
+      "sent": "pos"
+    },
+    {
       "headline": "Bitcoin Nears $80 , 000 , Posts Biggest Weekly Rally In Three Years As Crypto Market Gains Momentum",
       "url": "https://www.freepressjournal.in/business/bitcoin-nears-80000-posts-biggest-weekly-rally-in-three-years-as-crypto-market-gains-momentum",
       "src": "freepressjournal.in",
@@ -55,58 +104,9 @@
       "src": "haberankara.com",
       "date": "20260822T020000Z",
       "sent": "neu"
-    },
-    {
-      "headline": "Nasdaq ends positive on broader rally ; tech stocks lead weekly losses ( STX : NASDAQ ) ",
-      "url": "https://seekingalpha.com/news/4636000-nasdaq-ends-positive-on-broader-rally-but-tech-stocks-lead-weekly-losses",
-      "src": "seekingalpha.com",
-      "date": "20260822T020000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Onchain , In Court : What Happened In Crypto Legal News This Week",
-      "url": "https://cointelegraph.com/news/on-chain-in-court-crypto-legal-news5",
-      "src": "cointelegraph.com",
-      "date": "20260822T000000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Ray Dalio Says to Buy  A Bit  of Bitcoin Amid Potential Debt Crisis",
-      "url": "https://cointelegraph.com/news/ray-dalio-buy-bitcoin-debt-crisis",
-      "src": "cointelegraph.com",
-      "date": "20260822T000000Z",
-      "sent": "pos"
-    },
-    {
-      "headline": "Bitcoin Consolidates Near $77K as $90K Odds Hit 48 % ",
-      "url": "https://cointelegraph.com/markets/bitcoin-seeks-support-near-77k-btc-gold-100-day-highs",
-      "src": "cointelegraph.com",
-      "date": "20260822T000000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Bitcoin Year - End Price Outlook : Bitget CEO Weighs In",
-      "url": "https://cointelegraph.com/markets/bitget-ceo-sees-bitcoin-near-current-levels-at-year-end-doubts-us-will-buy-btc",
-      "src": "cointelegraph.com",
-      "date": "20260822T000000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Bitcoin Flirts With $80 , 000 And Reaches Highest Since May",
-      "url": "https://www.forbes.com/sites/digital-assets/2026/08/21/bitcoin-flirts-with-80000-and-reaches-highest-since-may/",
-      "src": "forbes.com",
-      "date": "20260821T231500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "3 things to look out for on Monday ( SP500 :) ",
-      "url": "https://seekingalpha.com/news/4635980-3-things-to-look-out-for-on-monday",
-      "src": "seekingalpha.com",
-      "date": "20260821T224500Z",
-      "sent": "neu"
     }
   ],
-  "ts": 1787385390668,
+  "ts": 1787420725968,
   "source": "GDELT",
-  "_updatedMs": 1787385390668
+  "_updatedMs": 1787420725968
 }
