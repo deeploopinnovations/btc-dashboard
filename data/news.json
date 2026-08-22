@@ -1,6 +1,55 @@
 {
   "items": [
     {
+      "headline": "Bitcoin Nears $80 , 000 , Posts Biggest Weekly Rally In Three Years As Crypto Market Gains Momentum",
+      "url": "https://www.freepressjournal.in/business/bitcoin-nears-80000-posts-biggest-weekly-rally-in-three-years-as-crypto-market-gains-momentum",
+      "src": "freepressjournal.in",
+      "date": "20260822T060000Z",
+      "sent": "pos"
+    },
+    {
+      "headline": "IBIT 0 . 25 % Fee Sells Off Bitcoin Daily , and the Prospectus Calls Every Sale a Taxable Event",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/ibit-0-25-fee-sells-220518548.html",
+      "src": "finance.yahoo.com",
+      "date": "20260822T053000Z",
+      "sent": "neg"
+    },
+    {
+      "headline": "Bitcoin nears $80 , 000 in its biggest weekly rally in 3 years",
+      "url": "https://ianslive.in/bitcoin-nears-80000-in-its-biggest-weekly-rally-in-3-years--20260822094544",
+      "src": "ianslive.in",
+      "date": "20260822T051500Z",
+      "sent": "pos"
+    },
+    {
+      "headline": "Explained | How Bitcoin rally led to skyrocketing of crypto stocks | What fuelling surge of both ? Climbing in tandem",
+      "url": "https://www.livemint.com/market/cryptocurrency/explained-how-bitcoin-rally-led-to-skyrocketing-of-crypto-stocks-what-s-fuelling-surge-of-both-climbing-in-tandem-11787364376857.html",
+      "src": "livemint.com",
+      "date": "20260822T044500Z",
+      "sent": "pos"
+    },
+    {
+      "headline": "Bitcoin nears $80 , 000 amid biggest weekly rally in three years",
+      "url": "https://www.moneycontrol.com/news/business/markets/bitcoin-nears-80-000-amid-biggest-weekly-rally-in-three-years-14012687.html",
+      "src": "moneycontrol.com",
+      "date": "20260822T040000Z",
+      "sent": "pos"
+    },
+    {
+      "headline": "Why Bitcoin Suddenly Exploded to $78K : The Treasury Just Blinked",
+      "url": "https://www.ibtimes.com/why-bitcoin-suddenly-exploded-78k-treasury-just-blinked-3806673",
+      "src": "ibtimes.com",
+      "date": "20260822T031500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Crypto News Today : AlphaPepe Presale Nears $2 . 5M Raised as Bitcoin Price Prediction Targets $100 , 000",
+      "url": "https://www.manilatimes.net/2026/08/22/tmt-newswire/globenewswire/crypto-news-today-alphapepe-presale-nears-25m-raised-as-bitcoin-price-prediction-targets-100000/2410246",
+      "src": "manilatimes.net",
+      "date": "20260822T030000Z",
+      "sent": "neg"
+    },
+    {
       "headline": "Bitcoin yeniden yükselişe geçti : 77 bin dolar sınırı aşıldı ! ",
       "url": "https://www.haberankara.com/ekonomi/bitcoin-yeniden-yukselise-gecti-77-bin-dolar-siniri-asildi-319783",
       "src": "haberankara.com",
@@ -55,58 +104,9 @@
       "src": "seekingalpha.com",
       "date": "20260821T224500Z",
       "sent": "neu"
-    },
-    {
-      "headline": "Bitcoin Nears $80 , 000 Amid Biggest Weekly Rally In Three Years",
-      "url": "https://www.livemint.com/market/bitcoin-nears-80-000-amid-biggest-weekly-rally-in-three-years-11787346008375.html",
-      "src": "livemint.com",
-      "date": "20260821T213000Z",
-      "sent": "pos"
-    },
-    {
-      "headline": "Crypto News : Pepeto DeFi Tools Update While Bitcoin Price Might Reach $150 , 000",
-      "url": "https://www.manilatimes.net/2026/08/22/tmt-newswire/globenewswire/crypto-news-pepeto-defi-tools-update-while-bitcoin-price-might-reach-150000/2410211",
-      "src": "manilatimes.net",
-      "date": "20260821T213000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Crypto Is Surging After President Trump Pushes Congress to Pass the Clarity Act . Which Cryptocurrencies Are Worth Buying Now ? ",
-      "url": "https://www.fool.com/investing/2026/08/21/crypto-is-surging-after-president-trump-pushes-congress-to-pass-the-clarity-act-which-cryptocurrencies-are-worth-buying-now/",
-      "src": "fool.com",
-      "date": "20260821T194500Z",
-      "sent": "pos"
-    },
-    {
-      "headline": "Bitcoin Clears $75 , 000 in Biggest Crypto Short Squeeze Since 2021 : September 15 Decides",
-      "url": "https://www.techtimes.com/articles/325161/20260821/bitcoin-clears-75000-biggest-crypto-short-squeeze-since-2021-september-15-decides.htm",
-      "src": "techtimes.com",
-      "date": "20260821T194500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "The U . S . Senate Faces a Critical Vote on the Clarity Act on Sept . 15 . Coinbase CEO Brian Armstrong Says It Will Pass",
-      "url": "https://www.fool.com/investing/2026/08/21/the-u-s-senate-faces-a-critical-vote-on-the-clarity-act-on-sept-15-coinbase-ceo-brian-armstrong-says-it-will-pass/",
-      "src": "fool.com",
-      "date": "20260821T194500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Bitcoin  ayın zirvesine çıktı",
-      "url": "https://www.f5haber.com/ekonomi/bitcoin-uc-ayin-zirvesine-cikti-6964596",
-      "src": "f5haber.com",
-      "date": "20260821T180000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Standard Chartered Forecasts Bitcoin Will Retest All - Time High",
-      "url": "https://finance.yahoo.com/markets/crypto/articles/standard-chartered-forecasts-bitcoin-retest-172300311.html",
-      "src": "finance.yahoo.com",
-      "date": "20260821T180000Z",
-      "sent": "neg"
     }
   ],
-  "ts": 1787366034309,
+  "ts": 1787380494593,
   "source": "GDELT",
-  "_updatedMs": 1787366034309
+  "_updatedMs": 1787380494593
 }
