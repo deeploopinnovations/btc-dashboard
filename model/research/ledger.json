@@ -168,8 +168,19 @@
       "topic": "defects",
       "question": "Are the three open defects (untrained reg_post_etf, unused capacity, global-vs-hourly adaptive correction) real?",
       "rule": "reg_post_etf: measure how much the LIVE prediction moves when the untrained input is zeroed, not whether removing it improves an average. capacity: compare hidden-layer effective rank against the effective rank of the INPUT matrix -- if inputs span ~10 dims a rank-12 layer is correct behaviour. adaptive: rule stated by the agent before running.",
-      "verdict": "OPEN",
-      "result": "in flight"
+      "verdict": "REJECT",
+      "result": "capacity: WITHDRAWN false alarm -- Stage B is Linear(22->32) so 32 is an unreachable denominator, and activations carry 13 dims against inputs spanning 13. reg_post_etf: real but moves sigma_med 0.169% and P(touch 2%) 0.17-0.29pp -- fix at next retrain, not urgent. hour-conditional correction: peak cal error -44.6% but CI [-0.0071,+0.0014] contains zero and hour pools median 60 episodes vs 1422 global; NOT adopted. Unplanned: the shipped global correction worsens mean QLIKE +0.00613 CI [0.0030,0.0094]."
+    },
+    {
+      "id": "11a",
+      "topic": "capacity",
+      "question": "Is the low hidden-layer effective rank a training defect?",
+      "rule": "compare achieved activation rank against the INPUT's effective rank and the architectural ceiling, not against nominal width",
+      "verdict": "REJECT",
+      "result": "false alarm: Stage B carries 13 dims against inputs spanning 13; Stage A 17 against 19",
+      "supersedes": [
+        "7c-capacity"
+      ]
     }
   ]
 }

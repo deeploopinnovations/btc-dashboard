@@ -2051,3 +2051,114 @@ episodes, a plausible mechanism, and a clean rule, all three of which dissolved
 on contact with 24× the data.
 
 *Educational research only. Not financial advice.*
+
+## 11. Three defects: one false alarm, one real-but-negligible, one open
+
+### 11a. "Capacity is underused" — WITHDRAWN, it was a denominator error
+
+§7c reported hidden-layer effective ranks of 17/12/13/9 against "a nominal
+width of 32" and concluded that three of four layers "behave like a much
+narrower network". That comparison is wrong twice over.
+
+**The denominator is unreachable.** Stage B's first layer is
+`Linear(22 -> 32)` — 21 shape columns plus `log_sigma`. A linear map from 22
+dimensions cannot have rank above 22, so reporting "13 / 32" measures an
+achieved rank against a ceiling the architecture forbids.
+
+**And the real ceiling is the data, not the width.** Effective rank at 95 % of
+variance, measured on the standardized inputs before any weight is applied:
+
+| | activation rank (§7c) | input spans | architectural ceiling |
+|---|---|---|---|
+| Stage A layer 1 | 17 | **19** | 32 |
+| Stage B layer 1 | 13 | **13** | 22 |
+
+**Stage B carries exactly as many directions as its input contains, and Stage A
+is within two of its input's rank.** A layer cannot represent more directions
+than its input has. This is saturation, not underuse.
+
+The finding is withdrawn. It is also consistent with §3's capacity study, which
+found more width does not help — for the reason now measured: the inputs span
+~13–19 dimensions, so width beyond that has nothing to carry. The 21.9 % dead
+units in Stage B's *second* layer stand as measured, but in a layer whose input
+already spans 13 dimensions they are not evidence of a training pathology.
+
+### 11b. `reg_post_etf` — a real defect that moves almost nothing
+
+The flag is identically 0 across 189,831 training rows and identically 1 in
+test, so its first-layer weight never leaves random initialisation, and it
+enters production at ordinary magnitude. §6i established that. The question
+nobody had asked is **how much the live forecast actually moves**, which is
+different from whether removing it improves a fold average (measured at 2–3 of
+6 and reported as a null).
+
+Measured on the shipped artifact over 769 held-out production episodes, zeroing
+the flag:
+
+| quantity | median abs change | mean abs change | 5–95 % |
+|---|---|---|---|
+| `sigma_med` | **0.169 %** relative | 0.201 % | [−0.489 %, +0.153 %] |
+| P(touch 2 %, up) | **0.167 pp** | 0.205 pp | — |
+| P(touch 2 %, dn) | **0.286 pp** | 0.292 pp | — |
+
+**A real bug with negligible practical impact.** An untrained random offset is
+moving live forecasts by about a fifth of a percent of sigma and under a third
+of a percentage point of touch probability. It should be removed at the next
+retrain — a feature that is constant in training carries no information by
+construction, so there is nothing to lose — but it is not an emergency, and the
+earlier "null" verdict was not hiding a live problem.
+
+### 11c. The adaptive correction: the bias is hour-shaped, but the fix is not established
+
+`serve/adaptive.py` applies one global shrink nightly. §7a found the
+over-forecast bias is localised — median RV/sigma 0.85–0.94 at hours 15–22 UTC
+against 0.99–1.06 at hours 0–13. Walk-forward, causal, same [0.70, 1.40] clip
+and `MIN_EPISODES = 20` as production:
+
+| | peak bucket (15–22 UTC) cal. error | overall |
+|---|---|---|
+| no correction | 0.01124 | 0.00663 |
+| global (what ships) | 0.01087 | — |
+| **hour-conditional** | **0.00602** | 0.00683 |
+
+−44.6 % on the peak bucket, +3.1 % overall, and median RV/sigma bias nearly
+eliminated (peak 0.897 → 0.998; the global correction barely moves it, 0.897 →
+0.906). The agent's pre-registered rule fires **ADOPT (targeted)**.
+
+**I am not adopting it, and the rule is not what decides that.** Two things the
+rule did not ask about:
+
+1. **Its own CI contains zero**: the bootstrap interval on the peak-bucket gain
+   is [−0.0071, +0.0014] at n = 4,000. The point estimate is large and the
+   mechanism is clean, and neither of those is significance.
+2. **The hour pools are thin.** Median pool size is **60 episodes per hour
+   bucket against 1,422 for the global correction** — a 24× reduction in the
+   data estimating a multiplier that scales every published forecast.
+
+This project rejected an almost identical pattern earlier today: §10's
+sigma-atom collapse had a clean mechanism and a good point estimate on a small
+slice, and **reversed sign** on 24× the data. A 60-episode pool is exactly that
+exposure. The finding is recorded as promising and the experiment as
+under-powered; the rule that would settle it is a wider evaluation, not a
+tighter argument.
+
+### 11d. An unplanned finding: the shipped correction makes QLIKE worse
+
+Not what the experiment was looking for, and it concerns live behaviour:
+
+| arm | mean QLIKE | vs no correction |
+|---|---|---|
+| no correction | 0.24581 | — |
+| **global (ships today)** | **0.25194** | **+0.00613**, CI [0.0030, 0.0094] |
+| hour-conditional | 0.25289 | +0.00708 |
+
+**The correction that has been running in production significantly worsens mean
+QLIKE**, with a CI excluding zero unfavourably. This is expected once
+decomposed — QLIKE punishes under-forecasts asymmetrically (measured in §7a at
+1.60× for a factor-2 error, 4.67× at factor-4), so a median-targeting shrink is
+not QLIKE-optimal — and the correction was never justified on QLIKE; it was
+justified on barrier calibration, which it does improve. But it is a real
+trade-off that was being made silently, and it is now on the record: the
+nightly shrink buys calibration and pays for it in sharpness.
+
+*Educational research only. Not financial advice.*
