@@ -1614,6 +1614,12 @@ was **more confident than usual**. Lead/lag correlation of predicted σ against
 realized RV: **0.920** dated one day *after* the realization, **0.507** one day
 *before*.
 
+> **WITHDRAWN — see §12.** The paragraph below asserts a mechanism that was
+> never tested. It is wrong: a spike-tomorrow classifier clears its nulls
+> (AUC 0.777), and on onset days specifically reaches 0.733 with a CI of
+> [0.6547, 0.8052]. The information is there; the model was not using it.
+> The original text is kept because this document is a record.
+
 This is structural rather than a bug: every input the model has is a trailing
 statistic, so a trailing forecast is what the feature set can express. It is
 also the single most decision-relevant limitation for a seller, and it is now
@@ -1690,6 +1696,12 @@ of variance, out of a nominal width of 32:
 | stage A, layer 2 | 0 % | 12 / 32 |
 | stage B, layer 1 | 0 % | 13 / 32 |
 | stage B, layer 2 | **21.9 %** | **9 / 32** |
+
+> **WITHDRAWN — see §11a.** The ranks below are compared against a nominal
+> width of 32. Stage B's first layer is `Linear(22 -> 32)`, so 32 is an
+> unreachable denominator, and the real ceiling is the data: Stage A's input
+> spans 19 dimensions and Stage B's spans 13, against achieved ranks of 17
+> and 13. That is saturation, not underuse.
 
 Three of four layers behave like a much narrower network, and Stage B's second
 layer has ~22 % literally dead units. Weight magnitudes are unremarkable

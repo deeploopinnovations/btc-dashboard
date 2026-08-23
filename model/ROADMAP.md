@@ -18,9 +18,12 @@ the data is scored.
 > decomposing an already-broken instrument. Priority 1 was run and returned a
 > **negative** result; §8 has what replaces it.
 
-The model is being improved on the 8 % of the problem it can reach, while the
+~~The model is being improved on the 8 % of the problem it can reach, while the
 92 % sits untouched — and the one previous attempt on that 92 % failed because
-it treated a structural problem as a feature problem.
+it treated a structural problem as a feature problem.~~ **(withdrawn — the 8/92
+split came from the broken diagnostic; the measured figure through NOCTUA's own
+mapping is 1.2–16.6 %, rising with barrier distance. See §9 and the revised
+order of work at the end of this file.)**
 
 ---
 
@@ -171,19 +174,57 @@ Priority 1 attacks.
 
 ---
 
-## Order of work, and why this order
+## Order of work — REVISED after Priorities 1-3 were run
 
-1. **Is shape predictable** — attacks 92 % of the barrier error; both outcomes
-   redirect the project; cheap.
-2. **Does the network learn** — whether 6,445 parameters over 40 epochs is even
-   converged, whether capacity is used, whether the OLS initialization is doing
-   the work. If undertrained, that is free accuracy and it gates everything.
-3. **Where the error lives** — the conditional anatomy of failure, and whether
-   the model widens during spikes it never saw.
-4. **Two-sided head on a refreshed fit** — re-test a null that was measured on
-   a stale model.
-5. **Cross-asset validation** — the overfitting check, gated on data access.
+Everything below the banner at the top of this file is the plan as written
+before any of it was executed. It is kept as the record of what was believed.
+This section is what the measurements actually support.
 
-Items 2, 3 and 5 are in flight. Item 1 is specified above and runs next.
+**Priority 1 was run and returned a negative.** Path shape carries a real but
+weak rank signal (Spearman +0.0795); conditioning on it makes touch forecasts
+significantly *worse* at every barrier ≥ 1 % (§8). The "92 %" that motivated it
+is withdrawn — it was computed through a Gaussian first-passage law that loses
+to the historical base rate by up to 6.55×.
+
+**The honest decomposition, through NOCTUA's own mapping** (§9): a perfect
+volatility forecast removes **1.2 / 3.8 / 10.0 / 12.5 / 16.6 %** of barrier
+error at 0.5/1/2/3/5 %. It *rises* with barrier distance, so volatility matters
+most exactly where a seller operates — the opposite of the withdrawn framing.
+
+### What the evidence now says to work on, in order
+
+1. **The spike lag — the largest measured, addressable loss.** Spike nights are
+   7.7 % of episodes and 25.8 % of loss, under-forecast by 45 %. §12 established
+   the information is there (onset AUC 0.733, CI [0.655, 0.805]), so this is a
+   modelling choice, not a ceiling. Two levers are measured and pre-registered
+   for a proper walk-forward: 3× spike upweighting (pooled QLIKE −5.6 %, spike
+   −25.9 %, calm +1.7 %) and `har_1h`/`har_6h` in the linear anchor (pooled
+   −7.33 %, onset −5.48 %). **Bounded expectation:** the achievable gain is
+   limited by a 0.73-AUC onset signal, not the 0.78 headline.
+
+2. **Ship the adopted refresh.** §6o adopted a rolling training window on 16
+   monthly windows (tail-MCB CI [−0.0118, −0.0020]). The dated artifact exists
+   (`noctua_v2_refreshed_2026-08-09.npz`, 298,791 training episodes). What
+   remains is the deployment decision, deliberately left explicit because
+   overwriting the research artifact would silently invalidate every evaluation
+   that loads it.
+
+3. **The hour-shaped bias.** Real and localised to 15–22 UTC, where a
+   hour-conditional correction cuts calibration error 44.6 %. Not adopted: its
+   CI contains zero and the hour pools hold a median 60 episodes against 1,422
+   (§11c). Needs a wider evaluation, not a better argument.
+
+4. **Retire `reg_post_etf` at the next retrain.** Real defect, negligible
+   impact — 0.169 % on sigma, 0.17–0.29 pp on P(touch 2 %) (§11b).
+
+### What is closed, and should not be reopened without new data
+
+- **Direction** — 0.180 % skill against 4.98 % on barriers, 27×. Closed (§2).
+- **Path shape as a conditioning variable** — hurts at every barrier (§8).
+- **Sigma-atom collapse** — reverses sign on 24× the data; mechanism refuted (§10).
+- **Capacity** — not underused; the layers are saturated against their inputs (§11a).
+- **"Within 10 % of realized volatility"** — not attainable. In-sample R² 0.665,
+  residual sd 0.378 in logs, which is 40–45 % of nights *for an oracle*. The
+  attainable object for a seller is the calibrated touch probability.
 
 *Educational research only. Not financial advice.*
