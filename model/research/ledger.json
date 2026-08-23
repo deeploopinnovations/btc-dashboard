@@ -1,0 +1,167 @@
+{
+  "schema": 1,
+  "experiments": [
+    {
+      "id": "6b",
+      "question": "Should Stage B be trained against a causal sigma reference?",
+      "rule": "adopt if DSC/UNC improves in >=5 of 6 walk-forward folds",
+      "verdict": "ADOPT",
+      "result": "DSC/UNC 0.04980 -> 0.05382, 6/6 folds",
+      "topic": "stageb"
+    },
+    {
+      "id": "freshness",
+      "question": "Does features.py discard the last complete hour before the anchor?",
+      "rule": "adopt if QLIKE or DSC/UNC improves in >=5 of 6 folds",
+      "verdict": "ADOPT",
+      "result": "QLIKE -3.33% at 6/6, t +4.06; barrier discrimination 4/6 reported as null",
+      "topic": "features"
+    },
+    {
+      "id": "direction",
+      "question": "Is the sign of the 19h return attainable from these features?",
+      "rule": "an arm counts only if it clears a shuffled-DSC permutation null",
+      "verdict": "REJECT",
+      "result": "nothing clears at the deployed config; best wide-slice skill 0.180% vs 4.98% on barriers (27x)",
+      "topic": "direction"
+    },
+    {
+      "id": "lam_r",
+      "question": "Does reweighting the terminal-return head help?",
+      "rule": "adopt if >=5 of 6 folds improve",
+      "verdict": "NULL",
+      "result": "4/6",
+      "topic": "head"
+    },
+    {
+      "id": "q_mx",
+      "question": "Does a dedicated max-excursion head improve barrier scores?",
+      "rule": "adopt if >=5 of 6 folds improve",
+      "verdict": "NULL",
+      "result": "11/18 cells; measured on a fit whose training data ends before the market it is judged on",
+      "topic": "head"
+    },
+    {
+      "id": "reg_post_etf_drop",
+      "question": "Does dropping the untrained regime flag hurt?",
+      "rule": "drop if shipped-split scores are no worse",
+      "verdict": "NULL",
+      "result": "2-3 of 6",
+      "topic": "regime"
+    },
+    {
+      "id": "efficiency",
+      "question": "Do path-efficiency shape features help?",
+      "rule": "adopt if >=5 of 6 folds improve",
+      "verdict": "NULL",
+      "result": "DSC 2/6 at t +0.22; pinball 1/6",
+      "topic": "shape"
+    },
+    {
+      "id": "5b",
+      "question": "How far does BTC travel per unit of realized volatility?",
+      "rule": "measurement, reported with a block-bootstrap CI",
+      "verdict": "WITHDRAWN",
+      "result": "gap -0.1907 against a 1.5218 benchmark -- the benchmark sampled 5-min CLOSES while the data's extremes are 1-min bar HIGHS",
+      "superseded_by": [
+        "5b-bis"
+      ],
+      "topic": "shape"
+    },
+    {
+      "id": "5b-bis",
+      "question": "Same, with the benchmark sampled as the data actually is",
+      "rule": "measurement, reported with a block-bootstrap CI",
+      "verdict": "ADOPT",
+      "result": "1.3311 vs 1.5831; gap -0.2519 CI [-0.2851, -0.2212]",
+      "supersedes": [
+        "5b"
+      ],
+      "topic": "shape"
+    },
+    {
+      "id": "6l",
+      "question": "Does refreshing the training window beat a fit frozen in 2023?",
+      "rule": "QLIKE wins >=5/6 AND deep-tail MCB worse in <=2/6",
+      "verdict": "REJECT",
+      "result": "QLIKE 5/6 (-5.02%) but tail worse 4/6 -- arms had 52,359 vs 17,511 calibration episodes",
+      "superseded_by": [
+        "6m"
+      ],
+      "topic": "refresh"
+    },
+    {
+      "id": "6m",
+      "question": "Same, with calibration-slice sizes matched",
+      "rule": "same rule, stated in 6l before this ran",
+      "verdict": "ADOPT",
+      "result": "QLIKE 5/6 (-4.97%), tail better 5/6; the frozen arm's tail moved +0.005013 from slice size alone",
+      "supersedes": [
+        "6l"
+      ],
+      "topic": "refresh"
+    },
+    {
+      "id": "6n",
+      "question": "Does the DEPLOYABLE arm (fresh AND large calibration) pass?",
+      "rule": "same rule",
+      "verdict": "REJECT",
+      "result": "QLIKE 5/6 (-2.69%) but tail worse 3/6; predicted in advance to be the best arm -- it was the worst",
+      "topic": "refresh"
+    },
+    {
+      "id": "6o",
+      "question": "Does the refresh pass a properly powered test?",
+      "rule": "18 monthly windows; adopt if the mean tail-MCB CI excludes zero favourably, OR contains zero while QLIKE clears the 5/6 rate",
+      "verdict": "ADOPT",
+      "result": "16 paired windows; mean tail delta -0.005943 CI [-0.011755,-0.002035]; QLIKE -4.57% at 13/16 (bar 14) -- adopted on the tail branch only",
+      "topic": "refresh"
+    },
+    {
+      "id": "shape",
+      "question": "Is the conditional variation in path shape predictable?",
+      "rule": "clear a shuffled permutation null AND move P(touch 2%) by >=1pp",
+      "verdict": "REJECT",
+      "result": "Spearman +0.0795 is real; conditioning on it makes touch forecasts WORSE at every barrier >=1%, all CIs excluding zero on the wrong side",
+      "topic": "shape"
+    },
+    {
+      "id": "92pct",
+      "question": "What share of barrier error would a perfect volatility forecast remove?",
+      "rule": "oracle experiment through the Gaussian first-passage law",
+      "verdict": "WITHDRAWN",
+      "result": "6.0-8.5% -- computed through an instrument that loses to the base rate by up to 6.55x",
+      "superseded_by": [
+        "9"
+      ],
+      "topic": "oracle"
+    },
+    {
+      "id": "9",
+      "question": "Same, through NOCTUA's own Stage B mapping",
+      "rule": "three arms so sigma accuracy is not conflated with sigma uncertainty",
+      "verdict": "ADOPT",
+      "result": "1.2/3.8/10.0/12.5/16.6% at 0.5/1/2/3/5%; rises with barrier distance",
+      "supersedes": [
+        "92pct"
+      ],
+      "topic": "oracle"
+    },
+    {
+      "id": "atoms",
+      "question": "Should the 32 sigma atoms be collapsed to a point at the median?",
+      "rule": "wide slice by year: 2% Brier improves with CI excluding zero, NO barrier worsens, and >=5 of 6 years won",
+      "verdict": "OPEN",
+      "result": "one split of 769 episodes favours collapsing; test in flight",
+      "topic": "oracle"
+    },
+    {
+      "id": "lag",
+      "question": "Is the one-day volatility lag fixable, or an information ceiling?",
+      "rule": "a spike classifier must clear a shuffled-target permutation null",
+      "verdict": "OPEN",
+      "result": "in flight",
+      "topic": "lag"
+    }
+  ]
+}
