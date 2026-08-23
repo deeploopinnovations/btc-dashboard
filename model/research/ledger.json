@@ -159,8 +159,8 @@
       "id": "lag",
       "question": "Is the one-day volatility lag fixable, or an information ceiling?",
       "rule": "a spike classifier must clear a shuffled-target permutation null",
-      "verdict": "OPEN",
-      "result": "in flight",
+      "verdict": "ADOPT",
+      "result": "information IS present: spike-tomorrow AUC 0.777 (logistic, both populations) clearing AUC and DSC nulls. Decomposed independently: continuation AUC 0.929 but ONSET only 0.733, CI [0.655,0.805], still clearing a shuffled null (p95 0.564). So 7a's 'structural' claim is WITHDRAWN, and the prize is bounded by the 0.73 onset signal, not the 0.78 headline. Two levers measured, neither adopted: 3x spike upweighting (pooled QLIKE -5.6%, spike -25.9%, calm +1.7%) and har_1h/har_6h in the linear anchor (pooled -7.33%, onset -5.48%).",
       "topic": "lag"
     },
     {
@@ -181,6 +181,14 @@
       "supersedes": [
         "7c-capacity"
       ]
+    },
+    {
+      "id": "levers",
+      "topic": "lag",
+      "question": "Do spike-upweighting or anchor-freshness survive a proper walk-forward?",
+      "rule": "6-fold walk-forward at 3 seeds: pooled QLIKE improves in >=5 of 6 folds AND spike RV/sigma moves toward 1.0 AND calm-episode QLIKE worsens by no more than 3%",
+      "verdict": "OPEN",
+      "result": "specified, not yet run"
     }
   ]
 }

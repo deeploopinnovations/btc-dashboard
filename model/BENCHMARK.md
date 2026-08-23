@@ -2162,3 +2162,100 @@ trade-off that was being made silently, and it is now on the record: the
 nightly shrink buys calibration and pays for it in sharpness.
 
 *Educational research only. Not financial advice.*
+
+## 12. The one-day lag is NOT an information ceiling — my §7a claim was wrong
+
+§7a measured that NOCTUA under-forecasts spike nights by 45 % (median RV/sigma
+1.453) while those nights carry 25.8 % of total loss, and explained it as
+**structural**: "every input the model has is a trailing statistic, so a
+trailing forecast is what the feature set can express." That explanation was
+asserted, not tested. Tested, it is wrong.
+
+### The information is there, and it clears its nulls
+
+A spike-tomorrow classifier on the causal features, walk-forward, scored
+against a shuffled-target permutation null as `eval/direction.py` does. Every
+non-constant arm clears both an AUC null and a DSC null on both the production
+(n ≈ 2,245) and wide (n ≈ 48,840) populations, and beats the causal constant
+with a bootstrap CI excluding zero:
+
+| slice | model | AUC | AUC null p95 | DSC | DSC null p95 |
+|---|---|---|---|---|---|
+| production | logistic | 0.7771 | 0.5437 | 0.004718 | 0.000497 |
+| production | gbdt | 0.7480 | 0.5502 | 0.005302 | 0.000547 |
+| wide | logistic | 0.7775 | 0.5073 | 0.004263 | 0.000031 |
+| wide | gbdt | 0.7590 | 0.5091 | 0.005001 | 0.000028 |
+
+The constant does not clear (AUC 0.4841), behaving as the null it should be.
+The signs are unambiguous, so this is not the "clears a null centred below
+zero" trap that §8 caught.
+
+### But the decomposition that matters was not done, and it changes the size of the prize
+
+Volatility clusters. A spike-tomorrow classifier can score well purely on
+persistence — "today is wild, so tomorrow probably is" — while still being
+caught flat on **day one of a cluster**, which is precisely the failure mode
+§7a documented. So the test that decides this is not overall AUC; it is AUC on
+**onset** days (spike today, calm yesterday) against **continuation** days.
+
+Re-derived independently, production episodes, causal 180-day trailing
+95th-percentile flag, 303 spike days of which 177 onset and 126 continuation:
+
+| the classifier is asked | AUC | n positives |
+|---|---|---|
+| all spike days | 0.8055 | 76 |
+| **continuation** (already underway) | **0.9293** | 28 |
+| **onset** (first day of a cluster) | **0.7332** | 48 |
+
+Onset: bootstrap 95 % CI **[0.6547, 0.8052]**, excluding 0.5, and clearing a
+shuffled-label null whose p95 is 0.5642.
+
+**So the anticipatory signal is real, and it is much weaker than the headline
+suggests.** Persistence does most of the work (0.929); genuine anticipation of
+a cluster's first day sits at 0.733. Both facts matter: §7a was wrong that the
+lag is a ceiling, and a plan built on the 0.78 headline would over-promise,
+because the days that cost the most are the 0.73 days.
+
+### Two levers, measured, neither adopted yet
+
+**Asymmetric upweighting of high-volatility training episodes** (single seed,
+served population n = 18,463; the 1.0× control reproduces §7a's shipped numbers
+closely, 0.2498 against 0.2458 pooled QLIKE, which is what licenses the deltas):
+
+| weight | pooled QLIKE | spike QLIKE | normal QLIKE | spike RV/sigma |
+|---|---|---|---|---|
+| 1.0× | 0.2498 | 0.8567 | 0.1989 | 1.4643 |
+| 3.0× | **0.2358** (−5.6 %) | **0.6344** (−25.9 %) | 0.2024 (+1.7 %) | 1.3484 |
+| 8.0× | **0.2340** (−6.3 %) | **0.4195** (−51.0 %) | 0.2185 (+9.8 %) | 1.1943 |
+
+Pooled QLIKE improves at both weights because spike loss dominates the total,
+and calm nights pay for it — +1.7 % at 3×, +9.8 % at 8×. The trade-off is real
+and is stated rather than buried.
+
+**Freshness in the linear anchor**: adding the already-computed but unused
+`har_1h` / `har_6h` to the OLS baseline gives pooled QLIKE −7.33 %, spike
+−10.44 %, onset-day −5.48 % on the served population. `har_1h` alone is much
+worse pooled (0.906), so freshness complements the HAR cascade rather than
+replacing it.
+
+**Neither is adopted here.** Both are single-seed, one is OLS-only, and this
+session has already watched a clean single-slice result reverse sign on more
+data (§10). **DECISION RULE, fixed now before either is run properly:** adopt a
+lever only if, on the standard 6-fold walk-forward at 3 seeds, it improves
+pooled QLIKE in ≥ 5 of 6 folds **and** improves spike-episode RV/sigma toward
+1.0 **and** worsens calm-episode QLIKE by no more than 3 % — the last condition
+because an option seller who stops trusting calm nights has not been helped.
+Sample size is adequate by construction: the effect sizes here (−5.6 %) are an
+order of magnitude above the ~0.003 effects that made §6l's win counts a coin
+flip.
+
+### The correction to §7a
+
+The sentence "this is structural, not a bug" is withdrawn. It was a plausible
+mechanism stated as a finding, and the check that would have caught it —
+*is the information actually absent, or did we merely fail to use it?* — is the
+same check `eval/direction.py` was built to perform, and was not run. The lag
+is a modelling choice, and the ceiling on fixing it is a 0.73-AUC onset signal
+rather than the 0.78 headline.
+
+*Educational research only. Not financial advice.*
