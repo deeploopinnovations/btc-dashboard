@@ -1,6 +1,20 @@
 {
   "items": [
     {
+      "headline": "Bitcoin Surges 20 %: How Crypto Holders Are Exploring Cloud Mining Income in 2026",
+      "url": "https://speedwaymedia.com/2026/08/23/bitcoin-surges-20-how-crypto-holders-are-exploring-cloud-mining-income-in-2026/",
+      "src": "speedwaymedia.com",
+      "date": "20260823T231500Z",
+      "sent": "pos"
+    },
+    {
+      "headline": "Instant PayID Withdrawal Casinos Australia ( 2026 ) ",
+      "url": "https://www.thexboxhub.com/instant-payid-withdrawal-casinos-australia-2026/",
+      "src": "thexboxhub.com",
+      "date": "20260823T230000Z",
+      "sent": "neu"
+    },
+    {
       "headline": "Strategy ( NASDAQ : MSTR ) Turns Bitcoin Position Profitable As BTC Surges Past $77 , 000",
       "url": "https://www.foreignpolicyjournal.com/2026/08/23/strategy-nasdaq-mstr-turns-bitcoin-position-profitable-as-btc-surges-past-77000/",
       "src": "foreignpolicyjournal.com",
@@ -90,23 +104,9 @@
       "src": "themarketsdaily.com",
       "date": "20260823T114500Z",
       "sent": "neu"
-    },
-    {
-      "headline": "Scott Bessent just kicked the bitcoin debasement trade into another gear : Chart of the Day",
-      "url": "https://finance.yahoo.com/markets/crypto/article/scott-bessent-just-kicked-the-bitcoin-debasement-trade-into-another-gear-chart-of-the-day-110841942.html",
-      "src": "finance.yahoo.com",
-      "date": "20260823T114500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Compound Dai Price Reaches $0 . 0252 on Exchanges ( CDAI ) ",
-      "url": "https://www.themarketsdaily.com/2026/08/23/compound-dai-price-reaches-0-0252-on-exchanges-cdai.html",
-      "src": "themarketsdaily.com",
-      "date": "20260823T114500Z",
-      "sent": "neu"
     }
   ],
-  "ts": 1787525237022,
+  "ts": 1787528697503,
   "source": "GDELT",
-  "_updatedMs": 1787525237022
+  "_updatedMs": 1787528697503
 }
