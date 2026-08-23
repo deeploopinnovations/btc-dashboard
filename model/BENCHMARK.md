@@ -1893,3 +1893,86 @@ point this whole line of work was set up to investigate.
   specified here rather than run because this session's budget ended.
 
 *Educational research only. Not financial advice.*
+
+## 9. The oracle decomposition, redone through NOCTUA's own mapping
+
+§8 withdrew the "92 % of barrier error is shape" figure because it was computed
+through the Gaussian first-passage law, which loses to the base rate. This is
+the same question asked through the mapping NOCTUA actually uses:
+`infer.touch_prob` over the learned Stage B quantile heads.
+
+### The design, and the confound it has to avoid
+
+Stage B is conditioned on `log_sigma` and integrated over 32 sigma ATOMS from
+Stage A. Swapping those atoms for a point mass at the realized RV changes two
+things at once — the LOCATION of sigma (accuracy) and the SPREAD over atoms
+(the model's uncertainty about sigma). Reporting their sum as "what better
+volatility forecasting would buy" overstates it, because no forecaster gets the
+second for free. So three arms, both oracle comparisons single-atom:
+
+| arm | sigma |
+|---|---|
+| `committee_32atom` | 32 atoms from Stage A — what ships |
+| `point_forecast` | ONE atom at Stage A's median |
+| `point_oracle` | ONE atom at the REALIZED RV |
+
+769 held-out production episodes, Brier on the realized touch indicator
+(averaged over the up and down barriers), with the historical base rate as a
+floor.
+
+| barrier | realized | 32-atom | point-forecast | **point-oracle** | base rate | addressable | 95 % CI |
+|---|---|---|---|---|---|---|---|
+| 0.5 % | 0.7464 | 0.18955 | 0.18973 | 0.18744 | 0.19506 | 1.2 % | [−0.00639, +0.00183] |
+| 1.0 % | 0.5150 | 0.23682 | 0.23589 | 0.22697 | 0.24989 | 3.8 % | [−0.01275, −0.00402] |
+| 2.0 % | 0.2224 | 0.17279 | 0.17046 | **0.15343** | 0.17980 | **10.0 %** | [−0.01981, −0.01387] |
+| 3.0 % | 0.1144 | 0.10834 | 0.10650 | **0.09321** | 0.11242 | **12.5 %** | [−0.01593, −0.01058] |
+| 5.0 % | 0.0221 | 0.03432 | 0.03290 | **0.02744** | 0.03371 | **16.6 %** | [−0.00757, −0.00324] |
+
+**Perfect volatility knowledge removes 10–17 % of the barrier error at the
+strikes a seller actually sells**, and the CI excludes zero at every barrier
+from 1 % out. The share **rises with barrier distance** — 1.2 % at 0.5 % out to
+16.6 % at 5 % — where the discredited Gaussian decomposition reported a flat
+6–8.5 %. Deep barriers depend on the volatility level; near ones are decided by
+path detail.
+
+This does not resurrect "volatility is the whole game": 83–90 % of the error at
+those barriers still is not the volatility level. But "a perfect volatility
+forecast buys almost nothing" was wrong, and the correction matters most
+exactly where the money is.
+
+### Two things this turned up that were not the question
+
+**1. At the 5 % barrier NOCTUA is slightly worse than the base rate.** Brier
+0.03432 against 0.03371. A small margin on a rare event (realized 2.21 %), but
+by this benchmark's Rule 1 a forecaster losing to a constant is a red flag, and
+it is recorded rather than left in a table for someone else to notice.
+
+**2. Collapsing the 32 sigma atoms to a single point at the median IMPROVES the
+barrier forecast** at 4 of 5 barriers, and roughly halves calibration error:
+
+| barrier | calibration error, 32-atom | point-forecast |
+|---|---|---|
+| 1.0 % | 3.02 pp | **1.61 pp** |
+| 2.0 % | 5.81 pp | **3.09 pp** |
+| 3.0 % | 4.59 pp | **1.47 pp** |
+| 5.0 % | 4.00 pp | **1.48 pp** |
+
+The atom integration is supposed to propagate Stage A's uncertainty into
+Stage B. On this evidence it is instead inflating touch probabilities, which is
+what Jensen's inequality predicts: `P(touch)` is convex in sigma over the
+relevant range, so averaging over a spread of sigmas exceeds the probability at
+the mean sigma. That is a candidate mechanism for the over-forecast bias
+documented in §7a and papered over by `serve/adaptive.py`'s nightly shrink.
+
+**This is one split of 769 episodes and is NOT adopted on that basis.**
+
+**DECISION RULE, fixed here before the test is run:** collapse the atoms only
+if, on the wide slice (every H = 19 anchor hour, ~24× the episodes) split by
+year, the single-atom arm (a) improves mean Brier at the **2 %** barrier with a
+block-bootstrap CI excluding zero, (b) does not worsen mean Brier at **any** of
+0.5/1/3/5 %, and (c) wins the 2 % barrier in at least 5 of 6 years. Condition
+(b) is deliberately strict: the atom spread exists to represent genuine
+uncertainty, and an average-case win bought by removing a safety margin at one
+barrier is the wrong trade for a seller.
+
+*Educational research only. Not financial advice.*
