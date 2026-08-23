@@ -1976,3 +1976,78 @@ uncertainty, and an average-case win bought by removing a safety margin at one
 barrier is the wrong trade for a seller.
 
 *Educational research only. Not financial advice.*
+
+## 10. The sigma-atom finding was a small-sample fluke, and my mechanism was backwards
+
+§9 observed that collapsing Stage B's 32 sigma atoms to a point at the median
+improved the barrier forecast on 769 production episodes, proposed Jensen's
+inequality as the mechanism, and fixed a rule before testing it. The rule says
+**DO NOT ADOPT**, on every condition. Both of §9's claims are wrong.
+
+### The empirical finding reverses on 24× the data
+
+Wide slice: every H = 19 anchor hour in the test split, 18,463 episodes against
+769. Brier on the realized touch indicator, moving-block bootstrap CI, and the
+narrow-slice numbers replicated bit-for-bit first to confirm the pipelines are
+comparable.
+
+| barrier | 32-atom | single-atom | single − 32-atom | 95 % CI | winner |
+|---|---|---|---|---|---|
+| 0.5 % | 0.18419 | 0.18443 | +0.00023 | [+0.00007, +0.00040] | **32-atom** |
+| 1.0 % | 0.23404 | 0.23492 | +0.00089 | [+0.00050, +0.00129] | **32-atom** |
+| **2.0 %** | **0.18791** | 0.18913 | **+0.00122** | **[+0.00059, +0.00189]** | **32-atom** |
+| 3.0 % | 0.11907 | 0.11941 | +0.00035 | [−0.00028, +0.00101] | tie |
+| 5.0 % | 0.03877 | 0.03830 | −0.00047 | [−0.00085, −0.00007] | single |
+
+**At the 2 % barrier the sign flips**: single-atom was better on 769 episodes
+and is significantly worse on 18,463, with a CI excluding zero. Per year at
+2 %, single-atom wins **0 of 3**. The 32-atom integration is doing real work
+that the narrow slice was too small to show.
+
+### The mechanism was backwards
+
+§9 asserted P(touch) is convex in sigma "over the relevant range", so averaging
+over atoms would exceed the value at the mean and inflate touch probabilities.
+Measured directly — average of the 32 atoms' own touch probabilities against
+the probability at a single atom placed at the mean atom sigma:
+
+| barrier | avg-of-32 | at-mean | gap | 95 % CI | curvature |
+|---|---|---|---|---|---|
+| 0.5 % | 0.7404 | 0.7675 | **−0.0271** | [−0.0280, −0.0262] | **concave** |
+| 1.0 % | 0.5137 | 0.5464 | **−0.0328** | [−0.0334, −0.0321] | **concave** |
+| 2.0 % | 0.2694 | 0.2861 | **−0.0168** | [−0.0176, −0.0160] | **concave** |
+| 3.0 % | 0.1568 | 0.1601 | −0.0033 | [−0.0041, −0.0026] | concave |
+| 5.0 % | 0.0650 | 0.0575 | +0.0075 | [+0.0072, +0.0077] | convex |
+
+Concave at four of five barriers, convex only at 5 %. `P(touch)` is an S-curve
+in sigma — it saturates toward 1 as sigma grows, so it is **concave** wherever
+the touch probability is already substantial, and convex only deep in the tail
+where the probability is near zero. At 0.5–3 % the model sits in the concave
+region, so the atom integration **deflates** touch probability relative to the
+value at the mean. That is the opposite of the over-forecast mechanism §9
+proposed, and it means the integration is if anything a partial *counterweight*
+to the over-forecasting in §7a, not its cause.
+
+### The rule had an unsatisfiable condition, and I wrote it
+
+Condition (c) required winning "at least 5 of 6 years". The test split begins
+2024-07-01 and the data ends 2026-08-09, so **only three calendar years exist**
+— 5 of 6 cannot be reached without scoring the model on data it trained on. The
+condition could only ever fail.
+
+That is a distinct failure mode from the ones already catalogued: at application
+time an unsatisfiable condition is indistinguishable from a failed one, and gets
+reported as evidence against the hypothesis. It is now
+`research/pitfalls.check_rule_satisfiable`, to be run when a rule is **written**
+rather than when it is applied. It was found by the agent executing the rule,
+not by its author — who had, at that point, already been burned twice by rule
+design in the same session.
+
+**Verdict: DO NOT ADOPT.** (a) fails — 2 % is significantly worse. (b) fails at
+0.5, 1, 2 and 3 %. (c) is unsatisfiable. The shipped 32-atom integration stays.
+
+The value here is entirely negative and entirely real: a promising result on 769
+episodes, a plausible mechanism, and a clean rule, all three of which dissolved
+on contact with 24× the data.
+
+*Educational research only. Not financial advice.*

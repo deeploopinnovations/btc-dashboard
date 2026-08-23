@@ -248,10 +248,37 @@ def check_measured_is_shipped(measured: dict, shipped: dict,
                    "learning diagnostics first measured a checkpoint that never ships")
 
 
+# ---------------------------------------------------------------------------
+# 9. A rule whose condition cannot be satisfied is not a rule
+# ---------------------------------------------------------------------------
+def check_rule_satisfiable(required: int, available: int,
+                           unit: str = "folds") -> Verdict:
+    """A pre-registered threshold must be reachable with the data that exists.
+
+    PROVENANCE: BENCHMARK §9 pre-registered "wins the 2% barrier in at least 5
+    of 6 years" for the sigma-atom test. The test split begins 2024-07-01 and
+    the data ends 2026-08-09, so only THREE calendar years exist -- 5 of 6 is
+    unsatisfiable without scoring the model on data it trained on. The rule was
+    written by the same person who had just been burned twice by rule design,
+    and the defect was found by the agent executing it, not by its author.
+
+    Check this when the rule is WRITTEN, not when it is applied: at application
+    time an unsatisfiable condition looks identical to a failed one, and gets
+    reported as evidence against the hypothesis.
+    """
+    ok = available >= required
+    return Verdict(ok, "rule-satisfiable",
+                   f"rule needs {required} {unit}, data provides {available}"
+                   + ("" if ok else "  -- UNSATISFIABLE BY CONSTRUCTION; the "
+                                    "condition can only ever fail"),
+                   "§9's '5 of 6 years' when only 3 years exist")
+
+
 ALL_CHECKS = [check_skill_sign, check_relevance_not_absolute,
               check_beats_base_rate, check_arms_matched,
               check_not_a_coin_flip, check_correction_verified,
-              check_guard_is_reachable, check_measured_is_shipped]
+              check_guard_is_reachable, check_measured_is_shipped,
+              check_rule_satisfiable]
 
 
 def self_test() -> int:
@@ -282,8 +309,10 @@ def self_test() -> int:
                                    "has_mx-fixed"))
     r.add(check_measured_is_shipped({"train_end": "2026-02-09"},
                                     {"train_end": "2023-01-01"}))
+    r.add(check_rule_satisfiable(5, 3, "years"))          # §9 (historical FAIL)
+    r.add(check_rule_satisfiable(5, 6, "folds"))          # the usual rule
     print(r.render())
-    expect_fail = 8   # the historical cases, which MUST still be caught
+    expect_fail = 9   # the historical cases, which MUST still be caught
     got = len(r.failures)
     print(f"\nself-test: {got} failures, expected {expect_fail} "
           f"(the historical errors these checks exist to catch)")

@@ -151,8 +151,8 @@
       "id": "atoms",
       "question": "Should the 32 sigma atoms be collapsed to a point at the median?",
       "rule": "wide slice by year: 2% Brier improves with CI excluding zero, NO barrier worsens, and >=5 of 6 years won",
-      "verdict": "OPEN",
-      "result": "one split of 769 episodes favours collapsing; test in flight",
+      "verdict": "REJECT",
+      "result": "wide slice 18,463 episodes: single-atom significantly WORSE at 0.5/1/2%, tie at 3%, better only at 5%; 2% sign flips vs the 769-episode slice and wins 0 of 3 years. Jensen mechanism refuted -- P(touch) is CONCAVE in sigma at 0.5-3%, convex only at 5%. Rule condition (c) was unsatisfiable: 5 of 6 years required, 3 exist.",
       "topic": "oracle"
     },
     {
