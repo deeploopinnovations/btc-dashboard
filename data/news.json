@@ -1,6 +1,76 @@
 {
   "items": [
     {
+      "headline": "Senators Plan a Clarity Act Vote on Sept . 15 . What Happens Next for Crypto ? ",
+      "url": "https://www.fool.com/investing/2026/08/22/senators-plan-a-clarity-act-vote-on-sept-15/",
+      "src": "fool.com",
+      "date": "20260823T070000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Got $500 ? 1 Cryptocurrency to Buy Hand Over Fist in the Second Half of 2026",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/got-500-1-cryptocurrency-buy-060500271.html",
+      "src": "finance.yahoo.com",
+      "date": "20260823T064500Z",
+      "sent": "pos"
+    },
+    {
+      "headline": "Is Bitcoin at $77k preparing for another breakout ? This BTCUSD analysis shows a a potential bull flag pointing to $84K - $86K",
+      "url": "https://investinglive.com/cryptocurrency/is-bitcoin-at-77k-preparing-for-another-breakout-this-btcusd-analysis-shows-a-a-potential-bull-flag-pointing-to-84k-86k/",
+      "src": "investinglive.com",
+      "date": "20260823T063000Z",
+      "sent": "pos"
+    },
+    {
+      "headline": "MSTR Jumps to $120 on Bitcoin Boost to $77 , 000 : What Do Prediction Markets Forecast ? ",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/mstr-jumps-120-bitcoin-boost-200554714.html",
+      "src": "finance.yahoo.com",
+      "date": "20260823T033000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "MicroCloud Hologram Adds $15 . 76M Strategy Stake , Shares Rise 5 % ",
+      "url": "https://finance.yahoo.com/markets/stocks/articles/microcloud-hologram-adds-15-76m-183900511.html",
+      "src": "finance.yahoo.com",
+      "date": "20260823T014500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Bitcoin Price Prediction : $100K in Sight as BTC Breaks Past 200 - Day EMA",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/bitcoin-price-prediction-100k-sight-190551362.html",
+      "src": "finance.yahoo.com",
+      "date": "20260823T014500Z",
+      "sent": "neg"
+    },
+    {
+      "headline": "Coatue Management Bought 9 . 72 Million Shares of Hut 8 in Q2 . How to Play HUT Stock Now . ",
+      "url": "https://finance.yahoo.com/markets/stocks/articles/coatue-management-bought-9-72-183307549.html",
+      "src": "finance.yahoo.com",
+      "date": "20260823T014500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "How to Safely Register for Binance Official Website & App _ 2026 Complete Guide with Referral Code 【 BTC699 】 - 代码与咖啡 的部落格",
+      "url": "https://blog.udn.com:443/6c42d6cc/192238309",
+      "src": "blog.udn.com",
+      "date": "20260822T231500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Revealed : Reform rakes in £20m in donations from crypto investors",
+      "url": "https://www.independent.co.uk/news/uk/politics/reform-uk-nigel-farage-crypto-donations-b3028494.html",
+      "src": "independent.co.uk",
+      "date": "20260822T193000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Notable analyst calls this week : Apple , Merck and Analog Devices among top picks",
+      "url": "https://seekingalpha.com/news/4635879-notable-analyst-calls-this-week-apple-merck-and-analog-devices-among-top-picks",
+      "src": "seekingalpha.com",
+      "date": "20260822T173000Z",
+      "sent": "neu"
+    },
+    {
       "headline": "Strategy ( NASDAQ : MSTR ) Chairman Michael Saylor Tells Investors To Brace For Years Of Losses As Bitcoin Bet Deepens",
       "url": "https://www.foreignpolicyjournal.com/2026/08/22/strategy-nasdaq-mstr-chairman-michael-saylor-tells-investors-to-brace-for-years-of-losses-as-bitcoin-bet-deepens/",
       "src": "foreignpolicyjournal.com",
@@ -34,79 +104,9 @@
       "src": "dailypolitical.com",
       "date": "20260822T114500Z",
       "sent": "neu"
-    },
-    {
-      "headline": "Asian Stocks Slide on Bond Stress : Will Safe Havens BTC and Gold Keep Rallying ? ",
-      "url": "https://finance.yahoo.com/markets/crypto/articles/asian-stocks-slide-bond-stress-034331017.html",
-      "src": "finance.yahoo.com",
-      "date": "20260822T084500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Bitcoin Tops US$78 , 000 as Crypto Rally Widens",
-      "url": "https://www.riotimesonline.com/crypto-markets-bitcoin-majors-saturday-august-22-2026/",
-      "src": "riotimesonline.com",
-      "date": "20260822T083000Z",
-      "sent": "pos"
-    },
-    {
-      "headline": "Bitcoin Nears $80 , 000 , Posts Biggest Weekly Rally In Three Years As Crypto Market Gains Momentum",
-      "url": "https://www.freepressjournal.in/business/bitcoin-nears-80000-posts-biggest-weekly-rally-in-three-years-as-crypto-market-gains-momentum",
-      "src": "freepressjournal.in",
-      "date": "20260822T060000Z",
-      "sent": "pos"
-    },
-    {
-      "headline": "IBIT 0 . 25 % Fee Sells Off Bitcoin Daily , and the Prospectus Calls Every Sale a Taxable Event",
-      "url": "https://finance.yahoo.com/markets/crypto/articles/ibit-0-25-fee-sells-220518548.html",
-      "src": "finance.yahoo.com",
-      "date": "20260822T053000Z",
-      "sent": "neg"
-    },
-    {
-      "headline": "Bitcoin nears $80 , 000 in its biggest weekly rally in 3 years",
-      "url": "https://ianslive.in/bitcoin-nears-80000-in-its-biggest-weekly-rally-in-3-years--20260822094544",
-      "src": "ianslive.in",
-      "date": "20260822T051500Z",
-      "sent": "pos"
-    },
-    {
-      "headline": "Explained | How Bitcoin rally led to skyrocketing of crypto stocks | What fuelling surge of both ? Climbing in tandem",
-      "url": "https://www.livemint.com/market/cryptocurrency/explained-how-bitcoin-rally-led-to-skyrocketing-of-crypto-stocks-what-s-fuelling-surge-of-both-climbing-in-tandem-11787364376857.html",
-      "src": "livemint.com",
-      "date": "20260822T044500Z",
-      "sent": "pos"
-    },
-    {
-      "headline": "Bitcoin nears $80 , 000 amid biggest weekly rally in three years",
-      "url": "https://www.moneycontrol.com/news/business/markets/bitcoin-nears-80-000-amid-biggest-weekly-rally-in-three-years-14012687.html",
-      "src": "moneycontrol.com",
-      "date": "20260822T040000Z",
-      "sent": "pos"
-    },
-    {
-      "headline": "Why Bitcoin Suddenly Exploded to $78K : The Treasury Just Blinked",
-      "url": "https://www.ibtimes.com/why-bitcoin-suddenly-exploded-78k-treasury-just-blinked-3806673",
-      "src": "ibtimes.com",
-      "date": "20260822T031500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Crypto News Today : AlphaPepe Presale Nears $2 . 5M Raised as Bitcoin Price Prediction Targets $100 , 000",
-      "url": "https://www.manilatimes.net/2026/08/22/tmt-newswire/globenewswire/crypto-news-today-alphapepe-presale-nears-25m-raised-as-bitcoin-price-prediction-targets-100000/2410246",
-      "src": "manilatimes.net",
-      "date": "20260822T030000Z",
-      "sent": "neg"
-    },
-    {
-      "headline": "Bitcoin yeniden yükselişe geçti : 77 bin dolar sınırı aşıldı ! ",
-      "url": "https://www.haberankara.com/ekonomi/bitcoin-yeniden-yukselise-gecti-77-bin-dolar-siniri-asildi-319783",
-      "src": "haberankara.com",
-      "date": "20260822T020000Z",
-      "sent": "neu"
     }
   ],
-  "ts": 1787420725968,
+  "ts": 1787475427435,
   "source": "GDELT",
-  "_updatedMs": 1787420725968
+  "_updatedMs": 1787475427435
 }
