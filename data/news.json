@@ -1,6 +1,13 @@
 {
   "items": [
     {
+      "headline": "Strategy ( NASDAQ : MSTR ) Turns Bitcoin Position Profitable As BTC Surges Past $77 , 000",
+      "url": "https://www.foreignpolicyjournal.com/2026/08/23/strategy-nasdaq-mstr-turns-bitcoin-position-profitable-as-btc-surges-past-77000/",
+      "src": "foreignpolicyjournal.com",
+      "date": "20260823T204500Z",
+      "sent": "pos"
+    },
+    {
       "headline": "Fed Study Finds Investor Beliefs Help Drive Crypto Volatility",
       "url": "https://cointelegraph.com/news/fed-study-finds-crypto-investors-driven-by-beliefs-easily-swayed-by-returns",
       "src": "cointelegraph.com",
@@ -97,16 +104,9 @@
       "src": "themarketsdaily.com",
       "date": "20260823T114500Z",
       "sent": "neu"
-    },
-    {
-      "headline": "DAPPOS ( DOS ) Hits Self Reported Market Capitalization of $45 . 94 Million",
-      "url": "https://www.themarketsdaily.com/2026/08/23/dappos-dos-hits-self-reported-market-capitalization-of-45-94-million.html",
-      "src": "themarketsdaily.com",
-      "date": "20260823T113000Z",
-      "sent": "neu"
     }
   ],
-  "ts": 1787518116639,
+  "ts": 1787525237022,
   "source": "GDELT",
-  "_updatedMs": 1787518116639
+  "_updatedMs": 1787525237022
 }
