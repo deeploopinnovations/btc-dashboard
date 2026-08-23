@@ -162,6 +162,14 @@
       "verdict": "OPEN",
       "result": "in flight",
       "topic": "lag"
+    },
+    {
+      "id": "defects",
+      "topic": "defects",
+      "question": "Are the three open defects (untrained reg_post_etf, unused capacity, global-vs-hourly adaptive correction) real?",
+      "rule": "reg_post_etf: measure how much the LIVE prediction moves when the untrained input is zeroed, not whether removing it improves an average. capacity: compare hidden-layer effective rank against the effective rank of the INPUT matrix -- if inputs span ~10 dims a rank-12 layer is correct behaviour. adaptive: rule stated by the agent before running.",
+      "verdict": "OPEN",
+      "result": "in flight"
     }
   ]
 }
