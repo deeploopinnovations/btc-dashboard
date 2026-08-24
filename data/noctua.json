@@ -11,38 +11,38 @@
   "safe_levels": [
     {
       "alpha": 0.01,
-      "call_strike": 89314.33,
-      "put_strike": 70010.89,
+      "call_strike": 89314.54,
+      "put_strike": 70010.72,
       "call_pct": 13.001,
       "put_pct": -11.422
     },
     {
       "alpha": 0.02,
-      "call_strike": 87065.06,
-      "put_strike": 71793.51,
+      "call_strike": 87065.21,
+      "put_strike": 71793.39,
       "call_pct": 10.155,
       "put_pct": -9.167
     },
     {
       "alpha": 0.05,
-      "call_strike": 84581.42,
-      "put_strike": 73849.15,
+      "call_strike": 84581.5,
+      "put_strike": 73849.07,
       "call_pct": 7.013,
       "put_pct": -6.566
     },
     {
       "alpha": 0.1,
-      "call_strike": 83298.76,
-      "put_strike": 75050.58,
+      "call_strike": 83298.81,
+      "put_strike": 75050.54,
       "call_pct": 5.39,
       "put_pct": -5.046
     },
     {
       "alpha": 0.2,
-      "call_strike": 82025.0,
-      "put_strike": 76209.61,
+      "call_strike": 82025.03,
+      "put_strike": 76209.58,
       "call_pct": 3.778,
-      "put_pct": -3.579
+      "put_pct": -3.58
     }
   ],
   "barrier_curves": {
@@ -112,7 +112,7 @@
       {
         "pct": -2.0,
         "price": 77458.01,
-        "touch_prob": 0.4954
+        "touch_prob": 0.4955
       },
       {
         "pct": -3.0,
