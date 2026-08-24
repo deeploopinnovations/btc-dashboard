@@ -7,40 +7,40 @@
   "sigma_annualized_pct": 52.9,
   "trailing_rv_pct": 2.532,
   "p_up": 0.5305,
-  "p_vol_amplify": 0.5021,
+  "p_vol_amplify": 0.5022,
   "safe_levels": [
     {
       "alpha": 0.01,
-      "call_strike": 89172.86,
-      "put_strike": 69891.19,
-      "call_pct": 12.981,
-      "put_pct": -11.449
+      "call_strike": 89173.82,
+      "put_strike": 69890.46,
+      "call_pct": 12.982,
+      "put_pct": -11.45
     },
     {
       "alpha": 0.02,
-      "call_strike": 86991.98,
-      "put_strike": 71612.47,
-      "call_pct": 10.218,
-      "put_pct": -9.268
+      "call_strike": 86992.65,
+      "put_strike": 71611.94,
+      "call_pct": 10.219,
+      "put_pct": -9.269
     },
     {
       "alpha": 0.05,
-      "call_strike": 84575.21,
-      "put_strike": 73683.03,
+      "call_strike": 84575.58,
+      "put_strike": 73682.72,
       "call_pct": 7.156,
-      "put_pct": -6.644
+      "put_pct": -6.645
     },
     {
       "alpha": 0.1,
-      "call_strike": 83301.21,
-      "put_strike": 74822.48,
+      "call_strike": 83301.44,
+      "put_strike": 74822.28,
       "call_pct": 5.542,
       "put_pct": -5.201
     },
     {
       "alpha": 0.2,
-      "call_strike": 82008.67,
-      "put_strike": 75998.88,
+      "call_strike": 82008.81,
+      "put_strike": 75998.76,
       "call_pct": 3.904,
       "put_pct": -3.71
     }
@@ -65,12 +65,12 @@
       {
         "pct": 2.0,
         "price": 80505.87,
-        "touch_prob": 0.5112
+        "touch_prob": 0.5113
       },
       {
         "pct": 3.0,
         "price": 81295.14,
-        "touch_prob": 0.3046
+        "touch_prob": 0.3047
       },
       {
         "pct": 4.0,
@@ -112,7 +112,7 @@
       {
         "pct": -2.0,
         "price": 77348.77,
-        "touch_prob": 0.5159
+        "touch_prob": 0.516
       },
       {
         "pct": -3.0,
@@ -122,7 +122,7 @@
       {
         "pct": -4.0,
         "price": 75770.23,
-        "touch_prob": 0.1909
+        "touch_prob": 0.191
       },
       {
         "pct": -5.0,
@@ -132,7 +132,7 @@
       {
         "pct": -7.5,
         "price": 73007.77,
-        "touch_prob": 0.0462
+        "touch_prob": 0.0463
       },
       {
         "pct": -10.0,
