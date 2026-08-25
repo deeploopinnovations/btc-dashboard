@@ -3,7 +3,7 @@
   "settle_utc": "2026-08-26 01:00:00+00:00",
   "H_hours": 19,
   "spot": 80696.27,
-  "sigma_window_pct": 2.542,
+  "sigma_window_pct": 2.543,
   "sigma_annualized_pct": 54.6,
   "trailing_rv_pct": 2.889,
   "p_up": 0.5218,
@@ -11,36 +11,36 @@
   "safe_levels": [
     {
       "alpha": 0.01,
-      "call_strike": 89560.89,
-      "put_strike": 72708.72,
+      "call_strike": 89561.04,
+      "put_strike": 72708.6,
       "call_pct": 10.985,
       "put_pct": -9.898
     },
     {
       "alpha": 0.02,
-      "call_strike": 87868.91,
-      "put_strike": 74100.09,
-      "call_pct": 8.888,
+      "call_strike": 87869.02,
+      "put_strike": 74099.99,
+      "call_pct": 8.889,
       "put_pct": -8.174
     },
     {
       "alpha": 0.05,
-      "call_strike": 85924.61,
-      "put_strike": 75802.04,
+      "call_strike": 85924.67,
+      "put_strike": 75801.98,
       "call_pct": 6.479,
       "put_pct": -6.065
     },
     {
       "alpha": 0.1,
-      "call_strike": 84753.86,
-      "put_strike": 76803.99,
+      "call_strike": 84753.92,
+      "put_strike": 76803.94,
       "call_pct": 5.028,
       "put_pct": -4.823
     },
     {
       "alpha": 0.2,
-      "call_strike": 83597.8,
-      "put_strike": 77860.84,
+      "call_strike": 83597.83,
+      "put_strike": 77860.81,
       "call_pct": 3.596,
       "put_pct": -3.514
     }
