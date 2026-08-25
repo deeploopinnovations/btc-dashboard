@@ -11,36 +11,36 @@
   "safe_levels": [
     {
       "alpha": 0.01,
-      "call_strike": 86420.05,
-      "put_strike": 72343.37,
+      "call_strike": 86420.17,
+      "put_strike": 72343.28,
       "call_pct": 9.23,
       "put_pct": -8.562
     },
     {
       "alpha": 0.02,
-      "call_strike": 85161.67,
-      "put_strike": 73447.71,
+      "call_strike": 85161.76,
+      "put_strike": 73447.63,
       "call_pct": 7.639,
       "put_pct": -7.166
     },
     {
       "alpha": 0.05,
-      "call_strike": 83643.71,
-      "put_strike": 74811.17,
+      "call_strike": 83643.77,
+      "put_strike": 74811.12,
       "call_pct": 5.721,
       "put_pct": -5.443
     },
     {
       "alpha": 0.1,
-      "call_strike": 82601.34,
-      "put_strike": 75771.61,
+      "call_strike": 82601.38,
+      "put_strike": 75771.57,
       "call_pct": 4.403,
       "put_pct": -4.229
     },
     {
       "alpha": 0.2,
-      "call_strike": 81686.59,
-      "put_strike": 76622.6,
+      "call_strike": 81686.61,
+      "put_strike": 76622.58,
       "call_pct": 3.247,
       "put_pct": -3.154
     }
@@ -112,7 +112,7 @@
       {
         "pct": -2.0,
         "price": 77535.24,
-        "touch_prob": 0.4636
+        "touch_prob": 0.4637
       },
       {
         "pct": -3.0,
