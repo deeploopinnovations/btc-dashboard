@@ -11,36 +11,36 @@
   "safe_levels": [
     {
       "alpha": 0.01,
-      "call_strike": 87548.9,
-      "put_strike": 71524.1,
+      "call_strike": 87549.09,
+      "put_strike": 71523.95,
       "call_pct": 10.579,
-      "put_pct": -9.661
+      "put_pct": -9.662
     },
     {
       "alpha": 0.02,
-      "call_strike": 86015.35,
-      "put_strike": 72819.31,
+      "call_strike": 86015.5,
+      "put_strike": 72819.18,
       "call_pct": 8.642,
-      "put_pct": -8.025
+      "put_pct": -8.026
     },
     {
       "alpha": 0.05,
-      "call_strike": 84212.71,
-      "put_strike": 74413.27,
+      "call_strike": 84212.79,
+      "put_strike": 74413.19,
       "call_pct": 6.365,
       "put_pct": -6.012
     },
     {
       "alpha": 0.1,
-      "call_strike": 83028.25,
-      "put_strike": 75406.98,
+      "call_strike": 83028.31,
+      "put_strike": 75406.9,
       "call_pct": 4.869,
       "put_pct": -4.757
     },
     {
       "alpha": 0.2,
-      "call_strike": 82003.26,
-      "put_strike": 76413.44,
+      "call_strike": 82003.29,
+      "put_strike": 76413.39,
       "call_pct": 3.574,
       "put_pct": -3.486
     }
@@ -107,7 +107,7 @@
       {
         "pct": -1.5,
         "price": 77985.73,
-        "touch_prob": 0.6168
+        "touch_prob": 0.6169
       },
       {
         "pct": -2.0,
