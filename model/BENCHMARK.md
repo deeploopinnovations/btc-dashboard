@@ -2271,3 +2271,84 @@ is a modelling choice, and the ceiling on fixing it is a 0.73-AUC onset signal
 rather than the 0.78 headline.
 
 *Educational research only. Not financial advice.*
+
+## 13. Spike upweighting: DO NOT ADOPT — and this time the rule was right
+
+§12 fixed the rule before this ran: 6-fold walk-forward at 3 seeds, adopt only
+if pooled QLIKE improves in ≥ 5 of 6 folds **and** spike RV/sigma moves toward
+1.0 **and** calm-episode QLIKE worsens by no more than 3 %. Run through
+`run_fold`'s `extra_w` hook, so network, committee, calibration, embargo and
+scoring are byte-identical across arms and the only difference is one
+multiplier. Spike flag as §7a defines it (causal trailing 180-day 95th
+percentile, strictly prior days): 31,019 of 510,496 episodes, 6.08 %.
+
+| arm | pooled | spike | calm | RV/sigma (spike) | pooled wins | calm cost |
+|---|---|---|---|---|---|---|
+| 1.0× control | 0.2903 | 1.8670 | 0.1989 | 1.6718 | — | — |
+| **3×** | 0.2813 | **1.7017** | 0.1988 | **1.6209** | **4/6** | **−0.02 %** |
+
+**Verdict: DO NOT ADOPT.** Pooled QLIKE wins 4 of 6 against a bar of 5. The
+other two conditions pass — RV/sigma moves toward 1.0, and calm nights cost
+−0.02 %, i.e. nothing.
+
+### Why this is not §6l again
+
+§6l failed a win-count rule on an effect whose mean had improved, and the rule
+turned out to be the problem. The obvious reading here is the same story, so it
+was checked rather than assumed. Moving-block bootstrap on the paired fold
+deltas:
+
+| quantity | mean delta | 95 % CI | excludes zero |
+|---|---|---|---|
+| pooled QLIKE | −0.00901 | [−0.01647, **+0.00018**] | **no** |
+| **spike QLIKE** | −0.16526 | [−0.22739, −0.10217] | **yes** |
+| calm QLIKE | −0.00005 | [−0.00663, +0.00656] | no |
+| **\|RV/sigma − 1\| on spikes** | −0.05095 | [−0.06080, −0.04255] | **yes** |
+
+**The rule and the interval agree.** The pooled CI contains zero — barely, at
++0.00018, but it contains it — so even deciding on the mean would not establish
+a pooled gain. Unlike §6l, there is no case that the rule vetoed something the
+data supports.
+
+`research/pitfalls.check_not_a_coin_flip` passed on this experiment
+(|mean| 0.00901 against se 0.00392, resolvable at n = 6), which is what makes
+the "the rule was too crude" defence unavailable: the design had enough power
+to see this effect, and what it saw was a pooled gain that does not clear zero.
+
+### What the lever actually does, and why the pooled metric cannot see it
+
+Spike QLIKE improves by **−0.165 with a CI excluding zero**, and spike
+calibration moves toward 1.0 by **−0.051, also excluding zero**, at a calm cost
+indistinguishable from nothing. The lever does precisely what it was designed
+to do. It simply does not move the pooled number reliably, because spikes are
+6.08 % of episodes — a large improvement on a small slice, diluted.
+
+That is a statement about the metric, not a defence of the lever. And it points
+at a rule-design mistake that is mine: **§12 chose pooled QLIKE as the primary
+condition for a lever aimed at 6 % of episodes.** A treatment targeted at a
+minority slice should be judged on that slice, with the majority slice as the
+guard — which is the opposite of how §12 wrote it.
+
+**That correction applies to the NEXT measurement, not this one.** Rewriting a
+rule after seeing which arrangement passes is the failure this benchmark exists
+to prevent, and it has been enforced against three other results this session
+(§6l, §10, §11c). The verdict stands: DO NOT ADOPT.
+
+**DECISION RULE for the successor, fixed here before it runs:** judge a
+spike-targeted lever on **spike-conditional QLIKE** with a moving-block
+bootstrap CI excluding zero, **and** spike RV/sigma moving toward 1.0, **and**
+calm-episode QLIKE not worsening by more than 1 % with its own CI — the guard
+tightened from 3 % to 1 % precisely because calm cost turned out not to be the
+binding constraint and a loose guard was never tested. Pooled QLIKE is reported
+but is not a condition, because a 6 %-of-episodes treatment cannot be expected
+to move it and requiring so guarantees a null.
+
+### A failed prediction, recorded
+
+`levers.py`'s docstring, written before the run, said the likelier trap was
+that the lever "buys spike accuracy by making the other 92 % of nights worse".
+It did not: calm cost was **−0.02 %**, and calm QLIKE was *better* in four of
+six folds. The binding constraint was the pooled win count, which the docstring
+did not flag at all. Sixth failed prediction in this project.
+
+*Educational research only. Not financial advice.*

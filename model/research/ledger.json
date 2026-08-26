@@ -187,6 +187,14 @@
       "topic": "lag",
       "question": "Do spike-upweighting or anchor-freshness survive a proper walk-forward?",
       "rule": "6-fold walk-forward at 3 seeds: pooled QLIKE improves in >=5 of 6 folds AND spike RV/sigma moves toward 1.0 AND calm-episode QLIKE worsens by no more than 3%",
+      "verdict": "REJECT",
+      "result": "3x spike upweighting, 6 folds x 3 seeds: pooled QLIKE 4/6 (bar 5) FAIL; RV/sigma toward 1.0 OK; calm cost -0.02% OK. Rule AND bootstrap agree -- pooled CI [-0.01647,+0.00018] contains zero, so this is not 6l. What the lever does do: spike QLIKE -0.16526 CI [-0.22739,-0.10217] and spike |RV/sigma-1| -0.05095 CI [-0.06080,-0.04255], both excluding zero, at no measurable calm cost. Diluted by spikes being 6.08% of episodes. Rule-design error recorded: 12 made pooled QLIKE primary for a lever aimed at 6% of episodes."
+    },
+    {
+      "id": "levers2",
+      "topic": "lag",
+      "question": "Does spike upweighting pass a SPIKE-CONDITIONAL rule?",
+      "rule": "spike-conditional QLIKE with a moving-block bootstrap CI excluding zero AND spike RV/sigma toward 1.0 AND calm QLIKE not worsening more than 1% with its own CI; pooled QLIKE reported but NOT a condition",
       "verdict": "OPEN",
       "result": "specified, not yet run"
     }
