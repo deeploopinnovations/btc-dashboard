@@ -2352,3 +2352,74 @@ six folds. The binding constraint was the pooled win count, which the docstring
 did not flag at all. Sixth failed prediction in this project.
 
 *Educational research only. Not financial advice.*
+
+## 14. The data route works — and the first harvest verified two claims wrong in opposite directions
+
+`.github/workflows/harvest-newdata.yml` ran on a GitHub Actions runner and
+committed `data/newdata/{funding_btc,dvol_btc}.parquet` (commit `f27f818`,
+authored by `github-actions[bot]`). **The route around the container's network
+boundary works end to end**: nothing here can reach an exchange — all 18
+endpoints probed return 403 through the proxy — but a runner can, and commits
+the result back where the container reads it.
+
+That also means the history depths, previously **UNVERIFIED-FROM-CONTAINER**,
+are now measurable. Both were wrong, in opposite directions.
+
+### Funding rate: materially better than reported
+
+| | reported from repo citation | **measured on the harvested file** |
+|---|---|---|
+| cadence | 8-hourly settlements | **hourly** (`interest_1h`, `interest_8h`) |
+| rows | 7,402 | **64,206** |
+| span | 2019-09 → 2026-06 | **2019-04-30 → 2026-08-26** (2,675 days) |
+| **inside the training window** | not stated | **32,196 rows — 50.1 %, 1,341 days** |
+
+8.7× more records, four months earlier, at 8× finer resolution, and — the
+number that decides usability — **half the series sits inside the training
+window**. This is a trainable feature, not a post-hoc overlay.
+
+### DVOL: unusable as harvested, and for a reason worth stating
+
+| | reported | **measured** |
+|---|---|---|
+| span | ~2.7 years (2023-09 →) | **15 days** (2026-08-10 → 2026-08-26) |
+| rows | 1,000 daily closes | 383 |
+| **inside the training window** | — | **zero** |
+
+The harvester's own docstring flagged that `get_historical_volatility` takes no
+time-range parameters, so "there is nothing to page". Correct — and the
+consequence was not carried through to the recommendation, which cited the
+repo's 2.7-year figure from a *different* prior fetch.
+
+**The endpoints measure different things.** `get_historical_volatility` is
+Deribit's own *realized*-volatility estimate over a recent window.
+**DVOL is the implied-volatility index**, served by
+`public/get_volatility_index_data`, which takes `start_timestamp` /
+`end_timestamp` / `resolution` and pages exactly like the funding endpoint
+already does in the same file.
+
+That distinction is the whole point of the feature. §12 established the onset
+ceiling (AUC 0.733) exists **because every current input derives from BTC's own
+past bars**. Implied volatility is the one candidate that is forward-looking by
+construction. Harvesting a realized-volatility series by mistake would have
+added another backward-looking feature and tested nothing — while appearing to
+test the hypothesis.
+
+`fetch_deribit_dvol_index()` now pages the index endpoint, with the old call
+kept as a fallback that announces which route produced the data, because a
+15-day series and a 3-year series arriving under the same filename is precisely
+how a useless feature gets trained on. **UNVERIFIED FROM THIS CONTAINER** —
+every exchange endpoint is 403 here; the next scheduled run on a runner will
+confirm or refute it.
+
+### What this changes
+
+Funding rate is promoted from "best-corroborated candidate" to **verified and
+trainable**: hourly, 7.3 years, 50 % training-window overlap. DVOL is demoted
+from rank 2 to **blocked pending a working harvest**, and its earlier ranking
+rested on a citation rather than on the endpoint actually being called.
+
+The pre-registered rule in `eval/newdata.py` for whether either earns a place
+in the model is unchanged and was fixed before any of this data existed.
+
+*Educational research only. Not financial advice.*

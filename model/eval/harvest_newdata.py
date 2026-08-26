@@ -101,6 +101,9 @@ UA = {"User-Agent": "noctua-newdata/1.0 (+https://github.com/deeploopinnovations
 
 DERIBIT_FUNDING = "https://www.deribit.com/api/v2/public/get_funding_rate_history"
 DERIBIT_DVOL = "https://www.deribit.com/api/v2/public/get_historical_volatility"
+# The DVOL *index* is a different endpoint from the one above, and unlike it
+# this one takes start/end timestamps -- see fetch_deribit_dvol_index().
+DERIBIT_DVOL_INDEX = "https://www.deribit.com/api/v2/public/get_volatility_index_data"
 BINANCE_FUNDING = "https://fapi.binance.com/fapi/v1/fundingRate"
 
 DAY_MS = 86_400_000
@@ -249,6 +252,60 @@ def fetch_deribit_dvol(currency: str = "BTC", verbose: bool = True) -> pd.DataFr
     return df
 
 
+def fetch_deribit_dvol_index(since_ms: int, until_ms: int, currency: str = "BTC",
+                              resolution: str = "3600", verbose: bool = True) -> pd.DataFrame:
+    """The DVOL INDEX, paged over a time range -- what the model actually wants.
+
+    WHY THIS EXISTS, AND WHAT THE FIRST HARVEST GOT WRONG
+
+    `fetch_deribit_dvol` calls `public/get_historical_volatility`, whose
+    docstring correctly notes it takes no time-range parameters. The first
+    scheduled run confirmed the consequence empirically: **383 rows spanning
+    15 days, with ZERO rows inside the training window.** Unusable.
+
+    The deeper problem is that the two endpoints measure different things.
+    `get_historical_volatility` is Deribit's own *realized*-volatility
+    estimate over a recent window. **DVOL is the implied-volatility index**,
+    and it is served by `public/get_volatility_index_data`, which DOES take
+    `start_timestamp` / `end_timestamp` / `resolution` and therefore pages
+    exactly like the funding endpoint already does here.
+
+    That distinction matters for more than plumbing: the entire argument for
+    adding this feature is that implied volatility is FORWARD-LOOKING, which
+    is the one property the model's existing inputs lack (BENCHMARK.md §12:
+    onset AUC 0.733 because every current input derives from BTC's own past
+    bars). A realized-volatility series harvested by mistake would have added
+    another backward-looking feature and tested nothing.
+
+    UNVERIFIED FROM THIS CONTAINER. Every exchange endpoint returns 403 through
+    the proxy, so this cannot be probed here; the scheduled workflow runs on a
+    GitHub Actions runner and will confirm or refute it. Written to fail loudly
+    rather than silently return a short series: the caller compares the span it
+    gets against what it asked for.
+    """
+    if verbose:
+        print(f"  deribit DVOL INDEX [{currency}] res={resolution}s ...")
+
+    def _extract(payload):
+        res = payload.get("result", {})
+        rows = res.get("data", []) if isinstance(res, dict) else res
+        out = []
+        for r in rows or []:
+            # documented as [ts_ms, open, high, low, close]; close is the level
+            if isinstance(r, (list, tuple)) and len(r) >= 5:
+                out.append({"ts_ms": int(r[0]), "volatility": float(r[4])})
+        return out
+
+    recs = _walk_backward(DERIBIT_DVOL_INDEX,
+                          {"currency": currency, "resolution": resolution},
+                          since_ms, until_ms, _extract, verbose=verbose)
+    if not recs:
+        return pd.DataFrame()
+    df = pd.DataFrame(recs)
+    df["ts"] = (df["ts_ms"].astype("int64") // 1000)
+    return df.drop_duplicates("ts").sort_values("ts", ignore_index=True)
+
+
 def _merge_with_existing(path: Path, new: pd.DataFrame) -> pd.DataFrame:
     """Union new rows onto whatever is already committed, by `ts`. Never
     shrinks the bundle -- same principle as `harvest.py`'s refusal to let a
@@ -301,16 +358,36 @@ def harvest_funding(out_dir: Path, days: int, verbose: bool = True) -> pd.DataFr
     return merged
 
 
-def harvest_dvol(out_dir: Path, verbose: bool = True) -> pd.DataFrame | None:
+def harvest_dvol(out_dir: Path, since_ms: int | None = None,
+                 until_ms: int | None = None, verbose: bool = True) -> pd.DataFrame | None:
+    """Index endpoint first, the no-range endpoint only as a fallback.
+
+    The first scheduled run used the no-range endpoint and got 383 rows over
+    15 days with nothing inside the training window. Order matters here, and
+    the fallback is kept rather than deleted so a run still produces something
+    if the index endpoint is unavailable -- but it now announces which route
+    produced the data, because a 15-day series and a 3-year series arriving
+    under the same filename is exactly how a useless feature gets trained on.
+    """
     path = out_dir / "dvol_btc.parquet"
-    try:
-        df = fetch_deribit_dvol(verbose=verbose)
-    except Exception as e:                                       # noqa: BLE001
-        print(f"  FAILED: deribit DVOL fetch raised {type(e).__name__}: {e}")
-        return None
+    df, route = pd.DataFrame(), "none"
+    if since_ms is not None and until_ms is not None:
+        try:
+            df = fetch_deribit_dvol_index(since_ms, until_ms, verbose=verbose)
+            route = "volatility_index_data (paged)"
+        except Exception as e:                                   # noqa: BLE001
+            print(f"  index endpoint raised {type(e).__name__}: {e}; falling back")
+    if df.empty:
+        try:
+            df = fetch_deribit_dvol(verbose=verbose)
+            route = "historical_volatility (NO time range -- expect a short window)"
+        except Exception as e:                                   # noqa: BLE001
+            print(f"  FAILED: deribit DVOL fetch raised {type(e).__name__}: {e}")
+            return None
     if df.empty:
         print("  FAILED: deribit DVOL returned nothing")
         return None
+    print(f"  dvol route: {route}")
     merged = _merge_with_existing(path, df)
     out_dir.mkdir(parents=True, exist_ok=True)
     merged.to_parquet(path, index=False, compression="zstd")
@@ -343,7 +420,11 @@ def main(argv=None) -> int:
 
     print("[harvest_newdata] DVOL ...", flush=True)
     try:
-        if harvest_dvol(a.out_dir) is not None:
+        # Same window the funding harvest walks, so DVOL is not silently
+        # limited to whatever the venue happens to serve without a range.
+        _until = int(time.time() * 1000)
+        _since = _until - int(a.days) * DAY_MS
+        if harvest_dvol(a.out_dir, since_ms=_since, until_ms=_until) is not None:
             ok.append("dvol")
         else:
             failed.append("dvol")

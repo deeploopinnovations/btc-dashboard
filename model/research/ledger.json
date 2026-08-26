@@ -197,6 +197,14 @@
       "rule": "spike-conditional QLIKE with a moving-block bootstrap CI excluding zero AND spike RV/sigma toward 1.0 AND calm QLIKE not worsening more than 1% with its own CI; pooled QLIKE reported but NOT a condition",
       "verdict": "OPEN",
       "result": "specified, not yet run"
+    },
+    {
+      "id": "14",
+      "topic": "data",
+      "question": "Do the harvested funding/DVOL series have usable history depth?",
+      "rule": "measure the span and the training-window overlap on the committed files; a feature with no training-window overlap cannot be trained on",
+      "verdict": "ADOPT",
+      "result": "route works -- GH Actions runner committed both files. Funding VERIFIED better than cited: hourly, 64,206 rows, 2019-04-30 onward, 32,196 rows (50.1%) inside the training window. DVOL unusable as harvested: 15 days, 383 rows, ZERO training-window overlap, because get_historical_volatility is REALIZED vol with no time range, not the implied DVOL index. Fixed to page get_volatility_index_data; unverified from container."
     }
   ]
 }
