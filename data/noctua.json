@@ -11,36 +11,36 @@
   "safe_levels": [
     {
       "alpha": 0.01,
-      "call_strike": 85274.82,
-      "put_strike": 72461.17,
+      "call_strike": 85274.96,
+      "put_strike": 72461.06,
       "call_pct": 8.345,
       "put_pct": -7.935
     },
     {
       "alpha": 0.02,
-      "call_strike": 84108.35,
-      "put_strike": 73491.68,
+      "call_strike": 84108.45,
+      "put_strike": 73491.59,
       "call_pct": 6.863,
       "put_pct": -6.626
     },
     {
       "alpha": 0.05,
-      "call_strike": 82721.04,
-      "put_strike": 74781.36,
+      "call_strike": 82721.1,
+      "put_strike": 74781.3,
       "call_pct": 5.101,
       "put_pct": -4.987
     },
     {
       "alpha": 0.1,
-      "call_strike": 81784.44,
-      "put_strike": 75623.81,
+      "call_strike": 81784.48,
+      "put_strike": 75623.76,
       "call_pct": 3.911,
       "put_pct": -3.917
     },
     {
       "alpha": 0.2,
-      "call_strike": 80964.97,
-      "put_strike": 76446.43,
+      "call_strike": 80965.0,
+      "put_strike": 76446.4,
       "call_pct": 2.869,
       "put_pct": -2.872
     }
