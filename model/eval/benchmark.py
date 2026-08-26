@@ -485,7 +485,16 @@ def run_fold(ep, X, fold, hidden=32, seeds=3, verbose=False, shape_cols=None,
         Q = comm.quantiles(ctx["sigma"], p_te, up=(side == "up"))
         chr_[side] = christoffersen((M[side] >= Q[:, j5]).astype(int), 0.05)
 
-    return {"rows": rows, "vol": vol, "christoffersen": chr_, "year": fold["year"]}
+    # Per-episode arrays, so a caller can condition the fold's scores on
+    # anything (regime, spike/calm, hour) WITHOUT rebuilding the pipeline.
+    # Additive: every existing key is unchanged. This exists because the
+    # alternative -- reimplementing prepare/train/predict in the caller -- is
+    # how two "identical" comparisons silently stop being identical, which
+    # research/pitfalls.py lists as a known failure mode here.
+    return {"rows": rows, "vol": vol, "christoffersen": chr_, "year": fold["year"],
+            "per_episode": {"rv": rv,
+                            "sigma_med": np.asarray(p_te["sigma_med"], np.float64),
+                            "test_idx": np.flatnonzero(m_te)}}
 
 
 def main(argv=None) -> int:
