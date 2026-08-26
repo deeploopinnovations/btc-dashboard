@@ -1,0 +1,149 @@
+# .github/workflows/harvest-newdata.yml
+# =====================================================================
+# Harvests perpetual funding-rate history (+ Deribit DVOL as a shorter-history
+# bonus) for the ONSET problem identified in BENCHMARK.md §12: a spike-tomorrow
+# classifier on the current causal features gets AUC 0.733 [0.6547, 0.8052] on
+# the first day of a volatility cluster, against 0.929 once a cluster is
+# already underway. Everything currently in the feature set is derived from
+# BTC's own past price bars; onset is by definition not yet in that price.
+# Full candidate ranking and the pre-registered decision rule for whether this
+# data earns a place in the model live in model/eval/newdata.py.
+#
+# Same network boundary as harvest-assets.yml: this repo's development
+# container reaches only raw.githubusercontent.com and gist.github.com (see
+# model/eval/datasources.py), so the fetch happens here, on a runner that has
+# ordinary internet access, and the result is committed for offline use.
+#
+# UNLIKE harvest-assets.yml this workflow IS scheduled. That one harvests a
+# fixed one-off research bundle (re-run by hand when the window needs
+# extending); funding rate and DVOL are live series with real forward value
+# every day they're not collected, and Deribit's own retained window for DVOL
+# is unverified and may be shorter than what accrues in this repo over time
+# (see the harvester's docstring). Daily, not sub-daily: funding settles every
+# 8h and DVOL is used at daily resolution in this repo's own prior research
+# (OPTION_BUYER_ALPHA.md), so a tighter cadence would not buy more signal, just
+# more commits.
+name: harvest-newdata
+
+on:
+  schedule:
+    - cron: '11 1 * * *'    # once daily, shortly after the 17:00 UTC → next-day
+                             # production anchor (PROD_ANCHOR in noctua/splits.py)
+                             # has fully closed
+  workflow_dispatch:
+    inputs:
+      days:
+        description: 'Backfill window in days on a fresh bundle (ignored once a bundle exists -- top-ups are tail-only)'
+        default: '3500'
+  push:
+    paths:
+      - 'model/eval/harvest_newdata.py'
+      - '.github/workflows/harvest-newdata.yml'
+
+permissions:
+  contents: write
+
+# Same reasoning as harvest-assets.yml: queue, don't cancel. A daily top-up
+# run is short, so overlap is unlikely, but if it ever happens the same
+# "re-run of stale code cancels a fixed run mid-flight" failure mode applies.
+concurrency:
+  group: harvest-newdata-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  harvest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install runtime
+        run: pip install --quiet -r model/serve/requirements-ci.txt
+
+      - name: Harvest
+        run: |
+          python -m model.eval.harvest_newdata \
+            --days "${{ github.event.inputs.days || '3500' }}"
+
+      - name: Report what landed
+        run: |
+          ls -la data/newdata/ || echo "no bundles produced"
+          python - <<'PY'
+          from pathlib import Path
+          import pandas as pd
+          for f in sorted(Path("data/newdata").glob("*.parquet")):
+              d = pd.read_parquet(f)
+              if "ts" in d.columns and len(d):
+                  span = (d.ts.max() - d.ts.min()) / 86400
+                  print(f"{f.name:<24} {len(d):>7} rows  {span:>6.0f} days  "
+                        f"{f.stat().st_size/1024:>6.0f} KB")
+              else:
+                  print(f"{f.name:<24} {len(d):>7} rows  (no ts column?)")
+          PY
+
+      # Insurance, same as harvest-assets.yml: a run whose fetch succeeded and
+      # whose commit failed should not lose the work.
+      - name: Upload bundles as an artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: newdata-bundles
+          path: data/newdata/*.parquet
+          if-no-files-found: warn
+
+      - name: Commit bundles
+        run: |
+          set -euo pipefail
+          BR="${{ github.ref_name }}"
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Stash ONLY the bundles this run actually wrote -- see
+          # harvest-assets.yml for why `git diff --name-only` rather than
+          # copying every *.parquet in the directory.
+          mkdir -p /tmp/newdata_bundles
+          git diff --name-only -- data/newdata/ > /tmp/changed.txt || true
+          git ls-files --others --exclude-standard -- data/newdata/ >> /tmp/changed.txt || true
+          sort -u /tmp/changed.txt -o /tmp/changed.txt
+          echo "bundles produced by this run:"; cat /tmp/changed.txt
+          while read -r f; do [ -n "$f" ] && cp "$f" /tmp/newdata_bundles/; done < /tmp/changed.txt
+          for attempt in 1 2 3; do
+            git fetch origin "$BR"
+            # checkout -B -f, NOT reset --soft -- see harvest-assets.yml for
+            # the incident (05:35Z reset --soft against a moved branch tip
+            # produced a diff that deleted everything committed in between).
+            git checkout -f -B "$BR" "origin/$BR"
+            # REFUSE to publish this run's bundles onto a tip whose harvester
+            # changed underneath it -- same reasoning as harvest-assets.yml:
+            # concurrency is cancel-in-progress: false, so an in-flight run
+            # must not commit bundles built by code that is no longer HEAD's.
+            if ! git diff --quiet "$GITHUB_SHA" HEAD -- model/eval/harvest_newdata.py; then
+              echo "REFUSING to commit: the harvester changed between this"
+              echo "run's commit ($GITHUB_SHA) and the branch tip. These"
+              echo "bundles were built by the older code; the next scheduled"
+              echo "run will rebuild them. Output remains in the"
+              echo "newdata-bundles artifact."
+              exit 0
+            fi
+            while read -r f; do
+              [ -n "$f" ] && cp "/tmp/newdata_bundles/$(basename "$f")" "$f" 2>/dev/null || true
+            done < /tmp/changed.txt
+            git add data/newdata/
+            if git diff --cached --quiet; then
+              echo "nothing new to commit"; exit 0
+            fi
+            # Refuse to push anything but the bundles.
+            if git diff --cached --name-only | grep -qv '^data/newdata/'; then
+              echo "REFUSING: staged files outside data/newdata/:"
+              git diff --cached --name-only
+              exit 1
+            fi
+            git commit -m "chore(data): harvest funding-rate / DVOL history"
+            git push origin "HEAD:$BR" && exit 0
+            echo "push attempt $attempt rejected; retrying"
+            sleep 5
+          done
+          echo "could not push after 3 attempts"; exit 1
