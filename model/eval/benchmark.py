@@ -502,16 +502,41 @@ def main(argv=None) -> int:
     p.add_argument("--artifacts", type=Path, default=Path("model/artifacts"))
     p.add_argument("--hidden", type=int, default=32)
     p.add_argument("--seeds", type=int, default=3)
+    p.add_argument("--no-causal-sigma", action="store_true",
+                   help="train Stage B against realized RV, the pre-16 behaviour. "
+                        "Kept ONLY so the historical numbers can be reproduced; "
+                        "it is not the shipped configuration.")
     p.add_argument("--out", type=Path, default=Path("model/artifacts/benchmark.json"))
     a = p.parse_args(argv)
 
     ep, X = load_all(a.artifacts)
     folds = S.walk_forward_folds(ep)
+
+    # Stage B is retargeted onto a CAUSAL volatility reference, matching what
+    # train_v2.py builds for the shipped artifact. Until this was added, main()
+    # called run_fold with no `sigma_ref_fn`, so `prepare()` fell through to its
+    # default -- realized RV -- which its own docstring documents as a
+    # train/serve skew that manufactures Spearman -0.4331 from arithmetic
+    # alone. BENCHMARK.md 6b records the causal retarget as ADOPTED and
+    # train_v2 stamps `stage_b_sigma_ref: causal_har_1d_clipped` into the
+    # artifact, so the benchmark was scoring a configuration that does not
+    # ship. See BENCHMARK.md 16.
+    #
+    # The CALLABLE form matters: clip bounds are refit on each fold's own
+    # training episodes, so nothing downstream of a fold boundary influences
+    # the reference. A single global clip would be a subtle leak.
+    _H = ep["H"].to_numpy(np.float64)
+    _raw = np.exp(X["har_1d"].to_numpy(np.float64)) * np.sqrt(_H)
+
+    def sig_fn(train_mask):
+        lo, hi = np.quantile(_raw[train_mask], [0.005, 0.995])
+        return np.maximum(np.clip(_raw, lo, hi), 1e-12)
     print(f"[bench] {len(folds)} walk-forward folds, hidden={a.hidden}, seeds={a.seeds}\n")
 
     res = []
     for f in folds:
-        r = run_fold(ep, X, f, a.hidden, a.seeds)
+        r = run_fold(ep, X, f, a.hidden, a.seeds,
+                     sigma_ref_fn=None if a.no_causal_sigma else sig_fn)
         if r is None:
             continue
         print(f"  fold {r['year']} done  (n={r['rows'][0]['n']})")

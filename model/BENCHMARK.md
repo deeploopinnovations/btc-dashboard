@@ -2557,3 +2557,43 @@ evaluation path's configuration against the production trainer's, not just the
 artifact's metadata.**
 
 *Educational research only. Not financial advice.*
+
+## 17. Phase 0 determinism: PASS, bit-identical
+
+Gate v2 asked the only question that gates later phases — does the pipeline
+return the same answer from the same inputs?
+
+| | result |
+|---|---|
+| metrics compared | **351** |
+| worst absolute difference | **0.000e+00** |
+| worst relative difference | **0.000000 %** |
+| metrics failing the gate | **0** |
+
+**Bit-identical across two independent runs.** Seeds 0/1/2, no input changed.
+
+This closes the diagnosis opened in §16: gate v1's failure was **entirely the
+stale artifact and not one bit of nondeterminism**. Had determinism been the
+cause, every experiment in this document measured at deltas of 1–5 % would have
+been uninterpretable. It was not, and they are not.
+
+Combined with §16's leakage verdict, Phase 0's integrity conditions are met:
+the pipeline is deterministic and free of the leaks an adversarial audit with a
+working positive control could find.
+
+### What is fixed, and what is deliberately not deleted
+
+`benchmark.py:main()` now supplies the causal sigma reference, matching what
+`train_v2.py` builds for the shipped artifact. Two choices worth stating:
+
+**The callable form, not a precomputed array.** Clip bounds refit on each
+fold's own training episodes, so nothing downstream of a fold boundary can
+influence the reference. A single global clip would be a subtle leak — exactly
+the class §16's audit was probing for.
+
+**`--no-causal-sigma` is retained.** Deleting the old path would make every
+prior comparison in this document unverifiable. "It was wrong" is not a reason
+to destroy the ability to confirm what it was, and this file's value depends on
+its superseded numbers staying reproducible.
+
+*Educational research only. Not financial advice.*

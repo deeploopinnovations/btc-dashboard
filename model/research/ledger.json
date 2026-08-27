@@ -230,8 +230,8 @@
       "topic": "baseline",
       "question": "Is the benchmark pipeline deterministic run-to-run?",
       "rule": "two runs, identical inputs, seeds 0/1/2: every metric must agree within 1e-9 absolute OR 0.1% relative where |value| > 1e-4. Reproducing the stale artifact is explicitly NOT a condition.",
-      "verdict": "OPEN",
-      "result": "run B in flight; outcome unknown at the time this rule was written"
+      "verdict": "ADOPT",
+      "result": "PASS. Two runs, identical inputs: all 351 metrics BIT-IDENTICAL, worst absolute difference 0.000e+00. The pipeline is fully deterministic, so gate v1's failure was 100% stale artifact and 0% nondeterminism."
     },
     {
       "id": "16",
