@@ -3029,6 +3029,31 @@ size, and the multiplier tells us the size below which it is not.
 and a tighter CI around a null is still a null. This measures resolution, not
 truth.
 
+### Amendment, recorded while the run was still going and before any CI width existed
+
+**The primary quantity as written above is not scale-free, and that is a defect
+in this pre-registration.** The ratio is of *absolute* interval widths, and the
+two slices do not share a scale. From the folds visible mid-run, control
+spike-QLIKE levels are 3.2380 / 1.3542 / 3.6483 on the production slice against
+1.1360 / 0.5984 / 1.1163 on the 24-hour slice for the same fold years. An
+interval around a quantity three times larger is wider for reasons that have
+nothing to do with precision.
+
+Both are therefore reported: the **absolute** ratio because it was
+pre-registered, and changing a rule quietly is worse than stating a flawed one;
+and the **scale-normalised** ratio — each interval width divided by that slice's
+own control baseline — as the interpretable one, since relative resolution is
+what determines the size of effect an experiment can detect.
+
+**A separate observation, which is not part of the power question and must not
+be reported as one.** The relative treatment effect also looks smaller on the
+wide slice: 1.87 % on the production slice against 0.91 % / 1.57 % / 1.26 % on
+the first three wide-slice folds. That is a change in the *effect*, not in its
+*precision*. Two readings will be available and this data cannot separate them —
+either the 17:00 anchor genuinely carries a larger treatment effect than other
+hours, or the production-slice estimate was inflated and the wide slice is
+regression to the mean. Both will be stated, and neither will be picked.
+
 **Compute.** 6 folds × 3 seeds × 2 arms on a 24× wider scoring slice; training
 cost is unchanged, only scoring widens.
 
