@@ -64,10 +64,12 @@ candidate where 1-minute data permits. One estimator change, everything else
 identical.
 
 ### Phase 4 — E2, implied-volatility family
-**Currently BLOCKED BY DATA.** DVOL as harvested is 15 days with zero
-training-window overlap (§14). Unblocks only when the paged
-`get_volatility_index_data` route returns a series overlapping the training
-window. Funding rate is verified usable (hourly, 2019-04-30 →, 50.1 % inside
+**UNBLOCKED (§15).** The paged `get_volatility_index_data` route now returns
+47,563 hourly rows spanning 2021-03-24 → 2026-08-26, with **15,552 rows inside
+the training window**. Implied volatility is trainable. This is the highest
+expected-information-gain experiment in the queue, because §12 showed the onset
+ceiling exists precisely for want of a forward-looking input — but it does not
+open until Phase 0's gate passes. Funding rate is verified usable (hourly, 2019-04-30 →, 50.1 % inside
 the training window) and is testable now.
 
 ### Phase 5 — E15 redo, spike weighting on a slice-primary endpoint

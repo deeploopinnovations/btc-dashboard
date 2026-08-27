@@ -213,6 +213,17 @@
       "rule": "re-run eval.benchmark --folds all; every headline metric (QLIKE, pinball, CRPS, Brier/DSC/MCB at every barrier) within 0.5% relative of benchmark.json. Seeds fixed 0,1,2, so a larger deviation means non-determinism, which BLOCKS all later phases.",
       "verdict": "OPEN",
       "result": "in flight"
+    },
+    {
+      "id": "15",
+      "topic": "data",
+      "question": "Does the paged DVOL index endpoint deliver training-window history?",
+      "rule": "measure span and training-window overlap on the committed file; unblocks Phase 4 only if overlap > 0",
+      "verdict": "ADOPT",
+      "result": "47,563 hourly rows, 2021-03-24 -> 2026-08-26, 15,552 inside the training window (was 383 rows / 15 days / 0 overlap). Also corrects the repo's own citation of '1,000 daily closes from 2023-09' -- the index endpoint gives hourly from 2021-03.",
+      "supersedes": [
+        "14"
+      ]
     }
   ]
 }

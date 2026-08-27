@@ -2423,3 +2423,51 @@ The pre-registered rule in `eval/newdata.py` for whether either earns a place
 in the model is unchanged and was fixed before any of this data existed.
 
 *Educational research only. Not financial advice.*
+
+
+## 15. The DVOL fix worked — implied volatility is now trainable
+
+§14 diagnosed the 15-day DVOL harvest as the wrong endpoint:
+`get_historical_volatility` is Deribit's *realized*-volatility series with no
+time range, while DVOL is the implied-volatility **index**, served by
+`get_volatility_index_data`, which pages on `start_timestamp`/`end_timestamp`.
+The fix was written here and marked UNVERIFIED-FROM-CONTAINER, because every
+exchange endpoint is 403 through this proxy. The scheduled workflow then ran it
+on a GitHub Actions runner and committed the result.
+
+| | before the fix | **after** |
+|---|---|---|
+| rows | 383 | **47,563** |
+| span | 2026-08-10 → 2026-08-26 (15 days) | **2021-03-24 → 2026-08-26 (1,981 days)** |
+| resolution | hourly | hourly |
+| **rows inside the training window** | **0** | **15,552** |
+| level | median 26.8 | median 55.57, range [19.17, 166.39] |
+
+**Implied volatility is now a trainable feature**: 5.4 years of hourly history
+with substantial training-window overlap.
+
+Note this also corrects the repo's *original* citation, not just the harvest.
+`OPTION_BUYER_ALPHA.md` records DVOL as "1,000 daily closes 2023-09→2026-06".
+The index endpoint returns hourly data from 2021-03-24 — roughly 2.5 years
+earlier and 24× finer. That earlier figure came from whatever route that
+analysis used; it is not the ceiling.
+
+### Why this matters, and why Phase 4 still does not open yet
+
+§12 located the model's binding constraint precisely: onset prediction caps at
+AUC 0.733 **because every current input derives from BTC's own past bars**, and
+onset is by definition not yet in the price. Implied volatility is the one
+candidate that is forward-looking by construction — it is the market's own
+forecast, which is exactly the information class the feature set lacks.
+
+**It is still not tested, and Phase 4 remains closed until Phase 0's gate
+passes.** The temptation to jump straight to the exciting feature is the
+failure mode this plan exists to prevent: an experiment's delta is
+uninterpretable on a base that has not been shown to reproduce. The ordering is
+not ceremony — §10 and §13 both turned on effects smaller than the tolerance a
+non-reproducible pipeline would carry.
+
+The pre-registered rule for whether an implied-volatility feature earns its
+place is already fixed in `eval/newdata.py`, written before this data existed.
+
+*Educational research only. Not financial advice.*
