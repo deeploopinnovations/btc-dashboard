@@ -3272,3 +3272,112 @@ information that the intercept was masking, and `ivfeatures.py`'s branch `(a)` i
 wrong.
 
 *Educational research only. Not financial advice.*
+
+## 25. E2c: DVOL's *dynamics* clear every guard — the first ADVANCE in this sequence
+
+§24 rejected implied volatility and explained why: a fitted intercept was
+collecting a ~1.17× level correction that had nothing to do with IV, the placebo
+collected it too, and the margin between them contained zero.
+
+E2b removed the intercept from **both** arms. Its pre-registration named its own
+overturning condition in advance, and the condition fired: the real features beat
+the placebo, CI [−0.14822, −0.02069]. Every guard passed except sign stability,
+which failed on **`iv_level` alone** — the one feature `ivfeatures.py`'s failure
+taxonomy had predicted, before any IV experiment ran, would be redundant with
+`har_1d`.
+
+E2c is that prediction acted on: drop `iv_level`, keep the five dynamics
+features, at Bonferroni-adjusted intervals for the third test on these forecasts.
+
+### Result
+
+| quantity | Δ | 98.33 % CI | folds better |
+|---|---|---|---|
+| **pooled QLIKE** | **−0.03264** | **[−0.04356, −0.01403]** | **5 of 5** |
+| spike QLIKE | −0.33295 (−20.89 %) | [−0.58819, −0.09022] | 5 of 5 |
+| calm QLIKE | −0.01744 (−8.22 %) | [−0.02955, −0.00766] | 4 of 5 |
+| **placebo margin** | **−0.04533** | **[−0.07323, −0.01420]** | — |
+
+    PRIMARY shrunk pooled QLIKE CI excludes zero favourably : True
+    GUARD   beats the placebo, CI excluding zero            : True
+    GUARD   spike QLIKE not worse (point −20.89%)           : True
+    GUARD   calm QLIKE within 1%  (−8.22% of calm base)     : True
+    GUARD   RAW coefficient signs stable across folds       : True
+    -> ADVANCE   (NOT an adoption: the barrier curves were not rebuilt)
+
+Unusually for this document, spike **and** calm both improve. Every prior lever
+traded one against the other.
+
+### The coefficients tell a coherent story
+
+Shrunk β on standardised features, five independently fitted folds:
+
+| fold | iv_chg_1h | iv_chg_6h | iv_chg_24h | iv_z_20d | ivrv_ratio |
+|---|---|---|---|---|---|
+| 2022 | −0.040 | +0.040 | +0.008 | +0.026 | +0.024 |
+| 2023 | −0.064 | +0.037 | +0.042 | +0.055 | +0.046 |
+| 2024 | −0.036 | +0.032 | +0.063 | +0.050 | +0.051 |
+| 2025 | −0.025 | +0.038 | +0.057 | +0.035 | +0.045 |
+| 2026 | −0.013 | +0.032 | +0.059 | +0.044 | +0.060 |
+
+Every sign holds in every fold, and λ ≥ 0.85 after the first — the shrinkage had
+little to do, because the estimates were already stable.
+
+Read economically: **IV rising over 6–24 hours predicts higher realized
+volatility** (`iv_chg_6h`, `iv_chg_24h` positive), as does IV standing high
+against its own 20-day history (`iv_z_20d`) and a wide variance risk premium
+(`ivrv_ratio`). The one-hour change enters *negatively*, which is what you expect
+if the shortest window is mostly quote noise the longer ones have already priced.
+Magnitude is modest and sensible: a 1σ move in `iv_chg_24h` scales σ by
+e^0.06 ≈ 1.06.
+
+This is the first input in the project that is not a function of BTC's own past
+bars, and it is the first to improve both slices at once.
+
+### Scrutiny, because an ADVANCE deserves more of it than a rejection
+
+**Positive control.** Fit on history exactly as E2c does, then shuffle the
+*scored* fold's feature rows before applying the correction:
+
+| | pooled Δ | folds better |
+|---|---|---|
+| aligned | −0.03264 | 5 of 5 |
+| test-shuffled | **+0.01909** | **0 of 5** |
+
+A complete reversal. The gain requires the test-fold features to line up with the
+episodes they are forecasting, which is what out-of-sample signal means.
+
+**The bootstrap saturates, and that is not extra evidence.** The pooled CI clears
+zero at α/1, α/3, α/6, α/12 and α/24 — but the intervals at α/6 and beyond are
+*identical* to α/3, because with five fold-level observations the resampling has
+only five distinct values and cannot produce a wider interval. Surviving α/24 is
+an artifact of n, not a strong significance claim. What carries the result is
+5 of 5 folds and the placebo margin, not the tail of the interval.
+
+**The selection risk is real and is recorded, not glossed.** E2c drops the
+feature that just failed. What separates that from fishing is that
+`ivfeatures.py` predicted this exact split in writing before any IV experiment
+ran, and E2b's coefficients matched the written prediction. The reader is
+entitled to weigh that themselves, so both the prediction and the sequence are in
+the ledger.
+
+**Scope.** 1,681 episodes across 5 folds, all inside DVOL's era. The correction
+cannot be validated before 2021-03 because the instrument did not exist. For
+*serving* that is not a limitation — every live episode has IV — but it does mean
+this is a modern-era result and is not claimed beyond it.
+
+### What ADVANCE means, precisely
+
+It means the next step, not the artifact. The pre-registration says this cannot
+adopt alone, and the reason is specific: E2c re-weights a recorded median. It
+never rebuilt the barrier curves, the committee, or the calibration, and NOCTUA's
+product is a touch-probability curve, not a σ. Scaling σ moves every barrier
+probability, and nothing here has checked what that does to CORP calibration or
+to Christoffersen coverage.
+
+So the confirmation run is a **fresh test**: apply the correction inside the full
+pipeline and re-score the barriers, with deep-tail MCB and conditional coverage
+as guards. It is queued behind E-power, for the reason §22 gives — a result
+whose resolution is unmeasured is a result waiting to be misread.
+
+*Educational research only. Not financial advice.*

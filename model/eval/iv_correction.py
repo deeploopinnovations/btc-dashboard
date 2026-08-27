@@ -220,6 +220,16 @@ def main(argv=None) -> int:
                     default=Path("model/artifacts/blend_ceiling.npz"))
     ap.add_argument("--iv", type=Path,
                     default=Path("model/artifacts/iv_features.parquet"))
+    ap.add_argument("--drop", default="", metavar="COL[,COL...]",
+                    help="E2c: remove these columns from the feature set. "
+                         "`--drop iv_level` tests whether DVOL's DYNAMICS carry "
+                         "information once its LEVEL -- which ivfeatures.py's "
+                         "branch (a) predicted would be redundant with har_1d, "
+                         "before any IV experiment ran -- is taken out.")
+    ap.add_argument("--n-tests", type=int, default=1,
+                    help="Bonferroni divisor for the IV family. E2 and E2b were "
+                         "tests 1 and 2 on these same forecasts; E2c is the "
+                         "third and passes --n-tests 3.")
     ap.add_argument("--no-intercept", action="store_true",
                     help="E2b: hold beta_0 at zero in BOTH arms, so the "
                          "correction can only reshape sigma and never rescale "
@@ -229,8 +239,25 @@ def main(argv=None) -> int:
                     default=Path("model/artifacts/iv_correction.json"))
     a = ap.parse_args(argv)
     icept = not a.no_intercept
-    if a.no_intercept and a.out == Path("model/artifacts/iv_correction.json"):
-        a.out = Path("model/artifacts/iv_correction_nointercept.json")
+    global IV_COLS
+    drop = [c.strip() for c in a.drop.split(",") if c.strip()]
+    bad = [c for c in drop if c not in IV_COLS]
+    if bad:
+        raise SystemExit(f"REFUSING: --drop names {bad}, not in {IV_COLS}")
+    if drop:
+        IV_COLS = [c for c in IV_COLS if c not in drop]
+        if not IV_COLS:
+            raise SystemExit("REFUSING: --drop removed every feature")
+        print(f"dropped {drop}; feature set is now {IV_COLS}")
+    alpha = 0.05 / max(a.n_tests, 1)
+    if a.n_tests > 1:
+        print(f"Bonferroni: {a.n_tests} tests on these forecasts, "
+              f"intervals at {100*(1-alpha):.2f}%")
+    if a.out == Path("model/artifacts/iv_correction.json"):
+        tag = ("_nointercept" if a.no_intercept else "") + \
+              ("_drop-" + "-".join(drop) if drop else "")
+        if tag:
+            a.out = Path(f"model/artifacts/iv_correction{tag}.json")
     print(f"intercept: {'ON (E2)' if icept else 'OFF (E2b)'}\n")
 
     if not a.components.exists():
@@ -412,7 +439,8 @@ def main(argv=None) -> int:
               f"placebo {row['pooled_placebo']:.5f}")
 
     out = {"folds": rows_out, "iv_cols": IV_COLS, "sigma_b": SIGMA_B,
-           "intercept": icept,
+           "intercept": icept, "dropped": drop, "n_tests": a.n_tests,
+           "ci_level": 1.0 - alpha,
            "placebo_shift_hours": PLACEBO_SHIFT_H, "w0": W0}
     if len(dlt["shrunk"]["pooled"]) < 2:
         print("\nfewer than 2 scored folds -- no verdict"); return 1
@@ -428,7 +456,7 @@ def main(argv=None) -> int:
                                 "note": "fewer than 2 folds carried this slice"}
                 print(f"{tag:>10} {nm:>8}   only {len(arr)} fold(s) -- no interval")
                 continue
-            ci = mean_ci(arr, seed=37)
+            ci = mean_ci(arr, seed=37, alpha=alpha)
             # `ci["mean"]` is the mean of the SAME filtered array the interval
             # came from; `arr.mean()` would report a nan beside a finite CI.
             out[tag][nm] = {"delta": ci["mean"], "ci95": ci["ci95"],
@@ -441,7 +469,7 @@ def main(argv=None) -> int:
     # placebo margin: real minus placebo, fold by fold
     margin = (np.asarray(dlt["shrunk"]["pooled"]) -
               np.asarray(dlt["placebo"]["pooled"]))
-    ci_m = mean_ci(margin, seed=41)
+    ci_m = mean_ci(margin, seed=41, alpha=alpha)
     out["placebo_margin"] = {"delta": float(margin.mean()), "ci95": ci_m["ci95"]}
     print(f"\n  placebo margin (shrunk - placebo, pooled): {margin.mean():+.5f}   "
           f"[{ci_m['ci95'][0]:+.5f}, {ci_m['ci95'][1]:+.5f}]")
