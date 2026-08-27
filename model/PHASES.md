@@ -195,7 +195,8 @@ coverage is better than DVOL's (ledger `funding-coverage`, re-derived through
 | **funding** | **64,206** | **67.8 %** | **100 %** | **100 %** |
 
 Funding begins 2019-04-30, DVOL 2021-03-24. Spacing is hourly at 64,204 of
-64,205 gaps, with a single 3-hour gap in seven years.
+64,205 gaps; the one exception spans 10,800 s, i.e. two missing hourly stamps
+in seven years.
 
 The mechanism, stated as a mechanism and not a result: funding prices **crowding
 in perpetual positioning**, and crowded positioning is the precondition for a

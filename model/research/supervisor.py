@@ -107,10 +107,35 @@ def detect(d: dict) -> list:
                            f"withdrawn/superseded: {e['result'][:70]}",
                            "grep the repo for this number before citing it; "
                            f"successor: {', '.join(e.get('superseded_by', [])) or 'none'}"))
-        if e["verdict"] == "OPEN":
-            alerts.append(("UNCLOSED", e["id"], e["question"][:70],
-                           "an OPEN question with no result is a promise; "
-                           "either run it or record why it was dropped"))
+        # An OPEN entry is only an unclosed promise if it is BOTH unsuperseded
+        # and carries no substantive result.
+        #
+        # The ledger is append-only, so a pre-registration written with verdict
+        # OPEN keeps that word forever, even after the entry carrying its
+        # result supersedes it. The first version of this check flagged E2b and
+        # E2c as unclosed while both were finished and superseded -- telling a
+        # supervisor to re-run completed experiments, which is precisely the
+        # waste it exists to prevent. Same defect, and same fix, as
+        # `ledger.py --open`.
+        #
+        # The second half matters too: a structural MEASUREMENT (coverage
+        # counts) or an AMENDMENT is recorded with verdict OPEN because it is
+        # not a hypothesis test, but it has a result and is not a promise. The
+        # marker for a genuine promise is the placeholder text a
+        # pre-registration is written with.
+        if e["verdict"] == "OPEN" and not e.get("superseded_by"):
+            # The marker is the OPENING of the result field, not its length.
+            # This project writes a promise as "pre-registered before the run,
+            # ..." and everything else -- a measurement, a prediction, an
+            # amendment -- opens with its own content. A length cutoff was the
+            # first attempt and it silently exempted the two longest promises,
+            # E-scale and E2-confirm, because their pre-registrations carry
+            # motivation text. A filter that lets the most elaborate promises
+            # through is worse than no filter.
+            if (e.get("result") or "").strip().lower().startswith("pre-registered"):
+                alerts.append(("UNCLOSED", e["id"], e["question"][:70],
+                               "an OPEN question with no result is a promise; "
+                               "either run it or record why it was dropped"))
     return alerts
 
 
