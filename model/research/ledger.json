@@ -280,6 +280,22 @@
       "rule": "record what the partial runs established, separately from the experiment's own pre-registered rule",
       "verdict": "NULL",
       "result": "(1) My pre-registered guard 're-score log_har_gauss' rested on a FALSE premise: fit_vol_baselines uses its own VOL_BASELINES dict, not BASE_COLS, so log_har is independent of the treatment. Confirmed empirically -- logHAR identical to 4dp across arms in folds 2021 (0.3591) and 2022 (0.2851). Harmless over-specification, but the guard was checking something that could not move. (2) Partial results, 2 of 6 folds, NOT a verdict: fresh_anchor was slightly WORSE on both pooled (0.3369->0.3417, 0.2745->0.2766) and spike (3.2380->3.2775, 1.3542->1.3739). If that holds, 12's Arm 4 OLS-harness gain does not survive the full pipeline."
+    },
+    {
+      "id": "toolchain",
+      "topic": "infrastructure",
+      "question": "Which protocol experiments are actually runnable in this environment?",
+      "rule": "probe empirically with pip download / git ls-remote; a package is INSTALLABLE only if a real wheel downloads with exit 0",
+      "verdict": "ADOPT",
+      "result": "PyPI and github.com ARE reachable -- a NARROWER allowlist than the general egress block that 403s exchange APIs. INSTALLABLE: arch (GARCH, 990kB), statsmodels, xgboost, lightgbm, catboost, neuralforecast (PatchTST/iTransformer); thuml repos git-reachable for TimeXer. AVAILABLE: LSTM/GRU/TCN (torch, no package). BLOCKED BY INFRASTRUCTURE: E16 foundation models -- huggingface.co 403s on CONNECT, which also explains why eval/kronos_baseline.py has shipped complete but NEVER RUN. GARCH is a MANDATORY protocol baseline and is absent from requirements-research.txt."
+    },
+    {
+      "id": "E-garch",
+      "topic": "baselines",
+      "question": "Does NOCTUA beat a properly fitted GARCH(1,1)?",
+      "rule": "the protocol names GARCH(1,1) a MANDATORY volatility baseline. Score it on the same 6 walk-forward folds, same episodes, same QLIKE, alongside log_har and persistence. This is a BASELINE ADDITION, not a model change: NOCTUA is untouched, so there is no adopt/reject on NOCTUA -- the result stands as a scoreboard entry whatever it says. Installing `arch` must NOT alter any pinned version in requirements-research.txt; if pip would upgrade numpy/pandas/torch/scipy/sklearn/pyarrow, the install is refused and the experiment is BLOCKED, because determinism was verified against those exact versions.",
+      "verdict": "OPEN",
+      "result": "pre-registered before any install"
     }
   ]
 }
