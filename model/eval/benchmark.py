@@ -339,7 +339,7 @@ class ScaledClimatology(Forecaster):
 def run_fold(ep, X, fold, hidden=32, seeds=3, verbose=False, shape_cols=None,
              sigma_ref_all=None, sigma_ref_fn=None, extra_w=None,
              train_filter=None, min_train=5000, prod_override=None,
-             lam_r=1.0):
+             lam_r=1.0, post_shift_fn=None):
     fin = np.isfinite(X.to_numpy()).all(1)
     # `prod_override` lets a caller score a DIFFERENT slice (e.g. one
     # horizon at a time) through this same path, so its numbers stay
@@ -385,12 +385,49 @@ def run_fold(ep, X, fold, hidden=32, seeds=3, verbose=False, shape_cols=None,
     def predict_avg(mask):
         d, _ = prepare(ep, X, mask, *stds, shape_cols=shape_cols)
         lp = bl["log_har_cal"].predict(X[mask])
+        # `post_shift_fn(mask, train_mask)` returns the shift wanted on the
+        # FINAL blended log-vol level, applied before Stage B sees it -- so the
+        # barrier curves, the committee and the calibration all inherit it.
+        # That is the whole point: E2c re-weighted a recorded median and could
+        # not say what its correction does to a touch probability, which is the
+        # actual product.
+        #
+        # THE DIVISION IS NOT A FUDGE, IT IS THE BLEND ALGEBRA. infer.predict
+        # shifts the distribution so its median lands on
+        #
+        #     qa_med = w * qa_raw + (1 - w) * har_logvol
+        #
+        # so adding D to `har_logvol` moves the final level by (1 - w) * D, not
+        # by D. With w = 0.25 a correction passed in naively would arrive 25%
+        # attenuated -- and E2c's coefficients were fitted against the FINAL
+        # blended sigma, so an attenuated version is a different experiment
+        # wearing the same name. Dividing by (1 - w) here makes the realized
+        # shift equal the requested one, and the assertion below checks that
+        # rather than trusting the algebra.
+        #
+        # Default None reproduces the previous behaviour exactly.
+        if post_shift_fn is not None:
+            want = np.asarray(post_shift_fn(mask, m_tr), np.float64)
+            if want.shape != lp.shape:
+                raise ValueError(
+                    f"post_shift_fn returned {want.shape}, expected {lp.shape}")
+            lp = lp + want / (1.0 - I.BLEND_W)
         preds = [I.predict(m, d, har_logvol=lp) for m in models]
         out = dict(preds[0])
         for k in ("qa", "sigma_atoms", "sigma_med", "q_r", "q_up", "q_dn", "q_mx"):
             if all(k in p for p in preds):
                 out[k] = np.mean([p[k] for p in preds], axis=0)
         return out, lp
+
+    def predict_avg_noshift(mask):
+        """`predict_avg` with the shift suppressed. Used only by the assertion
+        above; defined here so the two paths cannot drift apart."""
+        nonlocal post_shift_fn
+        keep, post_shift_fn = post_shift_fn, None
+        try:
+            return predict_avg(mask)
+        finally:
+            post_shift_fn = keep
 
     # ---- calibration slice: fit the committee (equal weights, as shipped) --
     m_cal = m_va & (ep.H == 19).to_numpy()
@@ -408,6 +445,22 @@ def run_fold(ep, X, fold, hidden=32, seeds=3, verbose=False, shape_cols=None,
     comm = Committee(specs).fit_equal()
 
     # ---- test slice --------------------------------------------------------
+    if post_shift_fn is not None:
+        # Verify the blend algebra ON THIS FOLD rather than trusting the
+        # comment above: predict the test slice with and without the shift and
+        # confirm the achieved median moved by exactly what was asked for.
+        p_off, _ = predict_avg_noshift(m_te)
+        p_on, _ = predict_avg(m_te)
+        want = np.asarray(post_shift_fn(m_te, m_tr), np.float64)
+        got = (np.log(np.maximum(p_on["sigma_med"], 1e-300))
+               - np.log(np.maximum(p_off["sigma_med"], 1e-300)))
+        err = float(np.max(np.abs(got - want)))
+        if not err < 1e-6:
+            raise AssertionError(
+                f"post_shift_fn asked for a log-level shift and got a different "
+                f"one: max |achieved - requested| = {err:.3e}. The blend algebra "
+                f"in predict_avg is wrong, so the correction being scored is not "
+                f"the correction that was fitted.")
     p_te, lp_te = predict_avg(m_te)
     e_te = ep[m_te]
     Ht = H[m_te]
