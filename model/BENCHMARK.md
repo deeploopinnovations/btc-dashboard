@@ -2662,3 +2662,94 @@ bounds what shuffled inputs buy.
 **Phase 1 opens.**
 
 *Educational research only. Not financial advice.*
+
+## 19. Phase 1 finds the lag mechanism: the freshest features are absent from the dominant term
+
+### First, a correction to the Phase 1 catalog
+
+The feature-catalog agent reported that `rng_*` and `cal_month_*` sit in "a
+fourth, unnamed category" belonging to neither the model inputs nor
+`NON_MODEL_COLS`, implying they are computed but unused. **That is wrong, and
+the count was wrong too.** Verified against the shipped artifact:
+
+| | count |
+|---|---|
+| columns in `features.parquet` | 42 |
+| `NON_MODEL_COLS` (`eff_1d/3d/7d`) | 3 |
+| **`feat_cols` — Stage A's actual input** | **39** |
+| `BASE_COLS` ∪ `SHAPE_COLS` | 24 |
+| in `feat_cols` but not in BASE ∪ SHAPE | **15**, not 6 |
+
+Stage A's first-layer weight is `(32, 39)`, confirming all 39 reach the network.
+The 15 are **not unused** — they feed Stage A. They are absent from Stage B's
+shape set and from the OLS base. That is a different, and much more
+interesting, fact.
+
+### The finding
+
+    BASE_COLS = ['har_1d', 'har_5d', 'har_22d', 'cal_H', 'cal_weekend_frac']
+    BLEND_W   = 0.25        # Stage A median = 0.25 * neural + 0.75 * Log-HAR
+
+`har_1h` and `har_6h` are computed, stored, and fed to the neural stage — and
+are **absent from `BASE_COLS`**, the input set of the Log-HAR anchor that
+carries **75 % of the blended weight**.
+
+**So the dominant term's fastest input is `har_1d`.** A component whose finest
+resolution is one day cannot respond to anything faster than a day, and it
+decides three-quarters of the forecast.
+
+### Why this matters: it is the lag mechanism, and it closes a chain
+
+Three sections converge here.
+
+- §7a measured the lag — spike nights under-forecast 45 %, 25.8 % of total loss,
+  predicted σ correlating 0.920 with realized RV dated one day *after* and only
+  0.507 one day *before* — and explained it as **structural**: "every input the
+  model has is a trailing statistic."
+- §12 **refuted** that: a spike-onset classifier clears its nulls at AUC 0.733
+  (CI [0.6547, 0.8052]). The information is present.
+- §19 now supplies the mechanism neither had: the information is present, the
+  *neural* stage receives it, and the *75 %-weight anchor does not*.
+
+§12's Arm 4 measured exactly the predicted consequence without knowing the
+cause — adding `har_1h`/`har_6h` to the OLS baseline moved pooled QLIKE
+**−7.33 %**, spike **−10.44 %**, onset-day **−5.48 %**. Those gains are large
+precisely because the features were never in the term that dominates.
+
+This is the difference between "the model lags" and "the model lags *because*
+the component holding 75 % of the weight cannot see below daily resolution."
+The second is actionable.
+
+### Pre-registered experiment, fixed before it runs
+
+**Hypothesis:** adding `har_1h` and `har_6h` to `BASE_COLS` reduces the
+volatility lag, with the largest effect on spike-onset episodes.
+
+**Single change:** `BASE_COLS` gains two entries. Nothing else — same
+architecture, seeds, folds, embargo, blend weight, calibration.
+
+**Primary endpoint — on the slice the treatment targets**, per the §13 lesson
+that made pooled QLIKE primary for a 6 %-of-episodes treatment and produced an
+uninterpretable verdict: **spike-episode QLIKE**, with a moving-block bootstrap
+CI that must exclude zero on the favourable side.
+
+**Guardrails, all of which must hold:**
+- calm-episode QLIKE must not worsen by more than **1 %** (own CI);
+- pooled QLIKE reported but **not** a condition;
+- deep-tail barrier MCB must not worsen with a CI excluding zero unfavourably;
+- the Log-HAR baseline itself will change (it gains inputs), so
+  `log_har_gauss` is re-scored and reported rather than treated as fixed.
+
+**Expected direction:** spike QLIKE improves. **Rejection:** if spike QLIKE's CI
+contains zero, the §12 Arm 4 gain was an artifact of the OLS-only harness and
+does not survive the full pipeline.
+
+**Compute:** 6 folds × 3 seeds × 2 arms, ~20 minutes.
+
+**A caution recorded in advance:** `BASE_COLS` also defines the OLS anchor that
+`train_v2` fits and the artifact stores as `har_beta`. Changing it changes the
+shipped artifact's shape, so this is a Phase-gated change and not a
+fix-in-passing — the same discipline that kept §16's sigma_ref correction in
+its own step.
+
+*Educational research only. Not financial advice.*

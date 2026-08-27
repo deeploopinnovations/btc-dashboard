@@ -256,6 +256,22 @@
       "rule": "each column needs event_time, publication_time, feature_time and source, or is marked UNVERIFIED with a reason; the gate is completeness of the record, not absence of gaps",
       "verdict": "OPEN",
       "result": "Phase 1 opened"
+    },
+    {
+      "id": "19",
+      "topic": "lag",
+      "question": "Are the freshest volatility features absent from the dominant Log-HAR anchor?",
+      "rule": "verify BASE_COLS membership and BLEND_W against the shipped artifact",
+      "verdict": "ADOPT",
+      "result": "YES. BASE_COLS = har_1d/har_5d/har_22d/cal_H/cal_weekend_frac; har_1h and har_6h are absent. BLEND_W=0.25 so Log-HAR carries 75%. The dominant term's fastest input is har_1d, so it cannot react faster than a day -- the lag mechanism. Also corrects the Phase 1 catalog: feat_cols is 39 (Stage A weight (32,39)), and 15 columns sit outside BASE|SHAPE, not 6, and they ARE model inputs rather than an unused category."
+    },
+    {
+      "id": "E-anchor",
+      "topic": "lag",
+      "question": "Does adding har_1h/har_6h to BASE_COLS reduce the volatility lag?",
+      "rule": "PRIMARY on the targeted slice: spike-episode QLIKE with a moving-block bootstrap CI excluding zero favourably. Guards: calm QLIKE not worse than 1% with its own CI; deep-tail MCB not worse with CI excluding zero unfavourably; pooled QLIKE reported but NOT a condition; log_har_gauss re-scored since it gains inputs too.",
+      "verdict": "OPEN",
+      "result": "pre-registered before the run"
     }
   ]
 }
