@@ -274,7 +274,12 @@ def mean_ci(d, n_rep: int = 20_000, seed: int = 0, alpha: float = 0.05) -> dict:
     blk = d[idx].mean(axis=1)
     iid = d[rng.integers(0, n, size=(n_rep, n))].mean(axis=1)
     q = lambda a: (float(np.quantile(a, alpha / 2)), float(np.quantile(a, 1 - alpha / 2)))
+    # NOTE the key name: `ci95` carries whatever `alpha` was requested, so at
+    # alpha = 0.025 it is a 97.5% interval despite the name. `level` is
+    # returned alongside precisely so a caller reporting a Bonferroni-adjusted
+    # interval cannot label it 95% by copying the key.
     return {"mean": float(d.mean()), "n": n, "block_len": L,
+            "level": float(1.0 - alpha),
             "ci95": list(q(blk)), "ci95_iid": list(q(iid)),
             "n_negative": int((d < 0).sum()), "n_positive": int((d > 0).sum()),
             "sd": float(d.std(ddof=1)) if n > 1 else float("nan")}

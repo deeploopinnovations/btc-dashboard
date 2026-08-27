@@ -350,6 +350,15 @@
       "result": "NO -- the first E-anchor run printed every CI as [nan, nan]. direction.block_bootstrap_ci returns (nan, nan) below n = 20 by design, a correct guard for a per-episode loss difference; the unit here was a FOLD and there were six. The rule asked `primary = sp_hi < 0.0`, and `nan < 0.0` is False, so the script printed 'DO NOT ADOPT' without any statistic having looked at the data. The verdict was right by luck: all six folds moved the wrong way. Re-derived through --from-json, the spike CI is [+0.02151, +0.05408] and the verdict is unchanged.",
       "implication": "Added direction.mean_ci (defined at every usable n; returns the pre-registered moving-block interval AND the iid interval AND the sign count, so the estimator choice at n = 6 is visible rather than picked), direction.ci_excludes_zero (raises on a NaN interval), and research/pitfalls.check_ci_is_defined as check 11 with this run as its historical case -- the self-test now expects 11 failures. anchor_freshness.py gained --from-json so a broken STATISTIC can be corrected through the same code path without retraining and without any opportunity to change a SCORE.",
       "lesson": "NaN silently satisfies every 'did not clear the bar' branch, so the rule returns the same answer whether the effect is huge, zero, or unmeasured. A correct answer is not evidence that the machinery works."
+    },
+    {
+      "id": "E-power",
+      "topic": "methodology",
+      "date": "2026-08-27",
+      "question": "How much statistical power do this project's verdicts actually have, given every fold is scored on ~365 production-slice episodes?",
+      "rule": "Pre-registered in BENCHMARK.md 22 before the run. Re-decide E-anchor (21) on the 24-anchor-hour slice at H = 19 via run_fold's prod_override -- same arms, seeds, folds and rule. PRIMARY: the CI width ratio, production-slice spike-QLIKE CI divided by 24-hour-slice CI, compared against sqrt(24) = 4.90 expected under independence. This is a MEASUREMENT with no threshold. THE FINDING, if it happens: if 21's verdict flips on the wider slice, the production slice has been deciding questions it cannot resolve and every prior verdict resting on a marginal CI needs re-running. Horizons are NOT mixed -- H = 6/12/19/24 at one anchor are nested, and that overlap is not serial dependence a moving-block bootstrap can model.",
+      "verdict": "OPEN",
+      "result": "pre-registered before the run. Established facts it rests on: m_te = fold['test'] & finite & production_mask, and production_mask = (H == 19) & (anchor_hour == 17), so each fold scores ~365 episodes with ~20 spike-flagged, against a 510,496-episode population. Six folds is ~2,190 test and ~119 spike episodes in total."
     }
   ]
 }

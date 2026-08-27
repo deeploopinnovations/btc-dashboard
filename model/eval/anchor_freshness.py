@@ -127,12 +127,22 @@ def main(argv=None) -> int:
     ap.add_argument("--hidden", type=int, default=32)
     ap.add_argument("--out", type=Path,
                     default=Path("model/artifacts/anchor_freshness.json"))
+    ap.add_argument("--all-hours", action="store_true",
+                    help="score all 24 anchor hours at H = 19 instead of the "
+                         "production slice (17:00 only). BENCHMARK.md 22: this "
+                         "is the same experiment through the same code path on "
+                         "a 24x wider scoring slice, so the CI width ratio "
+                         "measures how much power the production slice gives "
+                         "up. Training is unchanged; only scoring widens.")
     ap.add_argument("--from-json", type=Path, default=None,
                     help="re-derive the verdict from an earlier run's stored "
                          "per-fold records instead of retraining. Every fold "
                          "number is read, none recomputed, so this can fix a "
                          "broken STATISTIC but can never change a SCORE.")
     a = ap.parse_args(argv)
+
+    if a.all_hours and a.out == Path("model/artifacts/anchor_freshness.json"):
+        a.out = Path("model/artifacts/anchor_freshness_allhours.json")
 
     if a.from_json is not None:
         prev = json.loads(a.from_json.read_text())
@@ -158,6 +168,20 @@ def main(argv=None) -> int:
     missing = [c for c in FRESH if c not in X.columns]
     if missing:
         raise SystemExit(f"REFUSING: {missing} absent from the feature matrix")
+    # The scoring slice. `prod_override=None` means run_fold uses
+    # production_mask -- H == 19 AND anchor_hour == 17, ~365 episodes a year.
+    # --all-hours keeps H == 19 and takes every anchor hour, 24x the episodes
+    # with adjacent hours sharing 18 of their 19 hours; that dependence is
+    # serial and is what the moving-block bootstrap is built for. Horizons are
+    # deliberately NOT mixed: H = 6/12/19/24 at one anchor are nested inside
+    # one another, which is a different kind of overlap the estimator does not
+    # model.
+    prod = None
+    if a.all_hours:
+        prod = (ep["H"] == S.PROD_H).to_numpy()
+        print(f"scoring slice: ALL 24 anchor hours at H = {S.PROD_H} "
+              f"({int(prod.sum()):,} episodes in the population, vs "
+              f"{int(S.production_mask(ep).sum()):,} in the production slice)")
     print(f"control BASE_COLS ({len(base_orig)}): {base_orig}")
     print(f"treated BASE_COLS ({len(base_fresh)}): {base_fresh}")
     print(f"spike episodes: {spike.sum():,} of {len(ep):,} "
@@ -173,7 +197,7 @@ def main(argv=None) -> int:
             # leaked mutation would silently contaminate every later fold.
             with base_cols(cols):
                 r = B.run_fold(ep, X, f, hidden=a.hidden, seeds=a.seeds,
-                               sigma_ref_fn=sig_fn)
+                               sigma_ref_fn=sig_fn, prod_override=prod)
             if r is None:
                 print(f"  {f['year']}  {nm:13} SKIPPED"); continue
             pe = r["per_episode"]

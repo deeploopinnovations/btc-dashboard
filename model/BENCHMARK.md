@@ -2959,3 +2959,77 @@ path, so a broken *statistic* was fixed without a single model being retrained
 and without any opportunity to change a *score*.
 
 *Educational research only. Not financial advice.*
+
+## 22. Pre-registration: how much statistical power does this project actually have?
+
+A number surfaced while wiring `eval/blend_ceiling.py` that reframes every
+verdict in this document, including the ones already recorded.
+
+    benchmark.run_fold:  m_te = fold["test"] & finite & production_mask
+    splits.production_mask:  (H == 19) & (anchor_hour == 17)
+
+**Every walk-forward fold is scored on ~365 episodes** — one 19-hour window
+opened at 17:00 UTC per day — of which roughly 20 carry the causal spike flag.
+Six folds is ~2,190 test episodes and ~119 spike episodes *in total*. The
+episode population is 510,496.
+
+That is a defensible choice for a deployment decision: 17:00/19h is the actual
+trade, and scoring it is scoring the product. It is a much less obvious choice
+for a *research* decision about a model's internals, where the question is
+whether an effect exists at all, and where the cost of a slice is power.
+
+§7a established that spike nights carry 25.8 % of total loss. Every experiment
+aimed at them — §13's upweighting, §19/§21's fresh anchor, and the blend weight
+now under test — has been decided on about twenty episodes per fold.
+
+### The question, which is measurable rather than rhetorical
+
+Widening the slice from one anchor hour to all 24, at the same H = 19, gives
+24× the episodes. It does **not** give 24× the information: episodes anchored
+at 16:00 and 17:00 share 18 of their 19 hours. The honest quantity is the
+**effective sample size multiplier** — how much a CI actually tightens when the
+nominal n rises 24-fold.
+
+    expected under independence:   sqrt(24) = 4.90x tighter
+    observed:                      to be measured
+
+The ratio of those two is a reusable constant for this project. It tells every
+future experiment how much power a wider slice really buys, instead of leaving
+it to be assumed in either direction.
+
+Mixing horizons is deliberately excluded. Episodes at the same anchor with
+H = 6, 12, 19 and 24 are nested inside one another and their overlap is not
+serial dependence a moving-block bootstrap can model. Holding H = 19 and
+varying only the anchor hour keeps the dependence in the one form the estimator
+is built for.
+
+### Pre-registered, fixed before it runs
+
+**Design.** Re-decide §21 — the one experiment in this document with a large,
+unanimous, already-resolved effect — on the 24-anchor-hour slice at H = 19, via
+`run_fold`'s existing `prod_override`. Same arms, same seeds, same folds, same
+rule. §21 is the right subject precisely *because* its verdict is not in doubt:
+the point is to measure the estimator, and that requires a case where a
+disagreement would be informative rather than ambiguous.
+
+**Primary endpoint: the CI width ratio**, block-bootstrap spike-QLIKE CI on the
+production slice divided by the same CI on the 24-hour slice. This is a
+measurement, not a hypothesis test, and it is reported with no threshold to
+clear.
+
+**The one thing that would be a finding, stated in advance:** if the §21 verdict
+*flips* — if spike QLIKE's CI crosses zero, or excludes it favourably, on the
+wider slice — then the production slice has been deciding research questions it
+does not have the power to decide, and every prior verdict in this document
+that rested on a marginal CI needs re-running. If the verdict holds and only
+the interval narrows, the production slice was adequate for effects of that
+size, and the multiplier tells us the size below which it is not.
+
+**What this cannot do.** A wider slice cannot rescue an effect that is absent,
+and a tighter CI around a null is still a null. This measures resolution, not
+truth.
+
+**Compute.** 6 folds × 3 seeds × 2 arms on a 24× wider scoring slice; training
+cost is unchanged, only scoring widens.
+
+*Educational research only. Not financial advice.*

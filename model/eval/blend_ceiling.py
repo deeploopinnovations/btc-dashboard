@@ -62,13 +62,30 @@ THREE QUANTITIES, AND ONLY ONE OF THEM IS A RESULT
          as headroom would repeat the withdrawn "92% is shape" figure exactly.
 
      2b. TWO-STATE in-sample oracle: ONE w for spike episodes and ONE for calm,
-         fitted on the same fold being scored. Two free parameters against
-         ~90,000 observations. THIS is the meaningful upper bound, because it
-         is the best any two-state rule could do even with perfect foresight
-         about which two numbers to pick -- so the causal rule in (3), which
-         must pick them from prior folds, cannot beat it.
+         fitted on the same fold being scored. Two free parameters against a
+         fold's ~365 test episodes -- `benchmark.run_fold` scores the
+         PRODUCTION slice, one 19-hour window opened at 17:00 UTC per day, so a
+         year is ~365 episodes and ~20 of them carry the spike flag, not the
+         ~500k of the full population. THIS is the meaningful upper bound,
+         because it is the best any two-state rule could do even with perfect
+         foresight about which two numbers to pick -- so the causal rule in
+         (3), which must pick them from prior folds, cannot beat it.
 
-     AMENDED BEFORE ANY SCORE WAS READ. The first version of this rule made the
+         Two parameters against 365 observations is comfortable; the SPIKE
+         weight, fitted on ~20, is not, and that is precisely why the
+         shrinkage below is indexed to fold-to-fold instability rather than
+         adopted raw.
+
+     WHICH OBJECT THIS SCORES. `benchmark.run_fold` averages `sigma_med` over
+  seeds ARITHMETICALLY and `qa` LOGARITHMICALLY, and exp(mean(log)) is not
+  mean(exp). The sweep is computed on the log-space object, which makes the
+  w-algebra exact; the arithmetic gap at w = 0.25 is measured per fold and
+  reported (`seed_avg_gap`), so the sweep's w = 0.25 point is known to be a
+  hair away from the benchmark's headline `noctua` QLIKE rather than assumed
+  identical. `check_recovery` tests the AM-GM direction of that gap, which is
+  a signed prediction the explanation could fail.
+
+  AMENDED BEFORE ANY SCORE WAS READ. The first version of this rule made the
      2% floor apply to 2a. That was wrong on its face: 2a's number is an
      artifact of parameter count and would have passed a 2% floor no matter
      what the data said, which makes it a rule that cannot fail -- the same
@@ -263,19 +280,67 @@ def recover_raw(pe: dict) -> np.ndarray:
     return (pe["qa_med"] - (1.0 - w0) * pe["har_logvol"]) / w0
 
 
-def check_recovery(pe: dict, tol: float = 1e-9) -> float:
-    """Round-trip the inversion. A silent mismatch here would corrupt everything
-    downstream, and this repository's recurring failure is a wrong comparison
-    that ran to completion, so the check is loud and unconditional."""
+# The seed-averaging gap, measured rather than assumed.
+#
+# The first run of this file asserted that inverting the blend and re-applying
+# it reproduces the recorded `sigma_med` to 1e-6, and it did not: max relative
+# error 5.4e-4. The identity is not wrong -- the two quantities average over
+# SEEDS differently.
+#
+#   `sigma_med`  is np.mean over seeds of exp(qa_med_s) * sqrt(H)  -- ARITHMETIC
+#   `qa`         is np.mean over seeds of qa_s, so exp(qa_bar)     -- GEOMETRIC
+#
+# and exp(mean(log)) != mean(exp). That gives a SIGNED prediction, which is
+# what makes this an explanation rather than a rationalisation: by AM-GM the
+# geometric mean is never larger, so `sigma_geo <= sigma_med` must hold at
+# every single episode, with equality only where the seeds agree exactly. The
+# check below tests that direction and fails if it is ever violated.
+#
+# The w-sweep is therefore computed on the log-space (geometric) object, which
+# is exactly self-consistent, and the arithmetic gap at w0 is reported so the
+# reader knows the sweep's w = 0.25 point is not bit-identical to the
+# benchmark's headline `noctua` QLIKE.
+AM_GM_TOL = 5e-3
+
+
+def check_recovery(pe: dict) -> dict:
+    """Two separate checks, because they answer different questions.
+
+    EXACT: does the affine inversion round-trip through the log-space object it
+    was derived from? This must hold to floating-point precision -- if it does
+    not, the algebra is wrong and every number downstream is fiction.
+
+    SIGNED: how far is the log-space object from the recorded `sigma_med`, and
+    is the gap in the direction AM-GM requires? A gap in the wrong direction
+    would mean the seed-averaging story is not the explanation.
+    """
+    w0 = float(pe["blend_w"])
     raw = recover_raw(pe)
-    got = sigma_at(float(pe["blend_w"]), raw, pe["har_logvol"], pe["H"])
-    err = float(np.max(np.abs(got - pe["sigma_med"]) / np.maximum(pe["sigma_med"], 1e-12)))
-    if not err < 1e-6:
+    geo = sigma_at(w0, raw, pe["har_logvol"], pe["H"])
+    exact = np.exp(pe["qa_med"]) * np.sqrt(pe["H"])
+    err = float(np.max(np.abs(geo - exact) / np.maximum(exact, 1e-12)))
+    if not err < 1e-9:
         raise AssertionError(
             f"blend inversion does not round-trip: max relative error {err:.3e}. "
-            f"The recorded sigma_med is not exp(w*qa_raw + (1-w)*har)*sqrt(H), so "
-            f"the whole w-surface computed from it would be fiction.")
-    return err
+            f"exp(w*qa_raw + (1-w)*har)*sqrt(H) must reproduce exp(qa_med)*sqrt(H) "
+            f"exactly; it does not, so the algebra is wrong and the whole "
+            f"w-surface would be fiction.")
+
+    rel = (pe["sigma_med"] - geo) / np.maximum(pe["sigma_med"], 1e-12)
+    if rel.min() < -1e-9:
+        raise AssertionError(
+            f"seed-averaging gap runs the WRONG WAY at {int((rel < -1e-9).sum())} "
+            f"episodes (min {rel.min():.3e}). AM-GM makes the geometric seed mean "
+            f"no larger than the arithmetic one, so the 'sigma_med averages in "
+            f"sigma space, qa averages in log space' explanation is refuted and "
+            f"the real cause is something else -- do not proceed on it.")
+    gap = float(rel.max())
+    if gap > AM_GM_TOL:
+        raise AssertionError(
+            f"seed-averaging gap {gap:.3e} exceeds {AM_GM_TOL:.0e}; the seeds "
+            f"disagree far more than a 3-seed committee should, which is a "
+            f"finding in its own right and not something to average over.")
+    return {"inversion_err": err, "seed_gap": gap}
 
 
 def main(argv=None) -> int:
@@ -313,14 +378,23 @@ def main(argv=None) -> int:
                     f"REFUSING: run_fold did not record '{k}'. This script needs "
                     f"the blend components; re-run against a benchmark.py that "
                     f"records them.")
-        err = check_recovery(pe)
+        chk = check_recovery(pe)
+        err = chk["inversion_err"]
+        # `test_idx` and `anchor_ts` ride along so a LATER experiment can join
+        # anything episode-aligned -- implied vol, funding, a regime label --
+        # onto these same out-of-sample forecasts without retraining. Omitting
+        # them would make every such experiment pay the 6-fold retrain again.
         rec = {"year": f["year"], "recovery_err": err,
+               "seed_gap": chk["seed_gap"],
                "rv": pe["rv"], "raw": recover_raw(pe), "har": pe["har_logvol"],
                "H": pe["H"], "spike": spike[pe["test_idx"]],
+               "test_idx": pe["test_idx"],
+               "anchor_ts": ep["anchor_ts"].to_numpy(np.int64)[pe["test_idx"]],
                "n": int(len(pe["rv"]))}
         per_fold.append(rec)
         print(f"  {f['year']}  n={rec['n']:6d}  spike={int(rec['spike'].sum()):5d}  "
-              f"inversion max rel err {err:.2e}  ({time.time()-t0:.0f}s)", flush=True)
+              f"inversion {err:.1e}  seed-avg gap {chk['seed_gap']:.1e}  "
+              f"({time.time()-t0:.0f}s)", flush=True)
 
     if not per_fold:
         print("no fold produced results"); return 1
@@ -334,7 +408,7 @@ def main(argv=None) -> int:
     a.out.parent.mkdir(parents=True, exist_ok=True)
     np.savez_compressed(npz, **{
         f"{k}_{r['year']}": r[k] for r in per_fold
-        for k in ("rv", "raw", "har", "H", "spike")})
+        for k in ("rv", "raw", "har", "H", "spike", "test_idx", "anchor_ts")})
     print(f"\ncached components -> {npz}")
 
     def fold_q(rec, w_calm, w_spike):
@@ -475,6 +549,7 @@ def main(argv=None) -> int:
            "oracle_w_calm": float(np.nanmean(orac_w_by_slice["calm"])),
            "fitted_weights": fitted,
            "recovery_err": [r["recovery_err"] for r in per_fold],
+           "seed_avg_gap": [r["seed_gap"] for r in per_fold],
            "n_folds_scored": len(d_pool)}
 
     out["raw_deltas"] = {}
