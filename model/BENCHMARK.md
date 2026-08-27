@@ -2597,3 +2597,68 @@ to destroy the ability to confirm what it was, and this file's value depends on
 its superseded numbers staying reproducible.
 
 *Educational research only. Not financial advice.*
+
+## 18. The corrected baseline — adopted unconditionally, and it is slightly worse
+
+§16 pre-registered this: the configuration that ships becomes the baseline
+**whether it scores better or worse**, because a baseline measuring something
+that is not deployed is not a baseline. Result:
+
+| metric | realized-RV (what the benchmark scored) | causal σ-ref (**what ships**) | change |
+|---|---|---|---|
+| **QLIKE noctua** | 0.289605 | **0.290346** | **+0.256 % — worse** |
+| QLIKE log_har | 0.305651 | 0.305651 | **0.000 %** |
+| QLIKE persistence | 0.433230 | 0.433230 | **0.000 %** |
+| pinball_up | 0.003305 | 0.003303 | −0.053 % |
+| CRPS_up | 0.004890 | 0.004882 | −0.163 % |
+| Brier up 2 % | 0.195717 | 0.195381 | −0.172 % |
+| MCB up 2 % | 0.012241 | 0.011918 | **−2.637 %** |
+| DSC/UNC dn 2 % | 0.05989 | 0.06415 | **+7.11 %** |
+
+**ADOPTED.** Volatility QLIKE is marginally worse; barrier calibration and
+downside discrimination are meaningfully better. That is the same trade §6b
+found when it first introduced the causal reference, now confirmed on the
+headline benchmark rather than on an ablation.
+
+### The control that makes this credible
+
+`log_har` and `persistence` are **bit-identical at 0.000 %**. Neither touches
+Stage B, so a correct fix must leave them exactly unchanged — and it did. A
+change that had perturbed the harness more broadly would have moved them.
+Without that control, "the numbers moved a bit" would be indistinguishable from
+"I broke something adjacent".
+
+### What the corrected baseline says about the model, unflatteringly
+
+| model | pinball_up | CRPS_up | Brier up 2 % | DSC/UNC |
+|---|---|---|---|---|
+| **noctua_v2** | **0.003303** | **0.004882** | 0.195381 | 0.08834 |
+| log_har_gauss | 0.003416 | 0.004916 | **0.193062** | **0.09028** |
+| climatology | 0.003769 | 0.005463 | 0.216664 | 0.00000 |
+| noctua_shuffled | 0.003810 | 0.005553 | 0.215179 | 0.01251 |
+
+**`log_har_gauss` beats `noctua_v2` on Brier and discrimination at the 2 %
+barrier.** NOCTUA wins the distributional scores — pinball and CRPS — which are
+what the quantile heads are actually trained on. This is consistent with what
+this document already said (4/6 folds, t = +0.46, noise), and it is restated at
+the top of the new baseline rather than left for a reader to find, because the
+baseline is where a model's weaknesses should be hardest to miss.
+
+`climatology` at exactly 0.00000 DSC/UNC is the by-construction check working:
+a constant forecaster has zero discrimination. `noctua_shuffled` at 0.01251
+bounds what shuffled inputs buy.
+
+### Phase 0 is CLOSED
+
+| condition | result |
+|---|---|
+| determinism | PASS — 351/351 bit-identical (§17) |
+| leakage | NO LEAK — positive control verified (§16) |
+| baseline reproduces | PASS on gate v2; gate v1 void (§16) |
+| eval path = shipped config | FIXED (§16, §18) |
+| environment pinned | `model/requirements-research.txt` |
+| `BASELINE_MANIFEST.md` | written against corrected numbers |
+
+**Phase 1 opens.**
+
+*Educational research only. Not financial advice.*

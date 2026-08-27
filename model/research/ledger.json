@@ -246,8 +246,16 @@
       "topic": "baseline",
       "question": "What is the baseline once the benchmark trains the shipped configuration?",
       "rule": "re-run with sigma_ref_fn supplied; ADOPT the corrected configuration UNCONDITIONALLY as the new baseline, whether it scores better or worse, because it is what ships",
+      "verdict": "ADOPT",
+      "result": "corrected config adopted unconditionally as pre-registered. QLIKE 0.289605 -> 0.290346 (+0.256%, WORSE); MCB up 2% -2.637%; DSC/UNC dn 2% +7.11%. Control: log_har and persistence bit-identical at 0.000%, as a correct fix requires. Baseline also shows log_har_gauss BEATING noctua_v2 on Brier (0.193062 vs 0.195381) and DSC/UNC (0.09028 vs 0.08834) at 2%."
+    },
+    {
+      "id": "phase1",
+      "topic": "lineage",
+      "question": "Can every one of the 42 feature columns be documented point-in-time?",
+      "rule": "each column needs event_time, publication_time, feature_time and source, or is marked UNVERIFIED with a reason; the gate is completeness of the record, not absence of gaps",
       "verdict": "OPEN",
-      "result": "pre-registered before the corrected run"
+      "result": "Phase 1 opened"
     }
   ]
 }
