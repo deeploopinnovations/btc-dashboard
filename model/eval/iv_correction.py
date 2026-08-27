@@ -145,6 +145,11 @@ from research import pitfalls as P                                        # noqa
 IV_COLS = ["iv_level", "iv_chg_1h", "iv_chg_6h", "iv_chg_24h",
            "iv_z_20d", "ivrv_ratio"]
 SIGMA_B = 0.10          # scale of a "large" coefficient; fixed a priori
+EXP_BOUND = 1.0         # |z . beta| bound: the correction may scale sigma by at
+                        # most e^1 = 2.72x either way. A multiplicative
+                        # adjustment larger than that is not a correction to a
+                        # forecast, it is a different forecast.
+SPIKE_POINT_BAR = 2.0   # percent; see the spike guard's note
 PLACEBO_SHIFT_H = 365 * 24      # rotation distance, in covered-episode rows
 
 
@@ -172,6 +177,17 @@ def fit_beta(z: np.ndarray, r_hat: np.ndarray, iters: int = 60,
         step = np.linalg.solve(H, g)
         b -= step
         if np.max(np.abs(step)) < tol:
+            # The gradient and Hessian above assume exp(-2 z.b) is smooth. Where
+            # the clip binds it is not -- its derivative there is zero, which
+            # the formulas do not model, so a fit that "converged" against a
+            # locally wrong gradient would pass the step test while being wrong.
+            reach = float(np.max(np.abs(2.0 * (z @ b))))
+            if reach > 25.0:
+                raise RuntimeError(
+                    f"Newton converged with |2 z.b| reaching {reach:.1f}, inside "
+                    f"the clip's saturated region (bound 30). The gradient and "
+                    f"Hessian are not valid there, so this fit is not the "
+                    f"minimum it reports being.")
             return b
     raise RuntimeError(
         f"IV correction did not converge in {iters} Newton steps "
@@ -255,6 +271,13 @@ def main(argv=None) -> int:
     if len(covered_rows) == 0:
         raise SystemExit("REFUSING: no episode has a complete IV feature vector")
     pos_of_row = {int(r): i for i, r in enumerate(covered_rows)}
+    if len(covered_rows) < 3 * PLACEBO_SHIFT_H:
+        raise SystemExit(
+            f"REFUSING: only {len(covered_rows):,} covered episodes for a "
+            f"{PLACEBO_SHIFT_H:,}-row rotation. The modulo would wrap to a small "
+            f"NEAR-NEIGHBOUR shift, which decorrelates nothing while still "
+            f"passing the coverage-preservation check -- a placebo that is not a "
+            f"placebo. Shorten PLACEBO_SHIFT_H deliberately or do not run this.")
     roll = PLACEBO_SHIFT_H % len(covered_rows)
     for f in folds:
         zp = np.full_like(f["z"], np.nan)
@@ -274,11 +297,31 @@ def main(argv=None) -> int:
                 f"is partly a difference in which episodes were scored.")
 
     def score(f, key_z, key_cov, beta, mu, sd):
+        """Corrected and uncorrected QLIKE on the SAME episodes.
+
+        The exponent is bounded. `beta` is fitted on history and applied to a
+        later fold standardised with HISTORY's moments, so a regime shift can
+        put `z . beta` far outside anything the fit saw -- and QLIKE is bounded
+        below by 0 but unbounded above, so one extrapolated episode can dominate
+        a fold's mean. The bias that introduces is one-directional (QLIKE's
+        floor means a wild forecast can only make the delta worse, never
+        better), so an unbounded exponent buys spurious REJECTs, not spurious
+        wins. It is still a wrong number. EXCEEDANCES ARE COUNTED AND RETURNED
+        rather than silently clipped, because a fold where the bound binds is a
+        fold whose correction was extrapolating, which is worth knowing.
+        """
         m = f[key_cov]
         zz = standardise(f[key_z][m], mu, sd)
-        sig_c = f["sig"][m] * np.exp(zz @ beta)
-        return (qlike(f["rv"][m], sig_c), qlike(f["rv"][m], f["sig"][m]),
-                f["spike"][m])
+        raw_exp = zz @ beta
+        n_clip = int((np.abs(raw_exp) > EXP_BOUND).sum())
+        sig_c = f["sig"][m] * np.exp(np.clip(raw_exp, -EXP_BOUND, EXP_BOUND))
+        if not np.all(np.isfinite(sig_c)):
+            raise RuntimeError(
+                "corrected sigma is not finite even after bounding the exponent")
+        q_c = qlike(f["rv"][m], sig_c)
+        q_b = qlike(f["rv"][m], f["sig"][m])
+        assert len(q_c) == len(q_b) == int(m.sum())
+        return q_c, q_b, f["spike"][m], n_clip
 
     print(f"\n{'year':>6} {'arm':>8} {'beta (intercept + 6)':>10}")
     dlt = {k: {"pooled": [], "spike": [], "calm": []}
@@ -304,10 +347,9 @@ def main(argv=None) -> int:
             / np.maximum(h["sig"][h["cov"]] ** 2, 1e-18) for h in hist])
         b_raw = fit_beta(pooled_z, pooled_r)
         B = np.array(per_fold_beta)                     # (m, p)
-        b_shrunk = np.array([shrink(B[:, j], w0=0.0, sigma_w=SIGMA_B)[0]
-                             for j in range(B.shape[1])])
-        lam = np.array([shrink(B[:, j], w0=0.0, sigma_w=SIGMA_B)[1]
-                        for j in range(B.shape[1])])
+        shr = [shrink(B[:, j], w0=0.0, sigma_w=SIGMA_B) for j in range(B.shape[1])]
+        b_shrunk = np.array([r[0] for r in shr])
+        lam = np.array([r[1] for r in shr])
 
         # placebo fitted with its OWN moments and its own history slices
         zhp = np.vstack([h["z_placebo"][h["cov_placebo"]] for h in hist])
@@ -325,13 +367,19 @@ def main(argv=None) -> int:
                 "raw":     ("z", "cov", b_raw, mu, sd),
                 "shrunk":  ("z", "cov", b_shrunk, mu, sd),
                 "placebo": ("z_placebo", "cov_placebo", b_plac, mup, sdp)}.items():
-            q_c, q_b, sp = score(f, kz, kc, b, m_, s_)
+            q_c, q_b, sp, n_clip = score(f, kz, kc, b, m_, s_)
             dlt[tag]["pooled"].append(float(q_c.mean() - q_b.mean()))
             dlt[tag]["calm"].append(float(q_c[~sp].mean() - q_b[~sp].mean()))
             if sp.any():
                 dlt[tag]["spike"].append(float(q_c[sp].mean() - q_b[sp].mean()))
             row[f"pooled_{tag}"] = float(q_c.mean())
             row[f"base_{tag}"] = float(q_b.mean())
+            row[f"n_clipped_{tag}"] = n_clip
+            row[f"n_scored_{tag}"] = int(len(q_c))
+            # the calm-slice base, which the calm guard needs as its denominator
+            row[f"base_calm_{tag}"] = float(q_b[~sp].mean())
+            if sp.any():
+                row[f"base_spike_{tag}"] = float(q_b[sp].mean())
         rows_out.append(row)
         print(f"{f['year']:>6}  raw     " +
               " ".join(f"{v:+.3f}" for v in b_raw))
@@ -352,8 +400,16 @@ def main(argv=None) -> int:
         out[tag] = {}
         for nm in ("pooled", "spike", "calm"):
             arr = np.asarray(dlt[tag][nm], np.float64)
+            if len(arr) < 2:
+                out[tag][nm] = {"delta": float(arr.mean()) if len(arr) else None,
+                                "ci95": None, "n": int(len(arr)),
+                                "note": "fewer than 2 folds carried this slice"}
+                print(f"{tag:>10} {nm:>8}   only {len(arr)} fold(s) -- no interval")
+                continue
             ci = mean_ci(arr, seed=37)
-            out[tag][nm] = {"delta": float(arr.mean()), "ci95": ci["ci95"],
+            # `ci["mean"]` is the mean of the SAME filtered array the interval
+            # came from; `arr.mean()` would report a nan beside a finite CI.
+            out[tag][nm] = {"delta": ci["mean"], "ci95": ci["ci95"],
                             "n_negative": ci["n_negative"],
                             "n_positive": ci["n_positive"]}
             print(f"{tag:>10} {nm:>8} {arr.mean():+11.5f}   "
@@ -368,28 +424,81 @@ def main(argv=None) -> int:
     print(f"\n  placebo margin (shrunk - placebo, pooled): {margin.mean():+.5f}   "
           f"[{ci_m['ci95'][0]:+.5f}, {ci_m['ci95'][1]:+.5f}]")
 
-    base_calm = float(np.mean([r["base_raw"] for r in rows_out]))
+    # The calm guard divides by the CALM base, not the pooled one. The first
+    # version used `base_raw`, which is pooled over calm AND spike episodes --
+    # and spike QLIKE is roughly ten times calm QLIKE, so the pooled base is
+    # several times the calm base and the guard was silently several times too
+    # lenient. A calm degradation of 1.2% would have been reported as 0.78% and
+    # passed.
+    base_calm = float(np.mean([r["base_calm_shrunk"] for r in rows_out]))
     calm_pct = 100.0 * np.mean(dlt["shrunk"]["calm"]) / max(base_calm, 1e-12)
+    base_spike = float(np.mean([r["base_spike_shrunk"] for r in rows_out
+                                if "base_spike_shrunk" in r]))
+    spike_pct = 100.0 * np.mean(dlt["shrunk"]["spike"]) / max(base_spike, 1e-12)
+
     primary = ci_excludes_zero(out["shrunk"]["pooled"]["ci95"], -1)
     guard_placebo = ci_excludes_zero(ci_m["ci95"], -1)
-    guard_spike = not ci_excludes_zero(out["shrunk"]["spike"]["ci95"], +1)
+
+    # THE SPIKE GUARD IS TWO CONDITIONS, AND THE LOOSER CI BAR IS DELIBERATE.
+    # A fold carries ~20 spike episodes, so the spike CI is very wide and a bar
+    # of "the interval must not touch zero on the bad side" would fail almost
+    # regardless of the data -- an unsatisfiable condition, which pitfalls
+    # check 9 exists to catch. The CI bar is therefore the loose one (fail only
+    # if the interval lies ENTIRELY above zero), and it is paired with a POINT
+    # bar so the guard still has teeth: the spike delta may not exceed 2% of
+    # the spike baseline even when the interval is inconclusive.
+    guard_spike_ci = not ci_excludes_zero(out["shrunk"]["spike"]["ci95"], +1)
+    guard_spike_pt = spike_pct <= SPIKE_POINT_BAR
+    guard_spike = guard_spike_ci and guard_spike_pt
     guard_calm = calm_pct <= 1.0
-    ok = primary and guard_placebo and guard_spike and guard_calm
+
+    # (1) SIGN STABILITY of the RAW coefficients, which the rule requires and
+    # the first version documented without implementing. A coefficient that is
+    # +0.30 in one fold and -0.25 in the next is not a signal; shrinkage would
+    # turn that pair into a small steady-looking number, which is exactly what
+    # the rule forbids. Only coefficients the shrunk arm leaves materially
+    # non-zero are tested -- one shrunk to ~0 is already saying "no signal".
+    MATERIAL = 0.01
+    unstable = []
+    n_coef = len(rows_out[0]["beta_raw"])
+    for j in range(n_coef):
+        if max(abs(r["beta_shrunk"][j]) for r in rows_out) < MATERIAL:
+            continue
+        signs = {np.sign(r["beta_raw"][j]) for r in rows_out
+                 if abs(r["beta_raw"][j]) >= MATERIAL}
+        if {-1.0, 1.0} <= signs:
+            unstable.append(("intercept" if j == 0 else IV_COLS[j - 1]))
+    guard_stable = not unstable
+
+    ok = (primary and guard_placebo and guard_spike and guard_calm
+          and guard_stable)
     out["verdict"] = "ADVANCE" if ok else "REJECT"
     print(f"\n--- pre-registered rule ---")
     print(f"  PRIMARY shrunk pooled QLIKE CI excludes zero favourably : {primary}")
     print(f"  GUARD   beats the placebo, CI excluding zero            : {guard_placebo}")
-    print(f"  GUARD   spike QLIKE not worse                           : {guard_spike}")
-    print(f"  GUARD   calm QLIKE within 1%  ({calm_pct:+.2f}%)          : {guard_calm}")
+    print(f"  GUARD   spike QLIKE not worse  (CI {guard_spike_ci}, "
+          f"point {spike_pct:+.2f}% vs {SPIKE_POINT_BAR:.0f}% bar) : {guard_spike}")
+    print(f"  GUARD   calm QLIKE within 1%  ({calm_pct:+.2f}% of calm base) : {guard_calm}")
+    print(f"  GUARD   RAW coefficient signs stable across folds       : {guard_stable}"
+          + (f"   unstable: {unstable}" if unstable else ""))
+    n_clip_tot = sum(r["n_clipped_shrunk"] for r in rows_out)
+    if n_clip_tot:
+        print(f"  NOTE    the correction exponent hit its +/-{EXP_BOUND} bound at "
+              f"{n_clip_tot} episodes -- those folds were extrapolating")
     print(f"  -> {out['verdict']}"
           + ("  (NOT an adoption: the barrier curves were not rebuilt)" if ok else ""))
 
     rep = P.Report()
     rep.add(P.check_ci_is_defined(out["shrunk"]["pooled"]["ci95"], "shrunk pooled"))
     rep.add(P.check_not_a_coin_flip(dlt["shrunk"]["pooled"], "shrunk pooled delta"))
+    # These two counts are derived from the arms SEPARATELY -- `n_scored_shrunk`
+    # is len(q_c) and `n_cov` is the coverage mask's own popcount. The first
+    # version passed the same expression twice, which is a check that cannot
+    # fail: the mirror image of pitfalls check 7's guard that cannot pass.
     rep.add(P.check_arms_matched(
-        {"base": sum(r["n_cov"] for r in rows_out),
-         "corrected": sum(r["n_cov"] for r in rows_out)}, what="scored episodes"))
+        {"covered": sum(r["n_cov"] for r in rows_out),
+         "scored": sum(r["n_scored_shrunk"] for r in rows_out)},
+        what="scored episodes"))
     rep.add(P.check_rule_satisfiable(2, len(rows_out), "folds"))
     print("\n--- research/pitfalls on this experiment ---")
     print(rep.render())

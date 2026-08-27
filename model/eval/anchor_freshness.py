@@ -203,6 +203,17 @@ def main(argv=None) -> int:
             pe = r["per_episode"]
             rv, sg, idx = pe["rv"], pe["sigma_med"], pe["test_idx"]
             q = qlike(rv, sg); sp = spike[idx]
+            # Keep the per-episode loss vector. Both arms are trained
+            # separately but scored on the SAME episode set (same fold, same
+            # mask), so the deltas are PAIRED -- which makes a bootstrap over
+            # episodes available as an estimator, not just a bootstrap over six
+            # fold means. The two answer different questions: the fold-level
+            # interval carries between-year treatment heterogeneity, the
+            # paired-episode interval carries only sampling error. Storing this
+            # costs a few MB and is the difference between being able to
+            # separate those and not.
+            line.setdefault("_q", {})[nm] = q
+            line.setdefault("_idx", {})[nm] = idx
             line[nm] = {
                 "qlike_pooled": float(q.mean()),
                 "qlike_spike": float(q[sp].mean()) if sp.any() else float("nan"),
@@ -274,6 +285,53 @@ def _verdict(recs, base_orig, base_fresh, out_path):
     print(f"  -> {'ADOPT' if adopt else 'DO NOT ADOPT'}")
     print(f"  (pooled QLIKE {summary['qlike_pooled']['delta']:+.5f} -- reported, NOT a condition)")
 
+    # ---- the paired per-episode estimator, reported beside the fold-level one
+    # This is a DIAGNOSTIC, not the pre-registered endpoint. 19's rule names a
+    # moving-block bootstrap over folds and that is what decides the verdict
+    # above; this quantifies how much of the fold-level interval is sampling
+    # error and how much is year-to-year heterogeneity, which is the question
+    # 22 exists to answer.
+    paired = {}
+    if all("_q" in r for r in recs):
+        for key, sel in (("spike", True), ("calm", False)):
+            d_ep = []
+            for r in recs:
+                ic, it = r["_idx"]["control"], r["_idx"]["fresh_anchor"]
+                if not np.array_equal(ic, it):
+                    d_ep = None; break
+                m = spike[ic] if sel else ~spike[ic]
+                if m.any():
+                    d_ep.append((r["_q"]["fresh_anchor"] - r["_q"]["control"])[m])
+            if d_ep:
+                arr = np.concatenate(d_ep)
+                ci = mean_ci(arr, seed=23)
+                paired[key] = {"delta": float(arr.mean()), "ci95": ci["ci95"],
+                               "n_episodes": int(len(arr))}
+        d_all = [r["_q"]["fresh_anchor"] - r["_q"]["control"] for r in recs]
+        arr = np.concatenate(d_all)
+        ci = mean_ci(arr, seed=23)
+        paired["pooled"] = {"delta": float(arr.mean()), "ci95": ci["ci95"],
+                            "n_episodes": int(len(arr))}
+    if paired:
+        print(f"\n--- paired per-episode bootstrap (DIAGNOSTIC, not the rule) ---")
+        print(f"{'quantity':>10} {'n episodes':>11} {'delta':>11} {'95% CI':>26} "
+              f"{'vs fold-level':>14}")
+        for key in ("spike", "calm", "pooled"):
+            if key not in paired:
+                continue
+            pk, fl = paired[key], summary[f"qlike_{key}"]
+            w_p = pk["ci95"][1] - pk["ci95"][0]
+            w_f = fl["ci95"][1] - fl["ci95"][0]
+            print(f"{key:>10} {pk['n_episodes']:>11,} {pk['delta']:+11.5f}   "
+                  f"[{pk['ci95'][0]:+.5f}, {pk['ci95'][1]:+.5f}]   "
+                  f"{w_f / max(w_p, 1e-12):>13.2f}x")
+        print("  'vs fold-level' is how many times WIDER the fold-level interval "
+              "is.\n  A large ratio means the fold-level interval is dominated by "
+              "between-year\n  heterogeneity rather than sampling error -- which no "
+              "number of extra\n  episodes can reduce.")
+    for r in recs:
+        r.pop("_q", None); r.pop("_idx", None)
+
     print("\n--- research/pitfalls on this experiment ---")
     rep = P.Report()
     rep.add(P.check_ci_is_defined(summary["qlike_spike"]["ci95"], "spike QLIKE"))
@@ -285,6 +343,7 @@ def _verdict(recs, base_orig, base_fresh, out_path):
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps({"folds": recs, "summary": summary,
+                                 "paired_per_episode": paired,
                                  "adopt": bool(adopt),
                                  "base_cols_control": base_orig,
                                  "base_cols_treated": base_fresh},
