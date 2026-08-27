@@ -421,7 +421,10 @@
       "question": "With the intercept removed, do the IV features carry any INCREMENTAL information?",
       "rule": "Pre-registered before the run. Identical to E2 except beta_0 is held at zero in BOTH the real and placebo arms, so the correction can only RESHAPE sigma and never rescale it. Same guards, same shrinkage constants, same population. EXPECTED: near-nothing, since E2's margin over the placebo already contained zero. WHAT WOULD CHANGE THE CONCLUSION: if the intercept-free real arm beats the intercept-free placebo with a CI excluding zero, IV carries shape information the intercept was masking and ivfeatures.py's branch (a) is wrong.",
       "verdict": "OPEN",
-      "result": "pre-registered before the run"
+      "result": "pre-registered before the run",
+      "superseded_by": [
+        "E2b-result"
+      ]
     },
     {
       "id": "E-scale",
@@ -431,6 +434,29 @@
       "rule": "Pre-registered, QUEUED BEHIND E-power and deliberately not run yet. A lever that trades one slice against another cannot be judged without knowing the resolution, and 22 says that is unmeasured. When it runs: PRIMARY must be stated on BOTH slices (spike and calm), not pooled, because the effect has opposite signs on them and a pooled mean would hide that -- the 13 lesson. Must also re-score the barrier curves, since scaling sigma moves every touch probability, which a median-only re-weighting does not test.",
       "verdict": "OPEN",
       "result": "Surfaced as a by-product of E2's decomposition, not sought. A stable scalar e^a in [1.139, 1.202] across five independently fitted folds improves spike QLIKE by ~36% and worsens calm QLIKE by ~13%. infer.py already records the two endpoints -- the median at 1.00 and the mean at 1.205, the latter scoring worse -- so the open question is whether an intermediate point beats both, and at what cost to calibration."
+    },
+    {
+      "id": "E2b-result",
+      "topic": "features",
+      "date": "2026-08-27",
+      "supersedes": [
+        "E2b"
+      ],
+      "question": "With the intercept removed, do the IV features carry any INCREMENTAL information?",
+      "rule": "Pre-registered before the run, identical to E2 except beta_0 held at zero in BOTH arms. The pre-registration also stated in advance what would overturn E2's conclusion: 'if the intercept-free real arm beats the intercept-free placebo with a CI excluding zero, IV carries shape information the intercept was masking and ivfeatures.py branch (a) is wrong.'",
+      "verdict": "REJECT",
+      "result": "THAT IS WHAT HAPPENED, and the rule still rejects on one guard. Shrunk pooled -0.03859 CI [-0.05635, -0.01456] -- PRIMARY PASSES. Placebo margin -0.08381 CI [-0.14822, -0.02069] -- BEATS THE PLACEBO. The placebo now actively HURTS (+0.04522, 0 of 5 folds better), which is what misaligned features with no intercept should do. Spike -0.36898 (-23.15%), calm -0.02172 (-10.24%, an improvement not a degradation). pitfalls: resolvable at n=5, |mean| 0.03859 vs se 0.01174. EVERY GUARD PASSES EXCEPT SIGN STABILITY, which fails on iv_level alone.",
+      "implication": "POSITIVE CONTROL, run independently of the placebo: fit exactly as E2b does on history, then SHUFFLE the scored fold's feature rows before applying the correction. Aligned -0.03859 with 4 of 5 folds improved; test-shuffled +0.01530 with 1 of 5. The gain REQUIRES correctly aligned test-fold features, which is what an out-of-sample signal means. So E2's conclusion is PARTLY overturned: branch (a) was right about the LEVEL and wrong about the DYNAMICS. iv_level is the smallest shrunk coefficient (+0.012 in the final fold) and the only one whose sign flips; iv_chg_6h, iv_chg_24h, iv_z_20d and ivrv_ratio are 3-5x larger and stable.",
+      "lesson": "E2 and E2b differ by ONE term and reach opposite readings of the same features. A fitted intercept absorbing a known level bias masked a real effect underneath it. Any future correction should be reported with and without its intercept as a matter of course."
+    },
+    {
+      "id": "E2c",
+      "topic": "features",
+      "date": "2026-08-27",
+      "question": "Do DVOL's DYNAMICS carry incremental information once its redundant LEVEL is dropped?",
+      "rule": "Pre-registered BEFORE the run. Identical to E2b -- no intercept, same shrinkage constants, same placebo, same population -- with iv_level removed from the feature set, leaving iv_chg_1h, iv_chg_6h, iv_chg_24h, iv_z_20d, ivrv_ratio. THIS IS THE THIRD TEST ON THESE FORECASTS, so intervals are at the BONFERRONI-ADJUSTED level for the IV family (alpha = 0.05/3). All E2b guards carry over, sign stability included -- if another coefficient now oscillates, that is a rejection, not an invitation to drop it too. CANNOT ADOPT ALONE: a pass earns a full-pipeline confirmation run that rebuilds the barrier curves, which is a fresh test.",
+      "verdict": "OPEN",
+      "result": "pre-registered before the run. THE SELECTION RISK, STATED PLAINLY: dropping the feature that just failed is a garden-of-forking-paths move. What makes it defensible rather than a post-hoc rescue is that ivfeatures.py's failure taxonomy predicted exactly this split BEFORE any IV experiment ran -- branch (a) said the LEVEL's information would already be carried by har_1d while the premium and the changes might not be. E2b's coefficients match that prediction: iv_level smallest and unstable, the dynamics 3-5x larger and stable. Acting on a written prior prediction is not the same as fishing, but the reader is entitled to weigh it themselves, so both are recorded."
     }
   ]
 }

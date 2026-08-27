@@ -196,10 +196,22 @@ def fit_beta(z: np.ndarray, r_hat: np.ndarray, iters: int = 60,
         f"unconverged fit as a null result")
 
 
-def standardise(z: np.ndarray, mu: np.ndarray, sd: np.ndarray) -> np.ndarray:
-    """Standardise with moments from the HISTORY folds and prepend an intercept."""
+def standardise(z: np.ndarray, mu: np.ndarray, sd: np.ndarray,
+                intercept: bool = True) -> np.ndarray:
+    """Standardise with moments from the HISTORY folds, optionally with an
+    intercept.
+
+    E2b (pre-registered in the ledger before it ran) drops the intercept in BOTH
+    arms. E2's decomposition showed a bare scalar -- no IV features at all --
+    delivers 72.0% of the spike gain, with a fitted e^a stable in [1.139, 1.202]
+    across five independently fitted folds. That is the point-forecast
+    functional, not implied volatility, and the placebo collects it too because
+    the placebo also has an intercept. Without the intercept the correction can
+    only RESHAPE sigma, never rescale it, so what is left is incremental content
+    or nothing.
+    """
     zs = (z - mu) / np.maximum(sd, 1e-9)
-    return np.column_stack([np.ones(len(zs)), zs])
+    return np.column_stack([np.ones(len(zs)), zs]) if intercept else zs
 
 
 def main(argv=None) -> int:
@@ -208,9 +220,18 @@ def main(argv=None) -> int:
                     default=Path("model/artifacts/blend_ceiling.npz"))
     ap.add_argument("--iv", type=Path,
                     default=Path("model/artifacts/iv_features.parquet"))
+    ap.add_argument("--no-intercept", action="store_true",
+                    help="E2b: hold beta_0 at zero in BOTH arms, so the "
+                         "correction can only reshape sigma and never rescale "
+                         "it. E2's 72%% intercept confound is then gone and the "
+                         "IV features are tested on incremental content alone.")
     ap.add_argument("--out", type=Path,
                     default=Path("model/artifacts/iv_correction.json"))
     a = ap.parse_args(argv)
+    icept = not a.no_intercept
+    if a.no_intercept and a.out == Path("model/artifacts/iv_correction.json"):
+        a.out = Path("model/artifacts/iv_correction_nointercept.json")
+    print(f"intercept: {'ON (E2)' if icept else 'OFF (E2b)'}\n")
 
     if not a.components.exists():
         raise SystemExit(
@@ -311,7 +332,7 @@ def main(argv=None) -> int:
         fold whose correction was extrapolating, which is worth knowing.
         """
         m = f[key_cov]
-        zz = standardise(f[key_z][m], mu, sd)
+        zz = standardise(f[key_z][m], mu, sd, icept)
         raw_exp = zz @ beta
         n_clip = int((np.abs(raw_exp) > EXP_BOUND).sum())
         sig_c = f["sig"][m] * np.exp(np.clip(raw_exp, -EXP_BOUND, EXP_BOUND))
@@ -338,10 +359,10 @@ def main(argv=None) -> int:
         per_fold_beta = []
         for h in hist:
             m = h["cov"]
-            zz = standardise(h["z"][m], mu, sd)
+            zz = standardise(h["z"][m], mu, sd, icept)
             r_hat = np.maximum(h["rv"][m] ** 2, 1e-18) / np.maximum(h["sig"][m] ** 2, 1e-18)
             per_fold_beta.append(fit_beta(zz, r_hat))
-        pooled_z = standardise(zh, mu, sd)
+        pooled_z = standardise(zh, mu, sd, icept)
         pooled_r = np.concatenate([
             np.maximum(h["rv"][h["cov"]] ** 2, 1e-18)
             / np.maximum(h["sig"][h["cov"]] ** 2, 1e-18) for h in hist])
@@ -357,7 +378,7 @@ def main(argv=None) -> int:
         rp = np.concatenate([
             np.maximum(h["rv"][h["cov_placebo"]] ** 2, 1e-18)
             / np.maximum(h["sig"][h["cov_placebo"]] ** 2, 1e-18) for h in hist])
-        b_plac = fit_beta(standardise(zhp, mup, sdp), rp)
+        b_plac = fit_beta(standardise(zhp, mup, sdp, icept), rp)
 
         row = {"year": f["year"], "n_cov": f["n_cov"],
                "beta_raw": b_raw.tolist(), "beta_shrunk": b_shrunk.tolist(),
@@ -391,6 +412,7 @@ def main(argv=None) -> int:
               f"placebo {row['pooled_placebo']:.5f}")
 
     out = {"folds": rows_out, "iv_cols": IV_COLS, "sigma_b": SIGMA_B,
+           "intercept": icept,
            "placebo_shift_hours": PLACEBO_SHIFT_H, "w0": W0}
     if len(dlt["shrunk"]["pooled"]) < 2:
         print("\nfewer than 2 scored folds -- no verdict"); return 1
@@ -467,7 +489,8 @@ def main(argv=None) -> int:
         signs = {np.sign(r["beta_raw"][j]) for r in rows_out
                  if abs(r["beta_raw"][j]) >= MATERIAL}
         if {-1.0, 1.0} <= signs:
-            unstable.append(("intercept" if j == 0 else IV_COLS[j - 1]))
+            unstable.append(("intercept" if (icept and j == 0)
+                             else IV_COLS[j - 1 if icept else j]))
     guard_stable = not unstable
 
     ok = (primary and guard_placebo and guard_spike and guard_calm
