@@ -190,7 +190,27 @@ def main(argv=None) -> int:
               "      rested on a marginal interval must be re-run before any new\n"
               "      experiment starts (BENCHMARK.md 22's stated gate).")
 
-    # the paired per-episode estimator, if both runs recorded it
+    # The paired per-episode estimator, where a run recorded it.
+    #
+    # ASYMMETRY, stated rather than papered over: the paired arrays were added
+    # to `anchor_freshness` AFTER the production run had already completed, so
+    # only the all-hours JSON carries them. Re-deriving the production run's
+    # from `--from-json` is not possible either -- the stored per-fold records
+    # summarise, they do not keep per-episode arrays.
+    #
+    # That is a smaller loss than it looks. The question the paired estimator
+    # answers -- how much of the FOLD-level interval is sampling error versus
+    # between-year heterogeneity -- is answered WITHIN one slice by comparing
+    # the two intervals on the same data. A cross-slice paired comparison would
+    # be a nice-to-have; a within-slice one is the actual measurement, and one
+    # run supplies it.
+    missing = [D["_label"] for D in (P, W)
+               if "spike" not in (D.get("paired_per_episode") or {})]
+    if missing:
+        print(f"\n  note: no paired per-episode arrays in {', '.join(missing)} "
+              f"(recorded only from the run that post-dates the estimator);\n"
+              f"        the within-slice comparison below is the measurement, "
+              f"not a cross-slice one")
     for D in (P, W):
         pe = D.get("paired_per_episode") or {}
         if "spike" in pe:
