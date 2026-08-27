@@ -272,7 +272,8 @@ def per_column_causality(
 
             trials.append({
                 "cut_frac": frac, "cut_row": cut, "style": style,
-                "n_probed": len(probe), "n_columns_moved": trial_bad,
+                "n_probed": len(probe), "n_boundary_episodes": len(boundary_idx),
+                "n_columns_moved": trial_bad,
                 "decoy_caught": decoy_caught,
             })
 
@@ -298,7 +299,9 @@ def per_column_causality(
         if c == "reg_post_etf" or c.startswith("cal_")
     )
 
-    decoy_all_caught = all(t["decoy_caught"] for t in trials) if trials else False
+    trials_with_boundary = [t for t in trials if t["n_boundary_episodes"] > 0]
+    decoy_all_caught = (all(t["decoy_caught"] for t in trials_with_boundary)
+                        if trials_with_boundary else False)
 
     return {
         "columns": len(cols),
@@ -310,8 +313,10 @@ def per_column_causality(
         "trials": trials,
         "positive_control": {
             "description": "decoy feature reads rv5[row] (the anchor hour "
-                            "itself, not row-1); must be flagged in EVERY trial",
+                            "itself, not row-1); must be flagged in every "
+                            "trial that had a boundary episode to test it on",
             "n_trials": len(trials),
+            "n_trials_with_boundary_episode": len(trials_with_boundary),
             "caught_in_every_trial": decoy_all_caught,
         },
         "counts": {
@@ -749,8 +754,9 @@ def main(argv=None) -> int:
                                      n_probe_per_cut=a.n_probe_per_cut)
     ctrl = causality["positive_control"]
     print(f"  positive control (decoy reads the anchor hour itself): "
-          f"caught in {ctrl['n_trials']}/{ctrl['n_trials']} trials = "
-          f"{ctrl['caught_in_every_trial']}")
+          f"boundary episode available in "
+          f"{ctrl['n_trials_with_boundary_episode']}/{ctrl['n_trials']} trials, "
+          f"caught in all of them = {ctrl['caught_in_every_trial']}")
     if not ctrl["caught_in_every_trial"]:
         print("  !! POSITIVE CONTROL FAILED -- the harness has no detection "
               "power, every CAUSAL verdict below is UNRELIABLE !!")

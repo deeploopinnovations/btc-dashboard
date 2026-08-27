@@ -211,8 +211,8 @@
       "topic": "baseline",
       "question": "Does the committed benchmark reproduce at SHA ab170b4?",
       "rule": "re-run eval.benchmark --folds all; every headline metric (QLIKE, pinball, CRPS, Brier/DSC/MCB at every barrier) within 0.5% relative of benchmark.json. Seeds fixed 0,1,2, so a larger deviation means non-determinism, which BLOCKS all later phases.",
-      "verdict": "OPEN",
-      "result": "in flight"
+      "verdict": "REJECT",
+      "result": "gate v1 VOID -- named a nonexistent flag (--folds all) and a nonexistent committed file (model/artifacts is gitignored), and used relative tolerance on near-zero metrics (1421% on a 1e-5 quantity). It DID establish that benchmark.json was stale: climatology bit-identical at 0.000% while persistence, a baseline with no training, moved 3.16%. Data moved, not the optimizer. Wall clock 592s, peak RSS 1.70GB."
     },
     {
       "id": "15",
@@ -224,6 +224,14 @@
       "supersedes": [
         "14"
       ]
+    },
+    {
+      "id": "phase0v2",
+      "topic": "baseline",
+      "question": "Is the benchmark pipeline deterministic run-to-run?",
+      "rule": "two runs, identical inputs, seeds 0/1/2: every metric must agree within 1e-9 absolute OR 0.1% relative where |value| > 1e-4. Reproducing the stale artifact is explicitly NOT a condition.",
+      "verdict": "OPEN",
+      "result": "run B in flight; outcome unknown at the time this rule was written"
     }
   ]
 }

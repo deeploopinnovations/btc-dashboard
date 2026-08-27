@@ -30,15 +30,58 @@ thing per experiment**.
 ### Phase 0 — Inspect and reproduce (IN PROGRESS)
 Nothing may be modified until the committed benchmark reproduces.
 
-**Pre-registered gate, fixed before the run:** re-running
-`python -m model.eval.benchmark --folds all` at SHA `ab170b4` must reproduce
-`model/artifacts/benchmark.json` with every headline metric within **0.5 %
-relative** (QLIKE, pinball, CRPS, and the Brier/DSC/MCB family at every
-barrier). Seeds are fixed at 0,1,2, so a larger deviation means the pipeline is
-not deterministic — which is itself a finding and blocks every later phase,
-because no experiment's delta is interpretable on a non-reproducible base.
+**Gate v1 — VOID, and the reason matters.** It read: re-run
+`python -m model.eval.benchmark --folds all` at SHA `ab170b4` and reproduce
+`model/artifacts/benchmark.json` within 0.5 % relative on every headline metric.
+Executing it exposed three defects, all in the rule:
 
-Deliverables: `BASELINE_MANIFEST.md`, leakage re-audit.
+1. **`--folds all` does not exist.** `argparse` exits 2. The command as written
+   never ran.
+2. **`model/artifacts/` is entirely `.gitignore`d.** The "committed"
+   `benchmark.json` is not in git at any SHA. The gate asked to reproduce a file
+   that was never committed, whose only provenance is an mtime.
+3. **Relative tolerance is meaningless near zero.** `DSC_up_0.5` reported a
+   1421 % deviation on an absolute difference of 0.00059.
+
+This is NOT the same situation as §10, §11c or §13, where rules that were
+well-formed produced results I did not want and were left alone. **A rule
+naming a nonexistent flag and a nonexistent file was never testable.** It was
+not failed; it could not be run. Replacing it is legitimate, and the
+replacement below was written while the determinism run was still executing and
+its outcome genuinely unknown — which is what keeps it a pre-registration.
+
+**What gate v1 did establish**, and it stands: `model/artifacts/benchmark.json`
+was **stale**, predating the freshness fix that regenerated `features.parquet`
+(reference mtime 2026-08-14, features mtime 2026-08-16). The signature is
+decisive — `climatology`, which reads only `episodes.parquet`, is bit-identical
+at 0.000 %, while `persistence`, a baseline with no neural training at all,
+moved 3.16 %. A pure baseline moves only if the data moved. The reproduced
+values (QLIKE 0.2896 / 0.3057 / 0.4332) match §6d's post-fix figures; the stale
+reference matches its pre-fix figures.
+
+**Gate v2 — pre-registered, replacing v1.** Reproducibility means *the pipeline
+returns the same answer from the same inputs*, which is the only property that
+gates later phases. So:
+
+    python -m model.eval.benchmark        # run A
+    python -m model.eval.benchmark        # run B, identical inputs
+
+PASS requires, for every metric in every model: |A − B| ≤ **1e-9 absolute**, OR
+relative difference ≤ **0.1 %** where |A| > 1e-4. The absolute floor exists
+because v1's relative-only form produced a meaningless 1421 % on a 1e-5
+quantity. Seeds are fixed at 0,1,2 and no input changes between runs, so
+anything above these thresholds is genuine nondeterminism and **does** block
+every later phase.
+
+Reproducing the *stale* artifact is explicitly NOT a condition, because that
+file describes a feature matrix that no longer exists and matching it would be
+a defect, not a success.
+
+Deliverables: `BASELINE_MANIFEST.md` (written against the FRESH numbers, not
+the stale reference), leakage re-audit, and pinned dependency versions — the
+audit found `torch` and `scikit-learn` absent from `requirements.txt`
+entirely, so "reproducible from a clean environment" is currently unachievable
+by construction.
 
 ### Phase 1 — Lineage and specification artifacts
 `DATA_LINEAGE.md`, `FEATURE_CATALOG.md`, `TARGET_SPEC.md`,
