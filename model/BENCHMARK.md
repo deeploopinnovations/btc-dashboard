@@ -3379,6 +3379,26 @@ only five distinct values and cannot produce a wider interval. Surviving α/24 i
 an artifact of n, not a strong significance claim. What carries the result is
 5 of 5 folds and the placebo margin, not the tail of the interval.
 
+**Is it a disguised intercept?** Dropping β₀ forces the correction to average
+~0 on the *history* folds, not within the fold being scored — so a correction
+with little within-fold spread would still be acting as a per-fold level shift,
+the §24 confound in subtler form. Measured:
+
+| fold | mean shift | sd of shift | sd ÷ \|mean\| | e^shift, p5–p95 | Δ from its fold-mean alone | Δ full |
+|---|---|---|---|---|---|---|
+| 2022 | +0.0113 | 0.0769 | 6.79 | 0.919–1.117 | −0.00707 | −0.02942 |
+| 2023 | +0.0159 | 0.1040 | 6.53 | 0.878–1.219 | −0.01450 | −0.04777 |
+| 2024 | −0.0024 | 0.1043 | 43.12 | 0.844–1.175 | +0.00125 | −0.00098 |
+| 2025 | −0.0136 | 0.0809 | 5.95 | 0.868–1.134 | +0.00088 | −0.03360 |
+| 2026 | −0.0274 | 0.1136 | 4.14 | 0.828–1.178 | +0.00232 | −0.05142 |
+
+The within-fold spread is **4–43× the fold mean**, the fold means are tiny and
+change sign, and replacing the varying shift with its own fold mean captures
+−0.00342 of the −0.03264. **89.5 % of the gain requires episode-level
+variation.** The correction is doing what it claims — moving σ by roughly ±20 %
+at the tails, episode by episode — and is not a level shift wearing a
+regression's clothes.
+
 **The selection risk is real and is recorded, not glossed.** E2c drops the
 feature that just failed. What separates that from fishing is that
 `ivfeatures.py` predicted this exact split in writing before any IV experiment
