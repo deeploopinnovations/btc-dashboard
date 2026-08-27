@@ -68,7 +68,12 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from contextlib import contextmanager                                     # noqa: E402
+
 from eval import benchmark as B                                           # noqa: E402
+from noctua import model as _model                                        # noqa: E402
+from noctua import spec as _spec                                          # noqa: E402
+from noctua import train as _train                                        # noqa: E402
 from eval.direction import block_bootstrap_ci                             # noqa: E402
 from eval.levers import causal_spike_flag, qlike                          # noqa: E402
 from noctua import splits as S                                            # noqa: E402
@@ -77,6 +82,37 @@ from research import pitfalls as P                                        # noqa
 
 FRESH = ["har_1h", "har_6h"]
 TAIL_BARRIERS = (0.5, 1.0, 2.0)
+
+
+# Every module that does `from .model import BASE_COLS` holds an INDEPENDENT
+# binding -- six of them do. The first version of this script patched only
+# `benchmark.BASE_COLS`, so `benchmark`'s OLS expected 7 columns while
+# `train.prepare()` still built a 5-column Xb from its own binding, and the run
+# died on `Shape of passed values is (102087, 5), indices imply (102087, 7)`.
+#
+# Loud is the right failure here. Had the shapes happened to agree -- say by
+# swapping one column for another rather than adding two -- the run would have
+# completed and silently compared the wrong thing, which is the failure mode
+# this repository has been bitten by four times (see BENCHMARK.md 16).
+_BINDINGS = (_spec, _model, _train, B)
+
+
+@contextmanager
+def base_cols(cols):
+    """Swap BASE_COLS across every binding, and put them all back."""
+    saved = [(m, getattr(m, "BASE_COLS", None)) for m in _BINDINGS]
+    try:
+        for m, _ in saved:
+            if hasattr(m, "BASE_COLS"):
+                setattr(m, "BASE_COLS", list(cols))
+        seen = {tuple(getattr(m, "BASE_COLS")) for m, _ in saved
+                if hasattr(m, "BASE_COLS")}
+        assert seen == {tuple(cols)}, f"bindings disagree after patch: {seen}"
+        yield
+    finally:
+        for m, v in saved:
+            if v is not None:
+                setattr(m, "BASE_COLS", v)
 
 
 def tail_mcb(rows) -> float:
@@ -103,9 +139,8 @@ def main(argv=None) -> int:
         lo, hi = np.quantile(raw[m], [0.005, 0.995])
         return np.maximum(np.clip(raw, lo, hi), 1e-12)
 
-    base_orig = list(B.BASE_COLS)
-    base_fresh = base_orig[:1] + FRESH + base_orig[1:] if False else \
-        [base_orig[0]] + FRESH + base_orig[1:]
+    base_orig = list(_spec.BASE_COLS)
+    base_fresh = [base_orig[0]] + FRESH + base_orig[1:]
     missing = [c for c in FRESH if c not in X.columns]
     if missing:
         raise SystemExit(f"REFUSING: {missing} absent from the feature matrix")
@@ -122,13 +157,9 @@ def main(argv=None) -> int:
             # BASE_COLS is module-level state read by prepare() and the OLS fit,
             # so it is swapped around the call and restored in a finally -- a
             # leaked mutation would silently contaminate every later fold.
-            saved = B.BASE_COLS
-            try:
-                B.BASE_COLS = cols
+            with base_cols(cols):
                 r = B.run_fold(ep, X, f, hidden=a.hidden, seeds=a.seeds,
                                sigma_ref_fn=sig_fn)
-            finally:
-                B.BASE_COLS = saved
             if r is None:
                 print(f"  {f['year']}  {nm:13} SKIPPED"); continue
             pe = r["per_episode"]
