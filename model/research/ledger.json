@@ -272,6 +272,14 @@
       "rule": "PRIMARY on the targeted slice: spike-episode QLIKE with a moving-block bootstrap CI excluding zero favourably. Guards: calm QLIKE not worse than 1% with its own CI; deep-tail MCB not worse with CI excluding zero unfavourably; pooled QLIKE reported but NOT a condition; log_har_gauss re-scored since it gains inputs too.",
       "verdict": "OPEN",
       "result": "pre-registered before the run"
+    },
+    {
+      "id": "E-anchor-pre",
+      "topic": "lag",
+      "question": "Diagnostics from the E-anchor runs before a verdict exists",
+      "rule": "record what the partial runs established, separately from the experiment's own pre-registered rule",
+      "verdict": "NULL",
+      "result": "(1) My pre-registered guard 're-score log_har_gauss' rested on a FALSE premise: fit_vol_baselines uses its own VOL_BASELINES dict, not BASE_COLS, so log_har is independent of the treatment. Confirmed empirically -- logHAR identical to 4dp across arms in folds 2021 (0.3591) and 2022 (0.2851). Harmless over-specification, but the guard was checking something that could not move. (2) Partial results, 2 of 6 folds, NOT a verdict: fresh_anchor was slightly WORSE on both pooled (0.3369->0.3417, 0.2745->0.2766) and spike (3.2380->3.2775, 1.3542->1.3739). If that holds, 12's Arm 4 OLS-harness gain does not survive the full pipeline."
     }
   ]
 }
