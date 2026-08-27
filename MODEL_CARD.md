@@ -153,6 +153,30 @@ Requested scope (Phase 2): short horizons (intraday → 1 week) and medium horiz
 
 Source: `model/PHASES.md` §Phase 2.
 
+### 5.8 Evaluation Scope Is a Narrow Slice, and Its Statistical Power Is Being Measured
+
+All metrics in §4 are scored on `production_mask = (H == 19) & (anchor_hour == 17)`: about 365 episodes per walk-forward fold, of which roughly 20 carry the causal spike flag. Six folds together score about 2,190 test episodes and about 119 spike episodes, against a total episode population of 510,496.
+
+That slice is the right choice for a deployment decision — 17:00 UTC, 19-hour is the actual trade — but it is a narrow one for deciding whether an internal effect exists at all. Two independent pre-registered tests of the ensemble blend weight (§5.9) returned confidence intervals too wide to resolve at this size; one was flagged by the project's own pre-registered check as a non-measurement (an estimate one-eighteenth of its own standard error). A pre-registered measurement of how much statistical power the production slice actually has — re-deciding an already-settled result on all 24 anchor hours and comparing the confidence-interval width to the √24 ≈ 4.90× tightening independent episodes would give — is running as of this writing; it has not yet returned a result.
+
+Source: `model/BENCHMARK.md` §22; ledger id `E-power` (OPEN, in progress).
+
+### 5.9 The Ensemble Blend Weight (0.25) Is a Tail-Risk Choice, Not a Tuned Optimum
+
+§2 lists the Stage A blend weight as a fixed constant, 0.25. Two pre-registered, walk-forward-honest tests looked for a better weight — a state-dependent (spike-vs-calm) weight and a single revised constant — and neither can replace it: the state-dependent version scored +0.00307 pooled QLIKE (CI [−0.01008, +0.02603], 4 of 5 folds better — a NULL result), and the single-constant version scored +0.00049 (CI [−0.01141, +0.01981], 4 of 5 folds better) but failed its own pre-registered worst-fold guard, giving back +7.84% in the 2023 fold against a 5% bound.
+
+That 2023 fold is why 0.25 is set where it is: `infer.BLEND_W`'s own note records that 0.25 was chosen because it bounds the 2023 volatility-collapse fold at +6.7%, where pure NOCTUA suffered +72.3% in the same fold. The correct statement about `BLEND_W = 0.25` is therefore not that it is optimal — an in-sample sweep over all six folds (not a validated result, since it is chosen after seeing every fold's test score) puts the mean-QLIKE minimum at w = 0.45, 1.41% better than 0.25 — but that **0.25 buys insurance against a repeat of 2023, and the premium is about 1.4% of mean QLIKE.** Whether that premium is worth paying is a risk-appetite question, not a QLIKE question.
+
+Source: `model/BENCHMARK.md` §23; ledger ids `E-blend`, `E-blend-1state`.
+
+### 5.10 Research Completed Since This Card's Cutoff — Nothing Below Is in the Shipped Model
+
+The following ran after the metrics in §3–§4 were produced. The shipped configuration in §2 is unchanged by all of it.
+
+- **Adding sub-daily HAR lags (`har_1h`, `har_6h`) to the Log-HAR anchor** — tested through the full pipeline and **REJECTED**: spike-episode QLIKE got reliably worse, +1.87% (95% CI [+0.02151, +0.05408]), worse in 6 of 6 folds. Source: `model/BENCHMARK.md` §21; ledger `E-anchor-verdict`.
+- **A Deribit DVOL implied-volatility correction with a fitted intercept** — **REJECTED**. An apparent 57% spike-QLIKE improvement (5 of 5 folds) was mostly reproduced by a placebo arm using misaligned IV features (also 5 of 5 folds); the margin between real and placebo, −0.02469 pooled, has a CI containing zero, and calm QLIKE worsened 13.52% with a CI excluding zero. Source: `model/BENCHMARK.md` §24; ledger `E2-iv-correction`.
+- **The same correction with the intercept and the redundant `iv_level` feature removed, keeping only DVOL's dynamics** — the project's first positive result. Pooled QLIKE improved −0.03264 (CI [−0.04356, −0.01403], 5 of 5 folds), beating its placebo, with spike (−20.89%, 5 of 5 folds) and calm (−8.22%, an improvement, 4 of 5 folds) both moving favorably. Scope: 1,681 episodes across 5 folds, entirely within DVOL's 2021-03+ era. **The ledger verdict is ADVANCE, which is explicitly not ADOPT**: the correction re-weights a recorded volatility median and has not been run through the full pipeline (barrier curves, committee, calibration are all unchanged), so it has changed no number in this card. A full-pipeline confirmation run is pre-registered and queued. Source: `model/BENCHMARK.md` §25; ledger `E2c-result`, `E2-confirm`.
+
 ---
 
 ## 6. Feature List

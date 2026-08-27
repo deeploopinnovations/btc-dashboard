@@ -3399,6 +3399,31 @@ variation.** The correction is doing what it claims — moving σ by roughly ±2
 at the tails, episode by episode — and is not a level shift wearing a
 regression's clothes.
 
+**Does it hinge on `SIGMA_B`?** The shrinkage scale was fixed a priori at 0.10,
+and an a-priori constant is only defensible if the conclusion does not depend on
+it. Swept across eight orders of magnitude, from near-total shrinkage to none at
+all:
+
+| SIGMA_B | pooled Δ | 98.33 % CI | folds better |
+|---|---|---|---|
+| 0.01 | −0.02325 | [−0.03742, −0.00818] | 5/5 |
+| 0.02 | −0.03129 | [−0.04340, −0.01408] | 5/5 |
+| 0.05 | −0.03374 | [−0.04379, −0.01532] | 5/5 |
+| **0.10** | **−0.03264** | **[−0.04356, −0.01403]** | **5/5** |
+| 0.20 | −0.03205 | [−0.04326, −0.01341] | 4/5 |
+| 0.50 | −0.03184 | [−0.04315, −0.01320] | 4/5 |
+| 1.00 | −0.03181 | [−0.04313, −0.01317] | 4/5 |
+| ∞ (none) | −0.03180 | [−0.04313, −0.01316] | 4/5 |
+
+Every row clears zero. The effect is flat between −0.032 and −0.034 across the
+whole range, moving only under the most aggressive shrinkage.
+
+That flatness is itself informative: **the shrinkage is nearly inert here**,
+because the coefficients were already stable (λ ≥ 0.85 after the first fold).
+The same machinery was decisive for the blend weight in §23, where it cut the
+raw estimator's damage by 77 %. The difference is not the estimator — it is that
+the IV coefficients are a stable parameter and the blend weight is not.
+
 **The selection risk is real and is recorded, not glossed.** E2c drops the
 feature that just failed. What separates that from fishing is that
 `ivfeatures.py` predicted this exact split in writing before any IV experiment

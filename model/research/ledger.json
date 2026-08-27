@@ -532,6 +532,16 @@
       "result": "It is genuinely episode-varying. Within-fold sd of the applied log-shift is 0.0769 / 0.1040 / 0.1043 / 0.0809 / 0.1136 against fold MEANS of +0.0113 / +0.0159 / -0.0024 / -0.0136 / -0.0274 -- a spread 4x to 43x the mean, with the mean changing sign across folds. e^shift spans roughly 0.83 to 1.22 between the 5th and 95th percentiles, so sigma moves about +/-20% at the tails. Replacing the varying shift by its own fold mean captures -0.00342 of the -0.03264 gain: 89.5% OF THE GAIN REQUIRES EPISODE-LEVEL VARIATION.",
       "implication": "This closes the most plausible remaining artifact explanation for E2c. Combined with the placebo margin and the test-shuffle positive control, three independent checks now point the same way. It does NOT change the verdict: still ADVANCE, still not adopted, still awaiting E2-confirm on the barrier curves.",
       "lesson": "Removing an intercept term does not remove the level-shift confound -- it only moves where the constraint binds, from the scored fold to the history folds. The confound has to be measured out, not designed out."
+    },
+    {
+      "id": "E2c-sigma-sensitivity",
+      "topic": "features",
+      "date": "2026-08-27",
+      "question": "Does E2c's conclusion depend on SIGMA_B, the shrinkage scale fixed a priori at 0.10?",
+      "rule": "A robustness check on my own ADVANCE. An a-priori constant is only defensible if the conclusion does not hinge on it, so sweep it including both degenerate endpoints: near-total shrinkage and none at all.",
+      "verdict": "ADVANCE",
+      "result": "It does not depend on it. Swept 0.01 / 0.02 / 0.05 / 0.10 / 0.20 / 0.50 / 1.00 and unbounded, every value clears zero at the Bonferroni-adjusted 98.33% level. Pooled delta is flat between -0.03180 and -0.03374 across the whole range, softening only under the most aggressive shrinkage (0.01 gives -0.02325, still clearing zero). Fold count is 5 of 5 at SIGMA_B <= 0.05 and 4 of 5 at >= 0.20.",
+      "implication": "The flatness is itself a finding: THE SHRINKAGE IS NEARLY INERT HERE, because the coefficients were already stable across folds (lam >= 0.85 after the first). The same estimator was decisive for the blend weight in 23, cutting the raw arm's damage by 77%. The difference is not the estimator but the parameter -- the IV coefficients are stable and the blend weight is not, which is the same contrast the per-fold oracle weights showed with sd 0.28-0.51 on a [0,1] parameter."
     }
   ]
 }
