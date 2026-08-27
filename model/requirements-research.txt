@@ -1,0 +1,25 @@
+# Research / training environment for NOCTUA.
+#
+# WHY THIS IS SEPARATE FROM model/serve/requirements.txt, AND MUST STAY SEPARATE
+#
+# serve/requirements.txt deliberately omits torch and scikit-learn, and that is
+# a DESIGN PROPERTY, not an oversight: serve/runtime.py reimplements the network
+# forward pass in pure NumPy so the serving image never carries a deep-learning
+# runtime. Adding torch there to 'fix' the omission would silently undo that.
+# This file covers the training and evaluation path only.
+#
+# PINNED, NOT FLOORED. The Phase 0 audit found every existing constraint was a
+# `>=` floor, which makes 'reproducible from a clean environment' -- an adoption
+# condition in the research protocol -- unachievable by construction. These are
+# the exact versions under which BENCHMARK.md's numbers were produced and under
+# which the pipeline was measured BIT-IDENTICAL across two runs (see 17).
+#
+# Determinism was verified with THESE versions. Changing any of them invalidates
+# that verification until it is re-run.
+
+numpy==2.4.6
+pandas==3.0.5
+torch==2.13.0+cu130
+scikit-learn==1.9.0
+scipy==1.17.1
+pyarrow==25.0.0
