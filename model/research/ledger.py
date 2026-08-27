@@ -39,7 +39,23 @@ from pathlib import Path
 
 LEDGER = Path(__file__).with_name("ledger.json")
 
-VERDICTS = ("ADOPT", "REJECT", "NULL", "WITHDRAWN", "OPEN")
+# ADVANCE is not a synonym for ADOPT and the distinction is load-bearing.
+#
+#   ADOPT     the change is in the shipped artifact.
+#   ADVANCE   the change cleared every condition of its own pre-registered rule
+#             and is STILL NOT ADOPTED, because the rule itself said it could
+#             not adopt alone -- typically because the experiment measured a
+#             cheaper proxy than the product. E2c re-weighted a recorded median
+#             and never rebuilt the barrier curves, and NOCTUA's product is a
+#             touch-probability curve, not a sigma.
+#   NULL      ran, decided nothing.
+#   REJECT    ran, failed its rule.
+#
+# The vocabulary refused ADVANCE the first time it was used, which was the
+# ledger working: a state with no name is a state that gets quietly folded into
+# a neighbouring one, and folding ADVANCE into ADOPT is how an unconfirmed
+# result reaches an artifact.
+VERDICTS = ("ADOPT", "ADVANCE", "REJECT", "NULL", "WITHDRAWN", "OPEN")
 
 
 def load(path: Path = LEDGER) -> dict:
@@ -96,10 +112,23 @@ def main(argv=None) -> int:
         return 0
 
     if a.open:
+        # A SUPERSEDED entry is not an open question, whatever its verdict says.
+        # Pre-registrations are appended with verdict OPEN and later superseded
+        # by the entry carrying the result -- the ledger is append-only, so the
+        # original keeps the word "OPEN" forever. Listing those here made
+        # settled work look unstarted, which is exactly the mistake this view
+        # exists to prevent: `supervisor.py` reads it before proposing an
+        # experiment, so a stale row here means re-running a finished one.
+        shown = 0
         for e in es:
-            if e["verdict"] == "OPEN":
+            if e["verdict"] == "OPEN" and not e.get("superseded_by"):
                 print(f"{e['id']:16} {e['question']}")
                 print(f"{'':16} rule: {e['rule']}")
+                shown += 1
+        stale = sum(1 for e in es
+                    if e["verdict"] == "OPEN" and e.get("superseded_by"))
+        print(f"\n{shown} open, {stale} pre-registration(s) already answered "
+              f"by a superseding entry (hidden)")
         return 0
 
     print(f"{'id':16} {'verdict':10} {'question'}")

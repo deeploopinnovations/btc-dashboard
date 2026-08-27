@@ -324,7 +324,10 @@
       ],
       "result": "CORRECTS iv-coverage, which used INVENTED split boundaries (2023-06-30 / 2024-01-01) instead of reading them. The repository's actual boundaries are noctua.splits.SAMPLE_START = 2017-08-01, TRAIN_END = 2023-01-01, CALIB_END = 2024-07-01, with a per-boundary embargo of H_max hours -- and SAMPLE_START alone drops 2012-2017, which iv-coverage silently counted as training data. Re-derived through noctua.splits.time_splits: train 62,051 of 189,831 = 32.7%; calib 52,359 of 52,359 = 100%; test 73,867 of 73,867 = 100%. Superseded numbers, do not quote: 19.8% / 100% / 100% on n = 401,401 / 17,756 / 91,339. DVOL itself is unchanged and was re-verified: 47,563 rows, 2021-03-24 -> 2026-08-26, every gap exactly 3600s, 0 duplicates.",
       "implication": "The qualitative conclusion SURVIVES the correction and is if anything cleaner: two thirds of training episodes have no IV and every calibration and test episode has one. A fill value would be learnable in training and constant at test. The two admissible designs stand: (a) refit on the covered era only; (b) an IV-conditioned RESIDUAL correction fit on the covered training slice (2021-03 -> 2023-01, 62,051 episodes), calibrated on the fully-covered calib split, scored on the fully-covered test split. (b) remains strictly safer.",
-      "lesson": "Split boundaries are data, not folklore. I typed plausible dates rather than reading noctua/splits.py, and a sonnet agent that read the file got it right. The error was invisible in the qualitative story -- both versions say 'train coverage is far below test' -- which is exactly the kind of wrong number that stays in circulation."
+      "lesson": "Split boundaries are data, not folklore. I typed plausible dates rather than reading noctua/splits.py, and a sonnet agent that read the file got it right. The error was invisible in the qualitative story -- both versions say 'train coverage is far below test' -- which is exactly the kind of wrong number that stays in circulation.",
+      "superseded_by": [
+        "iv-coverage-closed"
+      ]
     },
     {
       "id": "E-anchor-verdict",
@@ -456,7 +459,46 @@
       "question": "Do DVOL's DYNAMICS carry incremental information once its redundant LEVEL is dropped?",
       "rule": "Pre-registered BEFORE the run. Identical to E2b -- no intercept, same shrinkage constants, same placebo, same population -- with iv_level removed from the feature set, leaving iv_chg_1h, iv_chg_6h, iv_chg_24h, iv_z_20d, ivrv_ratio. THIS IS THE THIRD TEST ON THESE FORECASTS, so intervals are at the BONFERRONI-ADJUSTED level for the IV family (alpha = 0.05/3). All E2b guards carry over, sign stability included -- if another coefficient now oscillates, that is a rejection, not an invitation to drop it too. CANNOT ADOPT ALONE: a pass earns a full-pipeline confirmation run that rebuilds the barrier curves, which is a fresh test.",
       "verdict": "OPEN",
-      "result": "pre-registered before the run. THE SELECTION RISK, STATED PLAINLY: dropping the feature that just failed is a garden-of-forking-paths move. What makes it defensible rather than a post-hoc rescue is that ivfeatures.py's failure taxonomy predicted exactly this split BEFORE any IV experiment ran -- branch (a) said the LEVEL's information would already be carried by har_1d while the premium and the changes might not be. E2b's coefficients match that prediction: iv_level smallest and unstable, the dynamics 3-5x larger and stable. Acting on a written prior prediction is not the same as fishing, but the reader is entitled to weigh it themselves, so both are recorded."
+      "result": "pre-registered before the run. THE SELECTION RISK, STATED PLAINLY: dropping the feature that just failed is a garden-of-forking-paths move. What makes it defensible rather than a post-hoc rescue is that ivfeatures.py's failure taxonomy predicted exactly this split BEFORE any IV experiment ran -- branch (a) said the LEVEL's information would already be carried by har_1d while the premium and the changes might not be. E2b's coefficients match that prediction: iv_level smallest and unstable, the dynamics 3-5x larger and stable. Acting on a written prior prediction is not the same as fishing, but the reader is entitled to weigh it themselves, so both are recorded.",
+      "superseded_by": [
+        "E2c-result"
+      ]
+    },
+    {
+      "id": "E2c-result",
+      "topic": "features",
+      "date": "2026-08-27",
+      "supersedes": [
+        "E2c"
+      ],
+      "question": "Do DVOL's DYNAMICS carry incremental information once its redundant LEVEL is dropped?",
+      "rule": "Pre-registered and committed before the run: E2b minus iv_level, no intercept, same shrinkage constants, same placebo, Bonferroni-adjusted intervals for the third test on these forecasts. All E2b guards carry over, sign stability included. CANNOT ADOPT ALONE.",
+      "verdict": "ADVANCE",
+      "result": "ALL FIVE CONDITIONS PASS at the 98.33% level. pooled -0.03264 CI [-0.04356, -0.01403], 5 of 5 folds; spike -0.33295 (-20.89%), 5 of 5; calm -0.01744 (-8.22%, an improvement), 4 of 5; placebo margin -0.04533 CI [-0.07323, -0.01420]; RAW signs stable. Spike AND calm both improve, which no previous lever in this project achieved. Coefficients stable across all five independently fitted folds with lam >= 0.85 after the first: iv_chg_1h negative, iv_chg_6h / iv_chg_24h / iv_z_20d / ivrv_ratio positive. A 1-sigma move in iv_chg_24h scales sigma by about 1.06.",
+      "implication": "POSITIVE CONTROL: aligned -0.03264 with 5 of 5 folds better; shuffling only the SCORED fold's feature rows gives +0.01909 with 0 of 5. Complete reversal. CAVEAT RECORDED AGAINST THE RESULT: the CI clears zero at alpha/1 through alpha/24, but every interval beyond alpha/3 is IDENTICAL -- five fold-level observations give the bootstrap five distinct values and it cannot widen further. Surviving alpha/24 is an artifact of n, not significance. What carries this is 5-of-5 and the placebo margin. SCOPE: 1,681 episodes, all inside DVOL's era; not claimed before 2021-03.",
+      "lesson": "ADVANCE is not ADOPT, and the ledger REFUSED the word the first time it was used because its vocabulary had no such state. That was the ledger working: a state with no name gets folded into a neighbouring one, and folding ADVANCE into ADOPT is how an unconfirmed result reaches an artifact. ADVANCE is now defined in ledger.py."
+    },
+    {
+      "id": "E2-confirm",
+      "topic": "features",
+      "date": "2026-08-27",
+      "question": "Does E2c's correction survive the full pipeline, including the barrier curves?",
+      "rule": "Pre-registered, QUEUED BEHIND E-power. A FRESH test, not a re-reading of E2c: apply the correction inside the full pipeline and re-score everything the median-only run skipped. PRIMARY: pooled QLIKE on the covered test episodes, CI excluding zero favourably. GUARDS: deep-tail barrier MCB must not worsen with a CI excluding zero unfavourably; Christoffersen conditional coverage at alpha = 5% must not degrade; spike and calm QLIKE must each not worsen; the placebo arm runs again inside the full pipeline. Only a pass here earns a place in the artifact.",
+      "verdict": "OPEN",
+      "result": "pre-registered before the run. Motivation: E2c re-weighted a recorded median and never rebuilt the barrier curves, the committee or the calibration. NOCTUA's product is a touch-probability curve, not a sigma; scaling sigma moves every barrier probability."
+    },
+    {
+      "id": "iv-coverage-closed",
+      "topic": "features",
+      "date": "2026-08-27",
+      "supersedes": [
+        "iv-coverage-2"
+      ],
+      "question": "Can Deribit DVOL implied volatility be used as a NOCTUA feature, given its coverage?",
+      "rule": "Closes the structural measurement. It asked which of two admissible designs to take: (a) refit the model on the covered era only, paying two thirds of the training data, or (b) an IV-conditioned residual correction on cached out-of-sample forecasts.",
+      "verdict": "ADVANCE",
+      "result": "Design (b) was taken and it worked, subject to confirmation. Coverage is unchanged and still the reason (a) was refused: train 62,051 of 189,831 = 32.7%, calib and test both 100%. E2 REJECTED with an intercept, E2b partly overturned that, E2c ADVANCED on the dynamics alone -- pooled -0.03264 CI [-0.04356, -0.01403], 5 of 5 folds, beating a coverage-preserving placebo. The correction's failure mode was a correction of zero and it was not zero.",
+      "implication": "The coverage asymmetry that made a plain feature column inadmissible turned out not to matter for the deployed case: the correction applies only where IV exists, and for SERVING that is every live episode. The 32.7% figure constrains what can be VALIDATED historically, not what can be run. E2-confirm is the remaining gate."
     }
   ]
 }
