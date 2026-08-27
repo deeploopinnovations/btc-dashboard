@@ -491,9 +491,19 @@ def run_fold(ep, X, fold, hidden=32, seeds=3, verbose=False, shape_cols=None,
     # alternative -- reimplementing prepare/train/predict in the caller -- is
     # how two "identical" comparisons silently stop being identical, which
     # research/pitfalls.py lists as a known failure mode here.
+    # `qa_med` and `har_logvol` are recorded so the ensemble weight can be
+    # re-evaluated WITHOUT retraining. The blend is affine in log space --
+    #     qa_med = w * qa_med_raw + (1 - w) * har_logvol
+    # -- and seed-averaging `qa` is linear, so the raw neural median inverts
+    # exactly, and any other w is one exponential away. Without these two
+    # arrays a w-sweep costs a full 6-fold retrain per value of w.
     return {"rows": rows, "vol": vol, "christoffersen": chr_, "year": fold["year"],
             "per_episode": {"rv": rv,
                             "sigma_med": np.asarray(p_te["sigma_med"], np.float64),
+                            "qa_med": np.asarray(p_te["qa"][:, I.MEDIAN_IDX], np.float64),
+                            "har_logvol": np.asarray(lp_te, np.float64),
+                            "blend_w": float(I.BLEND_W),
+                            "H": np.asarray(Ht, np.float64),
                             "test_idx": np.flatnonzero(m_te)}}
 
 

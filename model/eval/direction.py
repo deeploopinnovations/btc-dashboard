@@ -233,6 +233,69 @@ def block_bootstrap_ci(d, n_rep=2000, seed=0, alpha=0.05):
     return (float(np.quantile(means, alpha / 2)), float(np.quantile(means, 1 - alpha / 2)))
 
 
+def mean_ci(d, n_rep: int = 20_000, seed: int = 0, alpha: float = 0.05) -> dict:
+    """A CI for the mean that is DEFINED at every usable n, plus the diagnostics
+    that matter when n is small.
+
+    `block_bootstrap_ci` returns (nan, nan) below n = 20. That guard is correct
+    for its intended argument -- a per-episode loss difference with fewer than
+    20 points means the caller made a mistake -- but it is a trap for any
+    caller whose unit is a FOLD. `eval/anchor_freshness.py` fed it six yearly
+    deltas, got (nan, nan), and its pre-registered condition
+
+        spike QLIKE CI excludes zero favourably
+
+    evaluated to False -- because `nan < 0` is False, not because the data said
+    so. The verdict happened to be right; the mechanism that produced it was
+    not looking at the data at all. A rule decided by a NaN is not a rule.
+
+    Three numbers are returned rather than one, because at n = 6 the choice of
+    estimator is a real degree of freedom and hiding it would be a way to pick
+    the answer:
+
+      ci95        the moving-block interval, blocks of round(n^(1/3)). This is
+                  the PRE-REGISTERED estimator and the one a verdict uses.
+      ci95_iid    the ordinary bootstrap. For yearly folds separated by an
+                  embargo the dependence the blocks model is largely absent,
+                  so the block interval is if anything conservative; when the
+                  two disagree in sign of coverage, say so rather than picking.
+      n_favourable / n  the sign count, which no bootstrap can launder.
+    """
+    d = np.asarray(d, dtype=np.float64)
+    d = d[np.isfinite(d)]
+    n = len(d)
+    if n < 2:
+        raise ValueError(f"mean_ci needs at least 2 finite observations, got {n}")
+    L = max(1, int(round(n ** (1 / 3))))
+    nb = int(np.ceil(n / L))
+    rng = np.random.default_rng(seed)
+    starts = rng.integers(0, n - L + 1, size=(n_rep, nb))
+    idx = (starts[:, :, None] + np.arange(L)[None, None, :]).reshape(n_rep, -1)[:, :n]
+    blk = d[idx].mean(axis=1)
+    iid = d[rng.integers(0, n, size=(n_rep, n))].mean(axis=1)
+    q = lambda a: (float(np.quantile(a, alpha / 2)), float(np.quantile(a, 1 - alpha / 2)))
+    return {"mean": float(d.mean()), "n": n, "block_len": L,
+            "ci95": list(q(blk)), "ci95_iid": list(q(iid)),
+            "n_negative": int((d < 0).sum()), "n_positive": int((d > 0).sum()),
+            "sd": float(d.std(ddof=1)) if n > 1 else float("nan")}
+
+
+def ci_excludes_zero(ci, favourable_sign: int) -> bool:
+    """Did the interval clear zero on the stated side? REFUSES a NaN interval.
+
+    `favourable_sign` is -1 when a NEGATIVE delta is the win (a loss went down)
+    and +1 when a positive delta is. Passing an undefined interval raises
+    instead of silently answering False -- see `mean_ci`.
+    """
+    lo, hi = float(ci[0]), float(ci[1])
+    if not (np.isfinite(lo) and np.isfinite(hi)):
+        raise ValueError(
+            f"refusing to decide a pre-registered condition against an "
+            f"undefined interval [{lo}, {hi}]; a NaN comparison answers False "
+            f"without consulting the data")
+    return hi < 0 if favourable_sign < 0 else lo > 0
+
+
 def score_all(name, p, y, seed=0, null_reps=200):
     p = np.clip(np.asarray(p, dtype=np.float64), EPS, 1 - EPS)
     y = np.asarray(y, dtype=np.float64)

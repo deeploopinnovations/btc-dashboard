@@ -74,7 +74,7 @@ from eval import benchmark as B                                           # noqa
 from noctua import model as _model                                        # noqa: E402
 from noctua import spec as _spec                                          # noqa: E402
 from noctua import train as _train                                        # noqa: E402
-from eval.direction import block_bootstrap_ci                             # noqa: E402
+from eval.direction import ci_excludes_zero, mean_ci                      # noqa: E402
 from eval.levers import causal_spike_flag, qlike                          # noqa: E402
 from noctua import splits as S                                            # noqa: E402
 from noctua.train import load_all                                         # noqa: E402
@@ -127,7 +127,21 @@ def main(argv=None) -> int:
     ap.add_argument("--hidden", type=int, default=32)
     ap.add_argument("--out", type=Path,
                     default=Path("model/artifacts/anchor_freshness.json"))
+    ap.add_argument("--from-json", type=Path, default=None,
+                    help="re-derive the verdict from an earlier run's stored "
+                         "per-fold records instead of retraining. Every fold "
+                         "number is read, none recomputed, so this can fix a "
+                         "broken STATISTIC but can never change a SCORE.")
     a = ap.parse_args(argv)
+
+    if a.from_json is not None:
+        prev = json.loads(a.from_json.read_text())
+        recs = prev["folds"]
+        base_orig = prev["base_cols_control"]
+        base_fresh = prev["base_cols_treated"]
+        print(f"re-deriving from {a.from_json} -- {len(recs)} stored folds, "
+              f"no model is retrained")
+        return _verdict(recs, base_orig, base_fresh, a.out)
 
     ep, X = load_all(a.artifacts)
     spike = causal_spike_flag(ep)
@@ -184,7 +198,13 @@ def main(argv=None) -> int:
 
     if not recs:
         print("no fold produced both arms"); return 1
+    return _verdict(recs, base_orig, base_fresh, a.out)
 
+
+def _verdict(recs, base_orig, base_fresh, out_path):
+    """Everything downstream of the fold scores. Separated so a statistic can be
+    corrected without retraining -- and so the corrected verdict is produced by
+    the SAME code path as the original, not a one-off recomputation."""
     def delta(key):
         return np.array([r["fresh_anchor"][key] - r["control"][key] for r in recs])
 
@@ -195,11 +215,21 @@ def main(argv=None) -> int:
         c = np.array([r["control"][key] for r in recs])
         t = np.array([r["fresh_anchor"][key] for r in recs])
         d = delta(key)
-        lo, hi = block_bootstrap_ci(d, seed=23)
+        # mean_ci, not block_bootstrap_ci: the unit here is a FOLD, and at
+        # n = 6 that helper returns (nan, nan) by design. The first run of this
+        # script compared those NaNs and printed a verdict that had never
+        # looked at the data. See eval/direction.mean_ci.
+        ci = mean_ci(d, seed=23)
+        lo, hi = ci["ci95"]
         summary[key] = {"control": float(np.nanmean(c)), "fresh": float(np.nanmean(t)),
-                        "delta": float(np.nanmean(d)), "ci95": [lo, hi]}
+                        "delta": float(np.nanmean(d)), "ci95": [lo, hi],
+                        "ci95_iid": ci["ci95_iid"], "n": ci["n"],
+                        "block_len": ci["block_len"], "sd": ci["sd"],
+                        "n_negative": ci["n_negative"], "n_positive": ci["n_positive"]}
         print(f"{key:>22} {np.nanmean(c):10.5f} {np.nanmean(t):10.5f} "
-              f"{np.nanmean(d):+11.5f} [{lo:+.5f}, {hi:+.5f}]")
+              f"{np.nanmean(d):+11.5f} [{lo:+.5f}, {hi:+.5f}]"
+              f"   iid [{ci['ci95_iid'][0]:+.5f}, {ci['ci95_iid'][1]:+.5f}]"
+              f"   {ci['n_negative']}-/{ci['n_positive']}+")
 
     sp_lo, sp_hi = summary["qlike_spike"]["ci95"]
     calm_pct = 100.0 * (summary["qlike_calm"]["fresh"] /
@@ -207,9 +237,11 @@ def main(argv=None) -> int:
     calm_lo, calm_hi = summary["qlike_calm"]["ci95"]
     tail_lo, tail_hi = summary["tail_mcb"]["ci95"]
 
-    primary = sp_hi < 0.0
+    # A negative delta is the win for a loss, so favourable_sign = -1.
+    # ci_excludes_zero RAISES on a NaN interval rather than answering False.
+    primary = ci_excludes_zero(summary["qlike_spike"]["ci95"], -1)
     guard_calm = calm_pct <= 1.0
-    guard_tail = not (tail_lo > 0.0)
+    guard_tail = not ci_excludes_zero(summary["tail_mcb"]["ci95"], +1)
     adopt = primary and guard_calm and guard_tail
     print(f"\n--- pre-registered rule (BENCHMARK.md 19) ---")
     print(f"  PRIMARY spike QLIKE CI excludes zero favourably : {primary}")
@@ -220,19 +252,20 @@ def main(argv=None) -> int:
 
     print("\n--- research/pitfalls on this experiment ---")
     rep = P.Report()
+    rep.add(P.check_ci_is_defined(summary["qlike_spike"]["ci95"], "spike QLIKE"))
     rep.add(P.check_not_a_coin_flip(delta("qlike_spike"), "spike QLIKE delta"))
     rep.add(P.check_rule_satisfiable(1, len(recs), "folds"))
     rep.add(P.check_arms_matched({"control": len(recs), "fresh_anchor": len(recs)},
                                  what="folds scored"))
     print(rep.render())
 
-    a.out.parent.mkdir(parents=True, exist_ok=True)
-    a.out.write_text(json.dumps({"folds": recs, "summary": summary,
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(json.dumps({"folds": recs, "summary": summary,
                                  "adopt": bool(adopt),
                                  "base_cols_control": base_orig,
                                  "base_cols_treated": base_fresh},
                                 indent=2, default=float) + "\n")
-    print(f"\nwrote {a.out}")
+    print(f"\nwrote {out_path}")
     return 0
 
 

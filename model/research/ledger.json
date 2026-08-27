@@ -271,7 +271,10 @@
       "question": "Does adding har_1h/har_6h to BASE_COLS reduce the volatility lag?",
       "rule": "PRIMARY on the targeted slice: spike-episode QLIKE with a moving-block bootstrap CI excluding zero favourably. Guards: calm QLIKE not worse than 1% with its own CI; deep-tail MCB not worse with CI excluding zero unfavourably; pooled QLIKE reported but NOT a condition; log_har_gauss re-scored since it gains inputs too.",
       "verdict": "OPEN",
-      "result": "pre-registered before the run"
+      "result": "pre-registered before the run",
+      "superseded_by": [
+        "E-anchor-verdict"
+      ]
     },
     {
       "id": "E-anchor-pre",
@@ -296,6 +299,57 @@
       "rule": "the protocol names GARCH(1,1) a MANDATORY volatility baseline. Score it on the same 6 walk-forward folds, same episodes, same QLIKE, alongside log_har and persistence. This is a BASELINE ADDITION, not a model change: NOCTUA is untouched, so there is no adopt/reject on NOCTUA -- the result stands as a scoreboard entry whatever it says. Installing `arch` must NOT alter any pinned version in requirements-research.txt; if pip would upgrade numpy/pandas/torch/scipy/sklearn/pyarrow, the install is refused and the experiment is BLOCKED, because determinism was verified against those exact versions.",
       "verdict": "ADOPT",
       "result": "baseline added. QLIKE over 6 folds: noctua 0.290346, log_har 0.305651, garch_t 0.325937, garch_normal 0.340448, persistence 0.433230. NOCTUA clears the mandatory baseline by 12.2%. CRITICAL: the first fit silently never ran -- arch returned its own default starting values (0.10/0.88) exactly, in 4 of 6 folds, while reporting convergence_flag=0 and 'terminated successfully' in 0.1s. Multi-start gained +1588 ll (normal) and +4466 (t). The broken fit put GARCH at 0.4664, WORSE than persistence, inflating NOCTUA's margin from 12.2% to 38% -- 3x in NOCTUA's favour. Also fixed: multi-start drives persistence to ~1.0 (IGARCH), so the recursion now seeds from the sample variance, not omega/(1-a-b)."
+    },
+    {
+      "id": "iv-coverage",
+      "date": "2026-08-27",
+      "question": "Can Deribit DVOL implied volatility be used as a NOCTUA feature, given its coverage?",
+      "rule": "Structural measurement, not a hypothesis test. Pre-registered check: count episodes with a strictly-causal IV observation at anchor-1h, separately for train / calib / test. If train coverage is far below test coverage, a plain feature-column design is INADMISSIBLE, because the missingness indicator would be informative in training and constant at test.",
+      "verdict": "OPEN",
+      "result": "Re-derived directly from model/artifacts/episodes.parquet and data/newdata/dvol_btc.parquet. DVOL: 47,563 hourly rows, 2021-03-24 -> 2026-08-26, no duplicate timestamps, uniform 3600s spacing. Episodes: 510,496 over 127,915 unique anchors, 2012-01-01 -> 2026-08-09. Causal join at anchor-3600s: 188,583 episodes covered (36.94%). BY SPLIT: train (<= 2023-06-30) 79,488 of 401,401 = 19.8%; calib 17,756 of 17,756 = 100%; test (>= 2024-01-01) 91,339 of 91,339 = 100%. The asymmetry is total: IV is absent from 80% of training and present for every calibration and test episode. This is a hard design constraint, not a data-quality problem -- DVOL simply did not exist before 2021-03.",
+      "implication": "A naive `iv_level` column with a fill value would let the trainer learn from the fill-vs-real distinction, which has zero variance at test time. Two admissible designs remain: (a) refit the whole model on the covered era only, paying ~80% of the training data for the feature; or (b) leave NOCTUA untouched and fit an IV-conditioned RESIDUAL correction on the covered training slice (2021-03 -> 2023-06, 79,488 episodes), calibrate on the fully-covered calib split, score on the fully-covered test split. (b) is strictly safer: it cannot degrade the base model, and its failure mode is a correction of zero.",
+      "supersedes": [],
+      "superseded_by": [
+        "iv-coverage-2"
+      ]
+    },
+    {
+      "id": "iv-coverage-2",
+      "date": "2026-08-27",
+      "question": "Can Deribit DVOL implied volatility be used as a NOCTUA feature, given its coverage?",
+      "rule": "Same pre-registered check as iv-coverage: count episodes with a strictly-causal IV observation at anchor-1h, per split. If train coverage is far below test coverage, a plain feature-column design is INADMISSIBLE.",
+      "verdict": "OPEN",
+      "supersedes": [
+        "iv-coverage"
+      ],
+      "result": "CORRECTS iv-coverage, which used INVENTED split boundaries (2023-06-30 / 2024-01-01) instead of reading them. The repository's actual boundaries are noctua.splits.SAMPLE_START = 2017-08-01, TRAIN_END = 2023-01-01, CALIB_END = 2024-07-01, with a per-boundary embargo of H_max hours -- and SAMPLE_START alone drops 2012-2017, which iv-coverage silently counted as training data. Re-derived through noctua.splits.time_splits: train 62,051 of 189,831 = 32.7%; calib 52,359 of 52,359 = 100%; test 73,867 of 73,867 = 100%. Superseded numbers, do not quote: 19.8% / 100% / 100% on n = 401,401 / 17,756 / 91,339. DVOL itself is unchanged and was re-verified: 47,563 rows, 2021-03-24 -> 2026-08-26, every gap exactly 3600s, 0 duplicates.",
+      "implication": "The qualitative conclusion SURVIVES the correction and is if anything cleaner: two thirds of training episodes have no IV and every calibration and test episode has one. A fill value would be learnable in training and constant at test. The two admissible designs stand: (a) refit on the covered era only; (b) an IV-conditioned RESIDUAL correction fit on the covered training slice (2021-03 -> 2023-01, 62,051 episodes), calibrated on the fully-covered calib split, scored on the fully-covered test split. (b) remains strictly safer.",
+      "lesson": "Split boundaries are data, not folklore. I typed plausible dates rather than reading noctua/splits.py, and a sonnet agent that read the file got it right. The error was invisible in the qualitative story -- both versions say 'train coverage is far below test' -- which is exactly the kind of wrong number that stays in circulation."
+    },
+    {
+      "id": "E-anchor-verdict",
+      "topic": "lag",
+      "date": "2026-08-27",
+      "supersedes": [
+        "E-anchor"
+      ],
+      "question": "Does adding har_1h and har_6h to BASE_COLS -- the Log-HAR anchor holding 75% of the blend -- reduce the volatility lag?",
+      "rule": "Pre-registered in BENCHMARK.md 19 before the run, applied verbatim. PRIMARY, on the slice the treatment targets: spike-episode QLIKE, moving-block bootstrap CI must exclude zero on the FAVOURABLE side. GUARDS: calm QLIKE not worse by more than 1%; deep-tail MCB not worse with a CI excluding zero unfavourably; pooled QLIKE reported but NOT a condition; log_har_gauss re-scored rather than held fixed. REJECTION: if spike QLIKE's CI contains zero, 12's Arm 4 gain was an OLS-harness artifact.",
+      "verdict": "REJECT",
+      "result": "6 folds x 3 seeds x 2 arms. spike QLIKE 1.86701 -> 1.90188, delta +0.03487 (+1.87%), block CI [+0.02151, +0.05408], iid CI [+0.01837, +0.05233], WORSE in 6 of 6 folds. calm -0.00079 CI [-0.00202, +0.00098]; pooled +0.00140 CI [-0.00048, +0.00367]; tail MCB -0.00030 CI [-0.00186, +0.00115]. log_har_gauss identical across arms (0.30565) -- confirming E-anchor-pre's finding that fit_vol_baselines reads VOL_BASELINES, not BASE_COLS.",
+      "implication": "The CI excludes zero UNFAVOURABLY, which the pre-registered rejection clause did not name -- it was written for 'contains zero'. This is a SIGN REVERSAL against 12's Arm 4 (-10.44% spike on an OLS-only harness), not a wash-out. Mechanism: the full pipeline already feeds har_1h/har_6h to the neural stage, so the treatment adds no information and instead moves the noisiest available RV window into the term whose job is stability. 19's framing is corrected: the anchor's blindness below a day is what the anchor is FOR, not a defect. Redirects to the blend weight, which 19 itself named as the next test.",
+      "lesson": "A rule that has to be reinterpreted after the fact is doing less work than it appears to. The rejection clause covered 'no effect' but not 'effect in the opposite direction', and the second is a different scientific claim."
+    },
+    {
+      "id": "ci-nan-defect",
+      "topic": "machinery",
+      "date": "2026-08-27",
+      "question": "Did E-anchor's pre-registered condition actually consult the data?",
+      "rule": "A pre-registered condition must be evaluated against a finite interval. Assert before comparing; a helper that decides such a condition must RAISE on an undefined interval, not return False.",
+      "verdict": "ADOPT",
+      "result": "NO -- the first E-anchor run printed every CI as [nan, nan]. direction.block_bootstrap_ci returns (nan, nan) below n = 20 by design, a correct guard for a per-episode loss difference; the unit here was a FOLD and there were six. The rule asked `primary = sp_hi < 0.0`, and `nan < 0.0` is False, so the script printed 'DO NOT ADOPT' without any statistic having looked at the data. The verdict was right by luck: all six folds moved the wrong way. Re-derived through --from-json, the spike CI is [+0.02151, +0.05408] and the verdict is unchanged.",
+      "implication": "Added direction.mean_ci (defined at every usable n; returns the pre-registered moving-block interval AND the iid interval AND the sign count, so the estimator choice at n = 6 is visible rather than picked), direction.ci_excludes_zero (raises on a NaN interval), and research/pitfalls.check_ci_is_defined as check 11 with this run as its historical case -- the self-test now expects 11 failures. anchor_freshness.py gained --from-json so a broken STATISTIC can be corrected through the same code path without retraining and without any opportunity to change a SCORE.",
+      "lesson": "NaN silently satisfies every 'did not clear the bar' branch, so the rule returns the same answer whether the effect is huge, zero, or unmeasured. A correct answer is not evidence that the machinery works."
     }
   ]
 }

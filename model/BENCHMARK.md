@@ -2835,3 +2835,127 @@ variance path into a touch probability requires the first-passage assumption
 law that loses to the base rate would measure the law, not GARCH.
 
 *Educational research only. Not financial advice.*
+
+## 21. The fresh anchor is not neutral — it is reliably worse, on exactly its target
+
+§19 pre-registered this experiment and named its own rejection clause in
+advance. The clause fired, but not in the way it was written, and the
+difference is the interesting part.
+
+### The rule, and what it said
+
+    PRIMARY, on the slice the treatment targets: spike-episode QLIKE, with a
+    moving-block bootstrap CI that must exclude zero on the favourable side.
+    ...
+    REJECTION: if spike QLIKE's CI contains zero, §12's Arm 4 gain was an
+    artifact of the OLS-only harness and does not survive the full pipeline.
+
+Single change, six walk-forward folds, three seeds, both arms:
+
+    control  BASE_COLS (5)  har_1d,                   har_5d, har_22d, cal_H, cal_weekend_frac
+    treated  BASE_COLS (7)  har_1d, har_1h, har_6h,   har_5d, har_22d, cal_H, cal_weekend_frac
+
+### The result
+
+| fold | n spike | spike QLIKE control | treated | delta | rel | pooled control | pooled treated |
+|---|---|---|---|---|---|---|---|
+| 2021 | 24 | 3.2380 | 3.2775 | +0.0395 | +1.22 % | 0.3369 | 0.3417 |
+| 2022 | 23 | 1.3542 | 1.3739 | +0.0197 | +1.45 % | 0.2745 | 0.2766 |
+| 2023 | 13 | 3.6483 | 3.6635 | +0.0152 | +0.42 % | 0.4340 | 0.4302 |
+| 2024 | 26 | 1.3418 | 1.4012 | +0.0594 | +4.42 % | 0.2485 | 0.2531 |
+| 2025 | 22 | 0.9571 | 1.0223 | +0.0652 | +6.81 % | 0.2523 | 0.2553 |
+| 2026 | 11 | 0.6626 | 0.6729 | +0.0103 | +1.55 % | 0.1959 | 0.1936 |
+
+| quantity | control | treated | delta | 95 % CI (block) | 95 % CI (iid) | folds worse |
+|---|---|---|---|---|---|---|
+| **spike QLIKE** | 1.86701 | 1.90188 | **+0.03487** | **[+0.02151, +0.05408]** | [+0.01837, +0.05233] | **6 of 6** |
+| calm QLIKE | 0.19887 | 0.19807 | −0.00079 | [−0.00202, +0.00098] | [−0.00277, +0.00098] | 3 of 6 |
+| pooled QLIKE | 0.29035 | 0.29175 | +0.00140 | [−0.00048, +0.00367] | [−0.00130, +0.00391] | 4 of 6 |
+| deep-tail MCB | 0.22531 | 0.22501 | −0.00030 | [−0.00186, +0.00115] | [−0.00147, +0.00086] | 3 of 6 |
+| `log_har_gauss` | 0.30565 | 0.30565 | ±0 | — | — | — |
+
+**DO NOT ADOPT.** The primary condition required the spike CI to exclude zero
+*favourably*. It excludes zero **unfavourably**, on both bootstrap variants and
+in all six folds independently: +1.87 % on the slice the change was designed to
+help.
+
+That is a stronger statement than §19's rejection clause anticipated. The
+clause was written for "contains zero" — no effect, the OLS-only gain washing
+out. What happened is a **sign reversal**: §12's Arm 4 measured −10.44 % on
+spike episodes in an OLS-only harness, and the same two columns in the full
+pipeline give +1.87 %. Recording that the pre-registered rule did not name this
+outcome matters more than the verdict it produced, because a rule that has to
+be reinterpreted after the fact is doing less work than it appears to.
+
+### Why the sign flips, and why the flip is the useful finding
+
+The two harnesses are not the same experiment.
+
+- **§12's Arm 4** was OLS alone. Adding `har_1h`/`har_6h` gave that regression
+  information it did not otherwise have, and it used it.
+- **The full pipeline** already routes `har_1h`/`har_6h` into the neural stage,
+  which holds 25 % of the blend. The information was never missing from the
+  *model*; it was missing from one *term*.
+
+So the treatment does not add information. It moves a noisy statistic into the
+term whose job is to be stable. A 1-hour realized-volatility estimate is built
+from 60 one-minute returns and is correspondingly noisy — the entire reason
+HAR averages over 1-day, 5-day and 22-day windows is to trade resolution for
+estimator variance. Putting the noisiest available window into the 75 %-weight
+anchor buys duplicated signal at the cost of variance in the component that was
+bounding the model's worst folds.
+
+That reframes §19's finding. §19 said "the dominant term cannot see below daily
+resolution" and treated that as a defect. §21 says the anchor's blindness below
+a day is not a bug to be fixed by giving it sharper eyes — **it is what the
+anchor is for**. The lag is real (§7a), the information is present (§12), and
+the place it is being lost is not the anchor's input set.
+
+### What this redirects to, which §19 also named in advance
+
+§19's "what a negative result looks like" paragraph said, before any of this ran:
+
+> That would redirect the work away from feature placement and toward the blend
+> weight itself — which is the next thing to test, not a dead end.
+
+That is now the live hypothesis, and §21 sharpens it. If the anchor is the
+robust term and the neural stage is the fast one, then a **constant** 0.25 is a
+single compromise being asked to serve two regimes that want opposite things.
+`eval/blend_ceiling.py` tests it, with the ceiling measured before the lever is
+built.
+
+### A defect found in the machinery, not the model
+
+The first run of `anchor_freshness.py` printed this verdict with every
+confidence interval reading `[nan, nan]`. `direction.block_bootstrap_ci`
+returns `(nan, nan)` below n = 20 — a correct guard for its intended argument,
+a per-episode loss difference, where fewer than 20 points means the caller
+erred. The unit here is a **fold**, and there are six. The rule then asked
+
+    primary = sp_hi < 0.0
+
+and `nan < 0.0` is `False`, so the script printed `PRIMARY ... : False` and
+`DO NOT ADOPT` **without any statistic having consulted the data**.
+
+The verdict was right by luck — all six folds moved the wrong way — which is
+the worst version of this failure, because a correct answer is not evidence
+that the machinery works. NaN is uniquely dangerous in a decision rule: it
+silently satisfies every "did not clear the bar" branch, so a rule returns the
+same answer whether the effect is large, zero, or simply unmeasured.
+
+Three things changed as a result:
+
+- `direction.mean_ci` — a CI defined at every usable n, returning the
+  pre-registered moving-block interval *and* the iid interval *and* the sign
+  count, so the estimator choice at n = 6 is visible rather than picked;
+- `direction.ci_excludes_zero` — **raises** on an undefined interval instead of
+  answering `False`;
+- `research/pitfalls.check_ci_is_defined` — check 11, with this run as its
+  historical case, so the self-test now expects 11 failures.
+
+The scores above were not recomputed: `anchor_freshness.py --from-json`
+re-derives the verdict from the stored per-fold records through the same code
+path, so a broken *statistic* was fixed without a single model being retrained
+and without any opportunity to change a *score*.
+
+*Educational research only. Not financial advice.*

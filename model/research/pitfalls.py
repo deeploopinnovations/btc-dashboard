@@ -24,6 +24,8 @@ was wrong, which is what makes the check credible to the next reader.
 """
 from __future__ import annotations
 
+import math
+
 import argparse
 import sys
 from dataclasses import dataclass, field
@@ -301,11 +303,49 @@ def check_eval_matches_trainer(eval_kwargs: dict, trainer_kwargs: dict,
                    "train_v2.py used the causal reference")
 
 
+# ---------------------------------------------------------------------------
+# 11. A condition decided by a NaN was never decided by the data
+# ---------------------------------------------------------------------------
+def check_ci_is_defined(ci, name: str = "") -> Verdict:
+    """A pre-registered condition must be evaluated against a REAL interval.
+
+    PROVENANCE: `eval/anchor_freshness.py` fed six yearly fold deltas to
+    `direction.block_bootstrap_ci`, which returns (nan, nan) below n = 20 by
+    design -- a correct guard for its intended argument, a per-episode loss
+    difference, where n < 20 means the caller erred. The unit here was a FOLD.
+    The rule then asked
+
+        primary = sp_hi < 0.0
+
+    and `nan < 0.0` is False, so the script printed "PRIMARY ... : False" and
+    "DO NOT ADOPT" without any statistic having looked at the data. The verdict
+    was right by luck -- all six folds moved the wrong way -- which is the
+    worst version of this failure, because a correct answer is not evidence
+    that the machinery works.
+
+    NaN is uniquely dangerous in a decision rule: it silently satisfies every
+    "did not clear the bar" branch. A rule that returns the SAME answer whether
+    the effect is huge, zero, or unmeasured is not testing anything. Assert the
+    interval is finite BEFORE comparing it, and prefer a helper that raises --
+    `direction.ci_excludes_zero` does -- over one that returns a bool.
+    """
+    lo, hi = (float(ci[0]), float(ci[1])) if ci is not None else (float("nan"),) * 2
+    ok = math.isfinite(lo) and math.isfinite(hi)
+    tag = f"[{name}]" if name else ""
+    return Verdict(ok, f"ci-is-defined{tag}",
+                   f"interval [{lo:+.5g}, {hi:+.5g}]" if ok else
+                   f"UNDEFINED interval [{lo}, {hi}] -- every 'did not clear "
+                   f"the bar' branch would answer False without consulting "
+                   f"the data",
+                   "anchor_freshness compared a (nan, nan) CI and printed a verdict")
+
+
 ALL_CHECKS = [check_skill_sign, check_relevance_not_absolute,
               check_beats_base_rate, check_arms_matched,
               check_not_a_coin_flip, check_correction_verified,
               check_guard_is_reachable, check_measured_is_shipped,
-              check_rule_satisfiable, check_eval_matches_trainer]
+              check_rule_satisfiable, check_eval_matches_trainer,
+              check_ci_is_defined]
 
 
 def self_test() -> int:
@@ -342,8 +382,11 @@ def self_test() -> int:
                                      {"sigma_ref": "causal_har_1d_clipped"}))  # historical FAIL
     r.add(check_eval_matches_trainer({"sigma_ref": "causal_har_1d_clipped"},
                                      {"sigma_ref": "causal_har_1d_clipped"}))
+    r.add(check_ci_is_defined((float("nan"), float("nan")),
+                              "E-anchor spike QLIKE (historical FAIL)"))
+    r.add(check_ci_is_defined((0.02151, 0.05408), "the same delta, re-derived"))
     print(r.render())
-    expect_fail = 10  # the historical cases, which MUST still be caught
+    expect_fail = 11  # the historical cases, which MUST still be caught
     got = len(r.failures)
     print(f"\nself-test: {got} failures, expected {expect_fail} "
           f"(the historical errors these checks exist to catch)")
