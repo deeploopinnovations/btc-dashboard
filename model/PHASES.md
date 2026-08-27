@@ -106,13 +106,33 @@ Sampled RV vs bipower/continuous variation vs jump decomposition, noise-robust
 candidate where 1-minute data permits. One estimator change, everything else
 identical.
 
-### Phase 4 — E2, implied-volatility family
+### Phase 4 — E2, implied-volatility family (DESIGN CONSTRAINED BY COVERAGE)
 **UNBLOCKED (§15).** The paged `get_volatility_index_data` route now returns
 47,563 hourly rows spanning 2021-03-24 → 2026-08-26, with **15,552 rows inside
 the training window**. Implied volatility is trainable. This is the highest
 expected-information-gain experiment in the queue, because §12 showed the onset
 ceiling exists precisely for want of a forward-looking input — but it does not
-open until Phase 0's gate passes. Funding rate is verified usable (hourly, 2019-04-30 →, 50.1 % inside
+open until Phase 0's gate passes.
+
+**A plain feature column is inadmissible, and this is measured, not argued.**
+Ledger `iv-coverage-2`, re-derived through `noctua.splits.time_splits`: DVOL
+covers **32.7 %** of training episodes (62,051 of 189,831) and **100 %** of
+calibration and test (52,359 and 73,867). DVOL began trading 2021-03-24 and the
+training window opens 2017-08-01. A fill value for the missing two thirds would
+be learnable in training and constant at test.
+
+`eval/iv_correction.py` implements the admissible design instead: NOCTUA is left
+untouched and an IV-conditioned **residual correction** is fitted on top of its
+cached out-of-sample forecasts, so the failure mode is a correction of zero. The
+QLIKE fit is globally convex and its convergence is asserted rather than hoped
+for — §20 records a GARCH baseline whose fit silently returned library defaults
+in four of six folds. The placebo arm rotates the IV series circularly inside
+the covered era, which preserves the exact set of scored episodes, so the margin
+between arms cannot be a difference in slice.
+
+`iv_term_slope` is **BLOCKED**: DVOL is a single 30-day constant-maturity index,
+so no second tenor exists to difference. Not built, and no synthetic proxy
+substituted. Funding rate is verified usable (hourly, 2019-04-30 →, 50.1 % inside
 the training window) and is testable now.
 
 ### Phase 5 — E15 redo, spike weighting on a slice-primary endpoint
@@ -121,6 +141,41 @@ moving-block bootstrap CI, spike RV/σ toward 1.0, calm QLIKE guard at 1 %,
 pooled reported but **not** a condition. This exists because §13's rule made
 pooled QLIKE primary for a 6 %-of-episodes treatment — the exact error the
 protocol names.
+
+### Phase 5.5 — E-power, INSERTED AHEAD OF EVERYTHING (BENCHMARK.md §22, §23)
+
+This phase was not in the original plan and now blocks the rest of it.
+
+`benchmark.run_fold` scores `fold["test"] & finite & production_mask`, and
+`production_mask` is `(H == 19) & (anchor_hour == 17)`. **Every fold is decided
+on ~365 episodes, ~20 of them spike-flagged** — six folds is ~2,190 test and
+~119 spike episodes, against a 510,496-episode population.
+
+Two independent, pre-registered tests of the ensemble weight (§23) both came
+back with intervals too wide to decide anything, and on the second
+`research/pitfalls.check_not_a_coin_flip` said so outright: the estimate was one
+eighteenth of its own standard error. That is a **non-measurement**, not a null.
+It would have looked identical if the true effect were +2 % or −2 %.
+
+Running more experiments at that resolution produces more non-measurements. So
+E-power comes first: re-decide §21 — the one experiment here with a large,
+unanimous, already-resolved effect — on all 24 anchor hours at H = 19, through
+the same code path (`anchor_freshness --all-hours`), and measure how much the
+interval actually tightens against the √24 = 4.90× that independence would give.
+
+The ratio is a reusable constant. It tells every experiment after this one how
+much power a wider slice really buys, instead of leaving it assumed.
+
+**Gate:** if §21's verdict flips on the wider slice, every prior verdict resting
+on a marginal CI is re-run before any new experiment starts. If it holds and
+only the interval narrows, the production slice was adequate for effects of that
+size, and the multiplier fixes the size below which it is not — which then sets
+the minimum detectable effect each later phase must be powered for.
+
+**Horizons are deliberately not mixed.** H = 6/12/19/24 at one anchor are nested
+inside one another; that overlap is not the serial dependence a moving-block
+bootstrap models. Holding H = 19 and varying the anchor hour keeps the
+dependence in the one form the estimator is built for.
 
 ### Phase 6+ — remaining queue, ordered by expected information gain
 E3 microstructure, E4 global/panel, E5 HAR+nonlinear residual, E6 multi-task
