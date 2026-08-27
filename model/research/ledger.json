@@ -294,8 +294,8 @@
       "topic": "baselines",
       "question": "Does NOCTUA beat a properly fitted GARCH(1,1)?",
       "rule": "the protocol names GARCH(1,1) a MANDATORY volatility baseline. Score it on the same 6 walk-forward folds, same episodes, same QLIKE, alongside log_har and persistence. This is a BASELINE ADDITION, not a model change: NOCTUA is untouched, so there is no adopt/reject on NOCTUA -- the result stands as a scoreboard entry whatever it says. Installing `arch` must NOT alter any pinned version in requirements-research.txt; if pip would upgrade numpy/pandas/torch/scipy/sklearn/pyarrow, the install is refused and the experiment is BLOCKED, because determinism was verified against those exact versions.",
-      "verdict": "OPEN",
-      "result": "pre-registered before any install"
+      "verdict": "ADOPT",
+      "result": "baseline added. QLIKE over 6 folds: noctua 0.290346, log_har 0.305651, garch_t 0.325937, garch_normal 0.340448, persistence 0.433230. NOCTUA clears the mandatory baseline by 12.2%. CRITICAL: the first fit silently never ran -- arch returned its own default starting values (0.10/0.88) exactly, in 4 of 6 folds, while reporting convergence_flag=0 and 'terminated successfully' in 0.1s. Multi-start gained +1588 ll (normal) and +4466 (t). The broken fit put GARCH at 0.4664, WORSE than persistence, inflating NOCTUA's margin from 12.2% to 38% -- 3x in NOCTUA's favour. Also fixed: multi-start drives persistence to ~1.0 (IGARCH), so the recursion now seeds from the sample variance, not omega/(1-a-b)."
     }
   ]
 }

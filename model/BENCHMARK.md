@@ -2753,3 +2753,85 @@ fix-in-passing — the same discipline that kept §16's sigma_ref correction in
 its own step.
 
 *Educational research only. Not financial advice.*
+
+## 20. The mandatory GARCH baseline, and the fit that silently never ran
+
+The research protocol names GARCH(1,1) — with a heavy-tailed variant — a
+**mandatory** volatility baseline. This repository never had one, and had been
+claiming "NOCTUA beats the baselines" against a set that omitted the single
+most standard comparator in the volatility literature.
+
+It was missing for an infrastructure reason, not an oversight: nothing here
+could install `arch`. `eval/toolchain.py` established empirically that **PyPI is
+allowlisted through this proxy** even though every exchange API is not, which
+unblocked it in minutes.
+
+### The result
+
+| model | QLIKE (6 walk-forward folds) | vs NOCTUA |
+|---|---|---|
+| **noctua** | **0.290346** | — |
+| log_har | 0.305651 | +5.3 % |
+| **garch_t** (Student-t innovations) | **0.325937** | **+12.2 %** |
+| garch_normal | 0.340448 | +17.3 % |
+| persistence | 0.433230 | +49.2 % |
+
+**NOCTUA clears the mandatory baseline**, and so does Log-HAR. The heavy-tailed
+variant beats the normal one, as the protocol anticipated it would — measured
+`nu` around 4.2, which is very fat-tailed and consistent with hourly BTC returns
+ranging −34.7 % to +29.9 %.
+
+The comparison is like-for-like by construction: GARCH is a model of a return
+*series*, so its forecast is aggregated to exactly NOCTUA's object —
+`sigma[t,H] = sqrt(sum of the next H hours' conditional variance)` — on the same
+episodes. Quoting a one-step-ahead sigma instead would have compared two
+different quantities.
+
+### The fit silently never ran, and the failure flattered NOCTUA 3×
+
+The first run reported **garch_normal 0.4664 — worse than persistence**, which
+would have been a headline of "NOCTUA beats GARCH by 38 %".
+
+That number was an artifact. On this data `arch`'s optimiser returns its own
+default starting values (`alpha=0.10, beta=0.88`) **exactly, to full
+precision**, in 4 of 6 folds — while reporting `convergence_flag = 0` and
+*"Optimization terminated successfully"* in 0.1 s on 74,455 observations.
+
+**The tell was mechanistic, not statistical.** Parameters equal to a library's
+documented defaults are a starting guess, not an estimate. Probing from other
+starts moved it and found strictly higher likelihood every time:
+
+| | single-start ll | multi-start ll | gain |
+|---|---|---|---|
+| normal | −85,061.9 | **−83,473.8** | **+1,588** |
+| Student-t | −71,546.0 | **−67,080.0** | **+4,466** |
+
+Tighter tolerances (`ftol` 1e-12, 1e-14; `maxiter` 5,000) changed nothing — the
+optimiser was not iterating at all, so there was nothing to tighten.
+
+Fixing it moved GARCH from 0.4664 to 0.3259. **The broken fit inflated NOCTUA's
+margin from 12.2 % to 38 % — a factor of three, in NOCTUA's favour.** A baseline
+that quietly under-performs is the most comfortable kind of bug to have, and the
+only reason it was caught is that a GARCH losing to persistence is not credible.
+
+### A second defect the fix exposed
+
+With multi-start, persistence estimates land at **1.0000–1.0024** — IGARCH,
+where the model-implied unconditional variance `omega/(1-alpha-beta)` is
+undefined or negative. The original recursion seeded from exactly that
+expression with a `max(..., 1e-6)` floor, which would have silently returned
+`omega * 1e6`. Now seeded from the **sample variance** of training returns —
+finite, observed, training-only, therefore causal — with an explicit cap on the
+forward recursion instead of letting an infinity dominate QLIKE.
+
+### What this does and does not settle
+
+It settles that NOCTUA earns its complexity over a three-parameter conditional
+variance model on QLIKE, by 12.2 %. It does **not** settle the barrier question:
+§18 records `log_har_gauss` beating NOCTUA on Brier at the 2 % barrier, and
+GARCH has not been given a barrier forecast here at all, because turning a
+variance path into a touch probability requires the first-passage assumption
+§8 showed to be badly misspecified for BTC. Scoring GARCH on barriers through a
+law that loses to the base rate would measure the law, not GARCH.
+
+*Educational research only. Not financial advice.*

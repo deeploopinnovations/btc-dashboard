@@ -23,3 +23,16 @@ torch==2.13.0+cu130
 scikit-learn==1.9.0
 scipy==1.17.1
 pyarrow==25.0.0
+
+# --- baseline-only, added for the protocol's MANDATORY GARCH(1,1) comparator ---
+# Verified with `pip install --dry-run` BEFORE installing that neither of these
+# moves any pin above: numpy, pandas and scipy were already satisfied, and
+# torch / scikit-learn / pyarrow are untouched. Re-checked after installing --
+# all six still exact. That matters because determinism was verified
+# bit-identical against those versions (BENCHMARK.md 17), and an install that
+# silently upgraded numpy would have voided it without any visible symptom.
+#
+# Neither package is imported by the training or serving path. They exist so
+# eval/garch.py can score a comparator NOCTUA has never been measured against.
+arch==8.0.0
+statsmodels==0.14.6
