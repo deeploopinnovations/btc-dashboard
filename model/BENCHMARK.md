@@ -3436,6 +3436,31 @@ cannot be validated before 2021-03 because the instrument did not exist. For
 *serving* that is not a limitation — every live episode has IV — but it does mean
 this is a modern-era result and is not claimed beyond it.
 
+### Reproducing this from a clean checkout
+
+Every input is committed; every derived artifact is gitignored because it is
+regenerable, and Phase 0 established the training path is bit-identical across
+runs (351/351).
+
+    # 1. build the causal IV features from the committed DVOL harvest
+    python -m model.eval.ivfeatures
+    #    -> model/artifacts/iv_features.parquet + .json (coverage, leakage)
+
+    # 2. cache the walk-forward out-of-sample forecast components
+    python -m model.eval.blend_ceiling
+    #    -> model/artifacts/blend_ceiling.npz  (rv, raw, har, H, spike,
+    #       test_idx, anchor_ts per fold)
+
+    # 3. the three IV experiments, in the order they were run
+    python -m model.eval.iv_correction                                   # E2
+    python -m model.eval.iv_correction --no-intercept                    # E2b
+    python -m model.eval.iv_correction --no-intercept \
+           --drop iv_level --n-tests 3                                   # E2c
+
+Step 2 is the only expensive one (6 folds x 3 seeds); steps 1 and 3 run in
+seconds because no model is retrained. `data/newdata/dvol_btc.parquet` is in the
+repository, so step 1 needs no network access.
+
 ### What ADVANCE means, precisely
 
 It means the next step, not the artifact. The pre-registration says this cannot
