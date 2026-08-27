@@ -499,6 +499,17 @@
       "verdict": "ADVANCE",
       "result": "Design (b) was taken and it worked, subject to confirmation. Coverage is unchanged and still the reason (a) was refused: train 62,051 of 189,831 = 32.7%, calib and test both 100%. E2 REJECTED with an intercept, E2b partly overturned that, E2c ADVANCED on the dynamics alone -- pooled -0.03264 CI [-0.04356, -0.01403], 5 of 5 folds, beating a coverage-preserving placebo. The correction's failure mode was a correction of zero and it was not zero.",
       "implication": "The coverage asymmetry that made a plain feature column inadmissible turned out not to matter for the deployed case: the correction applies only where IV exists, and for SERVING that is every live episode. The 32.7% figure constrains what can be VALIDATED historically, not what can be run. E2-confirm is the remaining gate."
+    },
+    {
+      "id": "funding-coverage",
+      "topic": "features",
+      "date": "2026-08-27",
+      "question": "Is the funding rate usable as a forward-looking input, and at what coverage?",
+      "rule": "Structural measurement, same protocol as iv-coverage-2: count episodes with a strictly causal observation before the anchor, per split, read through noctua.splits.time_splits rather than assumed. No hypothesis is tested here.",
+      "verdict": "OPEN",
+      "result": "data/newdata/funding_btc.parquet: 64,206 rows, 2019-04-30 10:00 -> 2026-08-26 17:00 UTC, columns timestamp / index_price / interest_8h / interest_1h / prev_index_price / ts / source (deribit). Spacing is hourly at 64,204 of 64,205 gaps; ONE 10,800s gap, i.e. two missing hours in seven years. Causal join at the most recent stamp strictly before the anchor: train 128,635 of 189,831 = 67.8%; calib 52,359 of 52,359 = 100%; test 73,867 of 73,867 = 100%.",
+      "implication": "Funding has MORE THAN TWICE DVOL's training coverage -- 67.8% against 32.7% -- because it starts 2019-04-30 rather than 2021-03-24. The residual-correction design that E2c advanced applies unchanged, and at 67.8% the alternative design (a), refitting the model on the covered era, is no longer obviously ruinous the way it was for DVOL. WHY IT IS THE RIGHT NEXT INPUT rather than just the next available one: E2c's result is that a FORWARD-LOOKING input carries volatility information the trailing cascade does not. Funding is the other forward-looking series in this repository -- it prices crowding in perpetual positioning, and crowded positioning is the precondition for a liquidation cascade, which is one mechanism behind the spike episodes carrying 25.8% of total loss. That is a mechanism, not a result.",
+      "lesson": "Measure coverage BEFORE designing the experiment. Doing it for DVOL is what ruled out a plain feature column and produced the residual design that eventually worked."
     }
   ]
 }

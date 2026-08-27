@@ -177,7 +177,43 @@ inside one another; that overlap is not the serial dependence a moving-block
 bootstrap models. Holding H = 19 and varying the anchor hour keeps the
 dependence in the one form the estimator is built for.
 
-### Phase 6+ — remaining queue, ordered by expected information gain
+### Phase 6 — the funding rate, promoted to the head of the queue
+
+E2c is the first positive result in this project, and what it establishes is
+more general than DVOL: **a forward-looking input carries volatility information
+the trailing cascade does not.** Every other feature here is a statistic of
+BTC's own past bars, and §21 showed that adding more of those to the anchor
+makes things worse.
+
+The funding rate is the other forward-looking series in this repository, and its
+coverage is better than DVOL's (ledger `funding-coverage`, re-derived through
+`noctua.splits.time_splits`):
+
+| | rows | train | calib | test |
+|---|---|---|---|---|
+| DVOL | 47,563 | 32.7 % | 100 % | 100 % |
+| **funding** | **64,206** | **67.8 %** | **100 %** | **100 %** |
+
+Funding begins 2019-04-30, DVOL 2021-03-24. Spacing is hourly at 64,204 of
+64,205 gaps, with a single 3-hour gap in seven years.
+
+The mechanism, stated as a mechanism and not a result: funding prices **crowding
+in perpetual positioning**, and crowded positioning is the precondition for a
+liquidation cascade — one of the mechanisms behind the spike episodes that carry
+25.8 % of total loss (§7a). It is also the only directional series available,
+which matters for the half of the goal volatility work does not address.
+
+The design is E2c's, unchanged and already validated as a harness: residual
+correction on cached out-of-sample forecasts, no intercept (§24 — a fitted
+intercept collects a level bias that a placebo collects too), shrinkage toward
+zero indexed to fold-to-fold instability, and a coverage-preserving placebo arm.
+At 67.8 % training coverage, design (a) — refitting on the covered era — is also
+no longer obviously ruinous the way it was for DVOL, so both are open.
+
+**Gate:** it runs after E2-confirm, so the harness is validated end to end on a
+result already understood before it is pointed at a new input.
+
+### Phase 7+ — remaining queue, ordered by expected information gain
 E3 microstructure, E4 global/panel, E5 HAR+nonlinear residual, E6 multi-task
 heads, E7 nonlinear challengers, E10/E11 window and cadence, E12 loss ablation,
 E13 calibration ablation, E14 drop-one-family ablations, E16 foundation models
