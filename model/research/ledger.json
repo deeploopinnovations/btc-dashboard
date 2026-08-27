@@ -232,6 +232,22 @@
       "rule": "two runs, identical inputs, seeds 0/1/2: every metric must agree within 1e-9 absolute OR 0.1% relative where |value| > 1e-4. Reproducing the stale artifact is explicitly NOT a condition.",
       "verdict": "OPEN",
       "result": "run B in flight; outcome unknown at the time this rule was written"
+    },
+    {
+      "id": "16",
+      "topic": "baseline",
+      "question": "Does the headline benchmark train the same configuration that ships?",
+      "rule": "compare the evaluation path's run_fold call against train_v2's trainer configuration",
+      "verdict": "REJECT",
+      "result": "NO. benchmark.py:514 calls run_fold without sigma_ref_fn, so Stage B trains against realized RV -- which prepare()'s own docstring documents as a train/serve skew manufacturing Spearman -0.4331. train_v2.py uses the causal reference and stamps it into the artifact; 6b records that as an ADOPTED fix. Fourth measured-vs-shipped defect here. check_measured_is_shipped could not catch it -- it compares artifact metadata, not the eval path. New check 10 added."
+    },
+    {
+      "id": "16b",
+      "topic": "baseline",
+      "question": "What is the baseline once the benchmark trains the shipped configuration?",
+      "rule": "re-run with sigma_ref_fn supplied; ADOPT the corrected configuration UNCONDITIONALLY as the new baseline, whether it scores better or worse, because it is what ships",
+      "verdict": "OPEN",
+      "result": "pre-registered before the corrected run"
     }
   ]
 }

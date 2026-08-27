@@ -2471,3 +2471,89 @@ The pre-registered rule for whether an implied-volatility feature earns its
 place is already fixed in `eval/newdata.py`, written before this data existed.
 
 *Educational research only. Not financial advice.*
+
+## 16. Phase 0's leakage audit: no leak — and the benchmark does not train the shipped model
+
+### The audit, and what it actually attacked
+
+`eval/leakage.py` extends `test_features.py`'s causality check rather than
+duplicating it, and its most important design choice is a **positive control**:
+a decoy feature that deliberately reads `rv5[row]` — the anchor hour itself
+instead of `row-1`. Without one, "no violations found" is indistinguishable
+from "the harness cannot detect violations."
+
+The decoy also exposed a flaw in the probing scheme: a naive random probe would
+almost never land on the single row where the decoy is detectable. Forcing the
+probe set to include every episode anchored exactly at the cut caught it
+**12/12**. Only then does a clean result mean anything.
+
+| item | result |
+|---|---|
+| feature causality, 42 columns × 6 cut points × 2 corruption styles | **42/42 CAUSAL**, 0 violated |
+| max window overlap, training vs earliest test episode | **0 hours** (−4,440 h margin) |
+| embargo at both boundaries, both split mechanisms | **+24.0 h**, binding with zero slack |
+| standardizer refit after corrupting test rows | moved by **0.000e+00** |
+| `EmpiricalSpecialist` quantiles, same attack | moved by **0.000e+00** |
+| per-fold sigma clip bounds | genuinely fold-dependent: [0.0052, 0.1449] → [0.0039, 0.1197] |
+
+**Verdict: NO LEAKAGE FOUND**, on an audit that demonstrated its own detection
+power first.
+
+One caveat recorded rather than buried: `corp_decomposition`'s isotonic fit is
+in-sample on the test batch. That is the CORP method's own design (Dimitriadis,
+Gneiting & Jordan 2021), touches no trained parameter, and applies identically
+to all six competitors including climatology — so it advantages nothing. But
+**DSC and MCB are not out-of-sample skill estimates the way pinball, CRPS and
+Brier are**, and this document has not always been careful to say so.
+
+### The finding that matters more than the audit
+
+`eval/benchmark.py:514` calls:
+
+    r = run_fold(ep, X, f, a.hidden, a.seeds)
+
+with **no `sigma_ref_fn`**. So `sigma_ref_all` stays `None`, and `prepare()`
+falls through to its default — whose own docstring says:
+
+> *Default is RV, the REALIZED window volatility, and that is a train/serve
+> skew … RV appears in the denominator of the target AND in the conditioner, so
+> noise in RV alone produces Spearman −0.4331.*
+
+Meanwhile `train_v2.py:121-126` builds the causal reference and stamps
+`stage_b_sigma_ref: "causal_har_1d_clipped"` into the shipped artifact, and
+§6b records that retargeting as an **adopted fix** (DSC/UNC 0.04980 → 0.05382,
+6/6 folds).
+
+**So the headline benchmark trains Stage B in the exact way this repository
+documents as a defect, while the deployed model does not.** Every number in the
+main table describes a model that is not the shipped model.
+
+This is the **fourth** defect of the measured-≠-shipped class here, after the
+artifact metadata disagreeing with its weights, the `feat_cols` 42-vs-39 crash,
+and `has_mx()` returning False for every artifact.
+`research/pitfalls.check_measured_is_shipped` exists for exactly this — and did
+not catch it, because it compares **artifact metadata**, not the **evaluation
+path**. A check that only inspects the artifact cannot see a harness that
+trains something else.
+
+### Consequence for the phase plan
+
+Not a leak, so it does not block on integrity grounds. But it means the Phase 0
+baseline, once determinism is settled, is a baseline **of the wrong
+configuration**. Correcting it changes every headline number, so it is a
+change, not a fix-in-passing, and it gets its own gated step rather than being
+folded into Phase 0 silently — which is precisely the "don't fix several things
+at once" discipline this plan opens with.
+
+**Pre-registered, before the corrected benchmark is run:** re-run with
+`sigma_ref_fn` supplied. The corrected configuration is adopted as the new
+baseline **unconditionally** — not because it scores better, but because it is
+what ships. If it scores *worse*, that is the honest baseline and every past
+comparison in this document was flattered by a defect. Recording that
+expectation now removes the temptation to keep whichever number looks better.
+
+The new pitfall this earns: **a measured-vs-shipped check must compare the
+evaluation path's configuration against the production trainer's, not just the
+artifact's metadata.**
+
+*Educational research only. Not financial advice.*

@@ -274,11 +274,38 @@ def check_rule_satisfiable(required: int, available: int,
                    "§9's '5 of 6 years' when only 3 years exist")
 
 
+def check_eval_matches_trainer(eval_kwargs: dict, trainer_kwargs: dict,
+                               keys=("sigma_ref", "shape_cols", "hidden",
+                                     "seeds", "lam_r", "lam_mx")) -> Verdict:
+    """The EVALUATION path must train the same configuration production does.
+
+    PROVENANCE: `eval/benchmark.py:514` called `run_fold` without
+    `sigma_ref_fn`, so Stage B trained against realized RV -- which
+    `prepare()`'s own docstring documents as a train/serve skew that
+    manufactures Spearman -0.4331 from arithmetic alone. `train_v2.py`
+    meanwhile builds the causal reference and stamps
+    `stage_b_sigma_ref: causal_har_1d_clipped` into the shipped artifact, and
+    BENCHMARK.md 6b records that retargeting as ADOPTED. Every headline number
+    therefore described a model that was not the shipped model.
+
+    `check_measured_is_shipped` did not catch this, and could not: it compares
+    ARTIFACT METADATA. A harness that trains a different configuration leaves
+    the artifact untouched. This check compares the two call sites instead.
+    """
+    diffs = {k: (eval_kwargs.get(k), trainer_kwargs.get(k)) for k in keys
+             if eval_kwargs.get(k) != trainer_kwargs.get(k)}
+    return Verdict(not diffs, "eval-matches-trainer",
+                   "evaluation and production trainer agree" if not diffs
+                   else f"MISMATCH {diffs}",
+                   "benchmark.py trained Stage B against realized RV while "
+                   "train_v2.py used the causal reference")
+
+
 ALL_CHECKS = [check_skill_sign, check_relevance_not_absolute,
               check_beats_base_rate, check_arms_matched,
               check_not_a_coin_flip, check_correction_verified,
               check_guard_is_reachable, check_measured_is_shipped,
-              check_rule_satisfiable]
+              check_rule_satisfiable, check_eval_matches_trainer]
 
 
 def self_test() -> int:
@@ -311,8 +338,12 @@ def self_test() -> int:
                                     {"train_end": "2023-01-01"}))
     r.add(check_rule_satisfiable(5, 3, "years"))          # §9 (historical FAIL)
     r.add(check_rule_satisfiable(5, 6, "folds"))          # the usual rule
+    r.add(check_eval_matches_trainer({"sigma_ref": None},
+                                     {"sigma_ref": "causal_har_1d_clipped"}))  # historical FAIL
+    r.add(check_eval_matches_trainer({"sigma_ref": "causal_har_1d_clipped"},
+                                     {"sigma_ref": "causal_har_1d_clipped"}))
     print(r.render())
-    expect_fail = 9   # the historical cases, which MUST still be caught
+    expect_fail = 10  # the historical cases, which MUST still be caught
     got = len(r.failures)
     print(f"\nself-test: {got} failures, expected {expect_fail} "
           f"(the historical errors these checks exist to catch)")
