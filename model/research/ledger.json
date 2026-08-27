@@ -359,6 +359,27 @@
       "rule": "Pre-registered in BENCHMARK.md 22 before the run. Re-decide E-anchor (21) on the 24-anchor-hour slice at H = 19 via run_fold's prod_override -- same arms, seeds, folds and rule. PRIMARY: the CI width ratio, production-slice spike-QLIKE CI divided by 24-hour-slice CI, compared against sqrt(24) = 4.90 expected under independence. This is a MEASUREMENT with no threshold. THE FINDING, if it happens: if 21's verdict flips on the wider slice, the production slice has been deciding questions it cannot resolve and every prior verdict resting on a marginal CI needs re-running. Horizons are NOT mixed -- H = 6/12/19/24 at one anchor are nested, and that overlap is not serial dependence a moving-block bootstrap can model.",
       "verdict": "OPEN",
       "result": "pre-registered before the run. Established facts it rests on: m_te = fold['test'] & finite & production_mask, and production_mask = (H == 19) & (anchor_hour == 17), so each fold scores ~365 episodes with ~20 spike-flagged, against a 510,496-episode population. Six folds is ~2,190 test and ~119 spike episodes in total."
+    },
+    {
+      "id": "E-blend",
+      "topic": "blend",
+      "date": "2026-08-27",
+      "question": "Is a state-dependent ensemble weight (spike vs calm) better than the shipped constant 0.25?",
+      "rule": "Pre-registered in eval/blend_ceiling.py and committed before the run. PRIMARY: pooled QLIKE of the walk-forward two-state SHRUNK rule vs w = 0.25, CI excluding zero favourably. Shrinkage w = 0.25 + lam*(mean_f argmin - 0.25), lam = m/(m + (sd/0.25)^2), all constants a priori (Blanc & Setzer, Management Science 2020). The RAW argmin is reported beside it as the estimator the combination-puzzle literature predicts will lose. GUARDS: spike QLIKE not worse; calm not worse by >1%; RAW weights must not straddle 0.25 in both directions. Pre-condition: the TWO-STATE in-sample oracle ceiling must clear 2% (amended from a per-episode oracle before any fold ran, because that fits one parameter per observation and would clear any floor).",
+      "verdict": "NULL",
+      "result": "6 folds x 3 seeds, 5 scored. SHRUNK pooled +0.00307 CI [-0.01008, +0.02603], better in 4 of 5 folds. RAW pooled +0.01355 CI [-0.00686, +0.05027]. Two-state in-sample oracle ceiling 7.07% (floor cleared); per-episode oracle 31.33% (degenerate, dismissed). Constant-w sweep minimises at w = 0.45, -1.41% vs shipped -- IN-SAMPLE over all six folds, NOT a result. Per-fold oracle weights (calm/spike): 0.65/1.00, 0.35/0.70, 0.00/0.00, 0.70/0.55, 0.45/1.00, 0.80/1.00.",
+      "implication": "The headroom is real (7.07%) and unreachable by this state variable. Fold-to-fold sd of the optimal weight is 0.28-0.51 on a [0,1] parameter: 2023 wants w = 0.00 and 2026 wants 0.80. What separates them is not spike-vs-calm but whether volatility is about to collapse. Shrinkage behaved exactly as the literature predicts -- it cut the raw arm's damage 77% without turning a loss into a win."
+    },
+    {
+      "id": "E-blend-1state",
+      "topic": "blend",
+      "date": "2026-08-27",
+      "question": "Is a single walk-forward constant blend weight better than the shipped 0.25?",
+      "rule": "Pre-registered in eval/blend_one_state.py and committed BEFORE the run. One estimated parameter instead of two. PRIMARY: pooled QLIKE of the SHRUNK arm vs w = 0.25 at the BONFERRONI-ADJUSTED 97.5% level, because this is the second test on the same forecasts. GUARDS: spike not worse; calm within 1%; and a WORST-FOLD BOUND of 5%, added because infer.BLEND_W's own note records 0.25 was chosen to bound the worst fold at +6.7% against pure NOCTUA's +72.3% in the 2023 collapse. Cannot ADOPT alone under any outcome.",
+      "verdict": "REJECT",
+      "result": "SHRUNK pooled +0.00049, adj CI [-0.01141, +0.01981], better in 4 of 5 folds. RAW +0.01167 adj CI [-0.00872, +0.04383]. Per-fold shrunk deltas: 2022 -0.56%, 2023 +7.84%, 2024 -2.20%, 2025 -3.09%, 2026 -8.59%. PRIMARY fails and the WORST-FOLD guard fails at +7.84% against the 5% bar. pitfalls check_not_a_coin_flip FIRED: n=5, |mean| 0.00049 vs se 0.00876 -- NOT RESOLVABLE at this n.",
+      "implication": "Four of five folds improve, several substantially, and the volatility-collapse fold gives it all back -- the exact scenario the guard was pre-registered for. The correct statement about BLEND_W = 0.25 is not 'it is optimal' but '0.25 buys insurance against a 2023 and the premium is about 1.4% of mean QLIKE'. Whether to pay it is a risk-appetite question, not a QLIKE question. Separately: the estimate is 1/18th of its own standard error, so this is a NON-MEASUREMENT, not a null -- it would look identical if the true effect were +2% or -2%. That makes E-power the blocking question.",
+      "lesson": "A guard pre-registered from a documented historical failure is worth more than the primary endpoint: the primary was ambiguous and the worst-fold guard was decisive."
     }
   ]
 }

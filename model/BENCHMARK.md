@@ -3033,3 +3033,125 @@ truth.
 cost is unchanged, only scoring widens.
 
 *Educational research only. Not financial advice.*
+
+## 23. The ensemble weight is not a mean-improvement lever. It is tail insurance.
+
+§19 named the blend weight as what a negative anchor result would redirect to,
+and §21 delivered that negative result. Two pre-registered tests followed, in
+increasing order of simplicity, and both reject — but what they reject, and
+what falls out of rejecting it, is worth more than a win would have been.
+
+### The constant-w surface, which is not flat
+
+`eval/blend_ceiling.py` recovers the raw neural median by inverting the affine
+blend, so the whole weight surface comes out of one benchmark run instead of one
+6-fold retrain per weight. Mean over the six folds:
+
+| w | 0.00 | 0.15 | **0.25** | 0.35 | **0.45** | 0.55 | 0.75 | 1.00 |
+|---|---|---|---|---|---|---|---|---|
+| pooled | 0.3057 | 0.2952 | **0.2904** | 0.2875 | **0.2863** | 0.2870 | 0.2940 | 0.3138 |
+| spike | 1.9211 | 1.8823 | 1.8678 | 1.8622 | 1.8627 | 1.8775 | 1.9282 | 2.0430 |
+| calm | 0.2103 | 0.2024 | 0.1989 | 0.1968 | 0.1963 | 0.1969 | 0.2031 | 0.2200 |
+
+The minimum is at **w = 0.45**, 1.41 % below the shipped 0.25. **That number is
+not a result and must not be quoted as one** — it is chosen after seeing every
+fold's test score, which is the definition of tuning on test. It is a reason to
+run an honest version.
+
+### Two honest versions, both rejected
+
+**Two-state** (`blend_ceiling.py`): separate weights for spike-risk and calm
+episodes, fitted on prior folds only.
+
+| arm | pooled Δ | 95 % CI | folds better |
+|---|---|---|---|
+| raw argmin | +0.01355 | [−0.00686, +0.05027] | 3 of 5 |
+| **shrunk** (primary) | **+0.00307** | **[−0.01008, +0.02603]** | 4 of 5 |
+
+**One-state** (`blend_one_state.py`): a single constant, one estimated parameter
+instead of two, at Bonferroni-adjusted 97.5 % intervals because it is the second
+look at these forecasts.
+
+| arm | pooled Δ | 97.5 % CI | folds better |
+|---|---|---|---|
+| raw argmin | +0.01167 | [−0.00872, +0.04383] | 2 of 4 |
+| **shrunk** (primary) | **+0.00049** | **[−0.01141, +0.01981]** | 4 of 5 |
+
+The combination-forecasting literature predicted the shape of this exactly. The
+raw argmin was the worse estimator in both tests, and the shrinkage cut its
+damage by 77 % (two-state) and 96 % (one-state) without ever turning a loss into
+a win — which is what Smith & Wallis (OBES 2009) and Claeskens et al. (IJF 2016)
+say estimated combination weights do, and what Clements & Vasnev (J. Forecasting
+2024) found for the OLS weights inside the HAR model that is NOCTUA's own anchor.
+
+### The finding: one fold decides everything, and it is the one 0.25 was chosen for
+
+Per-fold, the one-state shrunk rule:
+
+| fold | w shipped → shrunk | Δ pooled |
+|---|---|---|
+| 2022 | 0.25 → 0.55 | **−0.56 %** |
+| 2023 | 0.25 → 0.50 | **+7.84 %** |
+| 2024 | 0.25 → 0.35 | **−2.20 %** |
+| 2025 | 0.25 → 0.40 | **−3.09 %** |
+| 2026 | 0.25 → 0.45 | **−8.59 %** |
+
+**Four of five folds improve, several substantially, and 2023 destroys it.**
+
+2023 is the volatility collapse. `infer.BLEND_W`'s own note records that 0.25
+was chosen *because* it bounded that fold at +6.7 % where pure NOCTUA suffered
++72.3 %. The worst-fold guard — pre-registered at 5 % precisely because of that
+history, before any of these numbers existed — is what rejects the rule, at
++7.84 %.
+
+So the correct statement about `BLEND_W = 0.25` is not "it is optimal". It is:
+
+> **0.25 buys insurance against a 2023, and the premium is about 1.4 % of mean
+> QLIKE.** Raising it collects the premium back in four years out of five and
+> hands it all over in the fifth.
+
+That is a stated, quantified trade rather than a tuned constant, and whether the
+premium is worth paying is a risk-appetite question, not a QLIKE question.
+
+### Why no rule can find the weight: the parameter is not stable
+
+The two-state in-sample oracle — the best a two-state rule could do *with*
+foresight — clears **7.07 %**, well above the 2 % floor pre-registered as "worth
+building". The headroom is real. What is missing is any way to reach it:
+
+| fold | oracle w_calm | oracle w_spike |
+|---|---|---|
+| 2021 | 0.65 | 1.00 |
+| 2022 | 0.35 | 0.70 |
+| 2023 | **0.00** | **0.00** |
+| 2024 | 0.70 | 0.55 |
+| 2025 | 0.45 | 1.00 |
+| 2026 | 0.80 | 1.00 |
+
+Fold-to-fold standard deviation of 0.28–0.51 on a parameter bounded in [0, 1].
+2023 wants *nothing* from the neural stage and 2026 wants almost everything. A
+causal spike flag cannot separate those, because the thing that separates them
+is not spike-vs-calm — it is whether volatility is about to collapse.
+
+(The per-episode oracle reads 31.33 %. It is reported only to be dismissed: it
+fits one free parameter per observation. The pre-registration was amended to the
+two-state ceiling *before any fold ran*, on the grounds that a floor 2a would
+clear regardless of the data is a rule that cannot fail.)
+
+### And then the machinery said the quiet part
+
+`research/pitfalls.check_not_a_coin_flip` fired on the one-state result:
+
+    n=5, |mean| 0.00049 vs sd 0.01958 (se 0.00876); NOT resolvable at this n
+
+The estimate is one eighteenth of its own standard error. This is not a null —
+it is a non-measurement, and it would have looked identical if the true effect
+were +2 % or −2 %.
+
+Which is exactly §22's thesis, arrived at from a different direction: every fold
+here is **~365 episodes**, ~20 of them spike-flagged. Two independent tests of
+the ensemble weight have now returned intervals too wide to decide anything, and
+the pre-registered measurement of how much power the production slice gives up
+is no longer a methodological curiosity. It is the blocking question.
+
+*Educational research only. Not financial advice.*
