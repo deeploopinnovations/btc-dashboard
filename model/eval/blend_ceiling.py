@@ -79,14 +79,98 @@ THREE QUANTITIES, AND ONLY ONE OF THEM IS A RESULT
   3. THE CAUSAL, WALK-FORWARD RULE. Two weights, one for spike-risk episodes
      and one for calm, where the split uses `causal_spike_flag` -- information
      available at the anchor. Fitted on folds STRICTLY BEFORE the scored fold
-     and applied out of sample. This is the only number that can be adopted.
+     and applied out of sample. This is the only number that can be adopted,
+     and it is estimated TWICE:
+
+     3a. RAW ARGMIN -- the grid minimiser on the history folds, adopted as-is.
+     3b. SHRUNK -- the same argmin pulled back toward the shipped constant
+         w0 = 0.25 in proportion to its own fold-to-fold instability.
+
+     3b is the pre-registered primary and 3a is reported beside it, because
+     the literature says 3a should disappoint and the pair makes that visible
+     instead of assumed.
+
+WHY THE RAW ARGMIN IS THE WRONG ESTIMATOR, WITH CITATIONS
+
+The forecast-combination puzzle (named by Stock & Watson 2004) is the finding
+that estimated "optimal" combination weights routinely lose out of sample to a
+simple fixed weight. Smith & Wallis (OBES 2009) and Claeskens, Magnus, Vasnev &
+Wang (IJF 2016) give the mechanism: once the weight is ESTIMATED rather than
+known, the combination is biased even when its inputs are not, and its variance
+strictly exceeds the fixed-weight case, so nothing guarantees it beats the
+constant. Genre, Kenny, Meyler & Timmermann (IJF 2013) show that even with
+decades of panel data most schemes fail to beat a simple average once
+multiple-comparison bias is corrected -- which is exactly what picking w by
+grid-search argmin over a handful of folds is.
+
+The sharpest warning is specific to this pipeline. Clements & Vasnev,
+"Forecast combination puzzle in the HAR model" (J. Forecasting 43(1), 2024),
+show the HAR model IS a three-way forecast combination -- daily, weekly,
+monthly -- and that its OLS-optimal weights are a textbook instance of the
+puzzle: simple averages of HAR components beat the fitted weights across
+equities, commodities, FX and indices at every horizon. NOCTUA's anchor is
+that model. That is a published reason to distrust any further weight fitted
+on top of it, and it is also a second, independent reading of BENCHMARK.md 21:
+adding two more regressors to the HAR anchor raised its estimation variance in
+precisely the term the puzzle literature says to shrink.
+
+There is one countervailing result, and it is why this experiment is worth
+running rather than abandoning. Elliott & Timmermann, "Optimal forecast
+combination under general loss functions and forecast error distributions"
+(J. Econometrics 122(1), 2004), prove that the puzzle's conclusions "can be
+overturned when asymmetries are introduced in the loss function and the
+forecast error distribution is skewed", and characterise how the optimal
+weights move. QLIKE is asymmetric and spike-period errors are right-skewed, so
+the MSE-derived pessimism does not transfer unexamined. (What could NOT be
+verified: whether that paper derives a closed form for QLIKE specifically --
+its abstract says "the most commonly used alternatives to mean squared error
+loss" without naming it, and QLIKE as used in the Patton volatility literature
+is roughly contemporaneous. So this is a reason to test, not a prediction.)
+
+The shrinkage design follows Blanc & Setzer, "Bias-Variance Trade-Off and
+Shrinkage of Weights in Forecast Combination" (Management Science 66(12),
+2020), which places equal/fixed weights at the zero-variance end and fitted
+weights at the zero-bias end and shrinks between them. The expectation that
+the SPIKE weight ends up shrunk harder than the calm one follows Liu, Hao &
+Wang, "Solving the Forecast Combination Puzzle Using Double Shrinkages"
+(OBES 86(3), 2024), who find shrinkage toward equal weights dominates
+specifically in turbulent and recession regimes -- the regime with the fewest
+and noisiest observations, which is exactly the spike state here.
+
+No source was found stating a sample-size threshold at which an estimated
+weight starts to beat a constant, and none is assumed. Nor was any paper found
+testing a state-dependent HAR-versus-ML combination weight conditioned on a
+jump or spike flag under QLIKE; "not found" is not "does not exist", but it
+does mean this design is not a replication of a settled result.
 
 PRE-REGISTERED RULE, fixed before the scores are read
 
-  PRIMARY: pooled test QLIKE of the walk-forward two-state rule versus the
-  shipped constant w = 0.25, over the folds that have at least one prior fold
-  to fit on, with a moving-block bootstrap CI that must exclude zero on the
-  favourable side.
+  PRIMARY: pooled test QLIKE of the walk-forward two-state SHRUNK rule (3b)
+  versus the shipped constant w = 0.25, over the folds that have at least one
+  prior fold to fit on, with a bootstrap CI that must exclude zero on the
+  favourable side. The raw argmin (3a) is reported beside it and is NOT the
+  primary -- it is the estimator the puzzle literature predicts will lose, and
+  it is carried so that prediction is tested rather than trusted.
+
+  THE SHRINKAGE, fixed in full before any score is read. For each state,
+
+      w_shrunk = w0 + lam * (mean_f w_argmin[f] - w0),        w0 = 0.25
+      lam      = m / (m + (sd_f w_argmin[f] / SIGMA_W) ** 2)
+      SIGMA_W  = 0.25,  m = number of history folds,  lam = 0.5 when m < 2
+
+  Read it as: trust the fitted deviation in proportion to how stable it was
+  across the folds that produced it. A weight that lands in the same place
+  every year survives nearly intact; one that jumps around is pulled back to
+  the constant. SIGMA_W = 0.25 is the scale of a "large" deviation from w0 and
+  is set a priori, not tuned. No quantity in this formula is fitted on the
+  scored fold, and none is fitted on test data at all.
+
+  Nothing here shrinks the spike weight harder BY CONSTRUCTION -- the formula
+  is identical for both states. It is expected to happen anyway, because spike
+  episodes are ~6% of the data and their argmin is correspondingly noisier, so
+  their sd is larger and their lam smaller. Whether it actually does is
+  reported per fold, and if the spike weight turns out to be the STABLER of
+  the two, that is a finding against the Liu et al. reading, not a bug.
 
   Pooled is primary HERE, unlike 19 -- and the reason is the 13 lesson read
   correctly rather than cargo-culted. 13's rule failed because a treatment
@@ -97,9 +181,11 @@ PRE-REGISTERED RULE, fixed before the scores are read
   GUARDS, all of which must hold:
     - spike-episode QLIKE must not worsen at all (own CI);
     - calm-episode QLIKE must not worsen by more than 1% (own CI);
-    - the fitted weights must be reported per fold, and if they oscillate in
-      sign of deviation from 0.25 across folds the result is NULL regardless
-      of the pooled CI -- an unstable parameter is not a lever;
+    - the RAW argmin weights must be reported per fold, and if they oscillate
+      in sign of deviation from 0.25 across folds the result is NULL
+      regardless of the pooled CI -- an unstable parameter is not a lever,
+      and the shrinkage must not be allowed to launder that instability into
+      a small, apparently-stable number;
     - deep-tail barrier MCB is NOT scored here, because this script re-weights
       a recorded median and does not rebuild the barrier curves. Adoption
       therefore requires a follow-up full-pipeline run; this experiment can
@@ -130,6 +216,38 @@ from noctua import splits as S                                            # noqa
 from noctua.train import load_all                                         # noqa: E402
 
 W_GRID = np.round(np.arange(0.0, 1.0001, 0.05), 4)
+W0 = 0.25          # the shipped constant, and the shrinkage target
+SIGMA_W = 0.25     # scale of a "large" deviation from W0; fixed a priori
+LAM_NO_HISTORY = 0.5   # lam when a single history fold gives no sd to read
+
+
+def shrink(w_per_fold, w0: float = W0, sigma_w: float = SIGMA_W) -> tuple:
+    """Pull a fitted weight back toward `w0` in proportion to its instability.
+
+        lam = m / (m + (sd / sigma_w)**2)
+
+    Blanc & Setzer (Management Science 2020) put fixed weights at the
+    zero-variance end and fitted weights at the zero-bias end; this is a
+    shrinkage between them whose only input is how much the fitted weight moved
+    across the folds that produced it. Every constant is set a priori. Returns
+    (w_shrunk, lam, mean, sd) so the adjustment is auditable rather than
+    buried."""
+    a = np.asarray(w_per_fold, np.float64)
+    m = len(a)
+    mean = float(a.mean())
+    if m < 2:
+        return (float(w0 + LAM_NO_HISTORY * (mean - w0)), LAM_NO_HISTORY,
+                mean, float("nan"))
+    sd = float(a.std(ddof=1))
+    lam = m / (m + (sd / sigma_w) ** 2)
+    return float(w0 + lam * (mean - w0)), float(lam), mean, sd
+
+
+def snap(w: float) -> float:
+    """Nearest grid weight -- the per-fold QLIKE sums are tabulated on W_GRID,
+    so a shrunk weight is scored at the grid point it rounds to. The grid step
+    is 0.05, which bounds the rounding error on w at 0.025."""
+    return float(W_GRID[int(np.argmin(np.abs(W_GRID - w)))])
 
 
 def sigma_at(w: float, raw: np.ndarray, har: np.ndarray, H: np.ndarray) -> np.ndarray:
@@ -207,6 +325,18 @@ def main(argv=None) -> int:
     if not per_fold:
         print("no fold produced results"); return 1
 
+    # Cache the recovered components. Everything below is a reduction of these
+    # four arrays per fold, so any FUTURE weighting rule -- a third state, a
+    # continuous w(x), an IV-conditioned one -- can be scored against the same
+    # forecasts without retraining a single model. The 6-fold retrain is the
+    # only expensive step in this file and it should be paid once.
+    npz = a.out.with_suffix(".npz")
+    a.out.parent.mkdir(parents=True, exist_ok=True)
+    np.savez_compressed(npz, **{
+        f"{k}_{r['year']}": r[k] for r in per_fold
+        for k in ("rv", "raw", "har", "H", "spike")})
+    print(f"\ncached components -> {npz}")
+
     def fold_q(rec, w_calm, w_spike):
         w = np.where(rec["spike"], w_spike, w_calm)
         return qlike(rec["rv"], sigma_at(w, rec["raw"], rec["har"], rec["H"]))
@@ -278,31 +408,64 @@ def main(argv=None) -> int:
     # Fit (w_calm, w_spike) on folds strictly EARLIER than the scored fold. The
     # first fold has no history and is excluded rather than given a peek.
     print(f"\n--- CAUSAL walk-forward two-state rule (fit on prior folds only) ---")
-    print(f"{'year':>6} {'w_calm':>8} {'w_spike':>8} {'pooled@rule':>12} "
-          f"{'pooled@0.25':>12} {'delta%':>8}")
-    d_pool, d_spike, d_calm, fitted = [], [], [], []
+    print("  RAW = grid argmin on the history folds.  SHRUNK = the same argmin "
+          "pulled toward 0.25\n  by lam = m/(m + (sd/0.25)^2).  SHRUNK is the "
+          "pre-registered primary.\n")
+    print(f"{'year':>6} {'raw_c':>6} {'raw_s':>6} {'lam_c':>6} {'lam_s':>6} "
+          f"{'shr_c':>6} {'shr_s':>6} {'raw%':>7} {'shrunk%':>8}")
+    dlt = {"raw": {"pooled": [], "spike": [], "calm": []},
+           "shrunk": {"pooled": [], "spike": [], "calm": []}}
+    fitted = []
+    # each fold's own argmin, computed once and reused as history downstream
+    for rec in per_fold:
+        sf = (rec["Qsum_calm"][:, None] + rec["Qsum_spike"][None, :]) / rec["n"]
+        a_, b_ = np.unravel_index(int(np.argmin(sf)), sf.shape)
+        rec["w_argmin"] = (float(W_GRID[a_]), float(W_GRID[b_]))
+
     for i, rec in enumerate(per_fold):
         hist = per_fold[:i]
         if not hist:
             print(f"{rec['year']:>6}    (no prior fold -- excluded from the test)")
             continue
-        # mean over history folds of (calm-sum at w_c + spike-sum at w_s) / n,
-        # as a (len(W), len(W)) surface: rows index w_calm, columns w_spike.
+        # RAW: argmin of the pooled history surface.
         surf = np.zeros((len(W_GRID), len(W_GRID)))
         for h in hist:
             surf += (h["Qsum_calm"][:, None] + h["Qsum_spike"][None, :]) / h["n"]
         surf /= len(hist)
         ic, isp = np.unravel_index(int(np.argmin(surf)), surf.shape)
-        bw = (float(W_GRID[ic]), float(W_GRID[isp]))
-        q_rule = fold_q(rec, *bw)
-        q_base = fold_q(rec, 0.25, 0.25)
-        d_pool.append(float(q_rule.mean() - q_base.mean()))
-        d_calm.append(float(q_rule[~rec["spike"]].mean() - q_base[~rec["spike"]].mean()))
-        if rec["spike"].any():
-            d_spike.append(float(q_rule[rec["spike"]].mean() - q_base[rec["spike"]].mean()))
-        fitted.append({"year": rec["year"], "w_calm": bw[0], "w_spike": bw[1]})
-        print(f"{rec['year']:>6} {bw[0]:8.2f} {bw[1]:8.2f} {q_rule.mean():12.4f} "
-              f"{q_base.mean():12.4f} {100*d_pool[-1]/q_base.mean():+8.2f}")
+        raw = (float(W_GRID[ic]), float(W_GRID[isp]))
+        # SHRUNK: read the per-fold argmins for a dispersion, then shrink.
+        wc_hist = [h["w_argmin"][0] for h in hist]
+        ws_hist = [h["w_argmin"][1] for h in hist]
+        sc, lam_c, _, sdc = shrink(wc_hist)
+        ss, lam_s, _, sds = shrink(ws_hist)
+        shr = (snap(sc), snap(ss))
+
+        q_base = fold_q(rec, W0, W0)
+        row = {"year": rec["year"], "w_calm_raw": raw[0], "w_spike_raw": raw[1],
+               "w_calm_shrunk": shr[0], "w_spike_shrunk": shr[1],
+               "lam_calm": lam_c, "lam_spike": lam_s,
+               "sd_calm": sdc, "sd_spike": sds,
+               "hist_argmin_calm": wc_hist, "hist_argmin_spike": ws_hist,
+               "pooled_base": float(q_base.mean())}
+        for tag, w in (("raw", raw), ("shrunk", shr)):
+            q = fold_q(rec, *w)
+            dlt[tag]["pooled"].append(float(q.mean() - q_base.mean()))
+            dlt[tag]["calm"].append(float(q[~rec["spike"]].mean()
+                                          - q_base[~rec["spike"]].mean()))
+            if rec["spike"].any():
+                dlt[tag]["spike"].append(float(q[rec["spike"]].mean()
+                                               - q_base[rec["spike"]].mean()))
+            row[f"pooled_{tag}"] = float(q.mean())
+        fitted.append(row)
+        print(f"{rec['year']:>6} {raw[0]:6.2f} {raw[1]:6.2f} {lam_c:6.2f} "
+              f"{lam_s:6.2f} {shr[0]:6.2f} {shr[1]:6.2f} "
+              f"{100*dlt['raw']['pooled'][-1]/row['pooled_base']:+7.2f} "
+              f"{100*dlt['shrunk']['pooled'][-1]/row['pooled_base']:+8.2f}")
+
+    d_pool = dlt["shrunk"]["pooled"]
+    d_spike = dlt["shrunk"]["spike"]
+    d_calm = dlt["shrunk"]["calm"]
 
     out = {"sweep": sweep, "best_constant_w": float(best_const),
            "oracle_ceiling_frac": ceiling,
@@ -314,11 +477,25 @@ def main(argv=None) -> int:
            "recovery_err": [r["recovery_err"] for r in per_fold],
            "n_folds_scored": len(d_pool)}
 
+    out["raw_deltas"] = {}
+    if len(dlt["raw"]["pooled"]) >= 2:
+        print(f"\n--- RAW argmin arm (reported, NOT the primary) ---")
+        for nm in ("pooled", "spike", "calm"):
+            arr = np.asarray(dlt["raw"][nm], np.float64)
+            ci = mean_ci(arr, seed=31)
+            out["raw_deltas"][nm] = {"delta": float(arr.mean()), "ci95": ci["ci95"],
+                                     "n_negative": ci["n_negative"],
+                                     "n_positive": ci["n_positive"]}
+            print(f"{nm + ' QLIKE':>16} {arr.mean():+11.5f}   "
+                  f"[{ci['ci95'][0]:+.5f}, {ci['ci95'][1]:+.5f}]   "
+                  f"{ci['n_negative']}-/{ci['n_positive']}+")
+
     if len(d_pool) >= 2:
-        print(f"\n{'quantity':>16} {'delta':>11} {'95% CI':>26}")
-        for nm, d in (("pooled QLIKE", d_pool), ("spike QLIKE", d_spike),
-                      ("calm QLIKE", d_calm)):
-            arr = np.asarray(d, np.float64)
+        print(f"\n--- SHRUNK arm (the pre-registered primary) ---")
+        print(f"{'quantity':>16} {'delta':>11} {'95% CI':>26}")
+        for nm, dd in (("pooled QLIKE", d_pool), ("spike QLIKE", d_spike),
+                       ("calm QLIKE", d_calm)):
+            arr = np.asarray(dd, np.float64)
             # mean_ci, not block_bootstrap_ci: the unit is a FOLD and that
             # helper returns (nan, nan) below n = 20, which a comparison would
             # silently read as "did not clear the bar" (pitfalls check 11).
@@ -333,8 +510,8 @@ def main(argv=None) -> int:
                   f"   {ci['n_negative']}-/{ci['n_positive']}+")
 
         # ---- the pre-registered rule, applied verbatim ----------------------
-        signs = {np.sign(f["w_calm"] - 0.25) for f in fitted} | \
-                {np.sign(f["w_spike"] - 0.25) for f in fitted}
+        signs = {np.sign(f["w_calm_raw"] - W0) for f in fitted} | \
+                {np.sign(f["w_spike_raw"] - W0) for f in fitted}
         stable = not ({-1.0, 1.0} <= signs)
         lo_p, hi_p = out["pooled_delta"]["ci95"]
         lo_s, hi_s = out["spike_delta"]["ci95"]
@@ -355,7 +532,10 @@ def main(argv=None) -> int:
             why = f"guard: calm QLIKE worsens {calm_pct:+.2f}%, over the 1% bar"
         elif not stable:
             verdict = "NULL"
-            why = "guard: fitted weights straddle 0.25 in both directions across folds"
+            why = ("guard: the RAW argmin weights straddle 0.25 in both "
+                   "directions across folds -- an unstable parameter is not a "
+                   "lever, and shrinkage must not launder that into a small, "
+                   "apparently-stable number")
         else:
             verdict = "ADVANCE"
             why = ("clears the pooled CI and every guard; NOT an adoption -- the "
