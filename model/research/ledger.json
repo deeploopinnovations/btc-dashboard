@@ -205,6 +205,14 @@
       "rule": "measure the span and the training-window overlap on the committed files; a feature with no training-window overlap cannot be trained on",
       "verdict": "ADOPT",
       "result": "route works -- GH Actions runner committed both files. Funding VERIFIED better than cited: hourly, 64,206 rows, 2019-04-30 onward, 32,196 rows (50.1%) inside the training window. DVOL unusable as harvested: 15 days, 383 rows, ZERO training-window overlap, because get_historical_volatility is REALIZED vol with no time range, not the implied DVOL index. Fixed to page get_volatility_index_data; unverified from container."
+    },
+    {
+      "id": "phase0",
+      "topic": "baseline",
+      "question": "Does the committed benchmark reproduce at SHA ab170b4?",
+      "rule": "re-run eval.benchmark --folds all; every headline metric (QLIKE, pinball, CRPS, Brier/DSC/MCB at every barrier) within 0.5% relative of benchmark.json. Seeds fixed 0,1,2, so a larger deviation means non-determinism, which BLOCKS all later phases.",
+      "verdict": "OPEN",
+      "result": "in flight"
     }
   ]
 }
