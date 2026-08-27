@@ -3155,3 +3155,120 @@ the pre-registered measurement of how much power the production slice gives up
 is no longer a methodological curiosity. It is the blocking question.
 
 *Educational research only. Not financial advice.*
+
+## 24. Implied volatility: REJECT — and the placebo is why we know
+
+E2 asked whether Deribit's DVOL index carries information NOCTUA's own-past-bars
+cascade does not. It is the first candidate feature in this project that is not
+a statistic of BTC's history: it is what option sellers charge to insure against
+BTC's *future*, which is the information class §12's onset problem needs.
+
+The coverage forced the design. Re-derived through `noctua.splits.time_splits`:
+
+| split | episodes | with a causal IV observation at anchor − 1h |
+|---|---|---|
+| train | 189,831 | 62,051 — **32.7 %** |
+| calib | 52,359 | 52,359 — 100 % |
+| test | 73,867 | 73,867 — 100 % |
+
+DVOL began trading 2021-03-24; training opens 2017-08-01. A fill value for the
+missing two thirds would be learnable in training and constant at test. So
+NOCTUA was left untouched and an IV-conditioned **multiplicative correction** was
+fitted on top of its cached out-of-sample forecasts —
+`log σ_corrected = log σ̂ + z·β` — by minimising QLIKE. The objective is globally
+convex (Hessian `4·E[zz'·r̂·e^{−2z·β}]`, PSD everywhere), verified here against
+finite differences to 1.4e-10 on the gradient and 6.8e-10 on the Hessian.
+
+### The headline, and why it is not one
+
+| arm | spike QLIKE Δ | 95 % CI | folds better |
+|---|---|---|---|
+| shrunk, real features | **−1.05579** | [−1.95499, −0.55027] | **5 of 5** |
+
+A 57 % improvement on spike episodes, unanimous across folds, interval nowhere
+near zero. Reported on its own, that is a headline result.
+
+### The placebo
+
+The third arm fits the identical machinery on IV features **circularly rotated
+one year inside the covered era** — same marginals, same autocorrelation, the
+exact same scored episodes, every bit of the correction's flexibility, and no
+possible alignment with the episode being forecast.
+
+| arm | spike QLIKE Δ | folds better |
+|---|---|---|
+| shrunk, real features | −1.05579 | 5 of 5 |
+| **placebo, misaligned features** | **−0.53955** | **5 of 5** |
+
+**A series deliberately misaligned by a year reproduces more than half the
+"gain", also 5 of 5.** The margin between them — the part that could be IV — is
+−0.02469 pooled, CI [−0.04184, +0.00395], containing zero.
+
+### Where the gain actually comes from: the intercept
+
+A decomposition of the rejected result. Fit an **intercept only** — no IV
+features at all, just a scalar multiplying every σ̂:
+
+| fold | base spike | + intercept | + full IV | intercept gain | IV's extra | fitted a | e^a |
+|---|---|---|---|---|---|---|---|
+| 2022 | 1.3547 | 0.7005 | 0.4481 | −0.6543 | −0.2524 | +0.1840 | 1.202 |
+| 2023 | 3.6506 | 2.3008 | 1.4744 | −1.3498 | −0.8264 | +0.1597 | 1.173 |
+| 2024 | 1.3424 | 0.7077 | 0.7485 | −0.6348 | **+0.0408** | +0.1732 | 1.189 |
+| 2025 | 0.9573 | 0.5320 | 0.4446 | −0.4253 | −0.0874 | +0.1579 | 1.171 |
+| 2026 | 0.6630 | 0.3616 | 0.1809 | −0.3014 | −0.1807 | +0.1299 | 1.139 |
+
+**72.0 % of the spike gain is a bare scalar**, and the scalar is stable:
+e^a between 1.139 and 1.202 across five folds fitted independently.
+
+That is not implied volatility. It is the point-forecast functional. `infer.py`'s
+own note records that QLIKE is minimised by the conditional *mean* of variance
+while NOCTUA reports the *median*, and that the mean over-forecasts at ratio
+1.205 and scores worse. The fit has discovered a value **between** them, ~1.17,
+and the placebo collects it too because the placebo also has an intercept.
+
+### The verdict, rule applied verbatim
+
+    PRIMARY shrunk pooled QLIKE CI excludes zero favourably : False
+    GUARD   beats the placebo, CI excluding zero            : False
+    GUARD   spike QLIKE not worse (CI True, point −66.25%)  : True
+    GUARD   calm QLIKE within 1%  (+13.52% of calm base)    : False
+    GUARD   RAW coefficient signs stable across folds       : False  — iv_level
+    -> REJECT
+
+Three independent failures. Calm QLIKE **worsens 13.52 %** with a CI excluding
+zero — the scalar buys spike accuracy by over-forecasting everything, and calm
+episodes pay for it. And `iv_level`'s raw coefficient flips sign across folds,
+caught by the sign-stability guard that an audit found *documented but never
+implemented* hours before this ran.
+
+This is the `(a)` branch of the failure taxonomy written into
+`eval/ivfeatures.py` before any of it ran: **implied volatility is persistence in
+a different costume**, its level already carried by `har_1d`.
+
+### Two things this earns
+
+**The placebo arm is now standard.** Without it, this result reads as a 57 %
+spike improvement. The cost of running it was one extra fit per fold.
+
+**A separate, real finding fell out**, and it is not about IV: a stable ~1.17×
+scaling of σ improves spike QLIKE by ~36 % and worsens calm QLIKE by ~13 %. That
+is the QLIKE asymmetry made concrete — under-forecasting is penalised 1.60× at a
+factor-2 error — and it is a live question about the point-forecast functional,
+not a feature question. **Pre-registered as E-scale, and queued behind E-power**,
+because a lever that trades one slice against another must be judged with known
+resolution, and §22 says we do not have that yet.
+
+### Pre-registered follow-up, fixed before it runs
+
+**E2b: the same test with the intercept removed.** With `β₀` held at zero the
+correction can only *reshape* σ̂, never rescale it, so the 72 % confound is gone
+and the IV features are tested on incremental content alone. The placebo arm
+loses its intercept too. Same rule, same guards, same shrinkage constants.
+
+**Expected:** near-nothing, since the margin over the placebo already contained
+zero. **What would change the conclusion:** if the intercept-free real arm beats
+the intercept-free placebo with a CI excluding zero, then IV *does* carry shape
+information that the intercept was masking, and `ivfeatures.py`'s branch `(a)` is
+wrong.
+
+*Educational research only. Not financial advice.*
