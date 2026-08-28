@@ -114,6 +114,30 @@ designed.**
 It is what ruled out a plain IV feature column (32.7% train vs 100% test) and
 produced the residual design that worked. *(`iv-coverage-2`)*
 
+**R34. A comment that says "(verified)" is not a verification.**
+`direction_bench.py` carried the line *"Only `cal_H` varies with H at a fixed
+anchor (verified)"*. Four columns do. The word had been written by someone who
+believed it, which is exactly the state the word is supposed to rule out. If a
+claim is load-bearing, the check that establishes it belongs in the code, runs
+every time, and refuses. *(`D1-direction-bench`, §30)*
+
+**R35. A feature whose definition contains the horizon must be computed at the
+horizon.**
+`seas_{d}d` is the realized volatility of `[a - 24d, a - 24d + H)` and
+`cal_weekend_frac` is the weekend share of the forward window. Both are
+functions of `(anchor, H)`, not of the anchor, and joining them per anchor
+hands every horizon the values of whichever horizon sorted first. The tell that
+this is structural rather than cosmetic: at `H = 168` two of those columns do
+not exist at all, because the window would run past the anchor. *(§30)*
+
+**R36. Build the derived table with the function that ships, not with a copy of
+its arithmetic.**
+The h4 feature matrix is produced by calling `noctua.features.build_features`,
+and cross-checked against `features.parquet` at the one horizon the two tables
+share: max |diff| 0.000e+00 over 127,080 episodes. A transcription would have
+been correct on the day it was written and silently stale afterwards. This is
+R18 pointed at data instead of at scoring. *(`vol-matrix`)*
+
 ---
 
 ## Rules about copying
@@ -160,6 +184,20 @@ not the best. *(pitfalls 11)*
 ---
 
 ## Rules about controls and estimators
+
+**R37. Point the new guard at the code you already trust.**
+`_verify_per_anchor` was written for `vol_matrix.py`, a file with no results
+yet. Its first run refused — and what it refused was an assumption that had
+already shipped a completed benchmark in a different file. A guard is cheapest
+to write while building something new and most valuable when aimed at
+something old. *(§30)*
+
+**R38. A null produced with degraded inputs is not a null.**
+The direction benchmark returned a clean NULL at all four horizons. It was
+re-run from scratch anyway, because the arms had been fed mis-specified
+features and a weakened arm failing is not evidence that a correct arm would
+have failed. Rerunning cost twenty minutes; the alternative was a permanent
+asterisk. *(`D1-direction-bench`)*
 
 **R29. A fix to a control is not neutral — it changes the test.**
 Correcting the placebo rotation from a mis-specified 91 days to the intended 365
