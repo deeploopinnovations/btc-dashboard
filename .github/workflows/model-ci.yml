@@ -43,9 +43,6 @@ jobs:
       - name: Install serving runtime
         run: pip install --quiet -r model/serve/requirements-ci.txt
 
-      - name: Smoke-test existing snapshots
-        run: node scripts/smoke.js
-
       - name: Model self-test
         run: python model/tests/test_serving.py
 
@@ -85,3 +82,18 @@ jobs:
       # worse than no guard, because it prints reassuring output.
       - name: Pitfall guards can still fail
         run: python -m model.research.pitfalls --self-test
+
+      # LAST, DELIBERATELY. This checks the AGE of a committed data snapshot
+      # against a 6-hour threshold, so it fails whenever the data cron has not
+      # run recently -- for reasons that have nothing to do with the diff under
+      # review. It used to run FIRST, and because the job stops at the first
+      # failing step, a stale snapshot meant none of the code tests above ever
+      # executed: a real regression would have been invisible behind a data
+      # freshness failure, reported identically as "test failed".
+      #
+      # Nothing is weakened. The check still fails the job exactly as before.
+      # It runs last so that a code failure is always reported, and so that a
+      # red job during a cron gap is unambiguous about which kind of failure
+      # it is.
+      - name: Smoke-test existing snapshots (data freshness)
+        run: node scripts/smoke.js
