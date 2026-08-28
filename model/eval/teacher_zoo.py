@@ -106,6 +106,67 @@ def assert_no_train_emission(slice_name: str) -> None:
             f"not to be used.")
 
 
+class FoldScopedFit:
+    """A context that makes 'fit on THIS fold's calib only' checkable.
+
+    WHY THIS EXISTS, AND IT IS NOT HYPOTHETICAL
+
+    `eval/scale_falsifier.py` fitted ONE constant on calib pooled across all six
+    folds and applied it to every fold's test slice. Fold 2026's calib runs
+    2025-07 to 2026-01; fold 2021's test is calendar 2021. So a constant fitted
+    partly on 2025 data was rescaling 2021 forecasts. The result was withdrawn.
+
+    The three refusals above did not catch it, and could not have: they check the
+    teacher EMISSION, and this was a parameter fitted on top of the emission by a
+    downstream stage. A cross-fitting guard that only watches the producer does
+    not watch the consumer.
+
+    Arms B and C fit far more than one parameter over teacher outputs -- stacking
+    weights, a router -- so the same gap would be far more damaging there. This
+    class makes the consumer side declare which fold it is fitting for, and
+    refuses any calib row from a different one.
+
+        with FoldScopedFit(year=2021) as scope:
+            c = fit(scope.calib(oof, H=24, teacher="har_short"))
+            pred = apply(c, scope.test(oof, H=24, teacher="har_short"))
+    """
+
+    def __init__(self, year: int):
+        self.year = int(year)
+        self._touched: set[tuple] = set()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+    def _get(self, z, H: int, teacher: str, slice_name: str, year: int | None):
+        y = self.year if year is None else int(year)
+        if y != self.year:
+            raise LeakageRefusal(
+                f"REFUSING: a fit scoped to fold {self.year} asked for fold {y}'s "
+                f"`{slice_name}` slice. Every parameter fitted over teacher outputs "
+                f"must come from the SAME fold whose test slice it will be applied "
+                f"to. This is the refusal that eval/scale_falsifier.py needed and "
+                f"did not have.")
+        assert_no_train_emission(slice_name)
+        key = f"{y}/{H}/{slice_name}/sigma/{teacher}"
+        if key not in z:
+            raise KeyError(key)
+        self._touched.add((y, H, teacher, slice_name))
+        return z[key]
+
+    def calib(self, z, H: int, teacher: str, year: int | None = None):
+        return self._get(z, H, teacher, "calib", year)
+
+    def test(self, z, H: int, teacher: str, year: int | None = None):
+        return self._get(z, H, teacher, "test", year)
+
+    def touched_years(self) -> set[int]:
+        return {t[0] for t in self._touched}
+
+
 def assert_causal_boundary(ep: pd.DataFrame, fold: dict) -> None:
     """Every emitted episode must START after every training episode ENDS.
 
@@ -262,6 +323,26 @@ def self_test() -> int:
         assert_causal_boundary(ep, f2); ok.append(("causal-boundary", False, "did NOT fire"))
     except LeakageRefusal as e:
         ok.append(("causal-boundary", True, str(e).split(".")[0]))
+
+    # the CONSUMER-side refusal, which is the one the scale falsifier needed
+    class _Z(dict):
+        pass
+    zz = _Z({"2021/24/calib/sigma/har_short": np.zeros(3),
+             "2026/24/calib/sigma/har_short": np.zeros(3),
+             "2021/24/test/sigma/har_short": np.zeros(3)})
+    with FoldScopedFit(year=2021) as sc:
+        try:
+            sc.calib(zz, 24, "har_short")          # same fold: must be allowed
+            sc.calib(zz, 24, "har_short", year=2026)   # other fold: must refuse
+            ok.append(("fold-scoped-fit", False, "did NOT fire on a cross-fold calib read"))
+        except LeakageRefusal as e:
+            ok.append(("fold-scoped-fit", True, str(e).split(".")[0]))
+    with FoldScopedFit(year=2021) as sc:
+        try:
+            sc.calib(zz, 24, "har_short"); sc.test(zz, 24, "har_short")
+            ok.append(("fold-scoped-fit-clean", True, "same-fold reads allowed, as required"))
+        except LeakageRefusal as e:
+            ok.append(("fold-scoped-fit-clean", False, f"fired on a legitimate read: {e}"))
 
     # and the NEGATIVE control: a clean fold must NOT raise, or the guards are
     # simply always-on and prove nothing.

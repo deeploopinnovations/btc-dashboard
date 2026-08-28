@@ -114,6 +114,20 @@ designed.**
 It is what ruled out a plain IV feature column (32.7% train vs 100% test) and
 produced the residual design that worked. *(`iv-coverage-2`)*
 
+**R44. A cross-fitting guard that watches the producer does not watch the
+consumer.**
+`teacher_zoo.py` has three refusals proving no episode receives a prediction
+from a teacher trained on it. All three fired correctly. They did not catch —
+and structurally could not catch — `scale_falsifier.py` fitting **one constant
+on calib pooled across all six folds** and applying it to every fold's test
+slice, so that 2025 calibration data rescaled 2021 forecasts. The leak was not
+in the teacher output; it was in a parameter fitted *over* the teacher output by
+a later stage. **Every stage that fits anything on top of cross-fitted values
+needs its own scope check**, and `FoldScopedFit` is it: the consumer declares
+which fold it is fitting for and any read from another one refuses.
+*(withdrawn scale-falsifier run; matters most for Arms B and C, which fit
+stacking weights and a router over the same values)*
+
 **R43. A sentinel value is a lie the pipeline tells itself. Ask what the
 substituted value CLAIMS.**
 `features.py` guards `log(0)` with `max(rv, EPS)`, `EPS = 1e-12`. That is a real
