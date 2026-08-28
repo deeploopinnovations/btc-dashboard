@@ -51,6 +51,24 @@ and two negative controls that must NOT succeed:
     shuffled     the same fit on row-shuffled LABELS, which is the positive
                  falsification control -- if this scores, the harness is broken
 
+THE FEATURE DEFECT THIS FILE SHIPPED WITH, AND WHY THE RESULT WAS RE-RUN
+
+The first run of this benchmark joined `features.parquet` per anchor on the
+claim that only `cal_H` depends on the horizon. Four columns do --
+`cal_weekend_frac`, `seas_1d`, `seas_5d`, `seas_22d` -- so every horizon
+received the values computed for H = 6. No future information entered (all
+four are functions of the anchor and of strictly earlier hours), but the model
+arms were fed a mis-specified calendar and seasonal block at H != 6.
+
+The defect was found by a guard in a DIFFERENT file, `eval/vol_matrix`, which
+was written to check the same belief rather than repeat it. The fix is not a
+patch to the join: features are now built by `noctua.features.build_features`
+on the h4 episodes directly, which computes each column at the episode's own
+horizon and cross-checks itself against `features.parquet` at H = 6, the one
+horizon the two tables share.
+
+BENCHMARK.md carries both results. The first is not deleted.
+
 CALIBRATION IS A PASS CONDITION. AUC IS NOT.
 
 A model can rank episodes correctly and still emit probabilities that are wrong,
@@ -182,32 +200,43 @@ def fit_arm(name, Xtr, ytr, Xca, yca, Xte, rng):
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="D1 direction benchmark")
-    ap.add_argument("--episodes", type=Path,
-                    default=Path("model/artifacts/episodes_h4.parquet"))
-    ap.add_argument("--features", type=Path,
-                    default=Path("model/artifacts/features.parquet"))
-    ap.add_argument("--ref-episodes", type=Path,
-                    default=Path("model/artifacts/episodes.parquet"))
+    ap.add_argument("--artifacts", type=Path, default=Path("model/artifacts"))
     ap.add_argument("--horizons", type=int, nargs="+", default=list(HORIZONS))
     ap.add_argument("--out", type=Path,
                     default=Path("model/artifacts/direction_bench.json"))
     a = ap.parse_args(argv)
 
-    ep = pd.read_parquet(a.episodes)
-    feat = pd.read_parquet(a.features)
-    ref = pd.read_parquet(a.ref_episodes, columns=["anchor_ts", "H"])
-    if len(feat) != len(ref):
-        raise SystemExit("REFUSING: features.parquet is not aligned with episodes.parquet")
+    # FEATURES ARE BUILT AT EACH EPISODE'S OWN HORIZON.
+    #
+    # The first version of this file joined `features.parquet` per anchor and
+    # asserted in a comment that "only cal_H varies with H at a fixed anchor
+    # (verified)". THAT WAS WRONG, and `eval/vol_matrix._verify_per_anchor`
+    # -- a guard written to check the same belief against real data -- refused
+    # on its first run and named the missing columns:
+    #
+    #     seas_1d, seas_5d, seas_22d      (and cal_weekend_frac, also missed)
+    #
+    # `seas_{d}d` is the realized vol of [a - 24d, a - 24d + H), whose LENGTH
+    # is the horizon; `cal_weekend_frac` is the weekend share of the forward
+    # window. Joining per anchor with keep="first" therefore handed every
+    # horizon the values computed for H = 6.
+    #
+    # That was a MISSPECIFICATION, not a leak: every substituted value is a
+    # function of the anchor and of hours strictly before it, so no future
+    # information entered. But it degraded the model arms at H != 6, and a
+    # NULL produced with degraded features is not a NULL worth reporting. So
+    # the table is rebuilt with `build_h4_table`, which calls
+    # `noctua.features.build_features` on the h4 episodes directly and
+    # cross-checks itself against features.parquet at H = 6.
+    from eval.vol_matrix import UNDEFINED_AT_1W, build_h4_table
 
-    # Only `cal_H` varies with H at a fixed anchor (verified); every other
-    # column is a function of the anchor alone. So the per-anchor table is
-    # well defined, and cal_H is DROPPED rather than recomputed -- within a
-    # single-horizon model it is a constant and carries no information.
-    cols = [c for c in feat.columns if c != "cal_H"]
-    per_anchor = feat[cols].copy()
-    per_anchor["anchor_ts"] = ref["anchor_ts"].to_numpy(np.int64)
-    per_anchor = per_anchor.drop_duplicates("anchor_ts", keep="first")
-    print(f"per-anchor feature table: {len(per_anchor):,} anchors x {len(cols)} features")
+    ep, X = build_h4_table(a.artifacts)
+    # `cal_H` is dropped because within a single-horizon model it is a
+    # constant and carries no information. Everything else is kept where it
+    # is defined -- each horizon is fitted separately here, so H = 168 can
+    # simply use the columns that exist at H = 168 rather than forcing every
+    # row down to the smallest common set.
+    ALL_COLS = [c for c in X.columns if c != "cal_H"]
 
     alpha = 0.05 / N_FAMILY
     print(f"Bonferroni within the direction family: {N_FAMILY} arms -> "
@@ -216,14 +245,19 @@ def main(argv=None) -> int:
     rng = np.random.default_rng(0)
     results = {}
     for H in a.horizons:
-        e = ep[ep.H == H].merge(per_anchor, on="anchor_ts", how="inner")
-        e = e.sort_values("anchor_ts").reset_index(drop=True)
-        fin = np.isfinite(e[cols].to_numpy(np.float64)).all(axis=1)
-        e = e[fin].reset_index(drop=True)
+        sel = (ep.H == H).to_numpy()
+        if sel.sum() == 0:
+            print(f"H={H}: no episodes\n"); continue
+        cols = [c for c in ALL_COLS
+                if H <= 24 or c not in UNDEFINED_AT_1W]
+        e = ep[sel].reset_index(drop=True)
+        Xh = X.loc[sel, cols].reset_index(drop=True)
+        fin = np.isfinite(Xh.to_numpy(np.float64)).all(axis=1)
+        e, Xh = e[fin].reset_index(drop=True), Xh[fin].reset_index(drop=True)
         y_all = (e["R"].to_numpy(np.float64) > 0).astype(np.float64)
-        X_all = e[cols].to_numpy(np.float64)
+        X_all = Xh.to_numpy(np.float64)
         folds = S.walk_forward_folds(e)
-        print(f"H={H}: {len(e):,} episodes with complete features, {len(folds)} folds, "
+        print(f"H={H}: {len(e):,} episodes, {len(cols)} features, {len(folds)} folds, "
               f"base rate {y_all.mean():.4f}")
 
         arms = ("base_unc", "base_calib", "logistic", "gbm", "placebo", "shuffled")
