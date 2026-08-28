@@ -185,6 +185,24 @@ not the best. *(pitfalls 11)*
 
 ## Rules about controls and estimators
 
+**R39. Ask whether the baseline is allowed to know what the candidate knows.**
+Not "is the baseline simpler" — simpler is the point of a baseline — but "is it
+denied an input the candidate has". NOCTUA takes `cal_H`; the scored `log_har`
+and `har_short` were fitted once on a pooled multi-horizon sample and carried no
+horizon term. Refitting them per horizon turned a **+0.14462 win into a −0.02362
+loss** at H = 168, and a +0.03032 win into a −0.00705 loss at H = 24. The pooled
+fit was costing the baseline a factor of **2.06** at the extreme horizon. Every
+margin in the first matrix was partly a measurement of that asymmetry, and the
+largest margin was almost entirely it. *(`vol-matrix-fair-result`)*
+
+**R40. The straw-man check runs on your own headline too.**
+`vol-matrix-fair-result` immediately implicates `eval/benchmark.py`, which fits
+its `log_har` baseline the same pooled way and is what "NOCTUA beats Log-HAR by
+4.98 %" is measured against. Registering `E-prod-fairbaseline` to test the
+project's own headline is not optional once the mechanism is known — a
+correction you apply only to the result you dislike is not a correction.
+*(`E-prod-fairbaseline`)*
+
 **R37. Point the new guard at the code you already trust.**
 `_verify_per_anchor` was written for `vol_matrix.py`, a file with no results
 yet. Its first run refused — and what it refused was an assumption that had

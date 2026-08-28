@@ -214,7 +214,7 @@ timeline
 
 ## The experiment register
 
-79 pre-registered experiments. **ADOPT** 20 · **ADVANCE** 11 · **NULL** 8 · **OPEN** 20 · **REJECT** 18 · **WITHDRAWN** 2
+81 pre-registered experiments. **ADOPT** 20 · **ADVANCE** 11 · **NULL** 8 · **OPEN** 21 · **REJECT** 19 · **WITHDRAWN** 2
 
 Every row was registered with its decision rule **before** it ran. Failures are not deleted; they stay in the family and count against the multiple-testing correction.
 
@@ -294,11 +294,13 @@ Every row was registered with its decision rule **before** it ran. Failures are 
 | `stats-protocol-locked` | methodology | ADOPT | What is the locked statistical protocol, after the audit? |
 | `incumbent-under-protocol` | methodology | ADVANCE | Does NOCTUA's own headline claim -- that it beats Log-HAR -- survive the protocol just locked? |
 | `vol-matrix-power` | methodology | OPEN | Before building the four-horizon volatility matrix: which rows can a 6-fold experiment resolve? |
-| `vol-matrix` | volatility | ADVANCE | Across four horizons (1h, 6h, 1d, 1w), does NOCTUA beat the mandatory baseline family on QLIKE, and does the a |
+| `vol-matrix` ⤳ | volatility | ADVANCE | Across four horizons (1h, 6h, 1d, 1w), does NOCTUA beat the mandatory baseline family on QLIKE, and does the a |
 | `econ-scope` | economics | REJECT | What economic validation can this repository perform honestly, and what can it not? |
 | `econ-voltarget` | economics | OPEN | Does a better volatility forecast produce a better-controlled portfolio once rebalancing costs are charged? |
-| `vol-matrix-fair` | volatility | OPEN | Do the two rows that cleared vol-matrix survive a baseline family that is allowed to know the horizon? |
+| `vol-matrix-fair` ⤳ | volatility | OPEN | Do the two rows that cleared vol-matrix survive a baseline family that is allowed to know the horizon? |
 | `D1-direction-bench-corrected` | direction | NULL | Does any direction model beat the rolling base rate as a PROBABILITY forecast, once the features are built at  |
+| `vol-matrix-fair-result` | volatility | REJECT | Do the two rows that cleared vol-matrix survive a baseline family that is allowed to know the horizon? |
+| `E-prod-fairbaseline` | volatility | OPEN | Does NOCTUA's headline production advantage over Log-HAR survive a horizon-aware baseline? |
 
 ⤳ = superseded by a later entry; the original is kept rather than edited.
 
