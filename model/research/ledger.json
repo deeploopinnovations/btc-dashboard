@@ -178,9 +178,10 @@
    "rule": "compare achieved activation rank against the INPUT's effective rank and the architectural ceiling, not against nominal width",
    "verdict": "REJECT",
    "result": "false alarm: Stage B carries 13 dims against inputs spanning 13; Stage A 17 against 19",
-   "supersedes": [
-    "7c-capacity"
-   ]
+   "supersedes_document": [
+    "BENCHMARK.md \u00a77c"
+   ],
+   "bookkeeping_note": "`supersedes: ['7c-capacity']` was removed on 2026-08-28. It pointed at a BENCHMARK.md SECTION (\u00a77c), not at a ledger entry -- no entry with that id has ever existed -- so `--corrections` could never resolve it and no reader could follow it. The reference is preserved as `supersedes_document`. The FINDING is untouched: this is a broken pointer, not a revised result, which is why it is corrected in place rather than superseded. Found by `ledger --validate` on the first run of that check."
   },
   {
    "id": "levers",
@@ -204,7 +205,11 @@
    "question": "Do the harvested funding/DVOL series have usable history depth?",
    "rule": "measure the span and the training-window overlap on the committed files; a feature with no training-window overlap cannot be trained on",
    "verdict": "ADOPT",
-   "result": "route works -- GH Actions runner committed both files. Funding VERIFIED better than cited: hourly, 64,206 rows, 2019-04-30 onward, 32,196 rows (50.1%) inside the training window. DVOL unusable as harvested: 15 days, 383 rows, ZERO training-window overlap, because get_historical_volatility is REALIZED vol with no time range, not the implied DVOL index. Fixed to page get_volatility_index_data; unverified from container."
+   "result": "route works -- GH Actions runner committed both files. Funding VERIFIED better than cited: hourly, 64,206 rows, 2019-04-30 onward, 32,196 rows (50.1%) inside the training window. DVOL unusable as harvested: 15 days, 383 rows, ZERO training-window overlap, because get_historical_volatility is REALIZED vol with no time range, not the implied DVOL index. Fixed to page get_volatility_index_data; unverified from container.",
+   "superseded_by": [
+    "15"
+   ],
+   "bookkeeping_note": "The backlink to 15 was added on 2026-08-28. Entry 15 had recorded `supersedes: ['14']` but 14 carried no `superseded_by`, because 15 was appended by a script writing ledger.json directly instead of through `add()`, which is the only path that maintains both sides. A one-sided link makes `--corrections` and `--open` disagree about what is settled. NOTE ON SCOPE: 15 supersedes only the DVOL half of 14. 14's funding-history finding -- hourly, 64,206 rows from 2019-04-30, 50.1% inside the training window -- stands and is not revised. Found by `ledger --validate`."
   },
   {
    "id": "phase0",
@@ -311,7 +316,8 @@
    "supersedes": [],
    "superseded_by": [
     "iv-coverage-2"
-   ]
+   ],
+   "topic": "iv"
   },
   {
    "id": "iv-coverage-2",
@@ -327,7 +333,8 @@
    "lesson": "Split boundaries are data, not folklore. I typed plausible dates rather than reading noctua/splits.py, and a sonnet agent that read the file got it right. The error was invisible in the qualitative story -- both versions say 'train coverage is far below test' -- which is exactly the kind of wrong number that stays in circulation.",
    "superseded_by": [
     "iv-coverage-closed"
-   ]
+   ],
+   "topic": "iv"
   },
   {
    "id": "E-anchor-verdict",

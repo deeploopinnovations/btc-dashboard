@@ -89,8 +89,50 @@ def add(entry: dict, path: Path = LEDGER) -> dict:
     return entry
 
 
+REQUIRED_KEYS = ("id", "topic", "question", "rule", "verdict")
+
+
+def validate(d: dict) -> list[str]:
+    """Every structural rule this file relies on, checked against the file.
+
+    `add()` enforces these on entries that go through it -- but entries have
+    also been appended by scripts writing ledger.json directly, and two of
+    them arrived with no `topic`. Nothing noticed until a reader crashed on
+    the missing key months later. A schema that is only enforced on one write
+    path is not enforced.
+    """
+    errs, seen = [], set()
+    for i, e in enumerate(d.get("experiments", [])):
+        who = e.get("id", f"<entry {i}>")
+        for k in REQUIRED_KEYS:
+            if not e.get(k):
+                errs.append(f"{who}: missing or empty `{k}`")
+        if e.get("verdict") and e["verdict"] not in VERDICTS:
+            errs.append(f"{who}: verdict {e['verdict']!r} is not one of {VERDICTS}")
+        if e.get("id") in seen:
+            errs.append(f"{who}: duplicate id")
+        seen.add(e.get("id"))
+    ids = {e.get("id") for e in d.get("experiments", [])}
+    for e in d.get("experiments", []):
+        for k in ("supersedes", "superseded_by"):
+            for ref in e.get(k, []):
+                if ref not in ids:
+                    errs.append(f"{e.get('id')}: {k} points at unknown id {ref!r}")
+    # A supersedes B must imply B superseded_by A. A one-sided link means
+    # `--corrections` and `--open` disagree about what is settled.
+    for e in d.get("experiments", []):
+        for ref in e.get("supersedes", []):
+            other = next((x for x in d["experiments"] if x.get("id") == ref), None)
+            if other is not None and e.get("id") not in other.get("superseded_by", []):
+                errs.append(f"{e.get('id')} supersedes {ref}, but {ref} does not "
+                            f"record it in superseded_by")
+    return errs
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="Research ledger")
+    ap.add_argument("--validate", action="store_true",
+                    help="check the file against the schema and exit nonzero on any error")
     ap.add_argument("--list", action="store_true")
     ap.add_argument("--open", action="store_true", help="unresolved questions")
     ap.add_argument("--corrections", action="store_true",
@@ -99,6 +141,13 @@ def main(argv=None) -> int:
     a = ap.parse_args(argv)
     d = load(a.path)
     es = d["experiments"]
+
+    if a.validate:
+        errs = validate(d)
+        for e in errs:
+            print(f"  {e}")
+        print(f"{len(es)} entries, {len(errs)} problem(s)")
+        return 1 if errs else 0
 
     if a.corrections:
         n = 0
