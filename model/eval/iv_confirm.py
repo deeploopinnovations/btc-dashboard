@@ -101,7 +101,42 @@ from research import pitfalls as P                                        # noqa
 COLS = ["iv_chg_1h", "iv_chg_6h", "iv_chg_24h", "iv_z_20d", "ivrv_ratio"]
 N_TESTS = 4                     # E2, E2b, E2c, and this one
 TAIL_BARRIERS = (0.5, 1.0, 2.0)
-PLACEBO_SHIFT_ROWS = 365 * 24
+PLACEBO_SHIFT_DAYS = 365        # the INTENDED rotation, in calendar days
+
+# The rotation distance is converted from days to ROWS at run time, because the
+# covered set carries several episodes per anchor timestamp (one per horizon)
+# and a row offset is therefore NOT an hour offset.
+#
+# The original constant was `PLACEBO_SHIFT_ROWS = 365 * 24` -- named for hours,
+# used as a row index. A data audit measured the consequence: the covered era
+# spans 1,944.8 days over 186,663 rows, i.e. 95.98 rows per day, so an 8,760-row
+# roll moved 91.3 calendar days, not 365. Both this file and BENCHMARK.md 24
+# claimed "one year".
+#
+# The direction of that error worked AGAINST the result -- a shorter rotation
+# retains more residual autocorrelation, making the placebo harder to beat -- so
+# it does not explain the headline. It was still a wrong claim, and the fix is
+# to compute the offset from the data rather than assert it.
+
+def _rotation_rows(covered_rows, anchor_ts, days: int = PLACEBO_SHIFT_DAYS) -> int:
+    """Convert a calendar-day rotation into a ROW offset, measured from the data.
+
+    `covered_rows` indexes the episode table, which carries several rows per
+    anchor timestamp, so rows-per-day must be counted rather than assumed.
+    """
+    import numpy as _np
+    ts = _np.asarray(anchor_ts, dtype=_np.int64)[covered_rows]
+    span_days = max((ts.max() - ts.min()) / 86400.0, 1.0)
+    rows_per_day = len(covered_rows) / span_days
+    roll = int(round(days * rows_per_day))
+    if len(covered_rows) < 3 * roll:
+        raise SystemExit(
+            f"REFUSING: {len(covered_rows):,} covered episodes cannot support a "
+            f"{days}-day ({roll:,}-row) rotation. The modulo would wrap to a "
+            f"small near-neighbour shift, which decorrelates nothing while "
+            f"still passing the coverage check -- a placebo that is not one.")
+    return roll % len(covered_rows)
+
 
 
 def tail_mcb(rows) -> float:
@@ -170,9 +205,7 @@ def main(argv=None) -> int:
             "episodes.parquet; the join this file relies on is broken")
     Z_all = iv[COLS].to_numpy(np.float64)
     covered_rows = np.flatnonzero(np.isfinite(Z_all).all(axis=1))
-    if len(covered_rows) < 3 * PLACEBO_SHIFT_ROWS:
-        raise SystemExit("REFUSING: covered window too short for the placebo rotation")
-    roll = PLACEBO_SHIFT_ROWS % len(covered_rows)
+    roll = _rotation_rows(covered_rows, iv["anchor_ts"].to_numpy(np.int64))
     pos_of = {int(r): i for i, r in enumerate(covered_rows)}
 
     spike = causal_spike_flag(ep)

@@ -285,6 +285,60 @@ def mean_ci(d, n_rep: int = 20_000, seed: int = 0, alpha: float = 0.05) -> dict:
             "sd": float(d.std(ddof=1)) if n > 1 else float("nan")}
 
 
+def small_n_inference(d, alpha: float = 0.05) -> dict:
+    """The honest tools at fold-level n, where the bootstrap is not one.
+
+    A statistical audit established that a resampling interval over n same-signed
+    fold deltas excludes zero at every alpha by construction (pitfalls check 13).
+    At this n the defensible instruments are:
+
+      t-interval          proper for a small sample with estimated variance, and
+                          it WIDENS with alpha, which the bootstrap stopped doing
+                          past alpha/3.
+      exact sign-flip     the permutation test the paired fold design actually
+      permutation         licenses: enumerate all 2^n sign assignments. Its
+                          one-sided p has a HARD FLOOR of 2^-n -- 0.03125 at
+                          n = 5 -- so at that n it can never clear a Bonferroni
+                          threshold with family >= 2, however large the effect.
+                          That floor is a property of the DESIGN and is returned
+                          explicitly so it can be checked before running.
+
+    Reported together because they disagree usefully: the t-interval can clear
+    while the permutation floor forbids corrected significance, and a reader is
+    entitled to see both rather than whichever one the author preferred.
+    """
+    from itertools import product
+
+    d = np.asarray(d, dtype=np.float64)
+    d = d[np.isfinite(d)]
+    n = len(d)
+    if n < 2:
+        raise ValueError(f"small_n_inference needs at least 2 observations, got {n}")
+    mean = float(d.mean())
+    se = float(d.std(ddof=1) / np.sqrt(n))
+    out = {"n": n, "mean": mean, "se": se, "sd": float(d.std(ddof=1)),
+           "all_same_sign": bool((d > 0).all() or (d < 0).all())}
+    try:
+        from scipy import stats
+        crit = float(stats.t.ppf(1 - alpha / 2, n - 1))
+        out["t_ci"] = [mean - crit * se, mean + crit * se]
+        out["t_p_two_sided"] = float(stats.ttest_1samp(d, 0.0).pvalue)
+        # MDE at 80% power with the correct noncentral-t critical values, not
+        # the z approximation (z_.975 + z_.80 = 2.80), which understates by
+        # ~25-35% at n = 5-6.
+        out["mde_80"] = float((crit + stats.t.ppf(0.80, n - 1)) * se)
+    except Exception:
+        out["t_ci"] = None
+    if n <= 22:                      # 2^22 is the practical enumeration limit
+        signs = np.array(list(product([1.0, -1.0], repeat=n)))
+        perm = (signs * d).mean(axis=1)
+        p_one = float((perm <= mean).mean() if mean < 0 else (perm >= mean).mean())
+        out["perm_p_one_sided"] = p_one
+        out["perm_p_floor"] = float(2.0 ** (-n))
+        out["perm_at_floor"] = bool(abs(p_one - 2.0 ** (-n)) < 1e-12)
+    return out
+
+
 def ci_excludes_zero(ci, favourable_sign: int) -> bool:
     """Did the interval clear zero on the stated side? REFUSES a NaN interval.
 

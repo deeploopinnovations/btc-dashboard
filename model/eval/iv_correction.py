@@ -150,7 +150,42 @@ EXP_BOUND = 1.0         # |z . beta| bound: the correction may scale sigma by at
                         # adjustment larger than that is not a correction to a
                         # forecast, it is a different forecast.
 SPIKE_POINT_BAR = 2.0   # percent; see the spike guard's note
-PLACEBO_SHIFT_H = 365 * 24      # rotation distance, in covered-episode rows
+PLACEBO_SHIFT_DAYS = 365        # the INTENDED rotation, in calendar days
+
+# The rotation distance is converted from days to ROWS at run time, because the
+# covered set carries several episodes per anchor timestamp (one per horizon)
+# and a row offset is therefore NOT an hour offset.
+#
+# The original constant was `PLACEBO_SHIFT_H = 365 * 24` -- named for hours,
+# used as a row index. A data audit measured the consequence: the covered era
+# spans 1,944.8 days over 186,663 rows, i.e. 95.98 rows per day, so an 8,760-row
+# roll moved 91.3 calendar days, not 365. Both this file and BENCHMARK.md 24
+# claimed "one year".
+#
+# The direction of that error worked AGAINST the result -- a shorter rotation
+# retains more residual autocorrelation, making the placebo harder to beat -- so
+# it does not explain the headline. It was still a wrong claim, and the fix is
+# to compute the offset from the data rather than assert it.
+
+def _rotation_rows(covered_rows, anchor_ts, days: int = PLACEBO_SHIFT_DAYS) -> int:
+    """Convert a calendar-day rotation into a ROW offset, measured from the data.
+
+    `covered_rows` indexes the episode table, which carries several rows per
+    anchor timestamp, so rows-per-day must be counted rather than assumed.
+    """
+    import numpy as _np
+    ts = _np.asarray(anchor_ts, dtype=_np.int64)[covered_rows]
+    span_days = max((ts.max() - ts.min()) / 86400.0, 1.0)
+    rows_per_day = len(covered_rows) / span_days
+    roll = int(round(days * rows_per_day))
+    if len(covered_rows) < 3 * roll:
+        raise SystemExit(
+            f"REFUSING: {len(covered_rows):,} covered episodes cannot support a "
+            f"{days}-day ({roll:,}-row) rotation. The modulo would wrap to a "
+            f"small near-neighbour shift, which decorrelates nothing while "
+            f"still passing the coverage check -- a placebo that is not one.")
+    return roll % len(covered_rows)
+      # rotation distance, in covered-episode rows
 
 
 def fit_beta(z: np.ndarray, r_hat: np.ndarray, iters: int = 60,
@@ -319,14 +354,7 @@ def main(argv=None) -> int:
     if len(covered_rows) == 0:
         raise SystemExit("REFUSING: no episode has a complete IV feature vector")
     pos_of_row = {int(r): i for i, r in enumerate(covered_rows)}
-    if len(covered_rows) < 3 * PLACEBO_SHIFT_H:
-        raise SystemExit(
-            f"REFUSING: only {len(covered_rows):,} covered episodes for a "
-            f"{PLACEBO_SHIFT_H:,}-row rotation. The modulo would wrap to a small "
-            f"NEAR-NEIGHBOUR shift, which decorrelates nothing while still "
-            f"passing the coverage-preservation check -- a placebo that is not a "
-            f"placebo. Shorten PLACEBO_SHIFT_H deliberately or do not run this.")
-    roll = PLACEBO_SHIFT_H % len(covered_rows)
+    roll = _rotation_rows(covered_rows, iv_ts)
     for f in folds:
         zp = np.full_like(f["z"], np.nan)
         idx = npz[f"test_idx_{f['year']}"]
@@ -441,7 +469,7 @@ def main(argv=None) -> int:
     out = {"folds": rows_out, "iv_cols": IV_COLS, "sigma_b": SIGMA_B,
            "intercept": icept, "dropped": drop, "n_tests": a.n_tests,
            "ci_level": 1.0 - alpha,
-           "placebo_shift_hours": PLACEBO_SHIFT_H, "w0": W0}
+           "placebo_shift_days": PLACEBO_SHIFT_DAYS, "w0": W0}
     if len(dlt["shrunk"]["pooled"]) < 2:
         print("\nfewer than 2 scored folds -- no verdict"); return 1
 

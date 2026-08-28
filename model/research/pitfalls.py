@@ -383,12 +383,64 @@ def check_corruption_bites(before, after, name: str = "") -> Verdict:
                    "that are exactly zero")
 
 
+# ---------------------------------------------------------------------------
+# 13. A bootstrap on same-signed data cannot return a null
+# ---------------------------------------------------------------------------
+def check_bootstrap_can_fail(deltas, name: str = "") -> Verdict:
+    """A resampling interval is only a test if some resample could cross zero.
+
+    PROVENANCE: E2-confirm's primary endpoint was a moving-block bootstrap over
+    5 fold-level deltas that all shared a sign. Every resample is then a convex
+    combination of same-signed numbers, so the interval is on one side of zero
+    AT EVERY ALPHA -- verified identical at 0.05/4, 0.05/40 and 0.05/1000. The
+    statistic was structurally incapable of reporting a null, and it was quoted
+    as clearing a "Bonferroni-adjusted 98.75% level" that it could not have
+    failed to clear.
+
+    Worse, BENCHMARK.md 25 NOTICED the saturation, wrote it down as "an artifact
+    of n, not significance", and left the estimator as primary anyway. Noticing
+    a defect and continuing to rely on it is worse than missing it.
+
+    At small n with a consistent sign, the honest tools are the t-interval and
+    the EXACT sign-flip permutation test -- and the latter has a hard floor of
+    2^-n one-sided, which is 0.03125 at n = 5, so it can never clear a
+    Bonferroni threshold with family >= 2 however large the true effect. That
+    floor is a property of the DESIGN, not of the data, and it should be checked
+    before the experiment runs rather than discovered after.
+
+    This check is about the estimator, not the effect. Same-signed deltas may
+    well reflect a real effect -- E2c's did. The point is that a bootstrap
+    cannot be the thing that establishes it.
+    """
+    d = np.asarray(deltas, dtype=np.float64)
+    d = d[np.isfinite(d)]
+    n = len(d)
+    tag = f"[{name}]" if name else ""
+    if n < 2:
+        return Verdict(False, f"bootstrap-can-fail{tag}",
+                       f"only {n} finite observation(s)",
+                       "a resampling interval needs something to resample")
+    same_sign = bool((d > 0).all() or (d < 0).all())
+    floor = 2.0 ** (-n)
+    ok = not same_sign
+    return Verdict(ok, f"bootstrap-can-fail{tag}",
+                   f"n={n}, deltas take both signs; a resample can cross zero"
+                   if ok else
+                   f"n={n}, ALL deltas share a sign -- every resample is a convex "
+                   f"combination of them, so the interval excludes zero at EVERY "
+                   f"alpha by construction. Exact sign-flip floor is "
+                   f"{floor:.5f} one-sided; use the t-interval and permutation "
+                   f"test, not the bootstrap",
+                   "E2-confirm's bootstrap CI was identical at alpha/4 and alpha/1000")
+
+
 ALL_CHECKS = [check_skill_sign, check_relevance_not_absolute,
               check_beats_base_rate, check_arms_matched,
               check_not_a_coin_flip, check_correction_verified,
               check_guard_is_reachable, check_measured_is_shipped,
               check_rule_satisfiable, check_eval_matches_trainer,
-              check_ci_is_defined, check_corruption_bites]
+              check_ci_is_defined, check_corruption_bites,
+              check_bootstrap_can_fail]
 
 
 def self_test() -> int:
@@ -432,8 +484,15 @@ def self_test() -> int:
     _v = np.array([0.0, 1e-5, 0.0, 3e-5])
     r.add(check_corruption_bites(_v, _v * 3.0, "pure multiplier (historical FAIL)"))
     r.add(check_corruption_bites(_v, _v * 3.0 + 1e-5, "affine, as fixed"))
+    # E2-confirm's 5 wide-slice fold deltas, all negative (historical FAIL)
+    r.add(check_bootstrap_can_fail(
+        [-0.01889, -0.03718, -0.00164, -0.02172, -0.00726],
+        "E2-confirm fold deltas (historical FAIL)"))
+    # the paired per-episode deltas, which take both signs
+    r.add(check_bootstrap_can_fail([-0.4, 0.2, -0.1, 0.3, -0.9, 0.05],
+                                   "paired per-episode, as replaced"))
     print(r.render())
-    expect_fail = 12  # the historical cases, which MUST still be caught
+    expect_fail = 13  # the historical cases, which MUST still be caught
     got = len(r.failures)
     print(f"\nself-test: {got} failures, expected {expect_fail} "
           f"(the historical errors these checks exist to catch)")
