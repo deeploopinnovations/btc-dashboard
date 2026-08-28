@@ -67,3 +67,21 @@ jobs:
       # it permanently.
       - name: Self-improvement guard self-test
         run: python model/tests/test_selfimprove.py
+
+      # The research record is an artifact like any other, and it has been
+      # corrupted twice by scripts appending to ledger.json directly instead
+      # of through ledger.add() -- two entries with no `topic` (a reader
+      # crashed on the missing key months later), a `supersedes` pointing at
+      # an id that never existed, and a one-sided supersede link that made
+      # --corrections and --open disagree about what was settled. Checking the
+      # FILE rather than the write path is the only version of this check that
+      # binds.
+      - name: Research ledger schema
+        run: python -m model.research.ledger --validate
+
+      # The pitfalls suite is a set of guards that were each written after a
+      # real defect got through. Its self-test asserts that every one of them
+      # can still FAIL -- a guard that has quietly become unfalsifiable is
+      # worse than no guard, because it prints reassuring output.
+      - name: Pitfall guards can still fail
+        run: python -m model.research.pitfalls --self-test
