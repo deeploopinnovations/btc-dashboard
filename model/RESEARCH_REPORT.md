@@ -214,7 +214,7 @@ timeline
 
 ## The experiment register
 
-81 pre-registered experiments. **ADOPT** 20 · **ADVANCE** 11 · **NULL** 8 · **OPEN** 21 · **REJECT** 19 · **WITHDRAWN** 2
+82 pre-registered experiments. **ADOPT** 20 · **ADVANCE** 11 · **NULL** 8 · **OPEN** 21 · **REJECT** 20 · **WITHDRAWN** 2
 
 Every row was registered with its decision rule **before** it ran. Failures are not deleted; they stay in the family and count against the multiple-testing correction.
 
@@ -300,7 +300,8 @@ Every row was registered with its decision rule **before** it ran. Failures are 
 | `vol-matrix-fair` ⤳ | volatility | OPEN | Do the two rows that cleared vol-matrix survive a baseline family that is allowed to know the horizon? |
 | `D1-direction-bench-corrected` | direction | NULL | Does any direction model beat the rolling base rate as a PROBABILITY forecast, once the features are built at  |
 | `vol-matrix-fair-result` | volatility | REJECT | Do the two rows that cleared vol-matrix survive a baseline family that is allowed to know the horizon? |
-| `E-prod-fairbaseline` | volatility | OPEN | Does NOCTUA's headline production advantage over Log-HAR survive a horizon-aware baseline? |
+| `E-prod-fairbaseline` ⤳ | volatility | OPEN | Does NOCTUA's headline production advantage over Log-HAR survive a horizon-aware baseline? |
+| `E-prod-fairbaseline-result` | volatility | REJECT | Does NOCTUA's headline production advantage over Log-HAR survive a horizon-aware baseline? |
 
 ⤳ = superseded by a later entry; the original is kept rather than edited.
 

@@ -570,6 +570,19 @@ anchor rather than on power.
 benchmarked anchor and 6.06 % across all served anchors — a gap of 0.08 pp.
 Barrier discrimination is *higher* away from 17:00, not lower.
 
+> **Amended 2026-08-28 by `E-prod-fairbaseline-result` (§31).** These numbers
+> are correct for the comparison they name, and that comparison is
+> `log_har_cal` — Corsi's cascade plus `cal_H` and `cal_weekend_frac`, fitted
+> on the pooled training sample. **It is not the strongest baseline this
+> repository contains.** `har_short`, which extends the cascade downward with
+> `har_1h` and `har_6h`, has been in `noctua/baselines.py` throughout and was
+> never scored here. It beats `log_har_cal` on the calibration slice
+> (0.3163 against 0.3251) and on test, and against **it** NOCTUA's production
+> advantage is **+3.10 %, CI [−0.00897, +0.02448] — not statistically
+> established** at n = 2,046. The unadjusted 95 % interval straddles zero too,
+> so this is not a multiple-testing artifact. Any use of the −6.14 % figure
+> must name its baseline and carry the `har_short` comparison beside it.
+
 The absolute QLIKE gaps between arms are a level effect: 17:00 UTC sits just
 after the US equity open, near the intraday volatility peak, so those episodes
 are harder in absolute terms. The ratio against Log-HAR, which faces the same
@@ -3988,5 +4001,92 @@ supersede link that made `--corrections` and `--open` disagree about what was
 settled. Both are corrected in place, with a note in each entry saying what
 changed and why, and both checks now gate in CI alongside the pitfalls
 self-test.
+
+---
+
+## 31. The baseline family had six members and the benchmark scored one
+
+### What was tested, and why
+
+§30 established that a Log-HAR fitted once on a pooled multi-horizon sample is
+a straw man at horizons far from the pooled centre — in the four-horizon
+matrix, refitting per horizon turned a **+0.14462 NOCTUA win at H = 168 into a
+−0.02362 loss**, because the pooled fit was costing the baseline a factor of
+**2.06** there. A correction applied only to the result one dislikes is not a
+correction, so the same mechanism was pointed at this document's own headline.
+
+### First, a claim of mine that was wrong
+
+I asserted in a committed ledger entry that the headline was measured against a
+horizon-**blind** `log_har`, because `benchmark.json` files it under the key
+`"log_har"`. The line that produces it reads `bl["log_har_cal"]`. The incumbent
+baseline **already carries `cal_H` and `cal_weekend_frac`**. I wrote the
+sentence before reading the expression that computes the number, and the first
+run of `eval/prod_fairbaseline.py` restated the incumbent claim against the
+wrong arm and was discarded rather than reported. That is now **R41**: *an
+artifact key is not a description of what it holds.*
+
+### The result
+
+Production slice, H = 19 at 17:00 UTC, 2,046 test episodes over six folds,
+baseline chosen on **calib**, Bonferroni at family size 5 (99 % intervals).
+
+| arm | QLIKE | vs best | rel % | worst fold | paired CI vs `har_short` |
+|---|---:|---:|---:|---:|---|
+| `noctua` | 0.29702 | +0.00951 | **+3.10** | 0.43404 | **[−0.00897, +0.02448]** |
+| `har_short` | 0.30654 | — | — | 0.42764 | — (is the baseline) |
+| `log_har_cal` | 0.30442 | +0.00212 | +0.69 | 0.40223 | [−0.01640, +0.01867] |
+| `log_har_cal_pooled` | 0.31122 | −0.00469 | −1.53 | 0.41862 | [−0.02359, +0.01152] |
+| `log_har` | 0.32015 | −0.01361 | −4.44 | 0.41551 | [−0.03238, +0.00250] |
+| `log_har_pooled` | 0.33774 | −0.03120 | −10.18 | 0.44558 | [−0.05184, −0.01428] |
+| `persistence` | 0.43547 | −0.12893 | −42.06 | 0.69888 | [−0.18843, −0.08505] |
+
+Three things, and they are separate:
+
+**The incumbent claim is confirmed.** NOCTUA against `log_har_cal_pooled` — the
+arm the published headline is actually measured against — is **+0.01420
+(+4.56 %), CI [+0.00300, +0.02339]**, which clears. The −6.14 % figure is not
+withdrawn; run-to-run training variance and mean-of-folds versus
+pooled-over-episodes aggregation account for the gap.
+
+**The pooling penalty is small here, as predicted.** `log_har_cal` pooled
+across {6, 12, 19, 24} scores 0.31122; refitted at H = 19 it scores 0.30442 — a
+**2.2 %** penalty, against the **106 %** the same mechanism carried at H = 168.
+The 4× horizon range really is far less exposed than the 168× range, which is
+what the pre-registration predicted and why it predicted the headline would
+survive.
+
+**The primary fails anyway, for a different reason.** The best baseline by
+calib QLIKE is not `log_har_cal` — it is **`har_short`** (0.3163 against
+0.3251). Against it, NOCTUA's advantage is **+3.10 % with a CI that straddles
+zero**. The unadjusted 95 % interval [−0.00436, +0.02114] straddles zero too,
+so this is not a multiple-testing artifact.
+
+NOCTUA still posts the best pooled QLIKE of any arm in the table. It is simply
+not *significantly* better than `har_short` at n = 2,046 — 365 episodes a fold
+is the production slice's entire sample.
+
+### The pattern, which is the actual lesson
+
+This is the **second time in one session** that the strongest available
+baseline turned out to already exist in this repository and to have been left
+out of the arm list: `log_har_cal` in the four-horizon matrix, `har_short`
+here. That is not bad luck. `VOL_BASELINES` in `noctua/baselines.py` has **six
+entries** and `eval/benchmark.py` scores **one** of them.
+
+My pre-registered prediction was that the margin would land in 2–5 % and still
+clear. It landed at 3.10 % and did not clear. The magnitude reasoning was sound
+and was confirmed at 2.2 %; what I did not anticipate was that fixing the
+**fit** would matter far less than fixing the **roster**. Hence **R42**:
+enumerate the baseline family the repository already contains before asking
+whether the chosen baseline was fitted correctly. A missing arm is a larger
+error than a mis-fitted one, and it is cheaper to find.
+
+### Status
+
+The shipped model is unchanged, as it has been throughout this work. What
+changes is what may be said about it: any statement of the form "NOCTUA beats
+Log-HAR by X %" must name *which* Log-HAR and must carry the `har_short`
+comparison beside it.
 
 *Educational research only. Not financial advice.*

@@ -202,6 +202,16 @@ baseline on the same pooled multi-horizon sample. Registering
 the mechanism is known — a correction you apply only to the result you dislike
 is not a correction. *(`E-prod-fairbaseline`)*
 
+**R42. Enumerate the baseline family the repo already contains, before asking
+whether the chosen baseline was fitted right.**
+Twice in one session the strongest available baseline was already in
+`noctua/baselines.py` and simply absent from the arm list — `log_har_cal` in the
+four-horizon matrix, `har_short` on the production slice. `VOL_BASELINES` has
+six entries; `eval/benchmark.py` scores one. Fixing the *fit* of `log_har_cal`
+moved it 2.2 %; adding an arm that already existed moved the bar enough to erase
+significance. **A missing arm is a larger error than a mis-fitted one, and it is
+cheaper to find.** *(`E-prod-fairbaseline-result`)*
+
 **R41. An artifact key is not a description of what it holds.**
 I asserted that the headline was measured against a horizon-blind `log_har`,
 because `benchmark.json` stores it under the key `"log_har"`. The line that
