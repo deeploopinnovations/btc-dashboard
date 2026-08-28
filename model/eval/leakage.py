@@ -729,6 +729,13 @@ def main(argv=None) -> int:
     ap.add_argument("--newdata", type=Path, default=Path("data/newdata"))
     ap.add_argument("--out", type=Path, default=Path("model/artifacts/leakage.json"))
     ap.add_argument("--n-probe-per-cut", type=int, default=150)
+    ap.add_argument("--episodes", type=Path, default=None,
+                    help="episode table to audit; defaults to episodes.parquet. "
+                         "Point it at episodes_h4.parquet to probe H=1 and H=168, "
+                         "which the default table does not contain -- the audit "
+                         "has only ever run on H in {6,12,19,24}, and `seas_22d` "
+                         "at H=168 reads a window the shorter horizons never "
+                         "exercise.")
     a = ap.parse_args(argv)
 
     print("=" * 78)
@@ -736,9 +743,20 @@ def main(argv=None) -> int:
     print("=" * 78)
 
     hours = pd.read_parquet(a.artifacts / "btcusd_1h.parquet")
-    ep, X = load_all(a.artifacts)
+    if a.episodes is None:
+        ep, X = load_all(a.artifacts)
+    else:
+        # Features are BUILT for this table rather than loaded, because
+        # features.parquet is aligned to episodes.parquet alone and five of
+        # its columns depend on the horizon (see eval/vol_matrix). Loading
+        # them here would audit the wrong numbers.
+        from noctua.features import build_features
+        ep = pd.read_parquet(a.episodes).sort_values(
+            ["anchor_ts", "H"]).reset_index(drop=True)
+        X = build_features(hours, ep)
     print(f"\n{len(hours):,} hourly bars, {len(ep):,} episodes, "
-          f"{X.shape[1]} feature columns\n")
+          f"{X.shape[1]} feature columns, "
+          f"H in {sorted(ep.H.unique().tolist())}\n")
 
     # ---- 1. feature causality --------------------------------------------
     print("-" * 78)
