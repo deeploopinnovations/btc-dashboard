@@ -125,7 +125,10 @@
    "mechanism": "overforecast-tails",
    "claim": "garch_normal wins spike AND deep-tail QLIKE at ALL FOUR horizons while never winning pooled, and its calibration ratio mean(RV^2/sigma^2) is BELOW 1 at every horizon (0.845 / 0.861 / 0.778 / 0.416). The mechanism is not tail modelling -- it is a systematic UPWARD level bias. QLIKE is asymmetric and penalises under-forecasting 1.60x more than over-forecasting at a factor-2 error, so a model biased high buys tail performance and pays for it in calm. That is a SCALE choice, not information.",
    "falsifier": "Multiply any teacher's sigma by a constant c > 1 fitted on CALIB only. If a constant rescale reproduces most of garch_normal's spike and deep-tail advantage, the mechanism is level bias and there is nothing to transfer beyond a scalar. If the rescaled teacher does NOT close the gap, garch_normal knows something episode-specific about tails and the mechanism is real.",
-   "verdict": "OPEN"
+   "verdict": "OPEN",
+   "superseded_by": [
+    "M-garchnormal-tails-result"
+   ]
   },
   {
    "id": "M-noctua-calm-spike-split",
@@ -133,7 +136,10 @@
    "mechanism": "median-vs-mean-scale",
    "claim": "NOCTUA V1 is the BEST calm forecaster in the zoo at H=1 (0.40275) and H=6 (0.30222) and among the WORST on spike and deep tail, with a calibration ratio of 1.166-1.464 meaning it systematically under-forecasts. This is the same signature the volatility-targeting overlay found independently -- every HAR-family and NOCTUA arm overshot a 60% realised-vol target. The claim: NOCTUA's deficit is a SCALE deficit, not an information deficit, and it is the median-vs-mean mismatch E-scale has had open since Phase 0 -- the model reports a conditional median while QLIKE is minimised by the conditional mean of variance.",
    "falsifier": "Fit a single scalar c on CALIB minimising QLIKE of c*sigma_noctua, per horizon. If c*NOCTUA closes most of the pooled gap to the best teacher AND lands the calibration ratio near 1.0 without destroying the calm advantage, the deficit is scale. If pooled QLIKE barely moves, or calm degrades by more than spike improves, the deficit is information and E-scale is not the explanation.",
-   "verdict": "OPEN"
+   "verdict": "OPEN",
+   "superseded_by": [
+    "M-noctua-scale-result"
+   ]
   },
   {
    "id": "M-harshort-h1-onefold",
@@ -155,6 +161,28 @@
    ],
    "claim": "SUPERSEDES M-harshort-h1-onefold, WHICH WAS WRONG. I claimed har_short's H=1 catastrophe was coefficient leverage in a high-clustering regime. It is not a volatility mechanism at all -- it is a DATA-QUALITY DEFECT, and I verified it independently rather than accepting the agent finding.\nMEASURED: in fold 2022 at H=1, ONE episode contributes 72.5% of the fold's entire mean QLIKE and the top ten contribute 78.9%. Excluding those ten, the fold averages 0.6000 -- in line with every other arm. har_short is not broadly bad at H=1; it is destroyed by a handful of episodes.\nTHE CAUSE: the worst episode is anchored 2022-07-13 16:00 UTC. The preceding hour, 15:00, has volume EXACTLY 0.000000, open == close == 19772.52, and rv5 == 0. That is a DATA GAP -- no trades recorded in this source for that hour. `features.py` computes har_1h as 0.5*_safe_log(max(rv, EPS)) with EPS=1e-12, so a missing hour becomes -13.8155, i.e. the confident assertion that realized volatility was 1e-6. har_short's positive coefficient on har_1h then forecasts sigma = 0.000290. BTC proceeded to fall 3.1% in the next hour on the June CPI print; realized was 0.03892, a 134x miss, QLIKE 17,989.\nSCOPE: 958 episodes (0.201%) sit at the har_1h floor, 156 at har_6h, 115 at har_1d, none at har_5d or har_22d. Across the hourly bars, 4,258 have rv5 <= 0 and 3,520 of those have volume == 0. Restricted to the modern era (>= SAMPLE_START 2017-08-01) there are only ELEVEN such bars, ten of them zero-volume, spread over 2020, 2022, 2023, 2024 and 2025. Rare, and catastrophic when it lands.",
    "falsifier": "ALREADY EXECUTED, which is why this is not OPEN. The prediction was that the blowup is confined to floored episodes. Verified: the single worst episode sits exactly at the floor, the fold excluding its ten worst episodes scores 0.6000, and only two episodes in that fold's test slice are at the floor. A competing explanation -- broad overfitting of five regressors to one horizon -- predicts a diffuse degradation across many episodes and is RULED OUT by the 72.5%/one-episode concentration.",
+   "verdict": "ADVANCE"
+  },
+  {
+   "id": "M-garchnormal-tails-result",
+   "teacher": "garch_normal",
+   "mechanism": "overforecast-tails",
+   "supersedes": [
+    "M-garchnormal-tails"
+   ],
+   "claim": "The falsifier is answered and the mechanism is REJECTED as information. garch_normal's spike and deep-tail wins at all four horizons were LEVEL BIAS exploiting QLIKE's asymmetry, exactly as the pre-registered falsifier said would count as refutation.",
+   "falsifier": "EXECUTED. Fitting the QLIKE-optimal scalar on CALIB gives garch_normal c = 0.910 / 0.917 / 0.869 / 0.616 at H = 1/6/24/168 -- BELOW 1 at every horizon, confirming it runs hot. Applying it to TEST DESTROYS the tail advantage: spike QLIKE goes 2.236->2.904, 1.323->1.712, 0.919->1.422 and 0.239->1.620. At H=168 its spike score falls from the BEST in the zoo (0.239) to worse than har_short's (0.917). Calm improves in exchange at every horizon (0.517->0.468, 0.373->0.342, 0.296->0.239, 0.554->0.178). The pre-registration said: 'If a constant rescale reproduces most of garch_normal's spike and deep-tail advantage, the mechanism is level bias and there is nothing to transfer beyond a scalar.' It does. There is not.",
+   "verdict": "REJECT"
+  },
+  {
+   "id": "M-noctua-scale-result",
+   "teacher": "noctua_v1",
+   "mechanism": "median-vs-mean-scale",
+   "supersedes": [
+    "M-noctua-calm-spike-split"
+   ],
+   "claim": "CONFIRMED, and it is the largest finding of Phase 2 so far. NOCTUA V1's entire deficit at three of four horizons is a single multiplicative constant. After every arm receives its OWN calib-fitted optimal scalar -- the fair comparison, since the correction is available to all of them -- NOCTUA becomes the BEST arm at H=1, H=6 and H=24.",
+   "falsifier": "EXECUTED, and it confirmed rather than killed the mechanism. c fitted on CALIB ONLY, applied to TEST, closed form c = sqrt(mean(RV^2/sigma^2)).\n  H=1   c=1.198  0.62271 -> 0.54948  (+0.07324, CI [+0.05752,+0.09063])  then BEATS garch_t's rescaled 0.57433 by 4.33%\n  H=6   c=1.212  0.43097 -> 0.34809  (+0.08288, CI [+0.06342,+0.10641])  then BEATS har_short's rescaled 0.35568 by 2.13%\n  H=24  c=1.213  0.32844 -> 0.24789  (+0.08055, CI [+0.05440,+0.11077])  then BEATS har_short's rescaled 0.25529 by 2.90%\n  H=168 c=1.089  0.20569 -> 0.19342  (+0.01227, CI [-0.00507,+0.03276] STRADDLES ZERO)  still loses to har_short's 0.18115\nThe calibration ratio lands at 0.998 / 0.997 / 0.990 / 0.983 -- essentially exactly 1.\nTHE PRE-REGISTERED KILL CONDITION WAS: 'If pooled QLIKE barely moves, or calm degrades by more than spike improves, the deficit is information and E-scale is not the explanation.' Neither happened. At H=6 and H=24 the rescale improves BOTH slices -- calm 0.3022->0.2798 and 0.2412->0.2036, spike 2.876->1.646 and 1.985->1.089 -- so it is not a trade-off at all but a Pareto improvement, which is what a pure under-forecast defect predicts. Only at H=1 does calm give anything back (0.4027->0.4222) against a spike gain of 4.801->2.967.\nAND IT IS NOT A UNIVERSAL FREE LUNCH, which is the check that makes it a model-specific defect rather than an artifact of the transformation. garch_t gains +0.0001 / +0.0011 / +0.0009 at H=1/6/24 -- it is ALREADY optimally scaled. NOCTUA gains 70-80x more.",
    "verdict": "ADVANCE"
   }
  ]
