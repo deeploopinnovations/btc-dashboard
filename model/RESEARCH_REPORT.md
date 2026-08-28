@@ -6,7 +6,8 @@
 The honest headline is that **the shipped model is unchanged by any of this**, and that the phase's two largest results are a measured absence and a boundary.
 
 - **Direction is closed at all four horizons (1h, 6h, 24h, 168h).** 8 of 8 model arms fail their pre-registered rule. The paired per-episode interval excludes zero on the *adverse* side — the arm is worse than the calibration-window base rate — in 5 of 8 rows and straddles zero in 3, at n up to 49,124 per horizon. Both negative controls behave. This is a measured absence, not an underpowered one.
-- **The volatility matrix**, one NOCTUA arm per horizon against the mandatory baseline family: **1h** vs `har_short` — `noctua` fails (-0.13136), `noctua40` fails (-0.08231); **6h** vs `har_short` — `noctua` fails (-0.06579), `noctua40` fails (-0.04770); **24h** vs `har_short` — `noctua` clears (+0.03032), `noctua40` fails (-0.01289); **168h** vs `log_har` — `noctua` not evaluable, `noctua40` clears (+0.14462). 2 row(s) clear the pre-registered interval. These numbers come from the run whose OLS baselines are **horizon-blind** — fitted once per fold on the pooled sample across all four horizons, while NOCTUA sees `cal_H`. That confound is named in the ledger against my own result and is resolved by `vol-matrix-fair`; until that lands, the two rows that clear are **ADVANCE, not ADOPT**.
+- **The volatility matrix**, one NOCTUA arm per horizon against the mandatory baseline family: **1h** vs `persistence` — `noctua` fails (-0.04578), `noctua40` fails (+0.00328); **6h** vs `har_short` — `noctua` fails (-0.03197), `noctua40` fails (-0.01387); **24h** vs `har_short` — `noctua` fails (-0.00705), `noctua40` fails (-0.05026); **168h** vs `har_short` — `noctua` not evaluable, `noctua40` fails (-0.02362). 0 row(s) clear the pre-registered interval. Baselines refitted **per horizon**, so they know the horizon NOCTUA knows. Under the earlier horizon-blind fits NOCTUA cleared at H = 24 and H = 168; neither survives, and at H = 168 the pooled baseline had been costing itself a factor of 2.06.
+- **The production headline survives its own comparison and fails a better one.** Against the arm it is published against it is +4.56% and clears; against `har_short` — a baseline that was already in `noctua/baselines.py` and had never been scored — it is +3.10% and does not. Twice in this phase the strongest available baseline turned out to already exist here and to be missing from the arm list.
 - **An options P&L cannot be produced honestly here and is not produced.** What replaces it is a volatility-targeting overlay whose primary endpoint is risk control rather than return.
 
 Three things found by guards rather than by looking:
@@ -51,69 +52,111 @@ Three things found by guards rather than by looking:
 
 ## Volatility: the four-horizon matrix
 
-Every arm at a given horizon is scored on the **same episodes**, with the same target and the same loss. The baseline to beat is chosen on the **calibration** slice and never on test.
+Every OLS baseline here is refitted **per horizon** and `log_har_cal` is in the arm list. That matters: the first version of this matrix fitted the baselines once on the pooled sample spanning all four horizons, so they carried no horizon term while NOCTUA sees `cal_H`. The `_pooled` arms below are those horizon-blind fits, kept so the size of the confound is a number rather than an argument — at H = 168 the pooled fit costs the baseline a factor of **2.06**.
+
+Under the horizon-blind baselines NOCTUA cleared at H = 24 (+0.03032) and H = 168 (+0.14462). **Neither survives here.** That reversal is the result, and it was pre-registered as the outcome I should be prepared for.
+
+Every arm at a given horizon is scored on the **same episodes**, with the same target and the same loss. The baseline to beat is chosen on the **calibration** slice and never on test; a `_pooled` arm is never eligible to be chosen.
 Bonferroni within this family: 4 rows, so intervals are at 98.75%. Seeds: 3.
 
 ### H = 1h — 49,123 test episodes, folds [2021, 2022, 2023, 2024, 2025, 2026]
-Best baseline by calibration QLIKE: **har_short** har_short 0.5570 · persistence 0.6253 · log_har 0.6364
+Best baseline by calibration QLIKE: **persistence** persistence 0.6253 · log_har_cal 0.8245 · log_har 0.8471 · har_short 1.4016
 
 | arm | QLIKE | vs best | worst fold | spike | calm | paired CI (blocks) | same at n^(1/3)? |
 |---|---:|---:|---:|---:|---:|---|---|
-| `noctua` | 0.67177 | -0.13136 | 0.89095 | 6.1280 | 0.3844 | [-0.16479, -0.08011] (37) | yes |
-| `noctua40` | 0.62271 | -0.08231 | 0.81180 | 5.4345 | 0.3693 | [-0.11174, -0.03157] (37) | yes |
-| `garch_normal` | 0.60326 | -0.06285 | 0.83662 | 2.4328 | 0.5069 | [-0.09297, -0.00948] (37) | — |
-| `garch_t` | 0.57438 | -0.03398 | 0.77850 | 2.9651 | 0.4485 | [-0.06173, +0.01785] (37) | — |
-| `har_short` | 0.54040 | +0.00000 | 0.69487 | 4.0822 | 0.3538 | — (is the baseline) | — |
-| `log_har` | 0.63452 | -0.09411 | 0.81143 | 4.8646 | 0.4117 | [-0.12266, -0.04182] (37) | — |
-| `persistence` | 0.62599 | -0.08559 | 0.85656 | 3.9366 | 0.4516 | [-0.11310, -0.03327] (37) | — |
+| `noctua` | 0.67177 | -0.04578 | 0.89095 | 6.1280 | 0.3844 | [-0.06741, -0.02639] (37) | yes |
+| `noctua40` | 0.62271 | +0.00328 | 0.81180 | 5.4345 | 0.3693 | [-0.01593, +0.02032] (37) | yes |
+| `garch_normal` | 0.60326 | +0.02273 | 0.83662 | 2.4328 | 0.5069 | [+0.00270, +0.04462] (37) | — |
+| `garch_t` | 0.57438 | +0.05161 | 0.77850 | 2.9651 | 0.4485 | [+0.03425, +0.07075] (37) | — |
+| `har_short` | 1.03094 | -0.40495 | 2.83480 | 12.4521 | 0.4293 | [-1.53504, +0.01882] (37) | — |
+| `har_short_pooled` | 0.54040 | +0.08559 | 0.69487 | 4.0822 | 0.3538 | [+0.03327, +0.11310] (37) | — |
+| `log_har` | 0.82435 | -0.19836 | 1.03734 | 7.3522 | 0.4805 | [-0.22635, -0.17356] (37) | — |
+| `log_har_cal` | 0.80615 | -0.18016 | 1.02092 | 7.2275 | 0.4679 | [-0.20768, -0.15612] (37) | — |
+| `log_har_cal_pooled` | 0.66372 | -0.03773 | 0.82924 | 5.6422 | 0.4015 | [-0.06048, -0.01811] (37) | — |
+| `log_har_pooled` | 0.63452 | -0.00853 | 0.81143 | 4.8646 | 0.4117 | [-0.02663, +0.00751] (37) | — |
+| `persistence` | 0.62599 | +0.00000 | 0.85656 | 3.9366 | 0.4516 | — (is the baseline) | — |
 
 Pre-registered verdict: **noctua** DOES NOT CLEAR · **noctua40** DOES NOT CLEAR
 
 ### H = 6h — 49,124 test episodes, folds [2021, 2022, 2023, 2024, 2025, 2026]
-Best baseline by calibration QLIKE: **har_short** har_short 0.3961 · log_har 0.4421 · persistence 0.4611
+Best baseline by calibration QLIKE: **har_short** har_short 0.4376 · persistence 0.4611 · log_har_cal 0.4645 · log_har 0.4852
 
 | arm | QLIKE | vs best | worst fold | spike | calm | paired CI (blocks) | same at n^(1/3)? |
 |---|---:|---:|---:|---:|---:|---|---|
-| `noctua` | 0.44907 | -0.06579 | 0.61072 | 3.4801 | 0.2895 | [-0.08760, -0.04557] (37) | yes |
-| `noctua40` | 0.43097 | -0.04770 | 0.55961 | 3.3921 | 0.2751 | [-0.06581, -0.02952] (37) | yes |
-| `garch_normal` | 0.42058 | -0.03730 | 0.59734 | 1.4500 | 0.3664 | [-0.05972, -0.01061] (37) | — |
-| `garch_t` | 0.41246 | -0.02919 | 0.56003 | 1.7940 | 0.3397 | [-0.04928, -0.00432] (37) | — |
-| `har_short` | 0.38328 | +0.00000 | 0.50414 | 2.6956 | 0.2615 | — (is the baseline) | — |
-| `log_har` | 0.43100 | -0.04772 | 0.55137 | 3.1177 | 0.2895 | [-0.06316, -0.03108] (37) | — |
-| `persistence` | 0.45301 | -0.06973 | 0.64645 | 2.3776 | 0.3517 | [-0.08947, -0.04833] (37) | — |
+| `noctua` | 0.44907 | -0.03197 | 0.61072 | 3.4801 | 0.2895 | [-0.05017, -0.01162] (37) | yes |
+| `noctua40` | 0.43097 | -0.01387 | 0.55961 | 3.3921 | 0.2751 | [-0.02989, +0.00588] (37) | yes |
+| `garch_normal` | 0.42058 | -0.00348 | 0.59734 | 1.4500 | 0.3664 | [-0.03150, +0.03066] (37) | — |
+| `garch_t` | 0.41246 | +0.00463 | 0.56003 | 1.7940 | 0.3397 | [-0.02046, +0.03628] (37) | — |
+| `har_short` | 0.41710 | +0.00000 | 0.55477 | 2.9832 | 0.2820 | — (is the baseline) | — |
+| `har_short_pooled` | 0.38328 | +0.03382 | 0.50414 | 2.6956 | 0.2615 | [+0.02607, +0.04273] (37) | — |
+| `log_har` | 0.46795 | -0.05085 | 0.60586 | 3.4055 | 0.3133 | [-0.06828, -0.03048] (37) | — |
+| `log_har_cal` | 0.44971 | -0.03261 | 0.58993 | 3.3182 | 0.2987 | [-0.04968, -0.01216] (37) | — |
+| `log_har_cal_pooled` | 0.45871 | -0.04161 | 0.56916 | 3.5879 | 0.2940 | [-0.06086, -0.01965] (37) | — |
+| `log_har_pooled` | 0.43100 | -0.01390 | 0.55137 | 3.1177 | 0.2895 | [-0.02935, +0.00620] (37) | — |
+| `persistence` | 0.45301 | -0.03591 | 0.64645 | 2.3776 | 0.3517 | [-0.05468, -0.01288] (37) | — |
 
 Pre-registered verdict: **noctua** DOES NOT CLEAR · **noctua40** DOES NOT CLEAR
 
 ### H = 24h — 49,106 test episodes, folds [2021, 2022, 2023, 2024, 2025, 2026]
-Best baseline by calibration QLIKE: **har_short** har_short 0.3402 · log_har 0.3749 · persistence 0.4885
+Best baseline by calibration QLIKE: **har_short** har_short 0.3016 · log_har_cal 0.3148 · log_har 0.3338 · persistence 0.4885
 
 | arm | QLIKE | vs best | worst fold | spike | calm | paired CI (blocks) | same at n^(1/3)? |
 |---|---:|---:|---:|---:|---:|---|---|
-| `noctua` | 0.28523 | +0.03032 | 0.41651 | 1.9655 | 0.1967 | [+0.01677, +0.04250] (48) | yes |
-| `noctua40` | 0.32844 | -0.01289 | 0.41870 | 2.4113 | 0.2187 | [-0.02695, -0.00045] (48) | yes |
-| `garch_normal` | 0.32684 | -0.01129 | 0.45164 | 0.8884 | 0.2973 | [-0.04506, +0.02757] (48) | — |
-| `garch_t` | 0.30417 | +0.01138 | 0.38892 | 1.1555 | 0.2593 | [-0.01493, +0.04204] (48) | — |
-| `har_short` | 0.31555 | +0.00000 | 0.40267 | 2.0454 | 0.2244 | — (is the baseline) | — |
-| `log_har` | 0.34416 | -0.02861 | 0.42505 | 2.4065 | 0.2355 | [-0.04127, -0.01676] (48) | — |
-| `persistence` | 0.45511 | -0.13956 | 0.70438 | 2.1043 | 0.3682 | [-0.19452, -0.09925] (48) | — |
+| `noctua` | 0.28523 | -0.00705 | 0.41651 | 1.9655 | 0.1967 | [-0.02288, +0.00472] (48) | yes |
+| `noctua40` | 0.32844 | -0.05026 | 0.41870 | 2.4113 | 0.2187 | [-0.06937, -0.03445] (48) | yes |
+| `garch_normal` | 0.32684 | -0.04866 | 0.45164 | 0.8884 | 0.2973 | [-0.07682, -0.01687] (48) | — |
+| `garch_t` | 0.30417 | -0.02598 | 0.38892 | 1.1555 | 0.2593 | [-0.04686, -0.00120] (48) | — |
+| `har_short` | 0.27818 | +0.00000 | 0.36465 | 1.8184 | 0.1971 | — (is the baseline) | — |
+| `har_short_pooled` | 0.31555 | -0.03737 | 0.40267 | 2.0454 | 0.2244 | [-0.04620, -0.02962] (48) | — |
+| `log_har` | 0.30630 | -0.02812 | 0.39094 | 2.1030 | 0.2117 | [-0.03761, -0.01993] (48) | — |
+| `log_har_cal` | 0.28795 | -0.00977 | 0.37440 | 2.0274 | 0.1963 | [-0.01820, -0.00190] (48) | — |
+| `log_har_cal_pooled` | 0.35523 | -0.07704 | 0.43322 | 2.5958 | 0.2372 | [-0.09817, -0.05899] (48) | — |
+| `log_har_pooled` | 0.34416 | -0.06598 | 0.42505 | 2.4065 | 0.2355 | [-0.08363, -0.05114] (48) | — |
+| `persistence` | 0.45511 | -0.17693 | 0.70438 | 2.1043 | 0.3682 | [-0.23689, -0.13309] (48) | — |
 
-Pre-registered verdict: **noctua** CLEARS · **noctua40** DOES NOT CLEAR
+Pre-registered verdict: **noctua** DOES NOT CLEAR · **noctua40** DOES NOT CLEAR
 
 ### H = 168h — 48,962 test episodes, folds [2021, 2022, 2023, 2024, 2025, 2026]
-Best baseline by calibration QLIKE: **log_har** log_har 0.3707 · har_short 0.3880 · persistence 0.6509
+Best baseline by calibration QLIKE: **har_short** har_short 0.1717 · log_har 0.1743 · log_har_cal 0.1743 · persistence 0.6509
 
 | arm | QLIKE | vs best | worst fold | spike | calm | paired CI (blocks) | same at n^(1/3)? |
 |---|---:|---:|---:|---:|---:|---|---|
-| `noctua40` | 0.20569 | +0.14462 | 0.27789 | 1.0790 | 0.1597 | [+0.10042, +0.19624] (336) | yes |
-| `garch_normal` | 0.53821 | -0.18790 | 0.75314 | 0.1917 | 0.5565 | [-0.31046, -0.05269] (336) | — |
-| `garch_t` | 0.44349 | -0.09319 | 0.71676 | 0.2723 | 0.4525 | [-0.20612, +0.03314] (336) | — |
-| `har_short` | 0.37558 | -0.02528 | 0.52044 | 1.6917 | 0.3063 | [-0.03961, -0.01390] (336) | — |
-| `log_har` | 0.35031 | +0.00000 | 0.45038 | 1.7401 | 0.2771 | — (is the baseline) | — |
-| `persistence` | 0.61859 | -0.26828 | 1.17738 | 1.6351 | 0.5651 | [-0.41349, -0.16972] (336) | — |
+| `noctua40` | 0.20569 | -0.02362 | 0.27789 | 1.0790 | 0.1597 | [-0.04914, -0.00588] (336) | yes |
+| `garch_normal` | 0.53821 | -0.35613 | 0.75314 | 0.1917 | 0.5565 | [-0.43810, -0.27297] (336) | — |
+| `garch_t` | 0.44349 | -0.26142 | 0.71676 | 0.2723 | 0.4525 | [-0.33223, -0.18877] (336) | — |
+| `har_short` | 0.18207 | +0.00000 | 0.25494 | 0.9821 | 0.1400 | — (is the baseline) | — |
+| `har_short_pooled` | 0.37558 | -0.19351 | 0.52044 | 1.6917 | 0.3063 | [-0.27586, -0.13106] (336) | — |
+| `log_har` | 0.18435 | -0.00228 | 0.25576 | 1.0132 | 0.1407 | [-0.00479, +0.00027] (336) | — |
+| `log_har_cal` | 0.18435 | -0.00228 | 0.25576 | 1.0132 | 0.1407 | [-0.00479, +0.00027] (336) | — |
+| `log_har_cal_pooled` | 0.23553 | -0.05346 | 0.32545 | 1.0125 | 0.1946 | [-0.09102, -0.02738] (336) | — |
+| `log_har_pooled` | 0.35031 | -0.16823 | 0.45038 | 1.7401 | 0.2771 | [-0.24152, -0.11005] (336) | — |
+| `persistence` | 0.61859 | -0.43651 | 1.17738 | 1.6351 | 0.5651 | [-0.64182, -0.29545] (336) | — |
 
-Pre-registered verdict: **noctua** NOT EVALUABLE · **noctua40** CLEARS
+Pre-registered verdict: **noctua** NOT EVALUABLE · **noctua40** DOES NOT CLEAR
 
 The fold-level spread is carried in the artifact as `per_fold` and is **not** the primary. `vol-matrix-power` measured its minimum detectable effect at 5.21% / 11.76% / 31.68% / 65.48% of the persistence baseline at H = 1 / 6 / 24 / 168, against a 4.98% reference effect — one row marginal, three not powered. That was measured *before* the matrix was built, which is the only time the measurement is worth anything.
+
+## Volatility: the production slice, against the best baseline
+
+The production configuration is H = 19 anchored at 17:00 UTC. This table asks whether the published advantage survives the **strongest baseline this repository already contains**, with the bar chosen on the calibration slice and never on test.
+
+2,046 test episodes over 6 folds. Bonferroni at family size 5 → 99% intervals, blocks of 38. Best baseline by calibration QLIKE: **har_short** · har_short 0.3163 · log_har_cal 0.3251 · log_har 0.3436 · persistence 0.4574
+
+| arm | QLIKE | vs best | rel % | worst fold | paired CI |
+|---|---:|---:|---:|---:|---|
+| `noctua` | 0.29702 | +0.00951 | +3.10 | 0.43404 | [-0.00897, +0.02448] |
+| `har_short` | 0.30654 | +0.00000 | +0.00 | 0.42764 | — (is the baseline) |
+| `log_har` | 0.32015 | -0.01361 | -4.44 | 0.41551 | [-0.03238, +0.00250] |
+| `log_har_cal` | 0.30442 | +0.00212 | +0.69 | 0.40223 | [-0.01640, +0.01867] |
+| `log_har_cal_pooled` | 0.31122 | -0.00469 | -1.53 | 0.41862 | [-0.02359, +0.01152] |
+| `log_har_pooled` | 0.33774 | -0.03120 | -10.18 | 0.44558 | [-0.05184, -0.01428] |
+| `persistence` | 0.43547 | -0.12893 | -42.06 | 0.69888 | [-0.18843, -0.08505] |
+
+**The incumbent claim is confirmed.** Against `log_har_cal_pooled` — the arm the published headline is actually measured against — NOCTUA is +0.01420 (+4.56%), CI [+0.00300, +0.02339], which clears.
+
+**The primary fails anyway, for a different reason.** Against `har_short` — which extends Corsi's cascade downward with `har_1h` and `har_6h`, has been in `noctua/baselines.py` throughout, and had never been scored as a competitor — NOCTUA is +3.10% and **DOES NOT CLEAR**. The unadjusted 95% interval [-0.00436, +0.02114] straddles zero too, so this is not a multiple-testing artifact.
+
+NOCTUA still posts the best pooled QLIKE of any arm here. It is simply not *significantly* better than the best baseline at this sample size.
 
 ## Direction as a probability forecast
 

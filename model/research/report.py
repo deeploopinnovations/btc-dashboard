@@ -50,13 +50,33 @@ def missing(name: str, what: str) -> str:
 
 # --------------------------------------------------------------------------
 def sec_volatility() -> str:
-    d = load("vol_matrix.json")
+    # The FAIR run governs wherever it exists. The first matrix's OLS baselines
+    # were horizon-blind -- fitted once on the pooled sample across all four
+    # horizons while NOCTUA sees cal_H -- and reporting it as the result would
+    # be reporting a comparison the ledger has already rejected.
+    d = load("vol_matrix_fair.json") or load("vol_matrix.json")
+    old = load("vol_matrix.json") if load("vol_matrix_fair.json") else None
     if d is None:
         return missing("vol_matrix.json", "The four-horizon volatility matrix")
-    out = [
-        "Every arm at a given horizon is scored on the **same episodes**, with "
+    out = []
+    if d.get("fair_baselines"):
+        out.append(
+            "Every OLS baseline here is refitted **per horizon** and `log_har_cal` "
+            "is in the arm list. That matters: the first version of this matrix "
+            "fitted the baselines once on the pooled sample spanning all four "
+            "horizons, so they carried no horizon term while NOCTUA sees `cal_H`. "
+            "The `_pooled` arms below are those horizon-blind fits, kept so the "
+            "size of the confound is a number rather than an argument — at "
+            "H = 168 the pooled fit costs the baseline a factor of **2.06**.\n\n"
+            "Under the horizon-blind baselines NOCTUA cleared at H = 24 (+0.03032) "
+            "and H = 168 (+0.14462). **Neither survives here.** That reversal is "
+            "the result, and it was pre-registered as the outcome I should be "
+            "prepared for.\n")
+    out += [
+        "\nEvery arm at a given horizon is scored on the **same episodes**, with "
         "the same target and the same loss. The baseline to beat is chosen on "
-        "the **calibration** slice and never on test.\n",
+        "the **calibration** slice and never on test; a `_pooled` arm is never "
+        "eligible to be chosen.\n",
         f"Bonferroni within this family: {d['family_size']} rows, so intervals "
         f"are at {100*(1-d['alpha']):.2f}%. Seeds: {d['seeds']}.\n",
     ]
@@ -95,6 +115,51 @@ def sec_volatility() -> str:
         "at H = 1 / 6 / 24 / 168, against a 4.98% reference effect — one row "
         "marginal, three not powered. That was measured *before* the matrix was "
         "built, which is the only time the measurement is worth anything.\n")
+    return "".join(out)
+
+
+def sec_production() -> str:
+    d = load("prod_fairbaseline.json")
+    if d is None:
+        return missing("prod_fairbaseline.json",
+                       "The production-slice baseline audit")
+    out = [
+        "The production configuration is H = 19 anchored at 17:00 UTC. This "
+        "table asks whether the published advantage survives the **strongest "
+        "baseline this repository already contains**, with the bar chosen on "
+        "the calibration slice and never on test.\n",
+        f"\n{d['n_test']:,} test episodes over {len(d['years'])} folds. "
+        f"Bonferroni at family size {d['family_size']} → "
+        f"{100*(1-d['alpha']):.0f}% intervals, blocks of {d['block_len']}. "
+        f"Best baseline by calibration QLIKE: **{d['best_baseline']}** · "
+        + " · ".join(f"{k} {v:.4f}" for k, v in
+                     sorted(d["calib_qlike"].items(), key=lambda kv: kv[1]))
+        + "\n",
+        "\n| arm | QLIKE | vs best | rel % | worst fold | paired CI |\n"
+        "|---|---:|---:|---:|---:|---|\n",
+    ]
+    for k, v in d["arms"].items():
+        ci = v.get("paired_ci")
+        cis = "— (is the baseline)" if ci is None else \
+            f"[{ci[0]:+.5f}, {ci[1]:+.5f}]"
+        out.append(f"| `{k}` | {v['qlike']:.5f} | {v['delta_vs_best']:+.5f} | "
+                   f"{v['rel_pct_vs_best']:+.2f} | {v['worst_fold']:.5f} | {cis} |\n")
+    ic = d["incumbent_claim"]
+    out.append(
+        f"\n**The incumbent claim is confirmed.** Against `log_har_cal_pooled` — "
+        f"the arm the published headline is actually measured against — NOCTUA is "
+        f"{ic['delta']:+.5f} ({ic['rel_pct']:+.2f}%), CI [{ic['ci'][0]:+.5f}, "
+        f"{ic['ci'][1]:+.5f}], which clears.\n\n"
+        f"**The primary fails anyway, for a different reason.** Against "
+        f"`{d['best_baseline']}` — which extends Corsi's cascade downward with "
+        f"`har_1h` and `har_6h`, has been in `noctua/baselines.py` throughout, and "
+        f"had never been scored as a competitor — NOCTUA is "
+        f"{d['arms']['noctua']['rel_pct_vs_best']:+.2f}% and **{d['verdict']}**. "
+        f"The unadjusted 95% interval "
+        f"[{d['unadjusted_ci95'][0]:+.5f}, {d['unadjusted_ci95'][1]:+.5f}] straddles "
+        f"zero too, so this is not a multiple-testing artifact.\n\n"
+        f"NOCTUA still posts the best pooled QLIKE of any arm here. It is simply not "
+        f"*significantly* better than the best baseline at this sample size.\n")
     return "".join(out)
 
 
@@ -320,6 +385,8 @@ def build() -> str:
         exec_summary(),
         "\n## Assumptions this rests on\n\n", ASSUMPTIONS, "\n",
         "\n## Volatility: the four-horizon matrix\n\n", sec_volatility(),
+        "\n## Volatility: the production slice, against the best baseline\n\n",
+        sec_production(),
         "\n## Direction as a probability forecast\n\n", sec_direction(),
         "\n## Economic validation, and its boundary\n\n", sec_economics(),
         "\n## How a hypothesis becomes a result here\n\n", FLOWCHART, "\n",
@@ -378,7 +445,7 @@ def _direction_bullet() -> str:
 
 
 def _volatility_bullet() -> str:
-    d = load("vol_matrix.json")
+    d = load("vol_matrix_fair.json") or load("vol_matrix.json")
     if d is None:
         return ("- **Volatility**: `vol_matrix.json` is not present, so no claim "
                 "is made here.\n")
@@ -401,17 +468,37 @@ def _volatility_bullet() -> str:
                             f"({r['arms'][k]['delta_vs_best']:+.5f})")
         rows.append(f"**{H}h** vs `{r['best_baseline']}` — " + ", ".join(bits))
     fair = d.get("fair_baselines")
-    caveat = ("" if fair else
-              " These numbers come from the run whose OLS baselines are "
-              "**horizon-blind** — fitted once per fold on the pooled sample "
-              "across all four horizons, while NOCTUA sees `cal_H`. That "
-              "confound is named in the ledger against my own result and is "
-              "resolved by `vol-matrix-fair`; until that lands, the two rows "
-              "that clear are **ADVANCE, not ADOPT**.")
+    caveat = (
+        " Baselines refitted **per horizon**, so they know the horizon NOCTUA "
+        "knows. Under the earlier horizon-blind fits NOCTUA cleared at H = 24 "
+        "and H = 168; neither survives, and at H = 168 the pooled baseline had "
+        "been costing itself a factor of 2.06."
+        if fair else
+        " These numbers come from the run whose OLS baselines are "
+        "**horizon-blind** — fitted once per fold on the pooled sample across "
+        "all four horizons, while NOCTUA sees `cal_H`. That confound is named "
+        "in the ledger against my own result and is resolved by "
+        "`vol-matrix-fair`; until that lands, any row that clears is "
+        "**ADVANCE, not ADOPT**.")
     return ("- **The volatility matrix**, one NOCTUA arm per horizon against "
             "the mandatory baseline family: " + "; ".join(rows)
             + f". {clears} row(s) clear the pre-registered interval." + caveat
             + "\n")
+
+
+def _production_bullet() -> str:
+    d = load("prod_fairbaseline.json")
+    if d is None:
+        return ""
+    ic = d["incumbent_claim"]
+    n = d["arms"]["noctua"]
+    return (f"- **The production headline survives its own comparison and fails a "
+            f"better one.** Against the arm it is published against it is "
+            f"{ic['rel_pct']:+.2f}% and clears; against `{d['best_baseline']}` — a "
+            f"baseline that was already in `noctua/baselines.py` and had never been "
+            f"scored — it is {n['rel_pct_vs_best']:+.2f}% and does not. Twice in this "
+            f"phase the strongest available baseline turned out to already exist here "
+            f"and to be missing from the arm list.\n")
 
 
 def exec_summary() -> str:
@@ -421,6 +508,7 @@ def exec_summary() -> str:
         "and a boundary.\n\n"
         + _direction_bullet()
         + _volatility_bullet()
+        + _production_bullet()
         + "- **An options P&L cannot be produced honestly here and is not "
           "produced.** What replaces it is a volatility-targeting overlay whose "
           "primary endpoint is risk control rather than return.\n"
