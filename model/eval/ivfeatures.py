@@ -394,6 +394,7 @@ def _corrupt_dvol(dvol: pd.DataFrame, cut_ts: int, style: str,
 
 
 def leakage_check(ep: pd.DataFrame, X: pd.DataFrame, dvol: pd.DataFrame,
+                  lag_hours: int = DEFAULT_LAG_HOURS,
                   cut_fracs=(0.1, 0.3, 0.5, 0.7, 0.9), n_probe_per_cut=300,
                   seed: int = 0) -> dict:
     """Corrupt DVOL at and after a cut timestamp; assert every real feature
@@ -406,7 +407,7 @@ def leakage_check(ep: pd.DataFrame, X: pd.DataFrame, dvol: pd.DataFrame,
     dv_sorted = dvol.sort_values("ts").reset_index(drop=True)
     ts_arr = dv_sorted["ts"].to_numpy(np.int64)
 
-    base = build_iv_features(ep, X, dvol)
+    base = build_iv_features(ep, X, dvol, lag_hours)
     decoy_base = _decoy_iv_feature(ep, dvol)
     anchor_ts = ep["anchor_ts"].to_numpy(np.int64)
     ha = anchor_ts - HOUR
@@ -437,7 +438,7 @@ def leakage_check(ep: pd.DataFrame, X: pd.DataFrame, dvol: pd.DataFrame,
 
         for style in ("scale_2_5x", "nan_inject"):
             corrupt = _corrupt_dvol(dvol, cut_ts, style, rng)
-            after = build_iv_features(ep, X, corrupt)
+            after = build_iv_features(ep, X, corrupt, lag_hours)
             decoy_after = _decoy_iv_feature(ep, corrupt)
 
             a = base.loc[probe, cols].to_numpy(np.float64)
@@ -581,7 +582,7 @@ def main(argv=None) -> int:
     print("\n" + "-" * 78)
     print("2. BUILDING FEATURES")
     print("-" * 78)
-    iv = build_iv_features(ep, X, dvol)
+    iv = build_iv_features(ep, X, dvol, a.lag_hours)
     for c in IV_FEATURE_COLS:
         v = iv[c].to_numpy(np.float64)
         ok = np.isfinite(v)
@@ -635,7 +636,7 @@ def main(argv=None) -> int:
     print("\n" + "-" * 78)
     print("4. LEAKAGE CHECK (corrupt-and-diff, modelled on eval.leakage's design)")
     print("-" * 78)
-    leak = leakage_check(ep, X, dvol)
+    leak = leakage_check(ep, X, dvol, a.lag_hours)
     ctrl = leak["positive_control"]
     print(f"  positive control (decoy reads anchor hour a, not a-1): "
           f"boundary episode available in "
