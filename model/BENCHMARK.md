@@ -3855,4 +3855,138 @@ rows per day. A shorter rotation retains *more* residual autocorrelation, making
 the placebo harder to beat, so the bug works against the result rather than for
 it. The claim is still wrong and is corrected here.
 
+---
+
+## 30. A guard written for one file broke a finished benchmark in another
+
+### What happened, in order
+
+`eval/vol_matrix.py` needed a feature matrix for `episodes_h4.parquet`, whose
+horizons are {1, 6, 24, 168}. `features.parquet` is aligned to
+`episodes.parquet`, whose horizons are {6, 12, 19, 24}, so the columns had to
+come from somewhere. The obvious route is a per-anchor join: most feature
+columns are functions of the anchor alone, so join on `anchor_ts` and recompute
+the few that are not.
+
+The question is *which* few. `eval/direction_bench.py` had already answered it,
+in a comment:
+
+> Only `cal_H` varies with H at a fixed anchor (verified); every other column
+> is a function of the anchor alone.
+
+`vol_matrix` was written to **check** that rather than inherit it —
+`_verify_per_anchor` groups the shipped feature table by anchor and asks which
+columns have nonzero spread. On its first run it refused:
+
+    REFUSING: these feature columns vary with H at a fixed anchor and
+    cannot be joined per anchor: ['seas_1d', 'seas_22d', 'seas_5d']
+
+It was right, and the comment was wrong. `seas_{d}d` is the realized volatility
+of `[a − 24d, a − 24d + H)` — the same clock window on a prior day, whose
+**length is the horizon**. `cal_weekend_frac` is the weekend share of the
+forward window and depends on H too; that one had been noticed, the three
+seasonal columns had not. **Five columns depend on the horizon, not one.**
+
+### What it did to the direction benchmark
+
+`direction_bench.py` joined per anchor with `keep="first"`, and the first row
+for each anchor in `episodes.parquet` is `H = 6`. So every horizon was handed
+the calendar and seasonal block computed for a six-hour forward window.
+
+Two things must be said precisely, because they are different:
+
+**It is not a leak.** All four columns are functions of the anchor and of hours
+strictly before it. `seas_1d` at H=6 reads `[a−24, a−18)`; nothing after the
+anchor enters. No future information reached the model, and the leakage audit
+was not wrong to pass.
+
+**It is a misspecification, and it degraded the arms.** At H = 168 the model
+was told about a six-hour seasonal window while being asked about a one-week
+one. A weakened arm failing is not evidence that a correct arm would have
+failed, so the NULL was **re-run from corrected features rather than
+defended**. That cost about twenty minutes. The alternative was a permanent
+asterisk on the only completed direction result this project has.
+
+### The structural consequence, which is not a bug
+
+At H = 168, `seas_1d` and `seas_5d` do not merely differ — they **do not
+exist**. The window `[a − 24d, a − 24d + H)` runs past the anchor once
+H > 24d, and a feature that would have to read the future is correctly
+returned as NaN.
+
+    complete feature rows, by horizon
+    H       42 columns     40 columns
+    1         118,937        118,937
+    6         119,157        119,157
+    24        119,164        119,164
+    168             0        119,104
+
+So the volatility matrix carries **two** NOCTUA arms: the full 42-column set
+wherever it is defined, and a 40-column variant that spans all four horizons.
+At H ≤ 24 they are scored on identical episodes, which makes their difference
+a free ablation of exactly the two dropped columns rather than a difference of
+sample.
+
+### How the corrected table is built, and how it proves itself
+
+Not by transcription. `noctua.features.build_features` is called directly on
+the h4 episodes, so the columns are computed at each episode's own horizon by
+the same code training and serving use. A second guard cross-checks the result
+against `features.parquet` at H = 6, the one horizon the two tables share:
+
+    H=6 cross-check on 127,080 episodes: max |diff| 0.000e+00,
+    NaN-pattern mismatches 0
+
+Exact, not approximately equal.
+
+### The lessons, all five of which are now rules
+
+- **R34** — a comment that says "(verified)" is not a verification. The word had
+  been written by someone who believed it, which is exactly the state the word
+  exists to rule out.
+- **R35** — a feature whose definition contains the horizon must be computed at
+  the horizon.
+- **R36** — build the derived table with the function that ships, not with a
+  copy of its arithmetic.
+- **R37** — point the new guard at the code you already trust. `_verify_
+  per_anchor` was written for a file with no results yet, and what it caught
+  was an assumption underneath a *finished* benchmark.
+- **R38** — a null produced with degraded inputs is not a null.
+
+### A second correction found the same way
+
+`mean_ci` blocks the bootstrap at `round(n^(1/3))`. That is a rule of thumb
+about **sample size** and knows nothing about the dependence it exists to
+absorb. This table is anchored hourly with an H-hour forward window, so two
+consecutive episodes share H−1 of their H hours and the dependence range is H
+however large n gets. At H = 168 with n ≈ 49,000 the default gives **37 — about
+a fifth of the overlap**, and the interval would have been treating four fifths
+of a shared window as independent evidence.
+
+`mean_ci` grows a `block_len` parameter (default unchanged, so no existing
+number moves) and the matrix blocks at 2H, floored at the `n^(1/3)` value so it
+can never be *shorter* than the default. The narrower interval is reported
+beside the primary for the NOCTUA arms, and a disagreement in verdict is
+printed rather than resolved silently, with the longer block governing.
+
+The amendment is recorded in the pre-registration along with the one row that
+had been seen when it was made — an H = 24 smoke run that was **already a
+failure at the narrower setting**. Widening every interval can only make a row
+harder to pass, which is what makes the timing defensible rather than merely
+disclosed.
+
+### And a third, in the research record itself
+
+`ledger.add()` validates required keys, the verdict vocabulary and id
+uniqueness. But entries have also been appended by scripts writing
+`ledger.json` directly, and those checks never ran on them. Two entries had no
+`topic`, and nothing noticed until a reader crashed on the missing key.
+`ledger --validate` checks the **file** instead of the write path, and found
+two more problems on its first run: a `supersedes` pointing at an id that has
+never existed (it referred to a BENCHMARK.md *section*), and a one-sided
+supersede link that made `--corrections` and `--open` disagree about what was
+settled. Both are corrected in place, with a note in each entry saying what
+changed and why, and both checks now gate in CI alongside the pitfalls
+self-test.
+
 *Educational research only. Not financial advice.*
