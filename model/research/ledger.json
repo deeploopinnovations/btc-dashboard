@@ -667,7 +667,24 @@
       "verdict": "OPEN",
       "result": "HORIZONS: episodes.build_episodes already takes a --horizons argument, DEFAULT_HORIZONS = (6, 12, 19, 24). The requested 1h and 1w (168h) are not built but are buildable through the SAME code path, which satisfies RULES R18. Current counts: H=6 127,080; H=12 127,666; H=19 127,853; H=24 127,897, over all 24 anchor hours. LABELS ARE ALREADY SEPARATE, verified from source: R = log(s_T) - log(s_tau), the TERMINAL log return, where s_tau is the previous hour's close and s_T is the close of hour a+H-1. M_up / M_dn are the running EXCURSION extrema. The pathwise identities M_up >= max(0,R) and M_dn <= min(0,R) hold with zero violations. THEY ARE NOT INTERCHANGEABLE AND THE GAP IS LARGE: at a 2% barrier, P(touch) vs P(close beyond) is 0.1720/0.0890 at H=6, 0.2790/0.1462 at H=12, 0.3652/0.1955 at H=19, 0.4106/0.2229 at H=24 -- a ratio near 1.9x at every horizon.",
       "implication": "THE DIRECTION BASE RATE IS NOT 0.5. P(R>0) is 0.5177 at H=6, 0.5237 at H=12, 0.5281 at H=19 and 0.5328 at H=24, rising with horizon as BTC's upward drift accumulates. Any direction model must beat THAT number, not 0.5 -- an 'accuracy 53%' claim at H=24 is exactly the base rate and is worth nothing. This also means a constant-probability forecast at the rolling base rate is a genuine baseline with real skill against a 0.5 reference, and it must be in the comparison set. For volatility, mean RV rises 0.01922 -> 0.02794 -> 0.03579 -> 0.04056 across the four horizons, so QLIKE is not comparable across horizons and each needs its own baseline table.",
-      "lesson": "The 'do not mix closes-higher with barrier-touched' instruction was already satisfied structurally in the episode builder, but nobody had quantified how different the two events are. At a 1.9x ratio, a model evaluated on the wrong one would look catastrophically miscalibrated for a reason that has nothing to do with its skill."
+      "lesson": "The 'do not mix closes-higher with barrier-touched' instruction was already satisfied structurally in the episode builder, but nobody had quantified how different the two events are. At a 1.9x ratio, a model evaluated on the wrong one would look catastrophically miscalibrated for a reason that has nothing to do with its skill.",
+      "superseded_by": [
+        "horizons-built"
+      ]
+    },
+    {
+      "id": "horizons-built",
+      "topic": "methodology",
+      "date": "2026-08-28",
+      "supersedes": [
+        "horizon-label-spec"
+      ],
+      "question": "Are the four protocol horizons (1h/6h/1d/1w) buildable, and what do their targets look like?",
+      "rule": "Build through the SAME code path (RULES R18) and PROVE it by reproducing the overlapping horizons from the frozen artifact exactly (R19). Write to a separate file -- episodes.parquet is frozen and everything depends on it.",
+      "verdict": "ADOPT",
+      "result": "Built model/artifacts/episodes_h4.parquet: 506,613 episodes at H = 1, 6, 24, 168 from the existing 128,031-row hourly table, in 1 second. REPRODUCTION PROOF: H=6 and H=24 match the frozen episodes.parquet with max |diff| = 0.000e+00 across R, M_up, M_dn, RV and s_tau, at identical row counts (127,080 and 127,897). The new H=1 and H=168 therefore came from the same code path. Counts: H=1 123,773; H=6 127,080; H=24 127,897; H=168 127,863.",
+      "implication": "BASE RATES RISE MONOTONICALLY WITH HORIZON: P(R>0) = 0.5089 / 0.5177 / 0.5328 / 0.5506 at 1h / 6h / 1d / 1w. At one week the base rate is 55.06%, so a direction model there must clear 55% before it has demonstrated anything at all. TOUCH AND CLOSE DIVERGE AT EVERY HORIZON, ratio 1.89 / 1.93 / 1.84 / 1.78 at a 2% barrier. At 1w, P(touch 2%) = 0.7571 against P(close beyond 2%) = 0.4243. MEAN RV SPANS 16x, 0.00726 at 1h to 0.11469 at 1w, so QLIKE is not comparable across horizons and each needs its own baseline table. EMBARGO: time_splits derives embargo_hours from max(H), so including H=168 raises it to 168h automatically -- horizon-appropriate rather than fixed. Cost is modest: train 189,110 / calib 51,644 / test 73,726.",
+      "lesson": "THE 1w HORIZON IS FAR LESS INFORMATIVE THAN ITS ROW COUNT SUGGESTS. Consecutive hourly anchors share 167 of their 168 hours, so effective independent weekly episodes are about 52 per year, not 8,760. Any 1w experiment must state its MDE against ~52 independent observations per year, not the nominal count -- this is E-power's finding in a sharper form, and it applies before any 1w experiment is designed."
     }
   ]
 }
