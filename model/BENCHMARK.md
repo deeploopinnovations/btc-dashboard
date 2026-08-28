@@ -3681,3 +3681,77 @@ on different days. The three-arm comparison rests on that, and it is now
 verified rather than assumed.
 
 *Educational research only. Not financial advice.*
+
+## 28. E2-confirm on the wide slice: CONFIRMED CANDIDATE, and the effect is half what production said
+
+§27 withheld adoption because deep-tail MCB came back inconclusive on the
+production slice, and a commitment recorded before that run (commit `80533fe`)
+said inconclusive is not a pass. This is the run that commitment forced. **The
+rule was not changed after seeing the production result.**
+
+40,351 episodes matched exactly across all three arms, 5 folds, 24 anchor hours.
+
+| quantity | production | all 24 hours |
+|---|---|---|
+| pooled QLIKE | −0.03263 [−0.04356, −0.01402] | **−0.01734 [−0.02986, −0.00967]** |
+| spike QLIKE | −0.33274 [−0.58775, −0.09013] | −0.08388 [−0.17731, −0.03128] |
+| calm QLIKE | −0.01744 [−0.02955, −0.00766] | −0.01408 [−0.02376, −0.00715] |
+| **deep-tail MCB** | **+0.00056 [−0.00010, +0.00255]** | **−0.00069 [−0.00183, +0.00183]** |
+| coverage error | −0.00083 [−0.00411, +0.00300] | +0.00038 [−0.00160, +0.00199] |
+| placebo margin | −0.03493 [−0.04451, −0.01558] | −0.01919 [−0.03359, −0.00883] |
+
+    PRIMARY pooled QLIKE CI clears zero favourably   : True
+    GUARD   deep-tail barrier MCB not worse          : True
+    GUARD   spike QLIKE not worse                    : True
+    GUARD   calm QLIKE within 1% (-5.46%)            : True
+    GUARD   beats the placebo                        : True
+    GUARD   conditional coverage error not worse     : True
+
+**The MCB guard passes, and it passes better than "not worse".** The point
+estimate flipped from +0.00056 (unfavourable) to −0.00069 (favourable), with
+3 of 5 folds better. That is exactly what §26 predicted would happen when the
+quantity with the largest slice-sensitivity — MCB gains 2.98× from widening,
+the most of the four — was finally given the resolution to answer.
+
+### The finding that must not be buried
+
+**The effect is roughly half the size on the wide slice.**
+
+| | production | all 24 hours |
+|---|---|---|
+| pooled, relative | **−11.61 %** | **−6.18 %** |
+| spike, absolute | −0.33274 | −0.08388 |
+| episodes scored | 1,681 | 40,351 |
+
+Both remain 5 of 5 folds with intervals excluding zero, so the effect is real on
+both slices. But the production-slice estimate of the benefit is **optimistic**,
+and on spike episodes it is optimistic by a factor of four.
+
+The same two readings §26 left open apply here and this data does not separate
+them: either the 17:00 anchor genuinely carries a larger effect than other
+hours, or the production estimate is inflated by its smaller sample. **For any
+forward-looking claim, the wide-slice number is the conservative one and is the
+one that gets quoted.**
+
+Had adoption gone ahead on §27's production result, the shipped claim would have
+been roughly twice the truth. The pre-commitment that withheld it did not just
+prevent a premature adoption — it corrected the headline.
+
+### Status: CONFIRMED CANDIDATE. The shipped model is unchanged.
+
+Clearing a pre-registered rule earns candidate status and nothing more. Before
+any GO decision this still needs:
+
+1. **Independent audit** — implementation and algebra, statistics, timestamps
+   and leakage, and result reduction, run adversarially rather than
+   confirmatorily.
+2. **A genuinely untouched holdout**, which does not currently exist. Every
+   period in this repository has influenced training, calibration, feature
+   selection, debugging or a go/no-go decision at some point.
+3. **Multiple-testing correction across the whole family**, not just the four
+   IV tests. Failed experiments stay in the family.
+4. **Regime and seed stability**, reported worst-fold as well as average.
+5. **An honest economic assessment**, or a clear statement that one cannot be
+   made and a forward paper-trading test instead.
+
+*Educational research only. Not financial advice.*
