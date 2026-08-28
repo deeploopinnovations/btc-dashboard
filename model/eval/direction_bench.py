@@ -168,10 +168,14 @@ def fit_arm(name, Xtr, ytr, Xca, yca, Xte, rng):
         raise ValueError(name)
 
     base.fit(Xtr, ytr)
-    # Calibration is fitted on CALIB ONLY -- never on test. `cv="prefit"` is
-    # what makes that true; refitting here would leak the calibration slice into
-    # the fit and the guard would be measuring its own training data.
-    cal = CalibratedClassifierCV(base, method="isotonic", cv="prefit")
+    # Calibration is fitted on CALIB ONLY, and the underlying model is NOT
+    # refitted. sklearn 1.9 removed `cv="prefit"`; `FrozenEstimator` is its
+    # replacement and carries the same guarantee. Passing an integer `cv` here
+    # instead would silently REFIT the base model on the calibration slice by
+    # cross-validation -- a different experiment, and one where the calibration
+    # guard would partly be measuring its own training data.
+    from sklearn.frozen import FrozenEstimator
+    cal = CalibratedClassifierCV(FrozenEstimator(base), method="isotonic")
     cal.fit(Xca, yca)
     return cal.predict_proba(Xte)[:, 1]
 
@@ -263,6 +267,12 @@ def main(argv=None) -> int:
               f"{'logloss':>9} {'AUC':>7} {'cal slope':>10} {'cal int':>9}")
         for arm in arms:
             d_ep = (yv[arm] - pv[arm]) ** 2 - base_brier_ep     # paired, per episode
+            # STATS_PROTOCOL section 2: a resampling interval over same-signed
+            # observations is not a test. Assert before quoting it.
+            if arm != ref_arm:
+                v = P.check_bootstrap_can_fail(d_ep, f"{arm} H={H}")
+                if not v.ok:
+                    print(f"   REFUSING to quote a bootstrap CI for {arm}: {v.detail}")
             ci = mean_ci(d_ep, seed=71, alpha=alpha) if arm != ref_arm else None
             sl, ic = calibration(yv[arm], pv[arm])
             bss = 1.0 - brier(yv[arm], pv[arm]) / max(brier(yv[ref_arm], pv[ref_arm]), EPS)

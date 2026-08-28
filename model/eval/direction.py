@@ -269,10 +269,25 @@ def mean_ci(d, n_rep: int = 20_000, seed: int = 0, alpha: float = 0.05) -> dict:
     L = max(1, int(round(n ** (1 / 3))))
     nb = int(np.ceil(n / L))
     rng = np.random.default_rng(seed)
-    starts = rng.integers(0, n - L + 1, size=(n_rep, nb))
-    idx = (starts[:, :, None] + np.arange(L)[None, None, :]).reshape(n_rep, -1)[:, :n]
-    blk = d[idx].mean(axis=1)
-    iid = d[rng.integers(0, n, size=(n_rep, n))].mean(axis=1)
+
+    # CHUNKED. The obvious vectorisation builds an (n_rep, n) index array, which
+    # is 20,000 x 49,118 = 982M int64 = 7.9 GB and killed the direction
+    # benchmark with SIGKILL. It was fine at n = 1,681 (0.3 GB) and became a
+    # problem the moment STATS_PROTOCOL made the paired per-episode estimator
+    # primary -- i.e. the fix that improved the statistics moved this onto the
+    # hot path. Chunking bounds peak memory at CHUNK x n regardless of n_rep.
+    chunk = max(1, min(n_rep, int(2e7 // max(n, 1)) or 1))
+    blk = np.empty(n_rep, dtype=np.float64)
+    iid = np.empty(n_rep, dtype=np.float64)
+    off = np.arange(L)[None, None, :]
+    done = 0
+    while done < n_rep:
+        m = min(chunk, n_rep - done)
+        starts = rng.integers(0, n - L + 1, size=(m, nb))
+        idx = (starts[:, :, None] + off).reshape(m, -1)[:, :n]
+        blk[done:done + m] = d[idx].mean(axis=1)
+        iid[done:done + m] = d[rng.integers(0, n, size=(m, n))].mean(axis=1)
+        done += m
     q = lambda a: (float(np.quantile(a, alpha / 2)), float(np.quantile(a, 1 - alpha / 2)))
     # NOTE the key name: `ci95` carries whatever `alpha` was requested, so at
     # alpha = 0.025 it is a 97.5% interval despite the name. `level` is
