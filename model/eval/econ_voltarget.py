@@ -68,7 +68,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from eval.direction import mean_ci                                       # noqa: E402
+from eval.direction import mean_ci, small_n_inference                    # noqa: E402
 from eval.vol_matrix import build_h4_table                               # noqa: E402
 from eval.vol_matrix import run_fold as vm_run_fold                      # noqa: E402
 from noctua import splits as S                                           # noqa: E402
@@ -177,7 +177,11 @@ def main(argv=None) -> int:
         print("no usable folds"); return 1
 
     years = sorted(per_fold)
-    names = sorted(set().intersection(*[set(per_fold[y]["arms"]) for y in years]))
+    # set().intersection(...) is ALWAYS EMPTY -- the empty set intersected with
+    # anything is the empty set. It has to be set.intersection(*sets), which
+    # intersects the first with the rest. The bug produced no arms at all and
+    # died on min() of an empty sequence, which is the good kind of failure.
+    names = sorted(set.intersection(*[set(per_fold[y]["arms"]) for y in years]))
     order = [k for k in ("noctua", "noctua40", "constant_w") if k in names]
     order += [k for k in names if k not in order]
 
@@ -204,8 +208,17 @@ def main(argv=None) -> int:
         b = [per_fold[y]["arms"][k][BASE_COST_BPS] for y in years]
         nets = ["%+.3f" % np.mean([per_fold[y]["arms"][k][c]["net_return"] for y in years])
                 for c in COST_BPS]
+        # n IS THE NUMBER OF FOLDS HERE, AND THAT IS INTRINSIC, not a design
+        # choice that could be improved: realised volatility is a property of a
+        # SERIES, so one number exists per fold and there are six folds. Per
+        # STATS_PROTOCOL section 2 a bootstrap over same-signed observations at
+        # this n cannot fail, so `small_n_inference` is reported alongside --
+        # the t-interval, which widens with alpha, and the exact sign-flip
+        # permutation, whose one-sided p has a hard floor of 2^-n = 0.0156 at
+        # n = 6.
         d = err[best] - err[k]                  # positive => k is better
         ci = mean_ci(d, alpha=0.05) if k != best else None
+        sm = small_n_inference(d) if k != best else None
         cis = "—" if ci is None else f"[{ci['ci95'][0]:+.4f}, {ci['ci95'][1]:+.4f}]"
         print(f"{k:>13} {np.mean(err[k]):8.4f} "
               f"{np.mean([x['realised_vol'] for x in b]):9.4f} "
@@ -230,6 +243,13 @@ def main(argv=None) -> int:
                 for c in COST_BPS},
             "max_drawdown": float(np.mean([x["max_drawdown"] for x in b])),
             "paired_ci_vs_best": None if ci is None else list(ci["ci95"]),
+            "small_n": None if sm is None else {
+                "t_ci": list(sm["t_ci"]), "t_p_two_sided": sm["t_p_two_sided"],
+                "perm_p_one_sided": sm["perm_p_one_sided"],
+                "perm_p_floor": sm["perm_p_floor"],
+                "perm_at_floor": sm["perm_at_floor"],
+                "all_same_sign": sm["all_same_sign"],
+                "mde_80": sm["mde_80"]},
         }
     out["best_arm_by_primary"] = best
 
@@ -245,6 +265,21 @@ def main(argv=None) -> int:
     print(f"  ranking identical at all three cost levels: {stable}")
     out["net_return_ranking_by_cost"] = {str(c): ranks[c] for c in COST_BPS}
     out["ranking_cost_stable"] = bool(stable)
+
+    print(f"\n--- small-n instruments (n = {len(years)} folds), per STATS_PROTOCOL 2-3 ---")
+    print(f"{'arm':>13} {'t-CI on the paired diff':>30} {'t p':>8} {'perm p':>8} "
+          f"{'floor':>7} {'MDE(80%)':>9}")
+    for k in order:
+        sm = out["arms"][k].get("small_n")
+        if sm is None:
+            print(f"{k:>13} {'— (is the best arm)':>30}"); continue
+        print(f"{k:>13} [{sm['t_ci'][0]:+.4f}, {sm['t_ci'][1]:+.4f}]".ljust(46)
+              + f"{sm['t_p_two_sided']:8.4f} {sm['perm_p_one_sided']:8.4f} "
+              f"{sm['perm_p_floor']:7.4f} {sm['mde_80']:9.4f}"
+              + ("  AT FLOOR" if sm["perm_at_floor"] else ""))
+    print(f"   the permutation floor at n={len(years)} is "
+          f"{2.0**-len(years):.4f}; a Bonferroni threshold below that cannot be "
+          f"cleared by this design, whatever the effect size")
 
     print(f"\n--- pre-registered rule ---")
     print(f"   best arm on the primary (|realised vol - target|): {best}")
