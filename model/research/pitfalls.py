@@ -340,12 +340,55 @@ def check_ci_is_defined(ci, name: str = "") -> Verdict:
                    "anchor_freshness compared a (nan, nan) CI and printed a verdict")
 
 
+# ---------------------------------------------------------------------------
+# 12. A corruption that cannot move the value is not a test
+# ---------------------------------------------------------------------------
+def check_corruption_bites(before, after, name: str = "") -> Verdict:
+    """A leakage test corrupts a series and checks the corruption is DETECTED.
+    If the corruption leaves some values unchanged, those rows were never
+    tested at all -- and the test reports a clean pass for them.
+
+    PROVENANCE: `eval/ivfeatures.py` corrupts DVOL with a pure multiplier,
+    `v -> v * uniform(2, 5)`. DVOL's minimum is 19.17, so multiplication always
+    moves it and the style is sound there. `eval/fundingfeatures.py` inherited
+    the same style for the funding rate, where **17.8 % of `interest_1h` values
+    are exactly 0.0** -- and `0 * anything == 0`. The positive-control decoy
+    went uncaught on a boundary episode whose underlying value happened to be
+    zero, giving 9/10 instead of 10/10. `eval/leakage.py`'s own docstring names
+    this family ("a sufficiently unlucky multiplier could leave a value
+    numerically close to unchanged"); an exact zero is its limiting case.
+
+    The fix was an affine corruption, `v * factor + offset`, which restored
+    10/10. The general rule: **check the corruption actually moved every row it
+    claims to have corrupted**, rather than assuming the transform is faithful
+    on the data at hand. A style that is safe for one series is not thereby
+    safe for another.
+    """
+    b = np.asarray(before, dtype=np.float64)
+    a = np.asarray(after, dtype=np.float64)
+    if b.shape != a.shape:
+        return Verdict(False, f"corruption-bites{f'[{name}]' if name else ''}",
+                       f"shape mismatch {b.shape} vs {a.shape}",
+                       "a corruption that changed the array's shape is not the "
+                       "corruption the test intended")
+    both_finite = np.isfinite(b) & np.isfinite(a)
+    unmoved = int((both_finite & (b == a)).sum())
+    ok = unmoved == 0
+    tag = f"[{name}]" if name else ""
+    return Verdict(ok, f"corruption-bites{tag}",
+                   f"all {b.size} corrupted values moved" if ok else
+                   f"{unmoved} of {b.size} values UNCHANGED by the corruption -- "
+                   f"those rows were never tested and will report a clean pass",
+                   "a pure multiplier is a no-op on the 17.8% of funding rates "
+                   "that are exactly zero")
+
+
 ALL_CHECKS = [check_skill_sign, check_relevance_not_absolute,
               check_beats_base_rate, check_arms_matched,
               check_not_a_coin_flip, check_correction_verified,
               check_guard_is_reachable, check_measured_is_shipped,
               check_rule_satisfiable, check_eval_matches_trainer,
-              check_ci_is_defined]
+              check_ci_is_defined, check_corruption_bites]
 
 
 def self_test() -> int:
@@ -385,8 +428,12 @@ def self_test() -> int:
     r.add(check_ci_is_defined((float("nan"), float("nan")),
                               "E-anchor spike QLIKE (historical FAIL)"))
     r.add(check_ci_is_defined((0.02151, 0.05408), "the same delta, re-derived"))
+    # the funding rate's exact zeros, before and after a PURE multiplier
+    _v = np.array([0.0, 1e-5, 0.0, 3e-5])
+    r.add(check_corruption_bites(_v, _v * 3.0, "pure multiplier (historical FAIL)"))
+    r.add(check_corruption_bites(_v, _v * 3.0 + 1e-5, "affine, as fixed"))
     print(r.render())
-    expect_fail = 11  # the historical cases, which MUST still be caught
+    expect_fail = 12  # the historical cases, which MUST still be caught
     got = len(r.failures)
     print(f"\nself-test: {got} failures, expected {expect_fail} "
           f"(the historical errors these checks exist to catch)")
