@@ -382,20 +382,36 @@ def _volatility_bullet() -> str:
     if d is None:
         return ("- **Volatility**: `vol_matrix.json` is not present, so no claim "
                 "is made here.\n")
-    rows = []
+    rows, clears = [], 0
     for H in sorted(d["horizons"], key=lambda k: int(k)):
-        v = d["horizons"][H]["verdicts"]
-        best = d["horizons"][H]["best_baseline"]
-        got = v.get("noctua", v.get("noctua40", "—"))
-        rows.append(f"{H}h {got.lower()} vs `{best}`")
-    clears = sum(1 for H in d["horizons"]
-                 if "CLEARS" == d["horizons"][H]["verdicts"].get("noctua"))
-    return (f"- **The volatility matrix** puts NOCTUA against the mandatory "
-            f"baseline family at every horizon: "
-            + "; ".join(rows) + f". NOCTUA clears its pre-registered interval in "
-            f"{clears} of {len(d['horizons'])} rows. The baseline is chosen on "
-            f"calibration and the fold-level interval is labelled underpowered "
-            f"where `vol-matrix-power` said it would be.\n")
+        r = d["horizons"][H]
+        bits = []
+        for k in ("noctua", "noctua40"):
+            v = r["verdicts"].get(k)
+            if v is None:
+                continue
+            if v == "CLEARS":
+                clears += 1
+                bits.append(f"`{k}` clears "
+                            f"({r['arms'][k]['delta_vs_best']:+.5f})")
+            elif v == "NOT EVALUABLE":
+                bits.append(f"`{k}` not evaluable")
+            else:
+                bits.append(f"`{k}` fails "
+                            f"({r['arms'][k]['delta_vs_best']:+.5f})")
+        rows.append(f"**{H}h** vs `{r['best_baseline']}` — " + ", ".join(bits))
+    fair = d.get("fair_baselines")
+    caveat = ("" if fair else
+              " These numbers come from the run whose OLS baselines are "
+              "**horizon-blind** — fitted once per fold on the pooled sample "
+              "across all four horizons, while NOCTUA sees `cal_H`. That "
+              "confound is named in the ledger against my own result and is "
+              "resolved by `vol-matrix-fair`; until that lands, the two rows "
+              "that clear are **ADVANCE, not ADOPT**.")
+    return ("- **The volatility matrix**, one NOCTUA arm per horizon against "
+            "the mandatory baseline family: " + "; ".join(rows)
+            + f". {clears} row(s) clear the pre-registered interval." + caveat
+            + "\n")
 
 
 def exec_summary() -> str:

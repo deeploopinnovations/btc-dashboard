@@ -5,8 +5,8 @@
 
 The honest headline is that **the shipped model is unchanged by any of this**, and that the phase's two largest results are a measured absence and a boundary.
 
-- **Direction is closed at all four horizons (1h, 6h, 24h, 168h).** 8 of 8 model arms fail their pre-registered rule. The paired per-episode interval excludes zero on the *adverse* side — the arm is worse than the calibration-window base rate — in 6 of 8 rows and straddles zero in 2, at n up to 49,124 per horizon. Both negative controls behave. This is a measured absence, not an underpowered one.
-- **Volatility**: `vol_matrix.json` is not present, so no claim is made here.
+- **Direction is closed at all four horizons (1h, 6h, 24h, 168h).** 8 of 8 model arms fail their pre-registered rule. The paired per-episode interval excludes zero on the *adverse* side — the arm is worse than the calibration-window base rate — in 5 of 8 rows and straddles zero in 3, at n up to 49,124 per horizon. Both negative controls behave. This is a measured absence, not an underpowered one.
+- **The volatility matrix**, one NOCTUA arm per horizon against the mandatory baseline family: **1h** vs `har_short` — `noctua` fails (-0.13136), `noctua40` fails (-0.08231); **6h** vs `har_short` — `noctua` fails (-0.06579), `noctua40` fails (-0.04770); **24h** vs `har_short` — `noctua` clears (+0.03032), `noctua40` fails (-0.01289); **168h** vs `log_har` — `noctua` not evaluable, `noctua40` clears (+0.14462). 2 row(s) clear the pre-registered interval. These numbers come from the run whose OLS baselines are **horizon-blind** — fitted once per fold on the pooled sample across all four horizons, while NOCTUA sees `cal_H`. That confound is named in the ledger against my own result and is resolved by `vol-matrix-fair`; until that lands, the two rows that clear are **ADVANCE, not ADOPT**.
 - **An options P&L cannot be produced honestly here and is not produced.** What replaces it is a volatility-targeting overlay whose primary endpoint is risk control rather than return.
 
 Three things found by guards rather than by looking:
@@ -51,7 +51,69 @@ Three things found by guards rather than by looking:
 
 ## Volatility: the four-horizon matrix
 
-> **`vol_matrix.json` is not present.** The four-horizon volatility matrix is therefore not reported here. Regenerate it with the command in [Reproducing this](#reproducing-this) and re-run this generator.
+Every arm at a given horizon is scored on the **same episodes**, with the same target and the same loss. The baseline to beat is chosen on the **calibration** slice and never on test.
+Bonferroni within this family: 4 rows, so intervals are at 98.75%. Seeds: 3.
+
+### H = 1h — 49,123 test episodes, folds [2021, 2022, 2023, 2024, 2025, 2026]
+Best baseline by calibration QLIKE: **har_short** har_short 0.5570 · persistence 0.6253 · log_har 0.6364
+
+| arm | QLIKE | vs best | worst fold | spike | calm | paired CI (blocks) | same at n^(1/3)? |
+|---|---:|---:|---:|---:|---:|---|---|
+| `noctua` | 0.67177 | -0.13136 | 0.89095 | 6.1280 | 0.3844 | [-0.16479, -0.08011] (37) | yes |
+| `noctua40` | 0.62271 | -0.08231 | 0.81180 | 5.4345 | 0.3693 | [-0.11174, -0.03157] (37) | yes |
+| `garch_normal` | 0.60326 | -0.06285 | 0.83662 | 2.4328 | 0.5069 | [-0.09297, -0.00948] (37) | — |
+| `garch_t` | 0.57438 | -0.03398 | 0.77850 | 2.9651 | 0.4485 | [-0.06173, +0.01785] (37) | — |
+| `har_short` | 0.54040 | +0.00000 | 0.69487 | 4.0822 | 0.3538 | — (is the baseline) | — |
+| `log_har` | 0.63452 | -0.09411 | 0.81143 | 4.8646 | 0.4117 | [-0.12266, -0.04182] (37) | — |
+| `persistence` | 0.62599 | -0.08559 | 0.85656 | 3.9366 | 0.4516 | [-0.11310, -0.03327] (37) | — |
+
+Pre-registered verdict: **noctua** DOES NOT CLEAR · **noctua40** DOES NOT CLEAR
+
+### H = 6h — 49,124 test episodes, folds [2021, 2022, 2023, 2024, 2025, 2026]
+Best baseline by calibration QLIKE: **har_short** har_short 0.3961 · log_har 0.4421 · persistence 0.4611
+
+| arm | QLIKE | vs best | worst fold | spike | calm | paired CI (blocks) | same at n^(1/3)? |
+|---|---:|---:|---:|---:|---:|---|---|
+| `noctua` | 0.44907 | -0.06579 | 0.61072 | 3.4801 | 0.2895 | [-0.08760, -0.04557] (37) | yes |
+| `noctua40` | 0.43097 | -0.04770 | 0.55961 | 3.3921 | 0.2751 | [-0.06581, -0.02952] (37) | yes |
+| `garch_normal` | 0.42058 | -0.03730 | 0.59734 | 1.4500 | 0.3664 | [-0.05972, -0.01061] (37) | — |
+| `garch_t` | 0.41246 | -0.02919 | 0.56003 | 1.7940 | 0.3397 | [-0.04928, -0.00432] (37) | — |
+| `har_short` | 0.38328 | +0.00000 | 0.50414 | 2.6956 | 0.2615 | — (is the baseline) | — |
+| `log_har` | 0.43100 | -0.04772 | 0.55137 | 3.1177 | 0.2895 | [-0.06316, -0.03108] (37) | — |
+| `persistence` | 0.45301 | -0.06973 | 0.64645 | 2.3776 | 0.3517 | [-0.08947, -0.04833] (37) | — |
+
+Pre-registered verdict: **noctua** DOES NOT CLEAR · **noctua40** DOES NOT CLEAR
+
+### H = 24h — 49,106 test episodes, folds [2021, 2022, 2023, 2024, 2025, 2026]
+Best baseline by calibration QLIKE: **har_short** har_short 0.3402 · log_har 0.3749 · persistence 0.4885
+
+| arm | QLIKE | vs best | worst fold | spike | calm | paired CI (blocks) | same at n^(1/3)? |
+|---|---:|---:|---:|---:|---:|---|---|
+| `noctua` | 0.28523 | +0.03032 | 0.41651 | 1.9655 | 0.1967 | [+0.01677, +0.04250] (48) | yes |
+| `noctua40` | 0.32844 | -0.01289 | 0.41870 | 2.4113 | 0.2187 | [-0.02695, -0.00045] (48) | yes |
+| `garch_normal` | 0.32684 | -0.01129 | 0.45164 | 0.8884 | 0.2973 | [-0.04506, +0.02757] (48) | — |
+| `garch_t` | 0.30417 | +0.01138 | 0.38892 | 1.1555 | 0.2593 | [-0.01493, +0.04204] (48) | — |
+| `har_short` | 0.31555 | +0.00000 | 0.40267 | 2.0454 | 0.2244 | — (is the baseline) | — |
+| `log_har` | 0.34416 | -0.02861 | 0.42505 | 2.4065 | 0.2355 | [-0.04127, -0.01676] (48) | — |
+| `persistence` | 0.45511 | -0.13956 | 0.70438 | 2.1043 | 0.3682 | [-0.19452, -0.09925] (48) | — |
+
+Pre-registered verdict: **noctua** CLEARS · **noctua40** DOES NOT CLEAR
+
+### H = 168h — 48,962 test episodes, folds [2021, 2022, 2023, 2024, 2025, 2026]
+Best baseline by calibration QLIKE: **log_har** log_har 0.3707 · har_short 0.3880 · persistence 0.6509
+
+| arm | QLIKE | vs best | worst fold | spike | calm | paired CI (blocks) | same at n^(1/3)? |
+|---|---:|---:|---:|---:|---:|---|---|
+| `noctua40` | 0.20569 | +0.14462 | 0.27789 | 1.0790 | 0.1597 | [+0.10042, +0.19624] (336) | yes |
+| `garch_normal` | 0.53821 | -0.18790 | 0.75314 | 0.1917 | 0.5565 | [-0.31046, -0.05269] (336) | — |
+| `garch_t` | 0.44349 | -0.09319 | 0.71676 | 0.2723 | 0.4525 | [-0.20612, +0.03314] (336) | — |
+| `har_short` | 0.37558 | -0.02528 | 0.52044 | 1.6917 | 0.3063 | [-0.03961, -0.01390] (336) | — |
+| `log_har` | 0.35031 | +0.00000 | 0.45038 | 1.7401 | 0.2771 | — (is the baseline) | — |
+| `persistence` | 0.61859 | -0.26828 | 1.17738 | 1.6351 | 0.5651 | [-0.41349, -0.16972] (336) | — |
+
+Pre-registered verdict: **noctua** NOT EVALUABLE · **noctua40** CLEARS
+
+The fold-level spread is carried in the artifact as `per_fold` and is **not** the primary. `vol-matrix-power` measured its minimum detectable effect at 5.21% / 11.76% / 31.68% / 65.48% of the persistence baseline at H = 1 / 6 / 24 / 168, against a 4.98% reference effect — one row marginal, three not powered. That was measured *before* the matrix was built, which is the only time the measurement is worth anything.
 
 ## Direction as a probability forecast
 
@@ -59,12 +121,12 @@ The baseline is the **calibration-window base rate**, not 0.5. P(R>0) rises with
 
 | H | arm | Brier | BSS vs calib | AUC | cal slope | cal int | paired CI | verdict |
 |---|---|---:|---:|---:|---:|---:|---|---|
-| 1 | `base_unc` | 0.25001 | +0.00025 | 0.4977 | +0.001 | +0.018 | [-0.000171, +0.000042] | — |
+| 1 | `base_unc` | 0.25001 | +0.00025 | 0.4977 | +0.001 | +0.018 | [-0.000165, +0.000045] | — |
 | 1 | `base_calib` | 0.25007 | +0.00000 | 0.5011 | +0.001 | +0.018 | — | — |
-| 1 | `logistic` | 0.25107 | -0.00398 | 0.5091 | +0.031 | +0.016 | [+0.000486, +0.001541] | FAIL |
-| 1 | `gbm` | 0.25097 | -0.00361 | 0.5123 | +0.022 | +0.017 | [+0.000327, +0.001549] | FAIL |
-| 1 | `placebo` | 0.25473 | -0.01864 | 0.4979 | -0.006 | +0.019 | [+0.003274, +0.006225] | — |
-| 1 | `shuffled` | 0.25124 | -0.00467 | 0.5020 | +0.017 | +0.018 | [+0.000509, +0.002045] | — |
+| 1 | `logistic` | 0.25093 | -0.00342 | 0.5090 | +0.052 | +0.015 | [+0.000328, +0.001464] | FAIL |
+| 1 | `gbm` | 0.25046 | -0.00154 | 0.5148 | +0.052 | +0.016 | [-0.000068, +0.000888] | FAIL |
+| 1 | `placebo` | 0.25353 | -0.01384 | 0.4992 | -0.004 | +0.019 | [+0.002304, +0.004869] | — |
+| 1 | `shuffled` | 0.25065 | -0.00231 | 0.5026 | -0.044 | +0.020 | [+0.000203, +0.001127] | — |
 | 6 | `base_unc` | 0.25007 | +0.00142 | 0.4902 | +0.001 | +0.030 | [-0.000896, +0.000161] | — |
 | 6 | `base_calib` | 0.25042 | +0.00000 | 0.5036 | +0.003 | +0.030 | — | — |
 | 6 | `logistic` | 0.25286 | -0.00972 | 0.5046 | +0.012 | +0.029 | [+0.001098, +0.003891] | FAIL |
@@ -73,16 +135,16 @@ The baseline is the **calibration-window base rate**, not 0.5. P(R>0) rises with
 | 6 | `shuffled` | 0.25212 | -0.00678 | 0.5001 | +0.015 | +0.028 | [+0.000514, +0.003173] | — |
 | 24 | `base_unc` | 0.25018 | +0.00796 | 0.4819 | -4.216 | +0.449 | [-0.004321, +0.000084] | — |
 | 24 | `base_calib` | 0.25219 | +0.00000 | 0.4933 | -0.009 | +0.050 | — | — |
-| 24 | `logistic` | 0.25887 | -0.02652 | 0.4961 | -0.007 | +0.051 | [+0.002907, +0.010965] | FAIL |
-| 24 | `gbm` | 0.25692 | -0.01877 | 0.5029 | -0.017 | +0.052 | [+0.001482, +0.008333] | FAIL |
-| 24 | `placebo` | 0.25713 | -0.01961 | 0.4966 | -0.021 | +0.055 | [+0.001856, +0.008534] | — |
-| 24 | `shuffled` | 0.25436 | -0.00862 | 0.5013 | -0.019 | +0.050 | [+0.000180, +0.004505] | — |
+| 24 | `logistic` | 0.25906 | -0.02726 | 0.4993 | +0.004 | +0.049 | [+0.002969, +0.011136] | FAIL |
+| 24 | `gbm` | 0.25608 | -0.01546 | 0.5116 | -0.000 | +0.049 | [+0.000707, +0.007498] | FAIL |
+| 24 | `placebo` | 0.25731 | -0.02032 | 0.4965 | -0.035 | +0.058 | [+0.002185, +0.008549] | — |
+| 24 | `shuffled` | 0.25584 | -0.01448 | 0.4979 | +0.005 | +0.049 | [+0.001191, +0.006553] | — |
 | 168 | `base_unc` | 0.25046 | +0.02749 | 0.4609 | -5.349 | +0.815 | [-0.013279, -0.000996] | — |
 | 168 | `base_calib` | 0.25754 | +0.00000 | 0.5045 | +0.055 | +0.064 | — | — |
-| 168 | `logistic` | 0.26302 | -0.02128 | 0.5036 | +0.008 | +0.078 | [-0.000829, +0.012049] | FAIL |
-| 168 | `gbm` | 0.27675 | -0.07458 | 0.5117 | -0.036 | +0.098 | [+0.009327, +0.029551] | FAIL |
-| 168 | `placebo` | 0.26419 | -0.02583 | 0.5119 | +0.010 | +0.074 | [+0.000399, +0.013103] | — |
-| 168 | `shuffled` | 0.25879 | -0.00486 | 0.5111 | +0.079 | +0.055 | [-0.001123, +0.003776] | — |
+| 168 | `logistic` | 0.26282 | -0.02053 | 0.5216 | +0.021 | +0.075 | [-0.001113, +0.011843] | FAIL |
+| 168 | `gbm` | 0.28142 | -0.09271 | 0.5015 | -0.027 | +0.084 | [+0.013362, +0.035569] | FAIL |
+| 168 | `placebo` | 0.26723 | -0.03762 | 0.5145 | +0.011 | +0.074 | [+0.002234, +0.017375] | — |
+| 168 | `shuffled` | 0.25889 | -0.00523 | 0.5074 | +0.045 | +0.066 | [-0.000886, +0.003605] | — |
 
 A **positive** paired CI means the arm is **worse** than the baseline: the quantity bootstrapped is arm-minus-baseline Brier.
 
@@ -152,7 +214,7 @@ timeline
 
 ## The experiment register
 
-77 pre-registered experiments. **ADOPT** 20 · **ADVANCE** 10 · **NULL** 7 · **OPEN** 20 · **REJECT** 18 · **WITHDRAWN** 2
+79 pre-registered experiments. **ADOPT** 20 · **ADVANCE** 11 · **NULL** 8 · **OPEN** 20 · **REJECT** 18 · **WITHDRAWN** 2
 
 Every row was registered with its decision rule **before** it ran. Failures are not deleted; they stay in the family and count against the multiple-testing correction.
 
@@ -223,7 +285,7 @@ Every row was registered with its decision rule **before** it ran. Failures are 
 | `horizon-label-spec` ⤳ | methodology | OPEN | Are the four horizons and the two distinct label families buildable, and what are the correct baselines? |
 | `horizons-built` | methodology | ADOPT | Are the four protocol horizons (1h/6h/1d/1w) buildable, and what do their targets look like? |
 | `direction-power` | direction | OPEN | Before building any direction model: which horizons can a 6-fold experiment actually resolve? |
-| `D1-direction-bench` | direction | NULL | Does any direction model beat the rolling base rate as a PROBABILITY forecast, at any horizon? |
+| `D1-direction-bench` ⤳ | direction | NULL | Does any direction model beat the rolling base rate as a PROBABILITY forecast, at any horizon? |
 | `E2-audit-downgrade` | features | REJECT | Does the IV result survive independent adversarial statistical and data audit? |
 | `E2-paired-estimator` | features | ADVANCE | Does the IV effect survive an estimator that is actually capable of failing? |
 | `E2-lag2-robust` | features | ADVANCE | Does the IV effect depend on Deribit's candle-timestamp convention -- the audit's highest-threat finding? |
@@ -232,9 +294,11 @@ Every row was registered with its decision rule **before** it ran. Failures are 
 | `stats-protocol-locked` | methodology | ADOPT | What is the locked statistical protocol, after the audit? |
 | `incumbent-under-protocol` | methodology | ADVANCE | Does NOCTUA's own headline claim -- that it beats Log-HAR -- survive the protocol just locked? |
 | `vol-matrix-power` | methodology | OPEN | Before building the four-horizon volatility matrix: which rows can a 6-fold experiment resolve? |
-| `vol-matrix` | volatility | OPEN | Across four horizons (1h, 6h, 1d, 1w), does NOCTUA beat the mandatory baseline family on QLIKE, and does the a |
+| `vol-matrix` | volatility | ADVANCE | Across four horizons (1h, 6h, 1d, 1w), does NOCTUA beat the mandatory baseline family on QLIKE, and does the a |
 | `econ-scope` | economics | REJECT | What economic validation can this repository perform honestly, and what can it not? |
 | `econ-voltarget` | economics | OPEN | Does a better volatility forecast produce a better-controlled portfolio once rebalancing costs are charged? |
+| `vol-matrix-fair` | volatility | OPEN | Do the two rows that cleared vol-matrix survive a baseline family that is allowed to know the horizon? |
+| `D1-direction-bench-corrected` | direction | NULL | Does any direction model beat the rolling base rate as a PROBABILITY forecast, once the features are built at  |
 
 ⤳ = superseded by a later entry; the original is kept rather than edited.
 
