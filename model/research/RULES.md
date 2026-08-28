@@ -159,6 +159,40 @@ not the best. *(pitfalls 11)*
 
 ---
 
+## Rules about controls and estimators
+
+**R29. A fix to a control is not neutral — it changes the test.**
+Correcting the placebo rotation from a mis-specified 91 days to the intended 365
+moved the placebo's own score from +0.0022 to −0.0078 and cut the real-vs-placebo
+margin by 30%. Had it moved the other way the guard would have failed, and "we
+fixed a bug" would have been the reason a result vanished. **Bug fixes to
+controls need the same pre-registration discipline as treatments**, or they
+become a channel for outcome-shopping. *(`E2-placebo-recheck`)*
+
+**R30. A resampling interval over same-signed observations is not a test.**
+Every resample is a convex combination of them, so it excludes zero at every
+alpha by construction — verified identical at α/4 and α/1000. Use the t-interval
+and the exact sign-flip permutation instead, and check the 2⁻ⁿ permutation floor
+*before* running: at n = 5 it is 0.03125, so the design can never clear a
+Bonferroni threshold with family ≥ 2 however large the true effect.
+*(pitfalls 13; `E2-audit-downgrade`)*
+
+**R31. Noticing a defect and continuing to rely on it is worse than missing it.**
+§25 wrote down that the bootstrap saturated — "an artifact of n, not
+significance" — and left it as the primary endpoint anyway. Writing a caveat is
+not the same as acting on one.
+
+**R32. An unresolvable question can sometimes be made irrelevant.**
+Deribit's candle-timestamp convention could not be established from here. Rather
+than argue it, the lag was made a parameter and the result re-run at a setting
+correct under *either* convention. Cost: one hour of feature freshness.
+*(`E2-lag2-robust`)*
+
+**R33. "The code does X" and "the artifact contains X" are different claims.**
+§26 said `anchor_freshness` "now records" a paired estimator. The code did; the
+artifacts did not, because one run predated the patch and the other came from
+`--from-json`. Verify the artifact, not the source. *(`E2-paired-estimator`)*
+
 ## Rules about shipping
 
 **R25. ADVANCE is not ADOPT.**
