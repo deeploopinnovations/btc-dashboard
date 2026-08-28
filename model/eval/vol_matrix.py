@@ -136,7 +136,17 @@ N_FAMILY = 4                    # 4 horizons x 1 primary contrast, fixed a prior
 # it would be a way to pick the answer.
 def block_len_for(H: int, n: int) -> int:
     return max(int(round(n ** (1 / 3))), 2 * int(H))
-BASELINE_ARMS = ("persistence", "log_har", "har_short", "garch_normal", "garch_t")
+# `log_har_cal` is har_1d/5d/22d PLUS cal_H and cal_weekend_frac, and this
+# repository's own comment on it calls it "a fairer well-specified bar". It is
+# scored ONLY under --fair-baselines, so the default reproduces the numbers in
+# model/artifacts/vol_matrix.json exactly rather than quietly producing
+# different ones under the same command.
+OLS_ARMS_POOLED = ("log_har", "har_short")
+OLS_ARMS_FAIR = ("log_har", "har_short", "log_har_cal")
+
+
+def ols_arms(fair: bool) -> tuple:
+    return OLS_ARMS_FAIR if fair else OLS_ARMS_POOLED
 
 # The two feature columns that are UNDEFINED at H = 168, because `seas_{d}d`
 # reads [a - 24d, a - 24d + H) and that window runs past the anchor once
@@ -302,7 +312,8 @@ def build_h4_table(artifacts: Path):
 # --------------------------------------------------------------------------
 # one fold
 # --------------------------------------------------------------------------
-def run_fold(ep, X, fold, ret, hidden=32, seeds=3, verbose=False):
+def run_fold(ep, X, fold, ret, hidden=32, seeds=3, verbose=False,
+             fair_baselines=False):
     """Train the multi-horizon networks on this fold and score every arm at
     every horizon. Returns per-episode QLIKE arrays keyed by (H, arm).
 
@@ -346,6 +357,33 @@ def run_fold(ep, X, fold, ret, hidden=32, seeds=3, verbose=False):
         return None
 
     ref40 = variants["noctua40"]
+
+    # PER-HORIZON BASELINE FITS (`vol-matrix-fair`).
+    #
+    # `fit_vol_baselines` above fits ONCE on the pooled training sample, which
+    # spans H in {1,6,24,168}. `log_har` and `har_short` carry no horizon term,
+    # so a pooled fit emits a single log hourly vol RATE whatever horizon it is
+    # asked about -- while NOCTUA takes cal_H as an input and can condition on
+    # it. The target is designed to be roughly horizon-invariant, which is why
+    # that escaped notice, but mean reversion means the average hourly rate over
+    # a week is not the one over an hour, and a pooled fit is a straw man at the
+    # extreme horizons. That is exactly where `vol-matrix` found its largest
+    # margin.
+    #
+    # So each baseline is refitted on this fold's training episodes AT THIS
+    # HORIZON, and `log_har_cal` -- which this repository already describes as
+    # "a fairer well-specified bar" and which was never scored as a competitor
+    # -- joins the arm list. The pooled fits are kept and reported beside them,
+    # because the difference between the two IS the confound, measured.
+    fair = {}
+    if fair_baselines:
+        for H in sorted(ep.H.unique()):
+            mth = fold["train"] & ref40["fin"] & (ep.H == H).to_numpy()
+            if mth.sum() < 2000:
+                continue
+            fair[int(H)] = B.fit_vol_baselines(
+                X[mth], yall[mth], S.sample_weights(ep, mth))
+
     out = {}
     for H in sorted(ep.H.unique()):
         mh = fold["test"] & ref40["fin"] & (ep.H == H).to_numpy()
@@ -360,9 +398,15 @@ def run_fold(ep, X, fold, ret, hidden=32, seeds=3, verbose=False):
             # persistence uses the FEATURE har_1d, never episodes.RV1: RV1 is
             # built from fwd_rv1 and looks FORWARD from the anchor.
             "persistence": np.maximum(np.exp(X.loc[mh, "har_1d"].to_numpy()) * sq, 1e-12),
-            "log_har": np.exp(bl["log_har"].predict(X[mh])) * sq,
-            "har_short": np.exp(bl["har_short"].predict(X[mh])) * sq,
         }
+        bh = fair.get(int(H), bl)
+        for k in ols_arms(fair_baselines):
+            arms[k] = np.exp(bh[k].predict(X[mh])) * sq
+        if fair_baselines and int(H) in fair:
+            # the pooled fit, kept beside the per-horizon one so the SIZE of the
+            # confound is a number in the table rather than an argument
+            for k in ols_arms(fair_baselines):
+                arms[k + "_pooled"] = np.exp(bl[k].predict(X[mh])) * sq
         for name, v in variants.items():
             mv = mh & v["fin"]
             if mv.sum() != mh.sum():
@@ -407,9 +451,9 @@ def run_fold(ep, X, fold, ret, hidden=32, seeds=3, verbose=False):
             sqv = np.sqrt(Hall[mv])
             sel["persistence"] = float(np.nanmean(qlike_vec(
                 rvv, np.exp(X.loc[mv, "har_1d"].to_numpy()) * sqv)))
-            for k in ("log_har", "har_short"):
+            for k in ols_arms(fair_baselines):
                 sel[k] = float(np.nanmean(qlike_vec(
-                    rvv, np.exp(bl[k].predict(X[mv])) * sqv)))
+                    rvv, np.exp(bh[k].predict(X[mv])) * sqv)))
         out[int(H)] = {"qlike": rec, "n": int(mh.sum()),
                        "rv": rv, "sigma_persist": arms["persistence"],
                        "sigma": sigmas, "calib_qlike": sel,
@@ -440,6 +484,10 @@ def main(argv=None) -> int:
     ap.add_argument("--hidden", type=int, default=32)
     ap.add_argument("--seeds", type=int, default=3)
     ap.add_argument("--no-garch", action="store_true")
+    ap.add_argument("--fair-baselines", action="store_true",
+                    help="refit every OLS baseline PER HORIZON and add log_har_cal "
+                         "(ledger `vol-matrix-fair`). Without this the baselines are "
+                         "horizon-blind and NOCTUA is not.")
     ap.add_argument("--out", type=Path, default=Path("model/artifacts/vol_matrix.json"))
     a = ap.parse_args(argv)
 
@@ -468,7 +516,8 @@ def main(argv=None) -> int:
         # the fold's train_end timestamp, needed by the GARCH fit
         f = dict(f)
         f["train_end_ts"] = int(ep.anchor_ts.to_numpy()[f["train"]].max())
-        r = run_fold(ep, X, f, ret, hidden=a.hidden, seeds=a.seeds)
+        r = run_fold(ep, X, f, ret, hidden=a.hidden, seeds=a.seeds,
+                     fair_baselines=a.fair_baselines)
         if r is None:
             print(f"  fold {f['year']}: skipped (too few episodes)"); continue
         for H, d in r.items():
@@ -487,7 +536,11 @@ def main(argv=None) -> int:
         dropped = sorted(set.union(*present) - set(arms))
 
         cal = {}
-        for k in ("persistence", "log_har", "har_short"):
+        # The best baseline is chosen among the FAIR arms only. A `_pooled`
+        # arm is reported for contrast and is never eligible to be the bar --
+        # picking a horizon-blind fit as "the baseline to beat" is the confound
+        # this flag exists to remove, not a shortcut it may take.
+        for k in ("persistence",) + ols_arms(a.fair_baselines):
             vs = [r["calib_qlike"][k] for r in rows if k in r["calib_qlike"]]
             if vs:
                 cal[k] = float(np.mean(vs))
@@ -577,6 +630,7 @@ def main(argv=None) -> int:
     a.out.write_text(json.dumps({
         "family_size": N_FAMILY, "alpha": alpha,
         "seeds": a.seeds, "hidden": a.hidden,
+        "fair_baselines": bool(a.fair_baselines),
         "horizons": results,
     }, indent=1, default=float) + "\n")
     print(f"\nwrote {a.out}")
