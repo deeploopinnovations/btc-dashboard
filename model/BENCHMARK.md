@@ -3591,3 +3591,93 @@ and this data does not separate them. It stays unresolved, as promised.
    non-measurement before it runs, and should be redesigned or not run.
 
 *Educational research only. Not financial advice.*
+
+## 27. E2-confirm: the script says ADOPT. The pre-commitment says not yet.
+
+E2c cleared its rule on a re-weighted median and was recorded as ADVANCE
+precisely because it had not touched the object NOCTUA actually sells. This ran
+the correction through the full pipeline — `run_fold`'s `post_shift_fn` applies
+it to the ensemble level *before* Stage B, so the quantile heads, the four
+specialists, the equal-weight committee and the recalibration are all rebuilt
+around it.
+
+Three matched arms, 5 folds, **1,681 episodes scored identically in every arm**,
+Bonferroni-adjusted to 98.75 % as the fourth test in the IV family.
+
+### The result
+
+| arm | quantity | Δ | 98.75 % CI | folds better |
+|---|---|---|---|---|
+| **treated** | **pooled QLIKE** | **−0.03263** | **[−0.04356, −0.01402]** | **5 of 5** |
+| treated | spike QLIKE | −0.33274 | [−0.58775, −0.09013] | 5 of 5 |
+| treated | calm QLIKE | −0.01744 (−8.22 %) | [−0.02955, −0.00766] | 4 of 5 |
+| treated | coverage error | −0.00083 | [−0.00411, +0.00300] | 3 of 4 |
+| **treated** | **deep-tail MCB** | **+0.00056** | **[−0.00010, +0.00255]** | **2 of 5** |
+| placebo | pooled QLIKE | +0.00230 | [−0.00402, +0.00543] | 2 of 5 |
+| placebo | calm QLIKE | +0.00596 | [+0.00220, +0.01259] | **0 of 5** |
+| placebo | spike QLIKE | −0.08525 | [−0.23493, −0.00804] | 5 of 5 |
+
+    placebo margin (treated - placebo, pooled): -0.03493  [-0.04451, -0.01558]
+
+    PRIMARY pooled QLIKE CI clears zero favourably   : True
+    GUARD   deep-tail barrier MCB not worse          : True
+    GUARD   spike QLIKE not worse                    : True
+    GUARD   calm QLIKE within 1% (-8.22%)            : True
+    GUARD   beats the placebo                        : True
+    GUARD   conditional coverage error not worse     : True
+    -> ADOPT
+
+### And adoption is withheld anyway
+
+Before this ran — commit `80533fe`, ledger `E2-confirm-slice` — the slice
+decision was recorded with a commitment stricter than anything in the script:
+
+> deep-tail MCB is the quantity that gains MOST from widening (2.98×, the
+> largest of the four E-power measured) and it is a central guard here, so it is
+> the least-powered part of this experiment on production. If MCB returns
+> inconclusive — CI containing zero rather than clearly favourable — that is NOT
+> a pass by default; it triggers a wide-slice re-run before anything is adopted.
+
+**MCB returned +0.00056, CI [−0.00010, +0.00255], worse in 3 of 5 folds.** The
+interval contains zero, so the script's guard — "not worse with a CI excluding
+zero unfavourably" — passes. The point estimate sits on the unfavourable side
+and the result is not clearly favourable. That is the case the commitment named,
+and it names it for a reason: §26 measured MCB as the quantity most starved by
+the production slice, so an inconclusive MCB here is the *predicted* outcome
+rather than a surprise.
+
+The wide-slice confirmation is running. **The artifact is unchanged until it
+returns.**
+
+This is the whole point of writing a rule down before seeing the number. The
+pre-registration had two halves — the guards inside `iv_confirm.py`, which are
+executable, and the slice commitment in the ledger, which is not. When they
+disagreed, the executable half said ADOPT. A rule that only binds when it is
+convenient is not a rule.
+
+### What the run did establish, independent of the verdict
+
+**The effect survives the full pipeline essentially untouched.** E2c,
+re-weighting a recorded median, measured pooled −0.03264. The full pipeline —
+barrier curves, committee and calibration all rebuilt — gives **−0.03263**. Nine
+significant figures of agreement is coincidence; the point is that a correction
+fitted on medians neither amplified nor decayed when everything downstream was
+rebuilt around it.
+
+**The placebo behaves as a placebo must, and more clearly than before.** It
+*hurts* pooled (+0.00230), it hurts calm decisively (+0.00596, CI excluding
+zero, worse in 5 of 5 folds), and it captures only about a quarter of the spike
+gain (−0.08525 against −0.33274). The margin between real and placebo is
+−0.03493 with a CI nowhere near zero.
+
+**Conditional coverage improves rather than degrades** (−0.00083 on mean
+|hit rate − 5 %|), which was not guaranteed: scaling σ moves every barrier
+probability, and it could as easily have broken calibration as helped it.
+
+**`post_shift_fn=None` is genuinely inert.** Every control arm reproduced
+E-anchor's fold values to four decimals — 2022 at 0.2745 / 1.3542 / 0.2019 /
+0.2785, 2023 at 0.4340 / 3.6483 / 0.3153 / 0.1222 — across three separate runs
+on different days. The three-arm comparison rests on that, and it is now
+verified rather than assumed.
+
+*Educational research only. Not financial advice.*

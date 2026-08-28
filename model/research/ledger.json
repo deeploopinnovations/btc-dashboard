@@ -491,7 +491,10 @@
       "question": "Does E2c's correction survive the full pipeline, including the barrier curves?",
       "rule": "Pre-registered, QUEUED BEHIND E-power. A FRESH test, not a re-reading of E2c: apply the correction inside the full pipeline and re-score everything the median-only run skipped. PRIMARY: pooled QLIKE on the covered test episodes, CI excluding zero favourably. GUARDS: deep-tail barrier MCB must not worsen with a CI excluding zero unfavourably; Christoffersen conditional coverage at alpha = 5% must not degrade; spike and calm QLIKE must each not worsen; the placebo arm runs again inside the full pipeline. Only a pass here earns a place in the artifact.",
       "verdict": "OPEN",
-      "result": "pre-registered before the run. Motivation: E2c re-weighted a recorded median and never rebuilt the barrier curves, the committee or the calibration. NOCTUA's product is a touch-probability curve, not a sigma; scaling sigma moves every barrier probability."
+      "result": "pre-registered before the run. Motivation: E2c re-weighted a recorded median and never rebuilt the barrier curves, the committee or the calibration. NOCTUA's product is a touch-probability curve, not a sigma; scaling sigma moves every barrier probability.",
+      "superseded_by": [
+        "E2-confirm-result"
+      ]
     },
     {
       "id": "iv-coverage-closed",
@@ -590,7 +593,25 @@
       "rule": "A design decision fixed BEFORE the run, because E-power's finding makes it a real choice rather than a default. E-power-result now requires a minimum detectable effect to be stated in advance: an experiment hypothesising less than its slice's MDE is a non-measurement before it runs.",
       "verdict": "OPEN",
       "result": "DECISION: run E2-confirm on the PRODUCTION slice, then, only if it passes, re-run on the 24-hour slice as a confirmation of the deep-tail MCB guard specifically. POWER CHECK, as now required. E2c measured pooled -0.03264 against a base near 0.29, about -11.2%. The production slice's pooled MDE is ~8.44%. 11.2% > 8.44%, so the primary endpoint IS adequately powered on the production slice and this is not a non-measurement before it runs.",
-      "implication": "WHY PRODUCTION FIRST: E2-confirm is an ADOPTION decision, and the production slice -- H = 19 at 17:00 UTC -- is what ships. E-power also priced the alternative: 24x the compute for 1.53x effective n is a bad trade when the effect is already above the MDE. THE KNOWN WEAKNESS, named in advance rather than discovered later: deep-tail MCB is the quantity that gains MOST from widening (2.98x, the largest of the four E-power measured), and it is a central guard here. So the MCB guard is the least-powered part of this experiment on the production slice. If MCB comes back inconclusive -- CI containing zero rather than clearly favourable -- that is NOT a pass by default; it triggers the wide-slice re-run before anything is adopted."
+      "implication": "WHY PRODUCTION FIRST: E2-confirm is an ADOPTION decision, and the production slice -- H = 19 at 17:00 UTC -- is what ships. E-power also priced the alternative: 24x the compute for 1.53x effective n is a bad trade when the effect is already above the MDE. THE KNOWN WEAKNESS, named in advance rather than discovered later: deep-tail MCB is the quantity that gains MOST from widening (2.98x, the largest of the four E-power measured), and it is a central guard here. So the MCB guard is the least-powered part of this experiment on the production slice. If MCB comes back inconclusive -- CI containing zero rather than clearly favourable -- that is NOT a pass by default; it triggers the wide-slice re-run before anything is adopted.",
+      "superseded_by": [
+        "E2-confirm-result"
+      ]
+    },
+    {
+      "id": "E2-confirm-result",
+      "topic": "features",
+      "date": "2026-08-28",
+      "supersedes": [
+        "E2-confirm",
+        "E2-confirm-slice"
+      ],
+      "question": "Does E2c's IV correction survive the full pipeline, including the barrier curves?",
+      "rule": "Pre-registered in eval/iv_confirm.py and committed before the run, with the slice decision and power check committed separately at 80533fe -- also before the run. That second commitment is STRICTER than the script: 'deep-tail MCB is the least-powered part of this experiment on the production slice. If MCB comes back inconclusive -- CI containing zero rather than clearly favourable -- that is NOT a pass by default; it triggers the wide-slice re-run before anything is adopted.'",
+      "verdict": "ADVANCE",
+      "result": "The SCRIPT's six conditions all pass and it printed ADOPT. Treated vs control, 5 folds, 1,681 episodes matched exactly across all three arms, Bonferroni 98.75%: pooled -0.03263 CI [-0.04356, -0.01402], 5 of 5 folds; spike -0.33274 CI [-0.58775, -0.09013], 5 of 5; calm -0.01744 (-8.22%) CI [-0.02955, -0.00766], 4 of 5; coverage error -0.00083 (an improvement) CI [-0.00411, +0.00300]; placebo margin -0.03493 CI [-0.04451, -0.01558]. The placebo behaves as a placebo must: pooled +0.00230 (hurts), calm +0.00596 with a CI EXCLUDING zero (hurts), and it captures only about a quarter of the spike gain (-0.08525 against the treated arm's -0.33274). BUT DEEP-TAIL MCB IS INCONCLUSIVE: +0.00056, CI [-0.00010, +0.00255], 3 of 5 folds WORSE. The interval contains zero, so the script's guard passes; the point estimate is on the unfavourable side and it is not clearly favourable.",
+      "implication": "ADOPTION IS WITHHELD, by the stricter commitment I recorded before the run rather than by the script. This is exactly the case that commitment named, and E-power is why it was named: MCB is the quantity that gains MOST from a wider slice (2.98x, the largest of the four E-power measured), so an inconclusive MCB on the production slice is the predicted failure mode, not a surprise. The wide-slice re-run is launched. SEPARATELY, a strong consistency result: E2c measured pooled -0.03264 on a re-weighted median; the FULL PIPELINE gives -0.03263. The barrier curves, the committee and the calibration neither amplified nor destroyed the effect. And the control arms reproduced E-anchor's fold values to four decimals across three separate runs, confirming post_shift_fn=None is genuinely inert.",
+      "lesson": "A script that implements a rule is not the same as the rule. The pre-registration had two parts -- the guards inside iv_confirm.py and the stricter slice commitment in the ledger -- and only the first was executable. When they disagreed the executable one said ADOPT. Honouring the stricter one is the whole point of writing it down before seeing the number."
     }
   ]
 }
