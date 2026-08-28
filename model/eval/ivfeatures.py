@@ -115,6 +115,24 @@ from noctua import splits as S                        # noqa: E402
 from noctua.train import load_all                     # noqa: E402
 
 HOUR = 3600
+
+# The causal lag, in hours, between the DVOL stamp and the episode anchor.
+#
+# WHY THIS IS A PARAMETER AND NOT A CONSTANT. A data audit raised an
+# unresolved question: Deribit's `public/get_volatility_index_data` returns
+# CANDLES, `[ts_ms, open, high, low, close]`, and the harvester keeps the
+# CLOSE tagged with the candle's own timestamp. If that timestamp marks the
+# candle's START -- the overwhelming convention across exchanges, including
+# Deribit's own TradingView-format chart endpoint -- then the close stamped at
+# hour h is not determined until h+1, and reading it at a-1 = h means reading a
+# value knowable only AT the anchor. That would cancel the whole safety margin.
+#
+# The endpoint is unreachable from this container (the proxy blocks it) and the
+# fetched docs do not state the convention, so the question CANNOT be settled
+# here. Rather than argue it, the lag is made a parameter: a 2-hour lag is
+# correct under EITHER convention, so a result that survives LAG_HOURS = 2 does
+# not depend on the answer. See BENCHMARK.md 29.
+DEFAULT_LAG_HOURS = 1
 DAY_H = 24
 Z_WINDOW_H = 20 * DAY_H          # 20 trailing days, in hours
 HOURS_PER_YEAR = 365 * DAY_H     # 8,760 -- same convention as serve/predict.py's
@@ -236,7 +254,8 @@ class DvolSeries:
         return out
 
 
-def build_iv_features(ep: pd.DataFrame, X: pd.DataFrame, dvol: pd.DataFrame) -> pd.DataFrame:
+def build_iv_features(ep: pd.DataFrame, X: pd.DataFrame, dvol: pd.DataFrame,
+                      lag_hours: int = DEFAULT_LAG_HOURS) -> pd.DataFrame:
     """Six candidate features, row-aligned with `ep` (positional, like
     `noctua.features.build_features` is row-aligned with `episodes`).
 
@@ -249,7 +268,7 @@ def build_iv_features(ep: pd.DataFrame, X: pd.DataFrame, dvol: pd.DataFrame) -> 
     """
     dv = DvolSeries(dvol)
     anchor_ts = ep["anchor_ts"].to_numpy(np.int64)
-    ha = anchor_ts - HOUR                       # the causal cutoff, a - 1
+    ha = anchor_ts - lag_hours * HOUR           # the causal cutoff, a - lag_hours
 
     pos0 = dv.pos_of(ha)
     iv_level = dv.logv_at(pos0)                 # log(DVOL points) at a-1
@@ -526,6 +545,10 @@ def main(argv=None) -> int:
                     default=Path("model/artifacts/iv_features.parquet"))
     ap.add_argument("--report-out", type=Path,
                     default=Path("model/artifacts/iv_features.json"))
+    ap.add_argument("--lag-hours", type=int, default=DEFAULT_LAG_HOURS,
+                    help="hours between the DVOL stamp and the anchor. 1 is the "
+                         "original; 2 is correct under EITHER candle-timestamp "
+                         "convention and is the robustness setting (BENCHMARK 29).")
     a = ap.parse_args(argv)
 
     print("=" * 78)

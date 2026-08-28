@@ -3755,3 +3755,104 @@ any GO decision this still needs:
    made and a forward paper-trading test instead.
 
 *Educational research only. Not financial advice.*
+
+## 29. The audits break the IV result. Status: NOT PROVEN.
+
+Two independent auditors were briefed to disprove, not defend. They succeeded.
+Every finding below was re-derived by me before being acted on.
+
+### The primary endpoint could not fail
+
+With five fold-level deltas all sharing a sign, every bootstrap resample is a
+convex combination of negative numbers. **The interval is negative at every
+alpha, by construction.** Verified directly:
+
+| alpha | CI | excludes zero |
+|---|---|---|
+| 0.05 | [−0.02677, −0.01080] | True |
+| 0.05/4 | [−0.02986, −0.00967] | True |
+| 0.05/40 | **identical** | True |
+| 0.05/1000 | **identical** | True |
+
+This is **RULES R2 — a rule that cannot fail is not a rule — applied to my own
+primary endpoint.** Worse: §25 *noticed* the saturation and wrote it down ("an
+artifact of n, not significance"), and I still left the estimator as primary
+instead of replacing it. Noticing a defect and continuing to rely on it is worse
+than missing it.
+
+### Honest estimators do not clear
+
+| test | result | clears? |
+|---|---|---|
+| t-interval, unadjusted | [−0.03449, −0.00019], p = 0.0485 | barely |
+| t-interval, family = 4 | **[−0.04399, +0.00932]** | **no** |
+| t-interval, family = 9 | [−0.05092, +0.01625] | no |
+| exact sign-flip permutation | one-sided **p = 0.03125** | see below |
+
+The permutation p of 0.03125 is **the minimum attainable at n = 5** — it is
+1/2⁵. No matter how large the true effect, a 5-fold sign test cannot produce a
+smaller p, so it can never clear a Bonferroni threshold with family ≥ 2. The
+design is incapable of delivering corrected significance at this n.
+
+### Both effects are below their own MDE
+
+The MDE figures used the normal approximation (z₀.₉₇₅ + z₀.₈₀ = 2.80). The
+correct construction at n = 5 is noncentral-t:
+
+| slice | own sd | t-MDE | observed | |
+|---|---|---|---|---|
+| production | 0.01997 | **11.81 %** | 11.61 % | **below MDE** |
+| wide | 0.01381 | **8.19 %** | 6.18 % | **below MDE** |
+
+By this project's own R5 — *an experiment whose effect is below its slice's MDE
+is a non-measurement* — **both confirmations are non-measurements.** The wide
+slice, which §28 recommended quoting as the conservative number, fails its own
+single-test MDE before any correction is applied.
+
+### A false claim in this document, withdrawn
+
+§26 and its commit state that `anchor_freshness` "now records" a paired
+per-episode estimator. **It does not.** `paired_per_episode` is `None` in both
+`anchor_freshness.json` and `anchor_freshness_allhours.json`. The code path
+exists and silently produces nothing. That claim is withdrawn, and the remedy
+E-power identified has therefore never actually been in the repository.
+
+### An unresolved threat the leakage suite cannot detect
+
+Deribit's `public/get_volatility_index_data` returns **candles**:
+`[ts_ms, open, high, low, close]`. The harvester keeps `close`, tagged with the
+candle's own timestamp. **If that timestamp marks the candle's start** — the
+prevailing convention across exchanges, including Deribit's own TradingView-
+format chart endpoint — then the close stamped at hour `h` is not determined
+until `h+1`, and reading it from anchor `h+1` cancels the entire one-hour safety
+margin.
+
+The endpoint is unreachable from this container and the fetched docs do not
+state the convention. **No leakage test in this repository can catch this**,
+because they all verify the code's indexing against the `ts` column, never
+whether `ts` means what the code assumes.
+
+Rather than argue the convention, `ivfeatures.py` now takes `--lag-hours`. A
+2-hour lag is correct under *either* convention, so a result that survives it
+does not depend on the answer. That test is queued.
+
+### Status
+
+**NOT PROVEN.** Downgraded from CONFIRMED CANDIDATE. The shipped model was never
+changed and is not changed now.
+
+**What survives is real and worth keeping**: the effect is directionally
+consistent (5 of 5 folds on both slices), beats a coverage-preserving placebo,
+reverses completely under a test-shuffle positive control, is 89.5 %
+episode-varying rather than a disguised intercept, and is insensitive to the
+shrinkage constant across eight orders of magnitude. That is a plausible signal
+with a coherent mechanism. It is **not** a statistically established one.
+
+Also confirmed by the data audit, and less damaging: the placebo's circular
+rotation is **91.3 days, not the 365 claimed** in the code and in §24 —
+`PLACEBO_SHIFT_H = 365*24` is applied as a row offset, and there are ~96 covered
+rows per day. A shorter rotation retains *more* residual autocorrelation, making
+the placebo harder to beat, so the bug works against the result rather than for
+it. The claim is still wrong and is corrected here.
+
+*Educational research only. Not financial advice.*
