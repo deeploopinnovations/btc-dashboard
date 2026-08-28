@@ -229,6 +229,29 @@ def sec_economics() -> str:
         out.append(f"| `{k}` | {v['vol_error_mean']:.4f} | {v['vol_error_worst']:.4f} | "
                    f"{v['realised_vol']:.4f} | {v['turnover']:.4f} | {v['mean_w']:.3f} | "
                    f"{nets} | {cis} |\n")
+    out.append("\n| arm | t-CI on the paired difference | t p | perm p | floor | MDE(80%) | powered? |\n"
+               "|---|---|---:|---:|---:|---:|---|\n")
+    hs = d["arms"][d["best_arm_by_primary"]]["vol_error_mean"]
+    for k, v in d["arms"].items():
+        sm = v.get("small_n")
+        if sm is None:
+            out.append(f"| `{k}` | — (is the best arm) | | | | | |\n"); continue
+        eff = abs(hs - v["vol_error_mean"])
+        pw = "yes" if eff > sm["mde_80"] else "**NOT POWERED**"
+        out.append(f"| `{k}` | [{sm['t_ci'][0]:+.4f}, {sm['t_ci'][1]:+.4f}] | "
+                   f"{sm['t_p_two_sided']:.4f} | {sm['perm_p_one_sided']:.4f}"
+                   + ("  *(at floor)*" if sm["perm_at_floor"] else "")
+                   + f" | {sm['perm_p_floor']:.4f} | {sm['mde_80']:.4f} | {pw} |\n")
+    out.append(
+        "\n`n` here is the number of **folds**, and that is intrinsic rather than a "
+        "design choice: realised volatility is a property of a series, so exactly one "
+        "number exists per fold. Per STATS_PROTOCOL §2–3 a bootstrap over same-signed "
+        "observations at this n cannot fail, so the t-interval governs where the two "
+        "disagree — and they do disagree for `noctua`, where the block interval "
+        "excludes zero adversely and the t-interval does not. The exact sign-flip "
+        "permutation has a hard one-sided floor of 2⁻⁶ = 0.0156, so **no "
+        "Bonferroni-corrected claim is available from this design at any effect "
+        "size**.\n")
     out.append(f"\nBest arm on the primary: **{d['best_arm_by_primary']}**. "
                f"Ranking by net return identical at all three cost levels: "
                f"**{d['ranking_cost_stable']}**"

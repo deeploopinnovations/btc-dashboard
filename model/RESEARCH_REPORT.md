@@ -199,7 +199,33 @@ A directional backtest is also absent, for a different reason: the signal was me
 
 What *can* be measured is a **volatility-targeting overlay on spot BTC**, which is the actual use of a volatility forecast for anyone without an options book. Its primary endpoint is risk control — |realised annualised vol − target| — not return.
 
-> **`econ_voltarget.json` is not present.** The overlay result is therefore not reported here. Regenerate it with the command in [Reproducing this](#reproducing-this) and re-run this generator.
+Target 60% annualised, weight capped at 3.0, H = 24h, rebalanced at 00:00 UTC so consecutive windows do not overlap. Costs [5.0, 10.0, 25.0] bps round-trip — **assumptions, not measurements**: this repository has no order book and no fee schedule.
+
+| arm | mean \|vol err\| | worst | realised vol | turnover | mean w | net @5bp | net @10bp | net @25bp | paired CI vs best |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---|
+| `noctua` | 0.0823 | 0.1722 | 0.6823 | 0.2038 | 1.436 | +0.087 | +0.053 | -0.049 | [-0.0531, -0.0049] |
+| `noctua40` | 0.0808 | 0.1688 | 0.6808 | 0.1997 | 1.433 | +0.092 | +0.059 | -0.041 | [-0.0501, -0.0042] |
+| `constant_w` | 0.0933 | 0.3021 | 0.6305 | 0.0035 | 1.153 | +0.140 | +0.139 | +0.137 | [-0.0903, +0.0168] |
+| `garch_normal` | 0.0963 | 0.1664 | 0.5065 | 0.1698 | 1.010 | +0.026 | -0.003 | -0.089 | [-0.0918, +0.0121] |
+| `garch_t` | 0.0710 | 0.1934 | 0.5523 | 0.2573 | 1.101 | +0.008 | -0.037 | -0.173 | [-0.0665, +0.0452] |
+| `har_short` | 0.0577 | 0.0919 | 0.6577 | 0.2410 | 1.372 | +0.068 | +0.027 | -0.094 | — (is the best arm) |
+| `log_har` | 0.0822 | 0.1536 | 0.6822 | 0.2161 | 1.400 | +0.090 | +0.054 | -0.055 | [-0.0472, -0.0095] |
+| `persistence` | 0.1124 | 0.2112 | 0.7124 | 0.4057 | 1.469 | +0.018 | -0.051 | -0.257 | [-0.0968, -0.0280] |
+
+| arm | t-CI on the paired difference | t p | perm p | floor | MDE(80%) | powered? |
+|---|---|---:|---:|---:|---:|---|
+| `noctua` | [-0.0555, +0.0063] | 0.0960 | 0.0312 | 0.0156 | 0.0419 | **NOT POWERED** |
+| `noctua40` | [-0.0528, +0.0066] | 0.1019 | 0.0312 | 0.0156 | 0.0403 | **NOT POWERED** |
+| `constant_w` | [-0.1524, +0.0811] | 0.4684 | 0.3594 | 0.0156 | 0.1585 | **NOT POWERED** |
+| `garch_normal` | [-0.1018, +0.0246] | 0.1773 | 0.0938 | 0.0156 | 0.0858 | **NOT POWERED** |
+| `garch_t` | [-0.0958, +0.0691] | 0.6946 | 0.4219 | 0.0156 | 0.1120 | **NOT POWERED** |
+| `har_short` | — (is the best arm) | | | | | |
+| `log_har` | [-0.0480, -0.0012] | 0.0429 | 0.0156  *(at floor)* | 0.0156 | 0.0318 | **NOT POWERED** |
+| `persistence` | [-0.0977, -0.0119] | 0.0218 | 0.0156  *(at floor)* | 0.0156 | 0.0582 | **NOT POWERED** |
+
+`n` here is the number of **folds**, and that is intrinsic rather than a design choice: realised volatility is a property of a series, so exactly one number exists per fold. Per STATS_PROTOCOL §2–3 a bootstrap over same-signed observations at this n cannot fail, so the t-interval governs where the two disagree — and they do disagree for `noctua`, where the block interval excludes zero adversely and the t-interval does not. The exact sign-flip permutation has a hard one-sided floor of 2⁻⁶ = 0.0156, so **no Bonferroni-corrected claim is available from this design at any effect size**.
+
+Best arm on the primary: **har_short**. Ranking by net return identical at all three cost levels: **False** — so the return comparison is **cost-dependent** and no arm is declared better on it.
 
 ## How a hypothesis becomes a result here
 
@@ -257,7 +283,7 @@ timeline
 
 ## The experiment register
 
-82 pre-registered experiments. **ADOPT** 20 · **ADVANCE** 11 · **NULL** 8 · **OPEN** 21 · **REJECT** 20 · **WITHDRAWN** 2
+83 pre-registered experiments. **ADOPT** 20 · **ADVANCE** 11 · **NULL** 9 · **OPEN** 21 · **REJECT** 20 · **WITHDRAWN** 2
 
 Every row was registered with its decision rule **before** it ran. Failures are not deleted; they stay in the family and count against the multiple-testing correction.
 
@@ -339,12 +365,13 @@ Every row was registered with its decision rule **before** it ran. Failures are 
 | `vol-matrix-power` | methodology | OPEN | Before building the four-horizon volatility matrix: which rows can a 6-fold experiment resolve? |
 | `vol-matrix` ⤳ | volatility | ADVANCE | Across four horizons (1h, 6h, 1d, 1w), does NOCTUA beat the mandatory baseline family on QLIKE, and does the a |
 | `econ-scope` | economics | REJECT | What economic validation can this repository perform honestly, and what can it not? |
-| `econ-voltarget` | economics | OPEN | Does a better volatility forecast produce a better-controlled portfolio once rebalancing costs are charged? |
+| `econ-voltarget` ⤳ | economics | OPEN | Does a better volatility forecast produce a better-controlled portfolio once rebalancing costs are charged? |
 | `vol-matrix-fair` ⤳ | volatility | OPEN | Do the two rows that cleared vol-matrix survive a baseline family that is allowed to know the horizon? |
 | `D1-direction-bench-corrected` | direction | NULL | Does any direction model beat the rolling base rate as a PROBABILITY forecast, once the features are built at  |
 | `vol-matrix-fair-result` | volatility | REJECT | Do the two rows that cleared vol-matrix survive a baseline family that is allowed to know the horizon? |
 | `E-prod-fairbaseline` ⤳ | volatility | OPEN | Does NOCTUA's headline production advantage over Log-HAR survive a horizon-aware baseline? |
 | `E-prod-fairbaseline-result` | volatility | REJECT | Does NOCTUA's headline production advantage over Log-HAR survive a horizon-aware baseline? |
+| `econ-voltarget-result` | economics | NULL | Does a better volatility forecast produce a better-controlled portfolio once rebalancing costs are charged? |
 
 ⤳ = superseded by a later entry; the original is kept rather than edited.
 
