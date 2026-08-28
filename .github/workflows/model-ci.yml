@@ -83,6 +83,13 @@ jobs:
       - name: Pitfall guards can still fail
         run: python -m model.research.pitfalls --self-test
 
+      # Phase 2's record has its own schema -- candidates carry provenance and
+      # leakage risk, mechanisms carry a falsifier and a tag the stagnation
+      # supervisor counts. Same reason as the ledger above: it is written by
+      # scripts, so the FILE is what gets checked.
+      - name: Teacher ledger schema
+        run: python -m model.research.teacher_ledger --validate
+
       # LAST, DELIBERATELY. This checks the AGE of a committed data snapshot
       # against a 6-hour threshold, so it fails whenever the data cron has not
       # run recently -- for reasons that have nothing to do with the diff under

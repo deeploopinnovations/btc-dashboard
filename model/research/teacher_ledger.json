@@ -1,0 +1,16 @@
+{
+ "schema": 1,
+ "note": "Phase 2 teacher ledger. Every candidate, failure, mechanism hypothesis, falsification attempt, result, artifact hash, commit, and whether the idea was transferred into NOCTUA. Append-only, like research/ledger.json: a wrong entry is superseded, never edited. Governed by research/TEACHER_ZOO.md, frozen 2026-08-28.",
+ "verdicts": [
+  "OPEN",
+  "ADOPT",
+  "ADVANCE",
+  "REJECT",
+  "NULL",
+  "WITHDRAWN",
+  "BLOCKED_BY_INFRASTRUCTURE",
+  "DISQUALIFIED_LEAKAGE"
+ ],
+ "candidates": [],
+ "mechanisms": []
+}
