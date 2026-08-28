@@ -67,7 +67,7 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from eval.direction import mean_ci                                           # noqa: E402
-from eval.teacher_scorecard import gather, load_oof                          # noqa: E402
+from eval.teacher_scorecard import YEARS, gather, load_oof                    # noqa: E402
 from eval.vol_matrix import block_len_for, qlike_vec                         # noqa: E402
 
 HORIZONS = (1, 6, 24, 168)
