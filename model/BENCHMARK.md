@@ -3476,3 +3476,118 @@ as guards. It is queued behind E-power, for the reason §22 gives — a result
 whose resolution is unmeasured is a result waiting to be misread.
 
 *Educational research only. Not financial advice.*
+
+## 26. E-power: 6.4 % of the extra data survives as precision
+
+§22 pre-registered this before it ran, §22's own amendment corrected its primary
+quantity to a scale-free one before any width was computed, and ledger
+`E-power-bands` fixed what each outcome would change before the number existed.
+All three are applied verbatim below.
+
+The design: re-decide §21 — the one experiment here with a large, unanimous,
+already-resolved effect — on all 24 anchor hours at H = 19 instead of the single
+production hour. Same treatment, same arms, same seeds, same folds, same rule,
+same code path (`anchor_freshness --all-hours`). Only the scoring slice widens.
+
+    episodes per fold:   production 341     all 24 hours 8,185     ratio 24.0x
+
+### The measurement
+
+| quantity | slice | Δ | rel Δ | CI width | rel width | **width ratio** |
+|---|---|---|---|---|---|---|
+| **spike QLIKE** | production | +0.03487 | +1.87 % | 0.03256 | 0.01744 | **abs 3.05× / norm 1.24×** |
+| | all hours | +0.01248 | +1.65 % | 0.01069 | 0.01410 | |
+| calm QLIKE | production | −0.00079 | −0.40 % | 0.00300 | 0.01509 | abs 1.61× / norm 2.10× |
+| | all hours | +0.00102 | +0.39 % | 0.00187 | 0.00717 | |
+| pooled QLIKE | production | +0.00140 | +0.48 % | 0.00414 | 0.01428 | abs 1.90× / norm 1.89× |
+| | all hours | +0.00170 | +0.59 % | 0.00218 | 0.00756 | |
+| deep-tail MCB | production | −0.00030 | −0.13 % | 0.00301 | 0.01336 | abs 3.31× / norm 2.98× |
+| | all hours | +0.00041 | +0.20 % | 0.00091 | 0.00449 | |
+
+**Primary, on the spike slice the treatment targets: the scale-normalised width
+ratio is 1.24×, against the √24 = 4.90× independent episodes would give.**
+
+    EFFECTIVE SAMPLE-SIZE MULTIPLIER = 1.24^2 = 1.53x
+    against a nominal 24x more episodes.
+    6.4 % of the nominal gain survives as usable precision.
+
+The prediction recorded before the run — "materially less than 4.90×, because
+fold-level variance has two components and only one of them shrinks" — holds.
+The band it lands in, per `E-power-bands`, is **(C) 1.5–3×: widening buys
+little; the binding constraint is the number of YEARS, not episodes.** It lands
+*at the boundary* with band (D), 1.53 against a 1.50 cutoff, and that should be
+read as "barely (C)" rather than comfortably so.
+
+### The part that was not predicted: the constraint is worst where the loss is
+
+The four quantities did not tighten equally.
+
+| quantity | scale-normalised tightening |
+|---|---|
+| deep-tail MCB | 2.98× |
+| calm QLIKE | 2.10× |
+| pooled QLIKE | 1.89× |
+| **spike QLIKE** | **1.24×** |
+
+Spike is the *least* helped, and spike is where §7a put 25.8 % of total loss.
+The mechanism is straightforward once seen: spike episodes are ~6 % of the
+population, so a 24× wider slice still leaves few of them, and what remains is
+between-year heterogeneity that no amount of extra scoring reduces. **More data
+helps most exactly where it is needed least.**
+
+### The verdict did not flip — and got stronger
+
+    production (17:00 only): spike CI [+0.02151, +0.05408] -> REJECT
+       all 24 anchor hours: spike CI [+0.00889, +0.01957] -> REJECT
+
+Both reject with the interval excluding zero on the *unfavourable* side. §22's
+re-run gate — "if §21's verdict flips, every prior verdict resting on a marginal
+interval is re-run before any new experiment starts" — **does not fire.**
+
+But the wider slice found harm the narrow one could not resolve:
+
+- **calm QLIKE reverses sign.** Production read −0.00079 (a non-significant
+  improvement); all-hours reads +0.00102 with a CI of [+0.00062, +0.00249],
+  excluding zero. The fresh anchor makes calm episodes *worse*, and the
+  production slice could not see it.
+- **the deep-tail MCB guard now FAILS.** It passed on production
+  (−0.00030, CI containing zero) and fails on all hours (+0.00041, CI
+  [+0.00002, +0.00093]).
+- **pooled QLIKE becomes significant**, +0.00170 CI [+0.00125, +0.00343].
+
+So §21's rejection is not merely reproduced, it is strengthened on three
+additional quantities. The extra resolution was small, and it was not nothing.
+
+### The effect-size question, reported unresolved as promised
+
+§22's amendment flagged that the relative treatment effect looked smaller on the
+wide slice mid-run (0.91 / 1.57 / 1.26 % across the first three folds against
+1.87 % on production), and committed to reporting it as a separate question from
+precision. With all six folds in, the gap largely closes: **1.87 % production
+against 1.65 % all-hours.** That is a modest difference well inside either
+interval, and the mid-run impression was an artifact of reading three folds. The
+two readings offered in advance — that 17:00 genuinely differs, or that the
+production estimate was inflated — are both consistent with a 0.22-point gap,
+and this data does not separate them. It stays unresolved, as promised.
+
+### What changes, per the pre-registered band
+
+1. **Widening the scoring slice is not the fix.** A 24× cost for 1.53× effective
+   n is a bad trade, and it is a *worse* trade on the spike slice than anywhere
+   else. Future experiments do not move to the 24-hour slice by default.
+2. **The remedy is the estimator, not more scoring.** Band (C) names it: the
+   paired per-episode bootstrap, which `anchor_freshness` now records. Both arms
+   are scored on identical episode sets, so the deltas are paired, and that
+   interval carries sampling error without the between-year heterogeneity the
+   fold-level one is dominated by.
+3. **Every fold-level verdict in this document is a statement about six years.**
+   Not about thousands of episodes. At 6.4 % survival the fold-level bootstrap
+   is measuring year-to-year variation almost exclusively, and §23's
+   non-measurement — an estimate one eighteenth of its own standard error — was
+   the predictable consequence rather than bad luck.
+4. **Minimum detectable effect is now a required field.** The MDEs implied by
+   the production slice are ~1.44 % on spike QLIKE and ~8.44 % on pooled. Any
+   experiment whose hypothesised effect is smaller than its slice's MDE is a
+   non-measurement before it runs, and should be redesigned or not run.
+
+*Educational research only. Not financial advice.*
