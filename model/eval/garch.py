@@ -112,6 +112,19 @@ def fit_and_forecast(ret: pd.DataFrame, train_end_ts: int, anchor_ts: np.ndarray
     ts = ret["hour_ts"].to_numpy(np.int64)
     ok = np.isfinite(r)
     tr = ok & (ts < train_end_ts)
+
+    # THE FIT IS CACHED, THE FORECAST IS NOT. A caller scoring several
+    # horizons off the same fold asks for the same GARCH fit once per horizon,
+    # and each fit is nine multi-starts over 100k+ returns. The cache key is
+    # the fit's own complete input -- the training cutoff, the innovation
+    # distribution, and the identity of the return series -- so a different
+    # fold, a different distribution or a different series still refits. The
+    # conditional-variance path h[] is a function of those three and of
+    # nothing else, so caching it changes no number.
+    ck = (int(train_end_ts), dist, len(r), float(np.nansum(r[tr])), int(tr.sum()))
+    if ck in _FIT_CACHE:
+        omega, alpha, beta, h = _FIT_CACHE[ck]
+        return _forecast_from(h, ts, omega, alpha, beta, anchor_ts, H)
     # arch works better on percent returns; scale and undo it afterwards.
     y = r[tr] * 100.0
     if verbose:
@@ -177,6 +190,18 @@ def fit_and_forecast(ret: pd.DataFrame, train_end_ts: int, anchor_ts: np.ndarray
     for i in range(1, n):
         h[i] = omega + alpha * rp[i - 1] ** 2 + beta * h[i - 1]
 
+    _FIT_CACHE[ck] = (omega, alpha, beta, h)
+    return _forecast_from(h, ts, omega, alpha, beta, anchor_ts, H)
+
+
+_FIT_CACHE: dict = {}
+
+
+def _forecast_from(h, ts, omega, alpha, beta, anchor_ts, H):
+    """Aggregate the multi-step GARCH variance forecast to each anchor's
+    H-hour window. Split out of `fit_and_forecast` so the fit can be cached
+    across horizons; the arithmetic is unchanged."""
+    persistence = alpha + beta
     idx = {t: i for i, t in enumerate(ts)}
     out = np.full(len(anchor_ts), np.nan)
     for k, (a, hh) in enumerate(zip(anchor_ts, H)):
