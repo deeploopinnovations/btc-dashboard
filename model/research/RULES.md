@@ -196,12 +196,21 @@ margin in the first matrix was partly a measurement of that asymmetry, and the
 largest margin was almost entirely it. *(`vol-matrix-fair-result`)*
 
 **R40. The straw-man check runs on your own headline too.**
-`vol-matrix-fair-result` immediately implicates `eval/benchmark.py`, which fits
-its `log_har` baseline the same pooled way and is what "NOCTUA beats Log-HAR by
-4.98 %" is measured against. Registering `E-prod-fairbaseline` to test the
-project's own headline is not optional once the mechanism is known — a
-correction you apply only to the result you dislike is not a correction.
-*(`E-prod-fairbaseline`)*
+`vol-matrix-fair-result` implicates `eval/benchmark.py`, which fits its
+baseline on the same pooled multi-horizon sample. Registering
+`E-prod-fairbaseline` to test the project's own headline is not optional once
+the mechanism is known — a correction you apply only to the result you dislike
+is not a correction. *(`E-prod-fairbaseline`)*
+
+**R41. An artifact key is not a description of what it holds.**
+I asserted that the headline was measured against a horizon-blind `log_har`,
+because `benchmark.json` stores it under the key `"log_har"`. The line that
+produces it reads `bl["log_har_cal"]` — the baseline already carries `cal_H`.
+The claim was in a committed ledger entry before I read that line. **Read the
+expression that computes the number, not the name it is filed under**, and do
+it before writing the sentence that depends on it, not after. This is R14
+("split boundaries are data, not folklore") pointed at derived values instead
+of at constants. *(`vol-matrix-fair-result` correction note)*
 
 **R37. Point the new guard at the code you already trust.**
 `_verify_per_anchor` was written for `vol_matrix.py`, a file with no results

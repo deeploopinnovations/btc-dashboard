@@ -12,11 +12,21 @@ centre. Refitting the same family per horizon turned a +0.14462 NOCTUA win at
 H = 168 into a -0.02362 loss, and the pooled fit was costing the baseline a
 factor of 2.06 there.
 
-`eval/benchmark.py` fits its `log_har` baseline the same way -- once per fold
-on the pooled training sample spanning H in {6,12,19,24} -- and that baseline
-is exactly what "NOCTUA beats Log-HAR by 4.98%" is measured against. A
-correction applied only to the result one dislikes is not a correction, so the
-mechanism gets pointed at the headline.
+`eval/benchmark.py` fits its baseline once per fold on the pooled training
+sample spanning H in {6,12,19,24}, and that baseline is what the project's
+headline advantage over Log-HAR is measured against. A correction applied only
+to the result one dislikes is not a correction, so the mechanism gets pointed
+at the headline.
+
+A CORRECTION TO MY OWN FIRST FRAMING OF THIS FILE, kept rather than quietly
+edited. I initially wrote that the headline was measured against a
+horizon-BLIND baseline, by analogy with the matrix. It is not.
+`benchmark.run_fold` builds its comparison from `bl["log_har_cal"]` --
+har_1d/5d/22d plus cal_H and cal_weekend_frac -- and merely STORES it under the
+key `"log_har"`. The incumbent baseline already has a horizon term. What is
+still open is whether fitting it POOLED across {6,12,19,24} rather than at
+H = 19 costs it anything, which is a much narrower question than the one the
+matrix answered, and it is the question this file actually measures.
 
 WHAT IS HELD FIXED
 
@@ -30,8 +40,16 @@ construction.
 
 THE ARMS
 
-    log_har_pooled     har_1d/5d/22d, fitted on the pooled training sample.
-                       THE INCUMBENT BASELINE -- the one the 4.98% is against.
+    log_har_cal_pooled THE ACTUAL INCUMBENT BASELINE. `benchmark.run_fold`
+                       computes `vol["log_har"]` from `bl["log_har_cal"]`, not
+                       from `bl["log_har"]` -- the artifact key is misleading
+                       and cost me a wrong claim once already (see below). So
+                       the incumbent is har_1d/5d/22d PLUS cal_H and
+                       cal_weekend_frac, fitted on the pooled sample. It is
+                       horizon-AWARE, and the headline is therefore NOT the
+                       straw-man comparison I first assumed.
+    log_har_pooled     har_1d/5d/22d only, pooled. Reported for contrast; it
+                       is NOT what the headline is measured against.
     log_har            the same columns, refitted on H = 19 training episodes.
     har_short          + har_1h and har_6h, refitted on H = 19.
     log_har_cal        + cal_H and cal_weekend_frac, refitted on H = 19.
@@ -70,6 +88,10 @@ from noctua.train import load_all                                        # noqa:
 # The volatility-matrix family had 4 rows; this contrast joins it as the 5th.
 N_FAMILY = 5
 FAIR_ARMS = ("log_har", "har_short", "log_har_cal")
+# scored, reported, and never eligible to be chosen as the bar
+POOLED_ARMS = ("log_har", "log_har_cal")
+# the one the published headline is actually measured against
+INCUMBENT = "log_har_cal_pooled"
 
 
 def main(argv=None) -> int:
@@ -125,8 +147,9 @@ def main(argv=None) -> int:
         arms = {
             "noctua": pe["sigma_med"],
             "persistence": np.maximum(np.exp(Xte["har_1d"].to_numpy()) * sq, 1e-12),
-            "log_har_pooled": np.exp(bl_pool["log_har"].predict(Xte)) * sq,
         }
+        for k in POOLED_ARMS:
+            arms[k + "_pooled"] = np.exp(bl_pool[k].predict(Xte)) * sq
         for k in FAIR_ARMS:
             arms[k] = np.exp(bl_h[k].predict(Xte)) * sq
 
@@ -191,19 +214,24 @@ def main(argv=None) -> int:
                        "paired_ci": None if ci is None else list(ci["ci95"])}
 
     # the incumbent comparison, stated in the incumbent's own terms
-    inc = pooled["log_har_pooled"]
+    inc = pooled[INCUMBENT]
     d_inc = inc - pooled["noctua"]
     ci_inc = mean_ci(d_inc[np.isfinite(d_inc)], alpha=alpha, block_len=L)
     rel_inc = 100.0 * np.nanmean(d_inc) / np.nanmean(inc)
-    print(f"\n   THE INCUMBENT CLAIM, restated: NOCTUA vs log_har_pooled "
+    print(f"\n   THE INCUMBENT CLAIM, restated: NOCTUA vs {INCUMBENT} "
           f"{np.nanmean(d_inc):+.5f} ({rel_inc:+.2f}%)  "
           f"CI [{ci_inc['ci95'][0]:+.5f}, {ci_inc['ci95'][1]:+.5f}]")
+
+    d_best = pooled[best] - pooled["noctua"]
+    ci95 = mean_ci(d_best[np.isfinite(d_best)], alpha=0.05, block_len=L)
+    print(f"   (unadjusted 95% interval on the same contrast, for context only "
+          f"and NOT the rule: [{ci95['ci95'][0]:+.5f}, {ci95['ci95'][1]:+.5f}])")
 
     ci_n = out_arms["noctua"]["paired_ci"]
     verdict = "CLEARS" if (ci_n and ci_n[0] > 0.0) else "DOES NOT CLEAR"
     print(f"\n   --- pre-registered rule ---")
     print(f"   NOCTUA vs {best} (horizon-aware, chosen on calib): {verdict} zero favourably")
-    print(f"   headline against the horizon-BLIND log_har_pooled: "
+    print(f"   headline against the POOLED incumbent {INCUMBENT}: "
           f"{rel_inc:+.2f}%   against the horizon-AWARE best baseline: "
           f"{out_arms['noctua']['rel_pct_vs_best']:+.2f}%")
 
@@ -215,6 +243,7 @@ def main(argv=None) -> int:
                             "rel_pct": float(rel_inc),
                             "ci": list(ci_inc["ci95"])},
         "verdict": verdict,
+        "unadjusted_ci95": list(ci95["ci95"]),
     }, indent=1, default=float) + "\n")
     print(f"\nwrote {a.out}")
     return 0
