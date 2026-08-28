@@ -224,7 +224,8 @@ def block_bootstrap_ci(d, n_rep=2000, seed=0, alpha=0.05):
     n = len(d)
     if n < 20:
         return (float("nan"), float("nan"))
-    L = max(1, int(round(n ** (1 / 3))))
+    L = max(1, int(round(n ** (1 / 3))) if block_len is None else int(block_len))
+    L = min(L, n)
     nb = int(np.ceil(n / L))
     rng = np.random.default_rng(seed)
     starts = rng.integers(0, n - L + 1, size=(n_rep, nb))
@@ -233,7 +234,8 @@ def block_bootstrap_ci(d, n_rep=2000, seed=0, alpha=0.05):
     return (float(np.quantile(means, alpha / 2)), float(np.quantile(means, 1 - alpha / 2)))
 
 
-def mean_ci(d, n_rep: int = 20_000, seed: int = 0, alpha: float = 0.05) -> dict:
+def mean_ci(d, n_rep: int = 20_000, seed: int = 0, alpha: float = 0.05,
+            block_len: int | None = None) -> dict:
     """A CI for the mean that is DEFINED at every usable n, plus the diagnostics
     that matter when n is small.
 
@@ -253,8 +255,19 @@ def mean_ci(d, n_rep: int = 20_000, seed: int = 0, alpha: float = 0.05) -> dict:
     estimator is a real degree of freedom and hiding it would be a way to pick
     the answer:
 
-      ci95        the moving-block interval, blocks of round(n^(1/3)). This is
-                  the PRE-REGISTERED estimator and the one a verdict uses.
+      ci95        the moving-block interval, blocks of round(n^(1/3)) unless
+                  `block_len` overrides it. This is the PRE-REGISTERED
+                  estimator and the one a verdict uses.
+
+    `block_len` exists because n^(1/3) is a rule of thumb about SAMPLE SIZE and
+    knows nothing about the dependence it is supposed to absorb. When the unit
+    is an episode drawn from an hourly-anchored table with an H-hour forward
+    window, consecutive observations share H-1 of their H hours, and the
+    dependence range is H regardless of n. At H = 168 and n = 49,000 the rule of
+    thumb gives 37 -- roughly a fifth of the overlap -- and the resulting
+    interval is too narrow for the reason that matters: it is treating four
+    fifths of a shared window as independent evidence. Callers that know their
+    dependence range should say so.
       ci95_iid    the ordinary bootstrap. For yearly folds separated by an
                   embargo the dependence the blocks model is largely absent,
                   so the block interval is if anything conservative; when the
@@ -266,7 +279,8 @@ def mean_ci(d, n_rep: int = 20_000, seed: int = 0, alpha: float = 0.05) -> dict:
     n = len(d)
     if n < 2:
         raise ValueError(f"mean_ci needs at least 2 finite observations, got {n}")
-    L = max(1, int(round(n ** (1 / 3))))
+    L = max(1, int(round(n ** (1 / 3))) if block_len is None else int(block_len))
+    L = min(L, n)
     nb = int(np.ceil(n / L))
     rng = np.random.default_rng(seed)
 

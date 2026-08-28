@@ -118,6 +118,24 @@ warnings.filterwarnings("ignore", category=RuntimeWarning)
 HOUR = 3600
 HORIZONS = (1, 6, 24, 168)
 N_FAMILY = 4                    # 4 horizons x 1 primary contrast, fixed a priori
+
+# THE BLOCK LENGTH, and why it is not left at the default.
+#
+# `mean_ci` blocks at round(n^(1/3)) by default. That is a rule of thumb about
+# SAMPLE SIZE and knows nothing about the dependence it exists to absorb. The
+# episode table is anchored HOURLY with an H-hour forward window, so two
+# consecutive episodes share H-1 of their H hours and the dependence range is
+# H no matter how large n is. At H = 168 and n ~ 49,000 the default gives 37 --
+# about a fifth of the overlap -- and the resulting interval treats four fifths
+# of a shared window as independent evidence.
+#
+# So the primary interval blocks at 2H (a block spanning two full windows,
+# which is the conservative reading), floored at the n^(1/3) value so it never
+# becomes SHORTER than the default. The default interval is reported beside it
+# as a sensitivity, because the choice is a real degree of freedom and hiding
+# it would be a way to pick the answer.
+def block_len_for(H: int, n: int) -> int:
+    return max(int(round(n ** (1 / 3))), 2 * int(H))
 BASELINE_ARMS = ("persistence", "log_har", "har_short", "garch_normal", "garch_t")
 
 # The two feature columns that are UNDEFINED at H = 168, because `seas_{d}d`
@@ -367,13 +385,18 @@ def run_fold(ep, X, fold, ret, hidden=32, seeds=3, verbose=False):
                         dist=dist, verbose=False)
                 arms[nm] = run_fold._garch[key]
 
-        rec = {}
+        rec, sigmas = {}, {}
         for k, sig in arms.items():
             sig = np.asarray(sig, np.float64)
             ok = np.isfinite(sig) & (sig > 0)
             if ok.mean() < 0.95:
                 continue
-            rec[k] = qlike_vec(rv, np.where(ok, sig, np.nan))
+            sig = np.where(ok, sig, np.nan)
+            rec[k] = qlike_vec(rv, sig)
+            # kept so a caller can score a DIFFERENT objective on the SAME
+            # forecasts -- eval/econ_voltarget.py needs sigma, not QLIKE, and
+            # retraining it there would be R18's mistake with extra steps.
+            sigmas[k] = sig
 
         # The train/calib-side QLIKE of each baseline. This is how the BEST
         # BASELINE is chosen -- on calib, never on test.
@@ -389,7 +412,9 @@ def run_fold(ep, X, fold, ret, hidden=32, seeds=3, verbose=False):
                     rvv, np.exp(bl[k].predict(X[mv])) * sqv)))
         out[int(H)] = {"qlike": rec, "n": int(mh.sum()),
                        "rv": rv, "sigma_persist": arms["persistence"],
-                       "calib_qlike": sel}
+                       "sigma": sigmas, "calib_qlike": sel,
+                       "anchor_ts": ep.anchor_ts.to_numpy(np.int64)[mh],
+                       "R": ep.R.to_numpy(np.float64)[mh]}
     return out
 
 
@@ -485,12 +510,25 @@ def main(argv=None) -> int:
             v = pooled[k]
             d = pooled[best] - v          # positive => k is BETTER than best
             good = np.isfinite(d)
-            ci = mean_ci(d[good], alpha=alpha) if k != best else None
+            ci = ci_thumb = None
+            if k != best:
+                L = block_len_for(H, int(good.sum()))
+                ci = mean_ci(d[good], alpha=alpha, block_len=L)
+                # the rule-of-thumb interval, for the NOCTUA arms only -- they
+                # are the ones a verdict depends on, and the comparison is
+                # there to show whether the verdict survives the choice.
+                if k in ("noctua", "noctua40"):
+                    ci_thumb = mean_ci(d[good], alpha=alpha)
             cis = "—" if ci is None else f"[{ci['ci95'][0]:+.5f}, {ci['ci95'][1]:+.5f}]"
+            if ci_thumb is not None:
+                cis += (f"   [n^(1/3), L={ci_thumb['block_len']}: "
+                        f"{ci_thumb['ci95'][0]:+.5f}, {ci_thumb['ci95'][1]:+.5f}]")
             print(f"{k:>13} {np.nanmean(v):9.5f} {np.nanmean(d):+10.5f} "
                   f"{max(per_fold[k]):11.5f} {np.nanmean(v[sp]):9.4f} "
                   f"{np.nanmean(v[~sp]):9.4f}   {cis}")
             row_out[k] = {
+                "block_len": None if ci is None else ci["block_len"],
+                "paired_ci_cuberoot": None if ci_thumb is None else list(ci_thumb["ci95"]),
                 "qlike": float(np.nanmean(v)),
                 "delta_vs_best": float(np.nanmean(d)),
                 "worst_fold": float(max(per_fold[k])),
@@ -513,7 +551,17 @@ def main(argv=None) -> int:
             v = "CLEARS" if (ci and ci[0] > 0.0) else "DOES NOT CLEAR"
             verdicts[k] = v
             print(f"   {k:>9} vs {best}: paired per-episode CI at "
-                  f"{100*(1-alpha):.2f}% {v} zero favourably")
+                  f"{100*(1-alpha):.2f}% (blocks of {row_out[k]['block_len']}) "
+                  f"{v} zero favourably")
+            ct = row_out[k]["paired_ci_cuberoot"]
+            if ct is not None:
+                v2 = "CLEARS" if ct[0] > 0.0 else "DOES NOT CLEAR"
+                if v2 != v:
+                    print(f"   {'':>9}    SENSITIVE TO THE BLOCK LENGTH: the "
+                          f"n^(1/3) interval {v2}. Reported, and the longer "
+                          f"block governs.")
+                else:
+                    print(f"   {'':>9}    same verdict at the n^(1/3) block length")
         print("   the fold-level spread is reported as `per_fold` and is NOT the primary: "
               "vol-matrix-power measured it UNDERPOWERED at this horizon")
         results[str(H)] = {"best_baseline": best, "calib_qlike": cal,
