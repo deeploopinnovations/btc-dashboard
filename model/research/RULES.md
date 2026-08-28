@@ -114,6 +114,17 @@ designed.**
 It is what ruled out a plain IV feature column (32.7% train vs 100% test) and
 produced the residual design that worked. *(`iv-coverage-2`)*
 
+**R43. A sentinel value is a lie the pipeline tells itself. Ask what the
+substituted value CLAIMS.**
+`features.py` guards `log(0)` with `max(rv, EPS)`, `EPS = 1e-12`. That is a real
+problem solved by inventing a number — and the number is not neutral. It asserts
+*realized volatility was 1e-6*, the strongest possible statement the feature can
+make, in the most dangerous direction. On 2022-07-13 an hour with **volume
+exactly 0** became `har_1h = −13.8155`; `har_short` forecast σ = 0.000290; BTC
+fell 3.1 % in the next hour. That one episode is **72.5 % of the entire fold's
+mean QLIKE**. Prefer NaN and let the row fail closed — which is what R13 already
+required. *(`P2-floor-defect`)*
+
 **R34. A comment that says "(verified)" is not a verification.**
 `direction_bench.py` carried the line *"Only `cal_H` varies with H at a fixed
 anchor (verified)"*. Four columns do. The word had been written by someone who

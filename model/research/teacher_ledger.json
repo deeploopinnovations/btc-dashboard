@@ -11,6 +11,151 @@
   "BLOCKED_BY_INFRASTRUCTURE",
   "DISQUALIFIED_LEAKAGE"
  ],
- "candidates": [],
- "mechanisms": []
+ "candidates": [
+  {
+   "id": "T-har_short",
+   "name": "har_short \u2014 Corsi cascade + har_1h + har_6h",
+   "verdict": "OPEN",
+   "source": "in-repo: model/noctua/baselines.py, model/eval/garch.py",
+   "licence_code": "repository licence",
+   "licence_weights": "NOT_APPLICABLE",
+   "leakage_risk": "NOT_APPLICABLE",
+   "eval_mode": "trained-from-scratch per fold",
+   "oof_sha256": "0a819a8c1cc47f5e",
+   "commit": "3dad6ba",
+   "params": 6,
+   "cost_s": 0.059,
+   "note": "best by CALIB at H=24 and H=168; catastrophic at H=1 in ONE fold (2022: 2.83480) while its other five folds are 0.521-0.672"
+  },
+  {
+   "id": "T-garch_t",
+   "name": "GARCH(1,1) Student-t, 9 multi-starts",
+   "verdict": "OPEN",
+   "source": "in-repo: model/noctua/baselines.py, model/eval/garch.py",
+   "licence_code": "repository licence",
+   "licence_weights": "NOT_APPLICABLE",
+   "leakage_risk": "NOT_APPLICABLE",
+   "eval_mode": "trained-from-scratch per fold",
+   "oof_sha256": "0a819a8c1cc47f5e",
+   "commit": "3dad6ba",
+   "params": 4,
+   "cost_s": 2.91,
+   "note": "best by CALIB at H=1 and H=6; best calibration ratio at H=1 (1.017) and H=6 (1.051); collapses at H=168 pooled (0.44349) while holding the 2nd-best spike"
+  },
+  {
+   "id": "T-garch_normal",
+   "name": "GARCH(1,1) normal innovations",
+   "verdict": "OPEN",
+   "source": "in-repo: model/noctua/baselines.py, model/eval/garch.py",
+   "licence_code": "repository licence",
+   "licence_weights": "NOT_APPLICABLE",
+   "leakage_risk": "NOT_APPLICABLE",
+   "eval_mode": "trained-from-scratch per fold",
+   "oof_sha256": "0a819a8c1cc47f5e",
+   "commit": "3dad6ba",
+   "params": 3,
+   "cost_s": 2.91,
+   "note": "WINS spike AND deep-tail at ALL FOUR horizons despite never winning pooled. Calibration ratio BELOW 1 everywhere (0.845/0.861/0.778/0.416) -- it systematically over-forecasts, which is why"
+  },
+  {
+   "id": "T-persistence",
+   "name": "exp(har_1d)*sqrt(H)",
+   "verdict": "OPEN",
+   "source": "in-repo: model/noctua/baselines.py, model/eval/garch.py",
+   "licence_code": "repository licence",
+   "licence_weights": "NOT_APPLICABLE",
+   "leakage_risk": "NOT_APPLICABLE",
+   "eval_mode": "trained-from-scratch per fold",
+   "oof_sha256": "0a819a8c1cc47f5e",
+   "commit": "3dad6ba",
+   "params": 0,
+   "cost_s": 0.0,
+   "note": "the do-nothing bar; never wins any metric at any horizon"
+  },
+  {
+   "id": "T-log_har_cal",
+   "name": "Corsi cascade + cal_H + cal_weekend_frac",
+   "verdict": "OPEN",
+   "source": "in-repo: model/noctua/baselines.py, model/eval/garch.py",
+   "licence_code": "repository licence",
+   "licence_weights": "NOT_APPLICABLE",
+   "leakage_risk": "NOT_APPLICABLE",
+   "eval_mode": "trained-from-scratch per fold",
+   "oof_sha256": "0a819a8c1cc47f5e",
+   "commit": "3dad6ba",
+   "params": 6,
+   "cost_s": 0.059,
+   "note": "identical to log_har at H=168 to 5dp, which is correct by construction: cal_weekend_frac is exactly 2/7 for every 168h window and cal_H is constant within a horizon"
+  },
+  {
+   "id": "T-log_har",
+   "name": "Corsi cascade har_1d/5d/22d",
+   "verdict": "OPEN",
+   "source": "in-repo: model/noctua/baselines.py, model/eval/garch.py",
+   "licence_code": "repository licence",
+   "licence_weights": "NOT_APPLICABLE",
+   "leakage_risk": "NOT_APPLICABLE",
+   "eval_mode": "trained-from-scratch per fold",
+   "oof_sha256": "0a819a8c1cc47f5e",
+   "commit": "3dad6ba",
+   "params": 4,
+   "cost_s": 0.059,
+   "note": ""
+  },
+  {
+   "id": "T-noctua_v1",
+   "name": "NOCTUA V1, 6,939 params/seed, 3 seeds",
+   "verdict": "OPEN",
+   "source": "in-repo: model/noctua/baselines.py, model/eval/garch.py",
+   "licence_code": "repository licence",
+   "licence_weights": "NOT_APPLICABLE",
+   "leakage_risk": "NOT_APPLICABLE",
+   "eval_mode": "trained-from-scratch per fold",
+   "oof_sha256": "0a819a8c1cc47f5e",
+   "commit": "3dad6ba",
+   "params": 6939,
+   "cost_s": 56.0,
+   "note": "WINS calm QLIKE at H=1 (0.40275) and H=6 (0.30222) -- best of any teacher -- while posting near-worst spike (4.8005, 2.8765) and deep tail (13.05, 6.65). Calibration ratio 1.166-1.464: systematically under-forecasts"
+  }
+ ],
+ "mechanisms": [
+  {
+   "id": "M-garchnormal-tails",
+   "teacher": "garch_normal",
+   "mechanism": "overforecast-tails",
+   "claim": "garch_normal wins spike AND deep-tail QLIKE at ALL FOUR horizons while never winning pooled, and its calibration ratio mean(RV^2/sigma^2) is BELOW 1 at every horizon (0.845 / 0.861 / 0.778 / 0.416). The mechanism is not tail modelling -- it is a systematic UPWARD level bias. QLIKE is asymmetric and penalises under-forecasting 1.60x more than over-forecasting at a factor-2 error, so a model biased high buys tail performance and pays for it in calm. That is a SCALE choice, not information.",
+   "falsifier": "Multiply any teacher's sigma by a constant c > 1 fitted on CALIB only. If a constant rescale reproduces most of garch_normal's spike and deep-tail advantage, the mechanism is level bias and there is nothing to transfer beyond a scalar. If the rescaled teacher does NOT close the gap, garch_normal knows something episode-specific about tails and the mechanism is real.",
+   "verdict": "OPEN"
+  },
+  {
+   "id": "M-noctua-calm-spike-split",
+   "teacher": "noctua_v1",
+   "mechanism": "median-vs-mean-scale",
+   "claim": "NOCTUA V1 is the BEST calm forecaster in the zoo at H=1 (0.40275) and H=6 (0.30222) and among the WORST on spike and deep tail, with a calibration ratio of 1.166-1.464 meaning it systematically under-forecasts. This is the same signature the volatility-targeting overlay found independently -- every HAR-family and NOCTUA arm overshot a 60% realised-vol target. The claim: NOCTUA's deficit is a SCALE deficit, not an information deficit, and it is the median-vs-mean mismatch E-scale has had open since Phase 0 -- the model reports a conditional median while QLIKE is minimised by the conditional mean of variance.",
+   "falsifier": "Fit a single scalar c on CALIB minimising QLIKE of c*sigma_noctua, per horizon. If c*NOCTUA closes most of the pooled gap to the best teacher AND lands the calibration ratio near 1.0 without destroying the calm advantage, the deficit is scale. If pooled QLIKE barely moves, or calm degrades by more than spike improves, the deficit is information and E-scale is not the explanation.",
+   "verdict": "OPEN"
+  },
+  {
+   "id": "M-harshort-h1-onefold",
+   "teacher": "har_short",
+   "mechanism": "short-scale-overfit",
+   "claim": "har_short's H=1 catastrophe is NOT a uniform failure. Its per-fold QLIKE is 0.521, 2.835, 0.823, 0.672, 0.574, 0.586 -- five folds competitive with everything else and ONE fold (2022) an order of magnitude out. So the H=1 story is a single-regime blowup, not 'five regressors overfit one horizon'. 2022 is the year of the LUNA and FTX collapses. The claim: har_1h and har_6h carry enormous leverage on a one-hour horizon, and in a regime with extreme hour-to-hour vol clustering the fitted coefficients extrapolate catastrophically.",
+   "falsifier": "Refit har_short at H=1 with the 2022 fold's training data winsorised at the 99.5th percentile of har_1h/har_6h. If the 2022 blowup disappears and the other five folds are unchanged, the mechanism is coefficient leverage under extreme inputs. If 2022 stays broken, it is not leverage and the explanation is wrong.",
+   "verdict": "OPEN",
+   "superseded_by": [
+    "M-harshort-h1-datagap"
+   ]
+  },
+  {
+   "id": "M-harshort-h1-datagap",
+   "teacher": "har_short",
+   "mechanism": "zero-variance-floor",
+   "supersedes": [
+    "M-harshort-h1-onefold"
+   ],
+   "claim": "SUPERSEDES M-harshort-h1-onefold, WHICH WAS WRONG. I claimed har_short's H=1 catastrophe was coefficient leverage in a high-clustering regime. It is not a volatility mechanism at all -- it is a DATA-QUALITY DEFECT, and I verified it independently rather than accepting the agent finding.\nMEASURED: in fold 2022 at H=1, ONE episode contributes 72.5% of the fold's entire mean QLIKE and the top ten contribute 78.9%. Excluding those ten, the fold averages 0.6000 -- in line with every other arm. har_short is not broadly bad at H=1; it is destroyed by a handful of episodes.\nTHE CAUSE: the worst episode is anchored 2022-07-13 16:00 UTC. The preceding hour, 15:00, has volume EXACTLY 0.000000, open == close == 19772.52, and rv5 == 0. That is a DATA GAP -- no trades recorded in this source for that hour. `features.py` computes har_1h as 0.5*_safe_log(max(rv, EPS)) with EPS=1e-12, so a missing hour becomes -13.8155, i.e. the confident assertion that realized volatility was 1e-6. har_short's positive coefficient on har_1h then forecasts sigma = 0.000290. BTC proceeded to fall 3.1% in the next hour on the June CPI print; realized was 0.03892, a 134x miss, QLIKE 17,989.\nSCOPE: 958 episodes (0.201%) sit at the har_1h floor, 156 at har_6h, 115 at har_1d, none at har_5d or har_22d. Across the hourly bars, 4,258 have rv5 <= 0 and 3,520 of those have volume == 0. Restricted to the modern era (>= SAMPLE_START 2017-08-01) there are only ELEVEN such bars, ten of them zero-volume, spread over 2020, 2022, 2023, 2024 and 2025. Rare, and catastrophic when it lands.",
+   "falsifier": "ALREADY EXECUTED, which is why this is not OPEN. The prediction was that the blowup is confined to floored episodes. Verified: the single worst episode sits exactly at the floor, the fold excluding its ten worst episodes scores 0.6000, and only two episodes in that fold's test slice are at the floor. A competing explanation -- broad overfitting of five regressors to one horizon -- predicts a diffuse degradation across many episodes and is RULED OUT by the 72.5%/one-episode concentration.",
+   "verdict": "ADVANCE"
+  }
+ ]
 }
