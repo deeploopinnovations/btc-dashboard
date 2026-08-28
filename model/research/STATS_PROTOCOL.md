@@ -23,6 +23,31 @@ whether an effect is stable across years — and E-power established that
 between-year heterogeneity dominates it, so it is the question that matters for
 deployment and the one this data usually cannot answer.
 
+## 1b. How the block bootstrap is blocked
+
+**The block must exceed the dependence range, not the cube root of n.**
+`mean_ci` defaults to `round(n^(1/3))`, which is a rule of thumb about SAMPLE
+SIZE and knows nothing about the overlap it exists to absorb. Where the unit is
+an episode drawn from an hourly-anchored table with an H-hour forward window,
+two consecutive observations share H−1 of their H hours and the dependence
+range is **H, however large n gets**. At H = 168 with n ≈ 49,000 the default
+gives 37 — about a fifth of the overlap — and the interval treats four fifths
+of a shared window as independent evidence.
+
+So: **any per-episode interval on an overlapping-window table blocks at at
+least 2H**, floored at the `n^(1/3)` value so it can never come out shorter
+than the default. Pass it explicitly via `mean_ci(..., block_len=...)`.
+
+Where the choice could change a verdict, report **both** intervals and say
+which governs. `vol_matrix` prints the `n^(1/3)` interval beside the primary for
+the arms a verdict depends on, and prints an explicit line when the two
+disagree. The longer block governs, because the shorter one is the one making
+the stronger independence assumption.
+
+An amendment to a block length is only defensible if it can be shown to widen
+every interval — i.e. it can only make a row harder to pass. Record what had
+already been seen when the amendment was made.
+
 ## 2. What is forbidden at small n
 
 **A bootstrap over same-signed observations.** `check_bootstrap_can_fail`

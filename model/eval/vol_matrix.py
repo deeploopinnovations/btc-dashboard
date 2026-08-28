@@ -422,10 +422,14 @@ run_fold._garch = {}
 
 
 # --------------------------------------------------------------------------
-def spike_mask(rv: np.ndarray, sig_persist: np.ndarray, q: float = 0.95) -> np.ndarray:
+def spike_mask(rv: np.ndarray, q: float = 0.95) -> np.ndarray:
     """Spike = realized vol in the top 5% of the test slice's own distribution.
-    Defined on the OUTCOME, so it is a conditioning variable for reporting and
-    explicitly not something any arm is allowed to use."""
+
+    Defined on the OUTCOME. That makes it a conditioning variable for
+    REPORTING and explicitly not something any arm may use -- no forecast in
+    this file sees it, and the spike/calm columns are not pass conditions in
+    the pre-registered rule.
+    """
     return rv >= np.quantile(rv, q)
 
 
@@ -500,7 +504,7 @@ def main(argv=None) -> int:
               f"{'spike':>9} {'calm':>9}   paired per-episode CI vs {best}")
 
         pooled = {k: np.concatenate([r["qlike"][k] for r in rows]) for k in arms}
-        sp = np.concatenate([spike_mask(r["rv"], r["sigma_persist"]) for r in rows])
+        sp = np.concatenate([spike_mask(r["rv"]) for r in rows])
         per_fold = {k: [float(np.nanmean(r["qlike"][k])) for r in rows] for k in arms}
 
         order = [k for k in ("noctua", "noctua40") if k in arms]
