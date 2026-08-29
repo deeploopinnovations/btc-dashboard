@@ -288,6 +288,81 @@ def _noctua_fold(ep, X, fold, hidden, seeds, verbose=False):
 
 
 # --------------------------------------------------------------------------
+def inner_oof(ep, X, fold, H: int, ret, n_blocks: int = 5, verbose=False):
+    """INNER out-of-fold teacher predictions on the TRAIN slice.
+
+    TEACHER_ZOO Amendment 1. Arm A trains on `r = y - yhat_T`, which needs a
+    teacher value for every TRAINING episode -- and the outer rule forbids
+    emitting train-slice predictions, because the in-sample kind is exactly the
+    poison the whole protocol is built to keep out of a student's inputs.
+
+    So the train slice is split into an EXPANDING-FORWARD sequence: the teacher
+    is fitted on inner blocks 1..k and predicts block k+1. No episode ever
+    receives a prediction from a teacher that saw it.
+
+    NOT K-FOLD, and the distinction is not stylistic. Ordinary K-fold fits each
+    held-out block partly on LATER blocks, which is look-ahead on a time
+    series. `noctua/train.py`'s sigma_ref comment records that this repository
+    already built and discarded one cross-fitted estimator for precisely that
+    reason. Repeating it here would be worse, because the resulting values feed
+    a student rather than a diagnostic.
+
+    Block 1 has no predecessor and gets NO prediction. Those episodes are left
+    as NaN and the caller drops them. Giving them a fallback would be R43 --
+    inventing a number the model reads as information.
+    """
+    at_h = (ep.H == H).to_numpy()
+    m_tr = fold["train"] & at_h
+    idx = np.flatnonzero(m_tr)
+    if len(idx) < 500:
+        return {}
+    ts = ep["anchor_ts"].to_numpy(np.int64)
+    order = idx[np.argsort(ts[idx])]
+    edges = np.linspace(0, len(order), n_blocks + 1).astype(int)
+    emb = int(ep["H"].max()) * 3600
+
+    yall = B.har_target(ep.RV.to_numpy(), ep.H.to_numpy(np.float64))
+    Hall = ep.H.to_numpy(np.float64)
+    out: dict[str, np.ndarray] = {}
+    covered = np.zeros(len(ep), bool)
+
+    for k in range(1, n_blocks):
+        tr_rows = order[: edges[k]]
+        te_rows = order[edges[k]: edges[k + 1]]
+        if len(tr_rows) < 300 or len(te_rows) < 30:
+            continue
+        # the same embargo the outer folds use, applied inside
+        cut = int(ts[tr_rows].max()) + emb
+        te_rows = te_rows[ts[te_rows] >= cut]
+        if len(te_rows) < 30:
+            continue
+        m_a = np.zeros(len(ep), bool); m_a[tr_rows] = True
+        m_b = np.zeros(len(ep), bool); m_b[te_rows] = True
+        bl = B.fit_vol_baselines(X[m_a], yall[m_a], S.sample_weights(ep, m_a))
+        sq = np.sqrt(Hall[m_b])
+        for name in OLS_TEACHERS:
+            out.setdefault(name, np.full(len(ep), np.nan))
+            out[name][te_rows] = np.exp(bl[name].predict(X[m_b])) * sq
+        out.setdefault("persistence", np.full(len(ep), np.nan))
+        out["persistence"][te_rows] = np.maximum(
+            np.exp(X.loc[m_b, "har_1d"].to_numpy()) * sq, 1e-12)
+        if ret is not None:
+            from eval.garch import fit_and_forecast
+            for dist, nm in (("normal", "garch_normal"), ("t", "garch_t")):
+                out.setdefault(nm, np.full(len(ep), np.nan))
+                out[nm][te_rows] = fit_and_forecast(
+                    ret, cut, ts[te_rows], Hall[m_b], dist=dist, verbose=False)
+        covered[te_rows] = True
+
+    if verbose:
+        print(f"    inner OOF H={H} fold {fold.get('year')}: "
+              f"{int(covered.sum()):,} of {len(idx):,} train episodes covered "
+              f"({100*covered.sum()/max(len(idx),1):.1f}%); block 1 "
+              f"deliberately uncovered")
+    out["_covered"] = covered
+    return out
+
+
 def self_test() -> int:
     """Each refusal must fire on a deliberately corrupted input."""
     n = 400

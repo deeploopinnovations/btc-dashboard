@@ -75,6 +75,43 @@ fold **f**:
 5. `train` predictions are **not emitted at all**. There is no legitimate use
    for them in this phase, so they are not produced and cannot be reached for.
 
+### Amendment 1 — INNER cross-fitting, recorded 2026-08-29, before any Arm A result
+
+The rule above says train-slice teacher predictions are not emitted at all.
+That is right for the reason given, and it is also **insufficient**, which was
+not noticed until Arm A was implemented and no Arm A number yet exists.
+
+Arm A trains NOCTUA on `r = y − ŷ_T`. That target requires a teacher
+prediction **for every training episode**. The rule as written forbids the only
+values that would make the arm constructible, so one of the two has to give.
+
+The resolution is not to relax the rule. It is that there are **two different
+things** both called "a teacher prediction on the train slice":
+
+- **In-sample** — the teacher fitted on all of `train` and asked about `train`.
+  Forbidden, still, and for the original reason: its error is smaller than its
+  forecasting error and small exactly where the teacher overfit, which is
+  exactly where the student is asked to correct it.
+- **Inner out-of-fold** — the train slice is itself split into an expanding
+  forward sequence of inner blocks; the teacher is fitted on blocks `1..k` and
+  predicts block `k+1`. No episode ever receives a prediction from a teacher
+  that saw it.
+
+Only the second is produced, into a separate artifact named
+`teacher_oof_inner.npz` so it can never be confused with the outer one.
+
+**The inner split is EXPANDING-FORWARD, never K-fold.** Ordinary K-fold fits
+each held-out block partly on later blocks, which is look-ahead on a time
+series. This repository has already discarded one estimator for exactly that —
+`noctua/train.py`'s `sigma_ref` comment records a cross-fitted version that
+"used ordinary K-fold, which fits each held-out block on later blocks too, and
+was discarded". The same mistake is not made twice.
+
+The first inner block has no predecessor and therefore gets no teacher
+prediction; those episodes are dropped from the residual training set rather
+than given a fallback value. A fallback would be R43 all over again — inventing
+a number and letting the model read it as information.
+
 **Teacher selection is itself cross-fitted.** Phase 1 already demonstrated why:
 at H = 1 and H = 6 the best teacher *on test* is `garch_t`, while the
 calibration slice chooses `persistence` and `har_short`. Choosing the teacher
