@@ -66,7 +66,7 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from eval.direction import mean_ci                                           # noqa: E402
-from eval.teacher_zoo import FoldScopedFit, LeakageRefusal                   # noqa: E402
+from eval.teacher_zoo import FoldScopedFit, LeakageRefusal, inner_oof        # noqa: E402
 from eval.vol_matrix import (UNDEFINED_AT_1W, block_len_for, build_h4_table,  # noqa: E402
                              qlike_vec)
 from noctua import baselines as B                                            # noqa: E402
@@ -149,6 +149,105 @@ def self_test() -> int:
     return 1 if bad else 0
 
 
+def fit_cell(ep, X, fold, H, variant, teacher, z, inner, hidden, seeds):
+    """One (horizon, variant, fold) cell. Returns test-slice sigma, or None."""
+    at_h = (ep.H == H).to_numpy()
+    cols40 = [c for c in X.columns if c not in UNDEFINED_AT_1W]
+    Xv = X[cols40]
+    fin = np.isfinite(Xv.to_numpy(np.float64)).all(1)
+    Hall = ep.H.to_numpy(np.float64)
+    yall = B.har_target(ep.RV.to_numpy(), Hall)
+    anchor = ep.anchor_ts.to_numpy(np.int64)
+    y = fold["year"]
+
+    with FoldScopedFit(year=y) as sc:
+        kt = f"{y}/{H}/test"
+        if f"{kt}/anchor_ts" not in z:
+            return None
+        a_te = z[f"{kt}/anchor_ts"]
+        rv_te = z[f"{kt}/rv"]
+        s_te = None if teacher is None else np.asarray(sc.test(z, H, teacher))
+
+    pos = pd.Series(np.arange(len(ep))[at_h], index=anchor[at_h])
+    idx_te = pos.reindex(a_te).to_numpy()
+    ok = np.isfinite(idx_te)
+    idx_te = idx_te[ok].astype(int)
+    if len(idx_te) < 100:
+        return None
+    m_te = np.zeros(len(ep), bool); m_te[idx_te] = True
+    rv_te = rv_te[ok]
+    if s_te is not None:
+        s_te = s_te[ok]
+        assert_failsafe(s_te, rv_te, Hall[m_te])
+
+    # TRAIN-slice teacher values come from the INNER expanding-forward
+    # cross-fit (TEACHER_ZOO Amendment 1), never in-sample.
+    m_tr = fold["train"] & fin & at_h
+    m_va = fold["calib"] & fin & at_h
+    if teacher is not None:
+        t_in = inner.get(teacher)
+        if t_in is None:
+            return None
+        have = np.isfinite(t_in)
+        m_tr = m_tr & have
+        # calib-side teacher values come from the OUTER artifact
+        with FoldScopedFit(year=y) as sc:
+            kc = f"{y}/{H}/calib"
+            a_ca = z[f"{kc}/anchor_ts"]
+            s_ca = np.asarray(sc.calib(z, H, teacher))
+        pos_ca = pd.Series(np.arange(len(ep))[at_h], index=anchor[at_h])
+        i_ca = pos_ca.reindex(a_ca).to_numpy()
+        okc = np.isfinite(i_ca)
+        i_ca = i_ca[okc].astype(int)
+        tvals = np.full(len(ep), np.nan)
+        tvals[m_tr] = t_in[m_tr]
+        tvals[i_ca] = s_ca[okc]
+        tvals[idx_te] = s_te
+        m_va = m_va & np.isfinite(tvals)
+    if m_tr.sum() < 2000 or m_va.sum() < 300:
+        return None
+
+    yt = None if teacher is None else to_logvol(tvals, Hall)
+    target = yall if teacher is None or variant == "A3" else (yall - yt)
+
+    raw = np.exp(X["har_1d"].to_numpy(np.float64)) * np.sqrt(Hall)
+    lo, hi = np.quantile(raw[m_tr], [0.005, 0.995])
+    sref = np.maximum(np.clip(raw, lo, hi), 1e-12)
+
+    Xu = Xv
+    if variant == "A3":
+        # the teacher forecast as an ordinary input column, OOF values only
+        Xu = Xv.copy()
+        Xu["teacher_logvol"] = np.nan_to_num(yt, nan=0.0)
+
+    tr, stds = prepare(ep, Xu, m_tr, sigma_ref=sref[m_tr])
+    tr["y"] = target[m_tr].astype(np.float32)
+    w_tr = S.sample_weights(ep, m_tr)
+    va, _ = prepare(ep, Xu, m_va, *stds, sigma_ref=sref[m_va])
+    va["y"] = target[m_va].astype(np.float32)
+
+    ols = B.OLS(BASE_COLS).fit(pd.DataFrame(tr["Xb"], columns=BASE_COLS),
+                               tr["y"].astype(np.float64), w_tr)
+    # the blend anchor is fitted on the SAME target the network learns, so a
+    # zero network and a zero anchor together reproduce the teacher exactly
+    bl = B.fit_vol_baselines(Xu[m_tr], target[m_tr], w_tr)
+    models = [train_model(tr, w_tr, va, hidden=hidden, epochs=40, seed=k,
+                          verbose=False, ols_beta=ols.beta)[0]
+              for k in range(seeds)]
+
+    d, _ = prepare(ep, Xu, m_te, *stds)
+    lp = bl["log_har_cal"].predict(Xu[m_te])
+    preds = [I.predict(m, d, har_logvol=lp) for m in models]
+    out = np.mean([p["sigma_med"] for p in preds], axis=0)
+
+    if teacher is not None and variant != "A3":
+        # out is a sigma built from the RESIDUAL; recompose onto the teacher
+        rhat = to_logvol(out, Hall[m_te])
+        out = from_logvol(yt[m_te] + rhat, Hall[m_te])
+    return {"sigma": np.asarray(out, np.float64), "rv": rv_te,
+            "H": Hall[m_te], "teacher_sigma": s_te, "n": int(m_te.sum())}
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="Arm A: teacher + residual NOCTUA")
     ap.add_argument("--artifacts", type=Path, default=Path("model/artifacts"))
@@ -156,6 +255,7 @@ def main(argv=None) -> int:
     ap.add_argument("--hidden", type=int, default=32)
     ap.add_argument("--seeds", type=int, default=3)
     ap.add_argument("--horizons", type=int, nargs="+", default=list(HORIZONS))
+    ap.add_argument("--no-garch", action="store_true")
     ap.add_argument("--self-test", action="store_true")
     ap.add_argument("--out", type=Path, default=Path("model/artifacts/arm_a.json"))
     a = ap.parse_args(argv)
@@ -166,74 +266,84 @@ def main(argv=None) -> int:
     z = np.load(a.oof)
     folds = S.walk_forward_folds(ep)
     alpha = 0.05 / N_FAMILY
-    Hall = ep.H.to_numpy(np.float64)
-    yall = B.har_target(ep.RV.to_numpy(), Hall)
-    cols40 = [c for c in X.columns if c not in UNDEFINED_AT_1W]
-    fin = np.isfinite(X[cols40].to_numpy(np.float64)).all(1)
-    raw = np.exp(X["har_1d"].to_numpy(np.float64)) * np.sqrt(Hall)
-    anchor = ep.anchor_ts.to_numpy(np.int64)
+    ret = None
+    if not a.no_garch:
+        from eval.garch import hourly_returns
+        ret = hourly_returns(a.artifacts)
 
     print(f"Arm A. family {N_FAMILY} -> {100*(1-alpha):.2f}% intervals")
-    print(f"calib-selected teachers: {CALIB_BEST}\n")
+    print(f"calib-selected teachers: {CALIB_BEST}")
+    print("train-slice teacher values: INNER expanding-forward cross-fit\n")
 
-    acc: dict = {}
+    results: dict = {}
     for H in a.horizons:
-        at_h = (ep.H == H).to_numpy()
-        for variant in ("A1", "A2", "A3", "A0"):
-            teacher = ("har_short" if variant == "A1" else CALIB_BEST[H])
-            if variant == "A0":
-                teacher = None
-            for f in folds:
-                y = f["year"]
-                with FoldScopedFit(year=y) as sc:
-                    key_c, key_t = f"{y}/{H}/calib", f"{y}/{H}/test"
-                    if f"{key_t}/anchor_ts" not in z:
-                        continue
-                    a_te = z[f"{key_t}/anchor_ts"]
-                    a_ca = z[f"{key_c}/anchor_ts"]
-                    rv_te = z[f"{key_t}/rv"]
-                    if teacher is not None:
-                        s_ca = sc.calib(z, H, teacher)
-                        s_te = sc.test(z, H, teacher)
-                    else:
-                        s_ca = s_te = None
+        cells: dict = {}
+        for f in folds:
+            fd = dict(f)
+            fd["train_end_ts"] = int(ep.anchor_ts.to_numpy()[fd["train"]].max())
+            t0 = time.time()
+            inner = inner_oof(ep, X, fd, H, ret)
+            if not inner:
+                continue
+            for variant in ("A0", "A1", "A2", "A3"):
+                teacher = (None if variant == "A0"
+                           else "har_short" if variant == "A1"
+                           else CALIB_BEST[H])
+                r = fit_cell(ep, X, fd, H, variant, teacher, z, inner,
+                             a.hidden, a.seeds)
+                if r is not None:
+                    cells.setdefault(variant, []).append({**r, "year": fd["year"],
+                                                          "teacher": teacher})
+            print(f"  H={H:>4} fold {fd['year']}  ({time.time()-t0:.0f}s)", flush=True)
 
-                # map the OOF anchors back onto episode rows
-                pos = pd.Series(np.arange(len(ep))[at_h],
-                                index=anchor[at_h])
-                idx_te = pos.reindex(a_te).to_numpy()
-                idx_ca = pos.reindex(a_ca).to_numpy()
-                ok_te = np.isfinite(idx_te)
-                ok_ca = np.isfinite(idx_ca)
-                idx_te = idx_te[ok_te].astype(int)
-                idx_ca = idx_ca[ok_ca].astype(int)
+        if "A0" not in cells:
+            continue
+        print("\n" + "=" * 96)
+        print(f"H = {H}h    teacher for A2 = {CALIB_BEST[H]}")
+        print("=" * 96)
+        print(f"{'arm':>6} {'teacher':>12} {'QLIKE':>9} {'vs teacher':>11} "
+              f"{'vs A0':>10}   paired CI vs its own teacher")
+        row = {}
+        for variant in ("A0", "A1", "A2", "A3"):
+            if variant not in cells:
+                continue
+            c = cells[variant]
+            rv = np.concatenate([x["rv"] for x in c])
+            sg = np.concatenate([x["sigma"] for x in c])
+            q = qlike_vec(rv, sg)
+            base_q = None
+            if c[0]["teacher_sigma"] is not None:
+                ts_ = np.concatenate([x["teacher_sigma"] for x in c])
+                base_q = qlike_vec(rv, ts_)
+            q0 = qlike_vec(np.concatenate([x["rv"] for x in cells["A0"]]),
+                           np.concatenate([x["sigma"] for x in cells["A0"]]))
+            L = block_len_for(H, len(q))
+            cis = "—"
+            ci = None
+            if base_q is not None:
+                d_ = base_q - q
+                g = np.isfinite(d_)
+                ci = mean_ci(d_[g], alpha=alpha, block_len=L)
+                cis = f"[{ci['ci95'][0]:+.5f}, {ci['ci95'][1]:+.5f}]"
+            print(f"{variant:>6} {str(c[0]['teacher']):>12} {np.nanmean(q):9.5f} "
+                  f"{(np.nanmean(base_q - q) if base_q is not None else float('nan')):+11.5f} "
+                  f"{np.nanmean(q0) - np.nanmean(q):+10.5f}   {cis}")
+            row[variant] = {"qlike": float(np.nanmean(q)),
+                            "teacher": c[0]["teacher"],
+                            "vs_teacher": (None if base_q is None
+                                           else float(np.nanmean(base_q - q))),
+                            "vs_A0": float(np.nanmean(q0) - np.nanmean(q)),
+                            "paired_ci": None if ci is None else list(ci["ci95"]),
+                            "n": int(len(q))}
+        results[str(H)] = row
+        print()
 
-                m_tr = f["train"] & fin & at_h
-                if m_tr.sum() < 2000 or len(idx_te) < 100:
-                    continue
-                m_ca = np.zeros(len(ep), bool); m_ca[idx_ca] = True
-                m_te = np.zeros(len(ep), bool); m_te[idx_te] = True
-
-                if teacher is not None:
-                    sig_te = np.asarray(s_te)[ok_te]
-                    assert_failsafe(sig_te, rv_te[ok_te], Hall[m_te])
-
-                acc.setdefault((H, variant), []).append({
-                    "year": y, "m_tr": m_tr, "m_ca": m_ca, "m_te": m_te,
-                    "teacher": teacher,
-                    "sig_ca": None if s_ca is None else np.asarray(s_ca)[ok_ca],
-                    "sig_te": None if s_te is None else np.asarray(s_te)[ok_te],
-                    "rv_te": rv_te[ok_te],
-                })
-        print(f"  H={H:>4} prepared", flush=True)
-
-    out = {"family_size": N_FAMILY, "alpha": alpha,
-           "calib_best": {str(k): v for k, v in CALIB_BEST.items()},
-           "cells": {}}
-    a.out.write_text(json.dumps(out, indent=1, default=float) + "\n")
-    print(f"\nprepared {len(acc)} cells; wrote scaffold to {a.out}")
-    print("NOTE: this run only PREPARES and asserts the fail-safe identity. "
-          "The training pass is the next commit.")
+    a.out.write_text(json.dumps({
+        "family_size": N_FAMILY, "alpha": alpha,
+        "calib_best": {str(k): v for k, v in CALIB_BEST.items()},
+        "horizons": results,
+    }, indent=1, default=float) + "\n")
+    print(f"wrote {a.out}")
     return 0
 
 
