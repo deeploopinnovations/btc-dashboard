@@ -114,6 +114,18 @@ designed.**
 It is what ruled out a plain IV feature column (32.7% train vs 100% test) and
 produced the residual design that worked. *(`iv-coverage-2`)*
 
+**R45. When a candidate improves the metric you optimise, the second metric —
+the one that represents the actual product — is not a formality. It is the one
+that knows whether you improved the thing or the proxy.**
+The scale correction improved QLIKE by 9.7 % pooled and 33 % on spikes, fixed
+the calibration ratio from 1.2662 to 0.9759, and passed three of five guards.
+**Every one of the six barrier metrics degraded** — DSC −14.16 %, MCB +8.48 %,
+Brier, CRPS, log score and pinball all worse. Four independent lines of evidence
+(the scorecard, the overlay, the falsifier, the calibration ratio) pointed at
+adopting it. The barrier clause, written into `E-scale` in Phase 0 and left
+unmet for three phases, is what produced the correct answer and reversed all
+four. *(`P2-scale-v2-result`)*
+
 **R44. A cross-fitting guard that watches the producer does not watch the
 consumer.**
 `teacher_zoo.py` has three refusals proving no episode receives a prediction

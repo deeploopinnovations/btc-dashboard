@@ -449,7 +449,10 @@
    "question": "Should NOCTUA's point forecast be scaled up from the median toward the QLIKE-optimal mean?",
    "rule": "Pre-registered, QUEUED BEHIND E-power and deliberately not run yet. A lever that trades one slice against another cannot be judged without knowing the resolution, and 22 says that is unmeasured. When it runs: PRIMARY must be stated on BOTH slices (spike and calm), not pooled, because the effect has opposite signs on them and a pooled mean would hide that -- the 13 lesson. Must also re-score the barrier curves, since scaling sigma moves every touch probability, which a median-only re-weighting does not test.",
    "verdict": "OPEN",
-   "result": "Surfaced as a by-product of E2's decomposition, not sought. A stable scalar e^a in [1.139, 1.202] across five independently fitted folds improves spike QLIKE by ~36% and worsens calm QLIKE by ~13%. infer.py already records the two endpoints -- the median at 1.00 and the mean at 1.205, the latter scoring worse -- so the open question is whether an intermediate point beats both, and at what cost to calibration."
+   "result": "Surfaced as a by-product of E2's decomposition, not sought. A stable scalar e^a in [1.139, 1.202] across five independently fitted folds improves spike QLIKE by ~36% and worsens calm QLIKE by ~13%. infer.py already records the two endpoints -- the median at 1.00 and the mean at 1.205, the latter scoring worse -- so the open question is whether an intermediate point beats both, and at what cost to calibration.",
+   "superseded_by": [
+    "P2-scale-v2-result"
+   ]
   },
   {
    "id": "E2b-result",
@@ -967,7 +970,25 @@
    "verdict": "OPEN",
    "result": "pre-registered, not yet run",
    "implication": "EXPECTED OUTCOME, recorded so it cannot be fitted afterwards.\nI expect the QLIKE primary to CLEAR at H=6 and H=24, to be MARGINAL at H=1 (where the rescaled margin over garch_t is 0.0225, the largest of the three, but H=1 is also where calm degrades), and to FAIL at H=168 where NOCTUA loses to har_short by 0.0134 even after rescaling.\nI am much less sure about the barriers, and that is the point of the condition. Scaling sigma up by ~1.2 moves EVERY touch probability up. NOCTUA's barrier curves were calibrated against the unscaled sigma, so the committee and the isotonic layer downstream have been fitted to absorb exactly the bias this correction removes. THE MOST LIKELY FAILURE MODE IS THAT QLIKE IMPROVES AND BRIER GETS WORSE, because the downstream calibration was silently compensating for the scale defect and now double-counts the fix. If that happens the honest conclusion is that the correction must be applied INSIDE the pipeline before Stage B rather than bolted onto the output -- which is a different and larger experiment, not a tweak to this one.",
-   "lesson": ""
+   "lesson": "",
+   "superseded_by": [
+    "P2-scale-v2-result"
+   ]
+  },
+  {
+   "id": "P2-scale-v2-result",
+   "topic": "phase2",
+   "date": "2026-08-29",
+   "supersedes": [
+    "P2-scale-v2",
+    "E-scale"
+   ],
+   "question": "Is a calib-fitted scalar on NOCTUA's sigma adoptable as NOCTUA V2's first component?",
+   "rule": "As pre-registered in P2-scale-v2, applied verbatim, including E-scale's inherited barrier condition.",
+   "verdict": "REJECT",
+   "result": "NOT ADOPTABLE. The QLIKE gain is real and large; EVERY barrier metric degrades; the pre-registered guards block adoption. Production slice, H=19 at 17:00 UTC, 2,046 test episodes, c fitted per fold on calib (mean 1.1377, fold spread 0.0646), applied through post_shift_fn so the correction reaches Stage B, the committee and every barrier.\n  QLIKE pooled  0.29702 -> 0.26825   gain +0.02877 (9.7% relative), CI [+0.00924, +0.04889] which EXCLUDES ZERO favourably\n  QLIKE spike   1.76571 -> 1.18202   a 33% improvement on the slice that matters most\n  QLIKE calm    0.21917 -> 0.21981   essentially unchanged\n  calib ratio   1.2662 -> 0.9759     the scale defect is fixed, and the guard band [0.95,1.05] is satisfied\nAND THEN EVERY BARRIER METRIC GOES THE WRONG WAY:\n  DSC     0.009086 -> 0.007799   -14.16%   (discrimination, the uncheatable one)\n  MCB     0.024738 -> 0.026836    +8.48%   (miscalibration, lower is better)\n  brier   0.180098 -> 0.183483    +1.88%\n  crps    0.005251 -> 0.005460    +3.99%\n  logs    0.527487 -> 0.536268    +1.66%\n  pinball 0.003577 -> 0.003705    +3.59%\nGUARDS: ratio_in_band PASS, spike_not_worse PASS, calm_not_worse PASS, dsc_not_worse FAIL, brier_not_worse FAIL. Two of five fail, so the verdict is REJECT for adoption regardless of the QLIKE interval.",
+   "implication": "THE PRE-REGISTERED EXPECTATION NAMED THIS OUTCOME BEFORE THE RUN, which is the only reason it reads as a measurement rather than as a rescue. P2-scale-v2 recorded: 'THE MOST LIKELY FAILURE MODE IS THAT QLIKE IMPROVES AND BRIER GETS WORSE.' It did, on all six barrier metrics.\nWHAT THIS ESTABLISHES, and it is worth more than an adoption would have been: THE SCALE THAT MINIMISES QLIKE IS NOT THE SCALE THAT PLACES THE BARRIER QUANTILES. Those are different functionals of the same distribution. QLIKE is minimised by the conditional MEAN of variance; a touch probability depends on where the quantiles sit relative to a fixed barrier. Multiplying the whole distribution by 1.14 moves the mean into place and drags every quantile with it.\nTHE MECHANISM I BELIEVE, STATED AS A HYPOTHESIS AND NOT AS ESTABLISHED, because I have been wrong about a mechanism already this phase: NOCTUA reports sigma_med, a MEDIAN, and the barrier machinery was built around a median-centred distribution. The QLIKE deficit is a mean-vs-median mismatch. You cannot repair a mean-median gap by scaling, because scaling moves both by the same factor. The correction needed is a SHAPE change -- more right-tail mass without displacing the median -- not a multiplicative one.\nFALSIFIER FOR THAT HYPOTHESIS, pre-registered here: apply a correction that inflates the upper quantiles while holding the median fixed, and check whether QLIKE improves WITHOUT the barrier metrics degrading. If the barriers still degrade, the explanation is wrong and the problem is not the median at all.\nE-scale IS NOW CLOSED, after being open since Phase 0. Its question was 'should NOCTUA's point forecast be scaled up from the median toward the QLIKE-optimal mean'. The answer is NO -- not by scaling. Its own barrier condition, which is why it was never closed on QLIKE evidence alone, is what produced the answer.",
+   "lesson": "A CONDITION WRITTEN INTO A PRE-REGISTRATION AND THEN LEFT UNMET FOR THREE PHASES IS STILL THE RULE. E-scale said in Phase 0 that the barrier curves must be re-scored because scaling sigma moves every touch probability. Every QLIKE result since has pointed at adopting the scale fix, and the scorecard, the overlay and the falsifier all independently found the under-forecast signature. It would have been easy to treat the barrier clause as bureaucracy. It is the clause that produced the correct answer, and it reversed a decision that four separate lines of evidence supported.\nGENERALISED, R45: when a candidate improves the metric you optimise and you have a SECOND metric that represents the actual product, the second one is not a formality -- it is the one that knows whether you improved the thing or the proxy."
   }
  ]
 }
