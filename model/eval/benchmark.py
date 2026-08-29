@@ -557,7 +557,20 @@ def run_fold(ep, X, fold, hidden=32, seeds=3, verbose=False, shape_cols=None,
                             "har_logvol": np.asarray(lp_te, np.float64),
                             "blend_w": float(I.BLEND_W),
                             "H": np.asarray(Ht, np.float64),
-                            "test_idx": np.flatnonzero(m_te)}}
+                            "test_idx": np.flatnonzero(m_te),
+                            # CALIB-side sigma and RV, added for `E-scale`'s
+                            # barrier condition. Purely additive: every existing
+                            # key is untouched and no number above changes. A
+                            # scale correction has to be FITTED on calib and
+                            # then applied through the whole pipeline, and
+                            # without these two arrays the caller would have to
+                            # reimplement predict_avg to get them -- which R18
+                            # names as how two "identical" comparisons stop
+                            # being identical.
+                            "sigma_cal": np.asarray(
+                                p_cal["sigma_med"], np.float64),
+                            "rv_cal": np.asarray(
+                                ep.RV.to_numpy()[m_cal], np.float64)}}
 
 
 def main(argv=None) -> int:
