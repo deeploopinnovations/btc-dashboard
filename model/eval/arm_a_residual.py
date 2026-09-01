@@ -240,12 +240,27 @@ def fit_cell(ep, X, fold, H, variant, teacher, z, inner, hidden, seeds):
     preds = [I.predict(m, d, har_logvol=lp) for m in models]
     out = np.mean([p["sigma_med"] for p in preds], axis=0)
 
+    rhat_only = None
     if teacher is not None and variant != "A3":
         # out is a sigma built from the RESIDUAL; recompose onto the teacher
         rhat = to_logvol(out, Hall[m_te])
+        rhat_only = np.asarray(rhat, np.float64)
         out = from_logvol(yt[m_te] + rhat, Hall[m_te])
+
+    # THE DECOMPOSITION THAT DECIDES WHETHER THIS IS AN ARCHITECTURE OR A
+    # SCALAR. A residual with a non-zero MEAN is doing the same job as the
+    # multiplicative constant `scale_falsifier` already measured: exp(mean
+    # residual) IS a value of c. If the entire gain lives in the mean, the
+    # residual decomposition is an expensive way to fit one number, and
+    # P2-scale-v2 already showed that number fails the barrier guards.
+    # Reported, never a pass condition -- it changes no pre-registered rule.
     return {"sigma": np.asarray(out, np.float64), "rv": rv_te,
-            "H": Hall[m_te], "teacher_sigma": s_te, "n": int(m_te.sum())}
+            "H": Hall[m_te], "teacher_sigma": s_te, "n": int(m_te.sum()),
+            "rhat_mean": None if rhat_only is None else float(np.nanmean(rhat_only)),
+            "rhat_sd": None if rhat_only is None else float(np.nanstd(rhat_only)),
+            "sigma_mean_only": (None if rhat_only is None else
+                                from_logvol(yt[m_te] + np.nanmean(rhat_only),
+                                            Hall[m_te]))}
 
 
 def main(argv=None) -> int:
@@ -325,10 +340,29 @@ def main(argv=None) -> int:
                 g = np.isfinite(d_)
                 ci = mean_ci(d_[g], alpha=alpha, block_len=L)
                 cis = f"[{ci['ci95'][0]:+.5f}, {ci['ci95'][1]:+.5f}]"
+            # how much of the gain is the constant, and how much is episodic
+            mean_only = None
+            if c[0].get("sigma_mean_only") is not None:
+                sm = np.concatenate([x["sigma_mean_only"] for x in c])
+                mean_only = float(np.nanmean(qlike_vec(rv, sm)))
+            rm = [x["rhat_mean"] for x in c if x.get("rhat_mean") is not None]
+            rs = [x["rhat_sd"] for x in c if x.get("rhat_sd") is not None]
+            extra = ""
+            if mean_only is not None and base_q is not None:
+                tot = float(np.nanmean(base_q)) - float(np.nanmean(q))
+                con = float(np.nanmean(base_q)) - mean_only
+                extra = (f"   [constant part {con:+.5f} of {tot:+.5f} = "
+                         f"{100*con/tot if tot else float('nan'):.0f}%, "
+                         f"implied c={np.exp(np.mean(rm)):.3f}, "
+                         f"residual sd={np.mean(rs):.3f}]")
             print(f"{variant:>6} {str(c[0]['teacher']):>12} {np.nanmean(q):9.5f} "
                   f"{(np.nanmean(base_q - q) if base_q is not None else float('nan')):+11.5f} "
-                  f"{np.nanmean(q0) - np.nanmean(q):+10.5f}   {cis}")
+                  f"{np.nanmean(q0) - np.nanmean(q):+10.5f}   {cis}{extra}")
             row[variant] = {"qlike": float(np.nanmean(q)),
+                            "qlike_mean_residual_only": mean_only,
+                            "rhat_mean": (float(np.mean(rm)) if rm else None),
+                            "rhat_sd": (float(np.mean(rs)) if rs else None),
+                            "implied_c": (float(np.exp(np.mean(rm))) if rm else None),
                             "teacher": c[0]["teacher"],
                             "vs_teacher": (None if base_q is None
                                            else float(np.nanmean(base_q - q))),
