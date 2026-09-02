@@ -603,3 +603,82 @@ and "IGARCH persistence is a measured mechanism." Every other hypothesis in
 this report is either already well-evidenced (A.2, B(2)) or requires a new
 model fit (D.1, D.4); D.2 requires only turning on a `verbose` flag that
 exists in the code today.
+
+
+---
+
+## E. THE MECHANISM THAT WAS UNDER ALL OF IT — forecast level
+
+*Added 2026-09-02, after the mechanisms above were written and mostly against
+them.*
+
+Sections A–D ask which teacher knows what, and answer in terms of regressor
+structure, mean reversion and persistence. That framing was measured on **raw
+pooled QLIKE**, and the arms it compares carry calibration ratios spanning
+**0.4160 to 2.4167**. QLIKE is minimised by the conditional *mean* of variance,
+an OLS in logs exponentiates below it, and a quantile network reports a median.
+So an arm that happens to sit at the right level beats a better-informed arm
+that sits low, and the ranking measures level until something rules it out.
+
+Nothing ruled it out. Four separate findings in this phase have now collapsed
+onto it:
+
+| finding | read as | measured to be |
+|---|---|---|
+| `garch_normal` best on spikes and deep tails at all four horizons | tail modelling | level — rescaled, its H=168 spike goes 0.239 → **1.620** |
+| NOCTUA's whole deficit against the zoo | missing information | **one constant per horizon**, 1.198 / 1.212 / 1.213 / 1.089 |
+| `har_short`'s fitting panel worth +8.11 % at H=6 | specification | level — **+0.40 %**, CI [−0.00265, +0.00580] rescaled |
+| the teacher ranking itself | which model knows more | level — the ranking **changes at three of four horizons** |
+
+### The corrected ranking
+
+Every arm with its own per-fold calib-fitted `c = sqrt(mean(RV²/σ²))`:
+
+| H | best raw | best rescaled | paired CI |
+|---|---|---|---|
+| 1 | `garch_t` 0.57438 | **`noctua_v1` 0.54985** | [+0.00427, +0.03774] clears |
+| 6 | `garch_t` 0.41246 | **`noctua_v1` 0.34884** | [+0.04145, +0.07837] clears |
+| 24 | `har_short` 0.27818 | `noctua_v1` 0.25087 | [−0.00183, +0.01231] tie |
+| 168 | `har_short` 0.18207 | `har_short` 0.18231 | rank held |
+
+Post-rescale test ratios run 0.9784–1.1389, none exactly 1, so the constants
+were not fitted on the slice they are checked against.
+
+### What this does and does not overturn above
+
+**Section A survives in part and is re-scoped.** `har_short`'s catastrophe at
+H=1 — pooled 1.03094, calibration ratio 2.0343 — is still real and is still
+partly the zero-variance floor (`M-harshort-h1-datagap`). But "two short
+regressors help long horizons" was measured against arms sitting at different
+levels, and at H=168, where every ratio is already near 1.05, `har_short`'s win
+survives rescaling untouched. **The one horizon where section A's story was
+least confounded is the one horizon where it holds.**
+
+**Section B is the one that loses most.** GARCH's apparent superiority at H=1
+and H=6 is largely that a conditional-variance model targets a *variance* and
+therefore lands near the right level by construction, while a quantile network
+targets a median and lands low. `garch_t` starts at a ratio of 1.0174 and
+gains 0.35 % from rescaling; NOCTUA starts at 1.4330 and gains 11.70 %. The
+collapse at H=168 is unaffected and remains a genuine mechanism — rescaling
+does not save it (0.44349 → 0.26282, still worst but for `persistence`).
+
+**Section C's question is now answered differently.** "Where does each winning
+teacher's advantage come from?" — for two of the four horizons, from being
+correctly levelled, which is not an advantage in conditional information at all.
+
+### Why this is not a fix
+
+`P2-scale-v2` applied a fitted constant to the shipped model end to end.
+QLIKE improved 9.7 % pooled and 33 % on spikes, the calibration ratio went
+1.2662 → 0.9759 — and **all six barrier metrics degraded**: DSC −14.16 %,
+MCB +8.48 %, Brier, CRPS, log score and pinball. NOCTUA's product is a
+touch-probability curve, not a σ, and raising the whole predictive
+distribution raises every touch probability.
+
+So the map now has a mechanism at its centre that is **measured, dominant, and
+without a known correction the product survives.** That is the honest state,
+and it is a better place to be than a list of regressor stories that were
+mostly measuring the same thing.
+
+*(`P2-scorecard-rescaled-result`, `P2-pool-composition-result`,
+`P2-scale-v2-result`, `P2-armA-correction`, TEACHER_ZOO Amendment 2)*
