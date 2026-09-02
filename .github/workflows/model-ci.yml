@@ -55,6 +55,18 @@ jobs:
       - name: Adaptive-calibration self-test
         run: python model/tests/test_adaptive.py
 
+      # Gates the separation P2-level-report depends on: the trailing QLIKE
+      # scalar multiplies the REPORTED sigma and must never reach the
+      # predictive object. P2-scale-v2 and P2-mean-level both moved the level
+      # inside the pipeline and degraded all six barrier metrics, and
+      # P2-mean-level's SHUFFLED control degraded them by the same amount --
+      # so the damage comes from moving the level at all. The test runs the
+      # real forecast twice and requires every touch probability, safe level,
+      # p_up and p_vol_amplify to be bit-identical, and it exercises its own
+      # failure mode so it is not a guard that cannot fail (R2).
+      - name: Level-reporting separation gate
+        run: python model/tests/test_level_report.py
+
       # Gates the online-adaptation guard: ACI's coverage guarantee, Ville's
       # bound on the e-processes, and the promotion/veto asymmetry. A
       # regression in any of these is SILENT -- the system keeps forecasting

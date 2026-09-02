@@ -40,7 +40,8 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from noctua.features import build_features                    # noqa: E402
-from serve.adaptive import apply_correction, volatility_correction  # noqa: E402
+from serve.adaptive import (apply_correction, qlike_scale,  # noqa: E501
+                            volatility_correction)  # noqa: E402
 from serve.fetch import fetch_bars                            # noqa: E402
 from serve.history import get_hours, load_bundle              # noqa: E402
 from serve.runtime import load_model                          # noqa: E402
@@ -96,8 +97,28 @@ def forecast(model, hours: pd.DataFrame, H: int = PROD_H,
     if cal["applied"]:
         pred = apply_correction(pred, cal["factor"])
 
+    # THE REPORTED VOLATILITY AND THE BARRIER CURVE ARE TWO PRODUCTS WITH TWO
+    # LOSSES, and this is the line where they part company.
+    #
+    # QLIKE -- and any squared-error loss on variance -- is minimised by the
+    # conditional MEAN of variance. `sigma_med` is a median. On the production
+    # slice the gap is a factor of 1.1250 and the published number was 12.5%
+    # low against the loss it is scored under.
+    #
+    # The correction is applied HERE, to the reported scalar, and NOT to
+    # `pred`. That is not a shortcut, it is the finding: `P2-scale-v2` put the
+    # same constant inside the predictive object and lost all six barrier
+    # metrics, and `P2-mean-level`'s SHUFFLED control lost them by the same
+    # amount -- so the damage comes from moving the level at all, not from how
+    # the shift is obtained. Left here, there is nothing downstream of it.
+    #
+    # `tests/test_level_report.py` asserts the separation by running this
+    # function twice and requiring every touch probability, safe level, p_up
+    # and p_vol_amplify to be bit-identical. That test fails the moment this
+    # scalar reaches `pred`.
+    qs = qlike_scale(model, hours, row, H)
     spot = float(hours["close"].to_numpy()[row - 1])
-    sigma = float(pred["sigma_med"][0])
+    sigma = float(pred["sigma_med"][0]) * (qs["scale"] if qs["applied"] else 1.0)
 
     # trailing realized vol over the same window length, for volAmp
     rv5 = hours["rv5"].to_numpy(np.float64)
@@ -140,6 +161,16 @@ def forecast(model, hours: pd.DataFrame, H: int = PROD_H,
         "safe_levels": safe,
         "barrier_curves": curves,
         "model": model.meta.get("version", "NOCTUA-v1"),
+        # The reported sigma carries this; the predictive object does not.
+        "sigma_scale": {
+            "scale": round(float(qs["scale"]), 4),
+            "applied": bool(qs["applied"]),
+            "n_settled_episodes": int(qs["n_episodes"]),
+            "note": qs["reason"],
+            "applies_to": "sigma_window_pct and sigma_annualized_pct only; "
+                          "barrier_curves, safe_levels, p_up and p_vol_amplify "
+                          "are computed from the uncorrected predictive object",
+        },
         "vol_calibration": {
             "factor": round(float(cal["factor"]), 4),
             "applied": bool(cal["applied"]),
