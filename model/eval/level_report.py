@@ -117,6 +117,28 @@ def main(argv=None) -> int:
         np.concatenate([r[k] for r in acc]), 1e-12) ** 2))
         for k in ("R0", "R1", "R2")}
 
+    # THE TWO FUNCTIONALS SIDE BY SIDE, on the production slice.
+    # serve/adaptive.py corrects by median(realized/sigma) and its docstring
+    # records "realized vol lands below it 66.4% of the time", i.e. a factor
+    # BELOW 1 that LOWERS the forecast. The QLIKE scalar on the same episodes
+    # is above 1 and raises it. Measured here rather than quoted from the
+    # docstring (R34), because if the two point in opposite directions on this
+    # slice then the shipped correction is not merely blind to the bias, it
+    # actively works against it.
+    s0 = np.concatenate([r["R0"] for r in acc])
+    med_ratio = float(np.median(rv / np.maximum(s0, 1e-12)))
+    frac_below = float(np.mean(rv < s0))
+    print(f"\n  the two functionals on this slice, same episodes:")
+    print(f"    median(RV/sigma)          {med_ratio:.4f}   "
+          f"<- what serve/adaptive.py corrects by")
+    print(f"    sqrt(mean(RV^2/sigma^2))  {np.sqrt(ratio['R0']):.4f}   "
+          f"<- what QLIKE is minimised by")
+    print(f"    frac(RV < sigma)          {frac_below:.4f}")
+    if (med_ratio - 1.0) * (np.sqrt(ratio["R0"]) - 1.0) < 0:
+        print("    THE TWO POINT IN OPPOSITE DIRECTIONS on this slice: the "
+              "shipped correction\n    moves the forecast the wrong way for "
+              "the loss it is scored under.")
+
     print("\n" + "=" * 92)
     print(f"PRODUCTION SLICE  {len(rv):,} test episodes  blocks of {L}")
     print(f"mean c {np.mean([r['c'] for r in acc]):.4f}   "
@@ -160,6 +182,16 @@ def main(argv=None) -> int:
           "exactly two sigma fields moved.\n  Nothing in THIS file can fail "
           "that test, which is why it is not the gate.")
     out["candidates"] = ok
+    out["functionals"] = {"median_ratio": med_ratio,
+                          "qlike_scalar": float(np.sqrt(ratio["R0"])),
+                          "frac_below": frac_below,
+                          "opposite_directions": bool(
+                              (med_ratio - 1.0) * (np.sqrt(ratio["R0"]) - 1.0) < 0)}
+    np.savez_compressed(
+        a.out.with_suffix(".npz"),
+        rv=rv, **{k: np.concatenate([r[k] for r in acc]) for k in ("R0", "R1", "R2")},
+        year=np.concatenate([np.full(len(r["rv"]), r["year"]) for r in acc]))
+    print(f"per-episode arrays -> {a.out.with_suffix('.npz')}")
     a.out.write_text(json.dumps(out, indent=1, default=float) + "\n")
     print(f"\nwrote {a.out}")
     return 0
