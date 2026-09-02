@@ -177,6 +177,43 @@ QLIKE and the worst calm QLIKE at H = 168 — **the disagreement is the finding*
 and is reported as such. Collapsing it into one number would destroy the
 information the mechanism work depends on.
 
+### Amendment 2 — every QLIKE comparison reports raw AND rescaled, recorded 2026-09-02
+
+Section 5 says the disagreement between metrics is the finding. It did not say
+that one of the columns it prints — **calibration** — can silently determine
+the ranking in the column beside it, and this phase has now demonstrated that
+four separate times:
+
+| finding | what it looked like | what it was |
+|---|---|---|
+| `garch_normal` spike wins at all four horizons | tail skill | level; rescaling sent H=168 spike 0.239 → 1.620 |
+| NOCTUA's whole deficit against the zoo | missing information | one stable constant per horizon |
+| `har_short`'s fitting panel, +8.11 % at H=6 | specification | level; +0.40 % CI [−0.00265, +0.00580] rescaled |
+| the teacher ranking itself | which teacher is best | level; NOCTUA wins at H=1 and H=6 once equalised |
+
+QLIKE is minimised by the conditional **mean** of variance. An arm whose
+forecast happens to sit at the right level beats a better-informed arm that
+sits low, and the calibration ratios in this zoo span **0.4160 to 2.4167**.
+A ranking on raw QLIKE across arms that differ that much in level is a ranking
+on level.
+
+**So, from this amendment forward:** any comparison of two volatility forecasts
+under QLIKE reports the raw contrast *and* the contrast with each arm carrying
+its own scalar `c = sqrt(mean(RV²/σ²))`, fitted on that fold's **calib** slice
+only and applied to that fold's test slice — per fold, through `FoldScopedFit`
+(R44). The burden is on the raw number to explain itself.
+
+**Two things this amendment does NOT do.** It does not make a rescaled forecast
+adoptable: `P2-scale-v2` applied a fitted constant to the shipped model and
+degraded all six barrier metrics, and the product is a touch-probability curve,
+not a σ. And it does not change §9's adoption gate, which still runs on what
+actually ships. The rescaled column answers *which arm knows more*; the raw
+column answers *which arm forecasts better today*. Both are reported and
+neither substitutes for the other.
+
+*(`P2-scorecard-rescaled-result`, `P2-pool-composition-result`,
+`P2-armA-correction`)*
+
 ---
 
 ## 6. Statistical discipline, carried over unchanged
