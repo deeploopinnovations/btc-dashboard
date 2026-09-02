@@ -64,13 +64,40 @@ from noctua import baselines as B                                            # n
 from noctua import infer as I                                                # noqa: E402
 from noctua import splits as S                                               # noqa: E402
 from noctua.model import BASE_COLS                                           # noqa: E402
+from noctua.spec import SHAPE_COLS                                           # noqa: E402
 from noctua.train import prepare, train_model                                # noqa: E402
 
+HOUR_COLS = ("cal_hour_sin", "cal_hour_cos")
 HORIZONS = (1, 6, 24, 168)
 N_FAMILY = 8                       # 2 real arms x 4 horizons, fixed a priori
 ARMS = ("base", "B1", "B2", "shuf")
 # stated before the run, from the OOF artifact
 FOLD_MDE_PCT = {1: 18.89, 6: 19.17}
+
+
+def basis_cols(arm: str) -> list[str]:
+    """The columns `build_basis` ADDS for `arm`, in the order it adds them."""
+    if arm == "base":
+        return []
+    if arm == "B1":
+        return [f"cal_h{k}_{t}" for k in (1, 2, 3) for t in ("sin", "cos")]
+    return [f"cal_hr_{k:02d}" for k in range(1, 24)]
+
+
+def shape_cols_for(arm: str) -> list[str]:
+    """The stage-B column list `prepare` must be given for `arm`.
+
+    NOT optional bookkeeping. `prepare` slices `X.loc[mask, shape_cols]` with
+    the SHIPPED SHAPE_COLS unless told otherwise, so a frame whose hour basis
+    has been swapped raises KeyError on the two columns that are gone -- which
+    is exactly how the first run of this experiment died. It also decides what
+    the WIDE block sees: anything in SHAPE_COLS but not in `shape_cols` is
+    dropped from Xa as well, so passing the list keeps the new basis in both
+    blocks and the old basis out of both.
+    """
+    if arm == "base":
+        return list(SHAPE_COLS)
+    return [c for c in SHAPE_COLS if c not in HOUR_COLS] + basis_cols(arm)
 
 
 def build_basis(X: pd.DataFrame, hour: np.ndarray, arm: str,
@@ -124,6 +151,31 @@ def self_test() -> int:
     ok.append(("shuf-differs", not same, "the shuffled control is not the real basis"))
     ok.append(("shuf-same-width", s.shape[1] == b2.shape[1],
                "the control has identical column count, so capacity is matched"))
+
+    # THE PATH THAT ACTUALLY BROKE. The seven checks above all passed on the
+    # first run and the experiment still died in `prepare`, because the frame
+    # they were built on was three synthetic columns that never reached it.
+    # A construction check is not an integration check, so run the real thing.
+    cols = sorted(set(SHAPE_COLS) | set(BASE_COLS) | {"har_1d"})
+    XF = pd.DataFrame({c: rng.normal(size=n) for c in cols})
+    XF["cal_hour_sin"], XF["cal_hour_cos"] = np.sin(2*np.pi*hour/24), np.cos(2*np.pi*hour/24)
+    epF = pd.DataFrame({"H": np.full(n, 24.0), "RV": np.full(n, 0.02),
+                        "R": rng.normal(size=n) * 0.02,
+                        "M_up": np.abs(rng.normal(size=n)) * 0.02,
+                        "M_dn": -np.abs(rng.normal(size=n)) * 0.02})
+    mask = np.ones(n, bool)
+    for arm in ARMS:
+        want = len(SHAPE_COLS) + (0 if arm == "base" else len(basis_cols(arm)) - 2)
+        try:
+            Z = build_basis(XF, hour, arm, rng)
+            tr, _ = prepare(epF, Z, mask, shape_cols=shape_cols_for(arm))
+            got, wide = tr["Xs"].shape[1], tr["cols"]["all"]
+            good = got == want and not (set(HOUR_COLS) & set(wide) and arm != "base")
+            msg = f"stage-B width {got} (want {want}); old basis out of the wide block"
+        except Exception as exc:                                    # noqa: BLE001
+            good, msg = False, f"{type(exc).__name__}: {exc}"
+        ok.append((f"prepare-{arm}", good, msg))
+
     print("intraday_basis self-test")
     for nm, good, msg in ok:
         print(f"  [{'ok ' if good else 'FAIL'}] {nm}: {msg}")
@@ -148,15 +200,16 @@ def run_arm(ep, X, fold, H, arm, hour, hidden, seeds, rng):
     raw = np.exp(X["har_1d"].to_numpy(np.float64)) * np.sqrt(Hall)
     lo, hi = np.quantile(raw[m_tr], [0.005, 0.995])
     sref = np.maximum(np.clip(raw, lo, hi), 1e-12)
-    tr, stds = prepare(ep, Xu, m_tr, sigma_ref=sref[m_tr])
+    sc = shape_cols_for(arm)
+    tr, stds = prepare(ep, Xu, m_tr, shape_cols=sc, sigma_ref=sref[m_tr])
     w = S.sample_weights(ep, m_tr)
-    va, _ = prepare(ep, Xu, m_va, *stds, sigma_ref=sref[m_va])
+    va, _ = prepare(ep, Xu, m_va, *stds, shape_cols=sc, sigma_ref=sref[m_va])
     ols = B.OLS(BASE_COLS).fit(pd.DataFrame(tr["Xb"], columns=BASE_COLS),
                                tr["y"].astype(np.float64), w)
     bl = B.fit_vol_baselines(Xu[m_tr], yall[m_tr], w)
     models = [train_model(tr, w, va, hidden=hidden, epochs=40, seed=k,
                           verbose=False, ols_beta=ols.beta)[0] for k in range(seeds)]
-    d, _ = prepare(ep, Xu, m_te, *stds)
+    d, _ = prepare(ep, Xu, m_te, *stds, shape_cols=sc)
     lp = bl["log_har_cal"].predict(Xu[m_te])
     preds = [I.predict(m, d, har_logvol=lp) for m in models]
     sg = np.mean([p["sigma_med"] for p in preds], axis=0)
