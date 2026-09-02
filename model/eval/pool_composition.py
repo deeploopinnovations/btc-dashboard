@@ -61,7 +61,7 @@ ARTIFACT_PANEL = (1, 6, 24, 168)
 # is a straw man at the extremes (R39)". P2-pool-composition originally
 # labelled {1,6,24,168} "the artifact's", which was wrong; the amendment
 # corrects the label, not the contrast (R41).
-REFERENCE = "{H} alone"
+REFERENCE = "{H} alone  (artifact)"
 PANELS = {"{H} alone  (artifact)": None,
           "{1,6,24,168}": (1, 6, 24, 168),
           "{1,6,24}": (1, 6, 24),

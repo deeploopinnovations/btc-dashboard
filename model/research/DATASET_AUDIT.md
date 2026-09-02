@@ -142,4 +142,47 @@ feature path.
 5. **Do not add a news feed to the direction model.** It would add look-ahead
    risk against a measured near-zero signal.
 
+---
+
+## 6. Why item 1 has not been built: the egress status, measured
+
+The macro calendar is the highest-value item on the list and it is not blocked
+by design work. It is blocked by network policy. Re-checked 2026-09-02, three
+primary sources, all through the configured proxy:
+
+| host | result |
+|---|---|
+| `www.federalreserve.gov` | `403 to CONNECT` — policy denial |
+| `api.stlouisfed.org` | `403 to CONNECT` — policy denial |
+| `www.bls.gov` | `403 to CONNECT` — policy denial |
+
+Reported by the proxy itself under `recentRelayFailures`, not inferred from a
+timeout. These are the authoritative publishers of the FOMC statement schedule
+and the CPI and NFP release calendars.
+
+**Recorded as BLOCKED BY INFRASTRUCTURE, and no calendar is constructed from
+memory.** A schedule of ~50 FOMC dates and ~70 CPI releases is exactly the kind
+of list that is easy to recall approximately and impossible to audit
+afterwards, and a calendar wrong by one day inverts the treatment for the
+episodes that matter most — the ones carrying half the error. R13 and the
+never-fabricate rule both point the same way: an unverifiable label is worse
+than no label, because the model cannot tell them apart and neither can the
+next person reading the artifact.
+
+Two routes remain open and neither has been taken yet:
+
+1. **An MCP connector that reaches a financial-calendar API.** Those requests
+   travel through a different path than direct egress and are not covered by
+   the denials above. The requirement is unchanged: the response has to carry
+   the release timestamps themselves, retrievably, so the calendar can be
+   rebuilt and checked rather than trusted.
+2. **A CI job on a runner without this policy.** The repository already
+   harvests data this way (`eval/harvest.py`), so the pattern exists.
+
+What `P2-event-footprint` established in the meantime is that the footprint is
+measurable WITHOUT the calendar: at H=1 the worst-5% episodes cluster by UTC
+anchor hour at chi-square 324.7, p = 4.5e-55, peaking at 14:00 and 18:00-19:00,
+against a flat H=24 control (p = 1.000). The clock knows where the events are
+even when the model does not know what they were.
+
 *Educational research only. Not financial advice.*
