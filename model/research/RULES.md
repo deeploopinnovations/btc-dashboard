@@ -114,6 +114,18 @@ designed.**
 It is what ruled out a plain IV feature column (32.7% train vs 100% test) and
 produced the residual design that worked. *(`iv-coverage-2`)*
 
+**R49. A control that reports only pass or fail throws away the measurement it
+was making.**
+`P2-intraday-basis`'s shuffled-hour arm was installed to catch capacity
+masquerading as clock signal. It caught none — and because it was *scored at
+every horizon* rather than reduced to a verdict, it showed that the cost of 23
+extra columns is **1.86 % at H=1, 4.05 % at H=6, 0.02 % at H=24 and 1.33 % at
+H=168**. That 200-fold variation, not the signal, explains the entire table:
+the clock information is worth almost exactly the capacity it consumes, so it
+reaches the bottom line only at the horizon where capacity happens to be free.
+The primary could not have asked that question. Report a control's value, not
+just its verdict. *(`P2-intraday-basis-result`)*
+
 **R48. When two candidates and a randomised control all fail the same way,
 the finding is about the pipeline, not about the candidates.**
 `P2-mean-level` ran three level corrections through the model: one derived per
