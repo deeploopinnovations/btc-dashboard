@@ -114,6 +114,19 @@ designed.**
 It is what ruled out a plain IV feature column (32.7% train vs 100% test) and
 produced the residual design that worked. *(`iv-coverage-2`)*
 
+**R48. When two candidates and a randomised control all fail the same way,
+the finding is about the pipeline, not about the candidates.**
+`P2-mean-level` ran three level corrections through the model: one derived per
+episode from its own quantiles, one constant, and one **shuffled** — the same
+mean shift with the per-episode alignment destroyed. All three improved QLIKE
+(+14.69 %, +10.72 %, +7.02 %) and **all three degraded all six barrier metrics
+by essentially the same amount**, DSC −20 % in every case. `P2-scale-v2` had
+already found this once with a fitted constant. Three arms failing identically
+is not three failures; it is one property — *no post-hoc shift applied through
+the predictive object can pass this battery* — and the randomised arm is what
+turns "two corrections failed" into that sentence. Budget for the control.
+*(`P2-mean-level-result`)*
+
 **R47. A completeness mask is a sample-selection decision, and building one
 over "all the columns" can delete a whole stratum without saying so.**
 `pool_composition.py` masked on all 42 feature columns. **No H=168 episode has
