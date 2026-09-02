@@ -205,7 +205,23 @@
    "mechanism": "teacher-residual",
    "claim": "The teacher+residual DECOMPOSITION carries the gain; the teacher's forecast as an ordinary feature carries almost none. A3 (teacher-as-feature) clears at zero of four horizons and is significantly WORSE than its teacher at H=1, while A1 (residual) clears at three. Both arms see identical information. The difference is inductive bias: an additive offset cannot be diluted by the network, a feature column can.\nAND THE GAIN IS EPISODIC, NOT A LEVEL SHIFT. The constant component of the learned residual is NEGATIVE at both clearing horizons (-68% at H=6, -70% at H=24 of the total gain), with implied c of 0.976-0.979 -- pointing slightly DOWN, opposite to the 1.112-1.213 the scale falsifier fitted. This is not the rejected scalar in disguise.",
    "falsifier": "EXECUTED as part of the run. The kill condition was that A3 would match A1/A2, which would have meant the decomposition bought nothing and only the information mattered. A3 matched at no horizon. The second kill condition, added before the full run after the smoke test raised it, was that the gain would prove to be the constant -- i.e. the already-rejected multiplicative correction. It is the opposite: the constant hurts and the episodic part carries everything.",
-   "verdict": "ADVANCE"
+   "verdict": "ADVANCE",
+   "superseded_by": [
+    "M-residual-decomposition-reject"
+   ]
+  },
+  {
+   "id": "M-residual-decomposition-reject",
+   "teacher": "har_short",
+   "mechanism": "teacher-residual",
+   "supersedes": [
+    "M-residual-decomposition"
+   ],
+   "claim": "Training NOCTUA on r = y - yhat_T and adding the teacher back beats the teacher, because it hands the stable linear part to the estimator that does it well and asks the network only for the deviation.",
+   "falsifier": "The arm must beat the strongest PROPERLY EQUIPPED comparator at that horizon, not the one a raw-QLIKE calib ranking happened to select. Under R39 every comparator is entitled to its own calib-fitted level scalar.",
+   "verdict": "REJECT",
+   "evidence": "H=6 was the only surviving cell. A1 = 0.39020 against garch_t rescaled 0.41073 (a win, as reported), har_short rescaled 0.35623 (a 9.5% loss) and noctua_v1 rescaled 0.34884 (an 11.9% loss), all on the same 49,124 test episodes. H=1 loses to A0 from scratch, H=24 already failed against a rescaled teacher, H=168 did not clear. See ledger P2-armA-correction.",
+   "note": "FIRST STRIKE for the tag `teacher-residual` under the stagnation supervisor. Two more failed architecture changes on this mechanism and it closes.\nWHAT SURVIVES, and it is not nothing: A3 (teacher as an ordinary feature column) cleared at ZERO horizons while the additive decomposition cleared at three, exactly as pre-registered. That contrast is a statement about inductive bias and does not depend on which comparator the arms were scored against."
   }
  ]
 }
