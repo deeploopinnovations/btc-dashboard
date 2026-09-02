@@ -114,6 +114,33 @@ designed.**
 It is what ruled out a plain IV feature column (32.7% train vs 100% test) and
 produced the residual design that worked. *(`iv-coverage-2`)*
 
+**R47. A completeness mask is a sample-selection decision, and building one
+over "all the columns" can delete a whole stratum without saying so.**
+`pool_composition.py` masked on all 42 feature columns. **No H=168 episode has
+a complete 42-column record** — `seas_1d` and `seas_5d` read a window that runs
+past the anchor once H > 24d — so the mask silently removed the entire long
+horizon, and the `{1,6,24,168}` panel became `{1,6,24}`, which was also one of
+the treatment arms. The reference and a treatment were the same estimator under
+two names, and the table would have read as "no effect". The corrected run
+reproduces the defective run's number exactly as the `{1,6,24}` row, which is
+what proves the diagnosis rather than merely asserting it. Mask on the column
+policy the trusted code uses, and check the surviving row counts per stratum.
+*(`P2-pool-composition-a1`, correction B)*
+
+**R46. A component you rebuild to route through a different pipeline must be
+validated against the original before anything is scored — and when they
+disagree, the disagreement is the finding, not the obstacle.**
+`arm_a_adopt.py` refit `har_short` because the OOF artifact is built on a
+different episode table than the pipeline it had to run inside. Its
+pre-registered validation refused the run: the refit scored **0.37951 against
+the artifact's 0.41710**, 9 % apart, at correlation r = 0.9978. The refusal was
+worth more than the run it blocked — it exposed that the artifact fits its OLS
+teachers **per horizon** while the pipeline's own fit pools them, which is a
+property of every Phase 1 and Phase 2 baseline number and had never been
+stated. Without the validation the barrier battery would have run, produced
+clean numbers, and reported them under Arm A's name for a different teacher.
+*(`P2-armA-adopt-a1`; the finding it opened is `P2-pool-composition`)*
+
 **R45. When a candidate improves the metric you optimise, the second metric —
 the one that represents the actual product — is not a formality. It is the one
 that knows whether you improved the thing or the proxy.**
