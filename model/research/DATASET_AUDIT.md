@@ -115,17 +115,50 @@ feature path.
 
 ## 4. The honest ranking of why this model underperforms
 
-1. **No exogenous information at all.** 42 features, one binary regime flag,
-   zero events. Half the error is in 5 % of episodes.
-2. **The target is estimator-dependent** and only one estimator was ever tried.
+**Revised 2026-09-02.** The first version of this list put the level mismatch
+fifth. That was wrong, and the evidence that moved it is `P2-scorecard-rescaled`:
+give every arm in the teacher zoo its own calibration scalar and **NOCTUA
+becomes the best forecaster in the zoo at H=1 and H=6**, ties at H=24, and only
+genuinely loses at H=168. Its raw deficit was not missing information. It was
+one number.
+
+### For VOLATILITY
+
+1. **A single stable level bias — and no way to fix it that the product
+   survives.** NOCTUA's calibration ratio is the worst in the zoo at every
+   horizon (1.4330 / 1.4642 / 1.4569 / 1.1660); the scalar that fixes it is
+   1.198 / 1.212 / 1.213 / 1.089, stable across six folds. Correct it and the
+   model outranks GARCH-t and `har_short`. But `P2-scale-v2` applied exactly
+   that correction end to end: QLIKE +9.7 %, spikes +33 %, and **all six
+   barrier metrics degraded** — DSC −14.16 %, MCB +8.48 %, Brier, CRPS, log
+   score and pinball. The product is a touch-probability curve, not a σ. This
+   is the binding constraint and it is a genuinely open problem, not a bug.
+2. **No exogenous information at all.** 42 features, one binary regime flag,
+   zero events. Half the error is in 5 % of episodes, and at H=1 those episodes
+   cluster by UTC hour at χ² = 324.7, p = 4.5e-55 — the clock knows where the
+   events are even though the model does not know what they were.
 3. **~6 independent regime-observations.** `E-power` measured that 24× more
-   episodes bought 1.53× effective sample size. This is the binding statistical
-   constraint and no amount of architecture fixes it.
-4. **A sentinel value that lies** (`P2-floor-defect`), unfixed in production.
-5. **Median-vs-mean mismatch**, now measured: the fix improves QLIKE 9.7 % and
-   degrades every barrier metric (`P2-scale-v2-result`).
-6. **Direction is genuinely near-unpredictable** from public price history, and
-   this is a property of the market rather than of the model.
+   episodes bought 1.53× effective sample size. No architecture fixes this.
+4. **The target is estimator-dependent** and only one estimator was ever tried.
+   Two standard estimators of the same quantity disagree by 15–90 %.
+5. **A sentinel value that lies** (`P2-floor-defect`), unfixed in production:
+   one zero-volume hour produced a σ of 0.000290 against a 3.1 % move and
+   carried 72.5 % of a fold's entire QLIKE.
+
+### For DIRECTION
+
+6. **Direction is genuinely near-unpredictable** from public price history.
+   8/8 arms fail at four horizons, calibration slopes −0.03 to +0.06. This is a
+   property of the market rather than of the model, and none of items 1–5
+   change it — the level work above is about the *scale* of the forecast and
+   says nothing about its sign.
+
+### What is NOT on this list any more
+
+**"The model is under-powered relative to a HAR family."** It is not.
+That reading came from raw QLIKE comparisons across arms whose calibration
+ratios span 0.4160 to 2.4167, and `TEACHER_ZOO` Amendment 2 now requires every
+such comparison to report the rescaled contrast beside the raw one.
 
 ---
 
