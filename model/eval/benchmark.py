@@ -339,7 +339,21 @@ class ScaledClimatology(Forecaster):
 def run_fold(ep, X, fold, hidden=32, seeds=3, verbose=False, shape_cols=None,
              sigma_ref_all=None, sigma_ref_fn=None, extra_w=None,
              train_filter=None, min_train=5000, prod_override=None,
-             lam_r=1.0, post_shift_fn=None):
+             lam_r=1.0, post_shift_fn=None, residual_anchor=None):
+    # Validated FIRST, before any data is touched, so a caller that passes a
+    # malformed anchor is told so instead of failing later somewhere that reads
+    # like a data problem.
+    anch = None
+    if residual_anchor is not None:
+        if post_shift_fn is not None:
+            raise ValueError(
+                "residual_anchor and post_shift_fn both write the final "
+                "log-vol level. Passing both would compose two corrections "
+                "into one number with nothing recording that it happened.")
+        anch = np.asarray(residual_anchor, np.float64)
+        if anch.shape != (len(ep),):
+            raise ValueError(f"residual_anchor has shape {anch.shape}, "
+                             f"expected one value per episode {(len(ep),)}")
     fin = np.isfinite(X.to_numpy()).all(1)
     # `prod_override` lets a caller score a DIFFERENT slice (e.g. one
     # horizon at a time) through this same path, so its numbers stay
@@ -352,6 +366,26 @@ def run_fold(ep, X, fold, hidden=32, seeds=3, verbose=False, shape_cols=None,
     if train_filter is not None:
         m_tr = m_tr & train_filter
     m_te = fold["test"] & fin & prod
+
+    # `residual_anchor` runs the Arm A architecture THROUGH THIS PIPELINE
+    # instead of beside it: the network learns y - anchor, the blend anchor is
+    # fitted on that same residual target, and the anchor is added back via
+    # post_shift_fn -- which places it in front of Stage B, the committee and
+    # every barrier. That is the entire point. `eval/arm_a_residual.py` scored
+    # QLIKE in its own loop and structurally could not say what the
+    # decomposition does to a touch probability, and P2-scale-v2 already
+    # showed a QLIKE gain on this model coexisting with barrier degradation
+    # across the board.
+    #
+    # It is given in the LOG HOURLY VOL RATE domain (log sigma - 0.5*log H),
+    # over every episode, with NaN wherever no cross-fitted teacher value
+    # exists. Those episodes are DROPPED rather than filled: a fallback would
+    # be a number the model reads as information (R43).
+    if anch is not None:
+        have = np.isfinite(anch)
+        m_tr, m_va, m_te = m_tr & have, m_va & have, m_te & have
+        post_shift_fn = lambda mask, _mt, _a=anch: _a[mask]      # noqa: E731
+
     if m_tr.sum() < min_train or m_te.sum() < 30 or m_va.sum() < 500:
         return None
 
@@ -375,9 +409,19 @@ def run_fold(ep, X, fold, hidden=32, seeds=3, verbose=False, shape_cols=None,
     H = ep.H.to_numpy(np.float64)
     yall = B.har_target(ep.RV.to_numpy(), H)
 
+    # The network AND the blend anchor learn the same target. Both must move
+    # together or the fail-safe breaks: a zero network and a zero anchor have
+    # to reproduce the teacher exactly, which is what makes this architecture
+    # degrade onto the teacher rather than onto whatever the net happened to
+    # learn.
+    target = yall if residual_anchor is None else (yall - anch)
+    if residual_anchor is not None:
+        tr["y"] = target[m_tr].astype(np.float32)
+        va["y"] = target[m_va].astype(np.float32)
+
     ols = B.OLS(BASE_COLS).fit(pd.DataFrame(tr["Xb"], columns=BASE_COLS),
                                tr["y"].astype(np.float64), wtr)
-    bl = B.fit_vol_baselines(X[m_tr], yall[m_tr], wtr)
+    bl = B.fit_vol_baselines(X[m_tr], target[m_tr], wtr)
     models = [train_model(tr, wtr, va, hidden=hidden, epochs=40, seed=s,
                           verbose=verbose, ols_beta=ols.beta, lam_r=lam_r)[0]
               for s in range(seeds)]
@@ -482,7 +526,14 @@ def run_fold(ep, X, fold, hidden=32, seeds=3, verbose=False, shape_cols=None,
 
     tr_up = np.abs(ep.M_up.to_numpy()[m_tr])
     tr_dn = np.abs(ep.M_dn.to_numpy()[m_tr])
-    sig_tr = np.exp(bl["log_har_cal"].predict(X[m_tr])) * np.sqrt(H[m_tr])
+    # ScaledClimatology's reference scale. Under a residual anchor `bl`
+    # predicts the RESIDUAL, so the anchor has to be added back here too --
+    # otherwise the climatology competitor would be handed a sigma near 1 and
+    # would look catastrophic for a reason that has nothing to do with it.
+    lp_tr = bl["log_har_cal"].predict(X[m_tr])
+    if residual_anchor is not None:
+        lp_tr = lp_tr + anch[m_tr]
+    sig_tr = np.exp(lp_tr) * np.sqrt(H[m_tr])
 
     competitors = [
         NoctuaCommittee(comm),

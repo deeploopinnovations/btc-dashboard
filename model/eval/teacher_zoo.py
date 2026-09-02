@@ -288,7 +288,7 @@ def _noctua_fold(ep, X, fold, hidden, seeds, verbose=False):
 
 
 # --------------------------------------------------------------------------
-def inner_oof(ep, X, fold, H: int, ret, n_blocks: int = 5, verbose=False):
+def inner_oof(ep, X, fold, H, ret, n_blocks: int = 5, verbose=False):
     """INNER out-of-fold teacher predictions on the TRAIN slice.
 
     TEACHER_ZOO Amendment 1. Arm A trains on `r = y - yhat_T`, which needs a
@@ -311,7 +311,14 @@ def inner_oof(ep, X, fold, H: int, ret, n_blocks: int = 5, verbose=False):
     as NaN and the caller drops them. Giving them a fallback would be R43 --
     inventing a number the model reads as information.
     """
-    at_h = (ep.H == H).to_numpy()
+    # `H=None` means EVERY horizon in the train slice. The horizon-sliced form
+    # is what Arm A's own scoring loop needs; the pooled form is what
+    # `benchmark.run_fold` needs, because that pipeline trains on all horizons
+    # at once and calibrates its committee on H=19 episodes. Producing the
+    # pooled anchor by calling this five times and stitching would give each
+    # horizon a different inner block boundary, so the two would not be the
+    # same estimator.
+    at_h = np.ones(len(ep), bool) if H is None else (ep.H == H).to_numpy()
     m_tr = fold["train"] & at_h
     idx = np.flatnonzero(m_tr)
     if len(idx) < 500:
