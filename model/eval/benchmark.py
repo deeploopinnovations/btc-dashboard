@@ -458,7 +458,13 @@ def run_fold(ep, X, fold, hidden=32, seeds=3, verbose=False, shape_cols=None,
             lp = lp + want / (1.0 - I.BLEND_W)
         preds = [I.predict(m, d, har_logvol=lp) for m in models]
         out = dict(preds[0])
-        for k in ("qa", "sigma_atoms", "sigma_med", "q_r", "q_up", "q_dn", "q_mx"):
+        # `sigma_mean` joins the seed-averaged keys because P2-mean-level needs
+        # the ENSEMBLE's median-to-mean ratio, not seed 0's. Until this line it
+        # was passed through from preds[0] alone, which nothing read -- and a
+        # value that is silently one seed's is exactly the kind of thing that
+        # gets read later and believed (R41).
+        for k in ("qa", "sigma_atoms", "sigma_med", "sigma_mean",
+                  "q_r", "q_up", "q_dn", "q_mx"):
             if all(k in p for p in preds):
                 out[k] = np.mean([p[k] for p in preds], axis=0)
         return out, lp
@@ -618,6 +624,16 @@ def run_fold(ep, X, fold, hidden=32, seeds=3, verbose=False, shape_cols=None,
                             # reimplement predict_avg to get them -- which R18
                             # names as how two "identical" comparisons stop
                             # being identical.
+                            # The model's OWN conditional-mean level, on both
+                            # slices. Purely additive. P2-mean-level needs the
+                            # per-episode ratio sigma_mean/sigma_med, which is
+                            # a function of the predictive distribution alone
+                            # and uses no target.
+                            "sigma_mean": np.asarray(
+                                p_te["sigma_mean"], np.float64),
+                            "sigma_mean_cal": np.asarray(
+                                p_cal["sigma_mean"], np.float64),
+                            "cal_idx": np.flatnonzero(m_cal),
                             "sigma_cal": np.asarray(
                                 p_cal["sigma_med"], np.float64),
                             "rv_cal": np.asarray(
