@@ -114,6 +114,18 @@ designed.**
 It is what ruled out a plain IV feature column (32.7% train vs 100% test) and
 produced the residual design that worked. *(`iv-coverage-2`)*
 
+**R50. A control whose transformation is a symmetry of your statistic is not a
+control.**
+`P2-dst-alignment` pre-registered "no fixed hour offset may beat the Eastern
+clock" as its guard. A fixed offset is a **relabelling** of 24 bins, so the bin
+counts are a permutation of themselves and chi-square, every lift and the top-K
+concentration are identical to UTC **by construction** — measured invariant to
+1e-12 across all 23. The stated reasoning for the control ("a fixed offset moves
+both halves of a doublet together and can never merge them") was correct, and is
+precisely why it carries no information. The question to ask of a control is not
+"would this catch the artifact I have in mind" but **"is there any input at all
+for which this returns a different number"**. *(`P2-dst-alignment-result`)*
+
 **R49. A control that reports only pass or fail throws away the measurement it
 was making.**
 `P2-intraday-basis`'s shuffled-hour arm was installed to catch capacity
