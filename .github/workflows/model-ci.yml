@@ -43,9 +43,6 @@ jobs:
       - name: Install serving runtime
         run: pip install --quiet -r model/serve/requirements-ci.txt
 
-      - name: Smoke-test existing snapshots
-        run: node scripts/smoke.js
-
       - name: Model self-test
         run: python model/tests/test_serving.py
 
@@ -58,6 +55,18 @@ jobs:
       - name: Adaptive-calibration self-test
         run: python model/tests/test_adaptive.py
 
+      # Gates the separation P2-level-report depends on: the trailing QLIKE
+      # scalar multiplies the REPORTED sigma and must never reach the
+      # predictive object. P2-scale-v2 and P2-mean-level both moved the level
+      # inside the pipeline and degraded all six barrier metrics, and
+      # P2-mean-level's SHUFFLED control degraded them by the same amount --
+      # so the damage comes from moving the level at all. The test runs the
+      # real forecast twice and requires every touch probability, safe level,
+      # p_up and p_vol_amplify to be bit-identical, and it exercises its own
+      # failure mode so it is not a guard that cannot fail (R2).
+      - name: Level-reporting separation gate
+        run: python model/tests/test_level_report.py
+
       # Gates the online-adaptation guard: ACI's coverage guarantee, Ville's
       # bound on the e-processes, and the promotion/veto asymmetry. A
       # regression in any of these is SILENT -- the system keeps forecasting
@@ -67,3 +76,43 @@ jobs:
       # it permanently.
       - name: Self-improvement guard self-test
         run: python model/tests/test_selfimprove.py
+
+      # The research record is an artifact like any other, and it has been
+      # corrupted twice by scripts appending to ledger.json directly instead
+      # of through ledger.add() -- two entries with no `topic` (a reader
+      # crashed on the missing key months later), a `supersedes` pointing at
+      # an id that never existed, and a one-sided supersede link that made
+      # --corrections and --open disagree about what was settled. Checking the
+      # FILE rather than the write path is the only version of this check that
+      # binds.
+      - name: Research ledger schema
+        run: python -m model.research.ledger --validate
+
+      # The pitfalls suite is a set of guards that were each written after a
+      # real defect got through. Its self-test asserts that every one of them
+      # can still FAIL -- a guard that has quietly become unfalsifiable is
+      # worse than no guard, because it prints reassuring output.
+      - name: Pitfall guards can still fail
+        run: python -m model.research.pitfalls --self-test
+
+      # Phase 2's record has its own schema -- candidates carry provenance and
+      # leakage risk, mechanisms carry a falsifier and a tag the stagnation
+      # supervisor counts. Same reason as the ledger above: it is written by
+      # scripts, so the FILE is what gets checked.
+      - name: Teacher ledger schema
+        run: python -m model.research.teacher_ledger --validate
+
+      # LAST, DELIBERATELY. This checks the AGE of a committed data snapshot
+      # against a 6-hour threshold, so it fails whenever the data cron has not
+      # run recently -- for reasons that have nothing to do with the diff under
+      # review. It used to run FIRST, and because the job stops at the first
+      # failing step, a stale snapshot meant none of the code tests above ever
+      # executed: a real regression would have been invisible behind a data
+      # freshness failure, reported identically as "test failed".
+      #
+      # Nothing is weakened. The check still fails the job exactly as before.
+      # It runs last so that a code failure is always reported, and so that a
+      # red job during a cron gap is unambiguous about which kind of failure
+      # it is.
+      - name: Smoke-test existing snapshots (data freshness)
+        run: node scripts/smoke.js

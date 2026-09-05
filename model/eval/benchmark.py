@@ -338,7 +338,22 @@ class ScaledClimatology(Forecaster):
 # ==========================================================================
 def run_fold(ep, X, fold, hidden=32, seeds=3, verbose=False, shape_cols=None,
              sigma_ref_all=None, sigma_ref_fn=None, extra_w=None,
-             train_filter=None, min_train=5000, prod_override=None):
+             train_filter=None, min_train=5000, prod_override=None,
+             lam_r=1.0, post_shift_fn=None, residual_anchor=None):
+    # Validated FIRST, before any data is touched, so a caller that passes a
+    # malformed anchor is told so instead of failing later somewhere that reads
+    # like a data problem.
+    anch = None
+    if residual_anchor is not None:
+        if post_shift_fn is not None:
+            raise ValueError(
+                "residual_anchor and post_shift_fn both write the final "
+                "log-vol level. Passing both would compose two corrections "
+                "into one number with nothing recording that it happened.")
+        anch = np.asarray(residual_anchor, np.float64)
+        if anch.shape != (len(ep),):
+            raise ValueError(f"residual_anchor has shape {anch.shape}, "
+                             f"expected one value per episode {(len(ep),)}")
     fin = np.isfinite(X.to_numpy()).all(1)
     # `prod_override` lets a caller score a DIFFERENT slice (e.g. one
     # horizon at a time) through this same path, so its numbers stay
@@ -351,6 +366,26 @@ def run_fold(ep, X, fold, hidden=32, seeds=3, verbose=False, shape_cols=None,
     if train_filter is not None:
         m_tr = m_tr & train_filter
     m_te = fold["test"] & fin & prod
+
+    # `residual_anchor` runs the Arm A architecture THROUGH THIS PIPELINE
+    # instead of beside it: the network learns y - anchor, the blend anchor is
+    # fitted on that same residual target, and the anchor is added back via
+    # post_shift_fn -- which places it in front of Stage B, the committee and
+    # every barrier. That is the entire point. `eval/arm_a_residual.py` scored
+    # QLIKE in its own loop and structurally could not say what the
+    # decomposition does to a touch probability, and P2-scale-v2 already
+    # showed a QLIKE gain on this model coexisting with barrier degradation
+    # across the board.
+    #
+    # It is given in the LOG HOURLY VOL RATE domain (log sigma - 0.5*log H),
+    # over every episode, with NaN wherever no cross-fitted teacher value
+    # exists. Those episodes are DROPPED rather than filled: a fallback would
+    # be a number the model reads as information (R43).
+    if anch is not None:
+        have = np.isfinite(anch)
+        m_tr, m_va, m_te = m_tr & have, m_va & have, m_te & have
+        post_shift_fn = lambda mask, _mt, _a=anch: _a[mask]      # noqa: E731
+
     if m_tr.sum() < min_train or m_te.sum() < 30 or m_va.sum() < 500:
         return None
 
@@ -374,20 +409,75 @@ def run_fold(ep, X, fold, hidden=32, seeds=3, verbose=False, shape_cols=None,
     H = ep.H.to_numpy(np.float64)
     yall = B.har_target(ep.RV.to_numpy(), H)
 
+    # The network AND the blend anchor learn the same target. Both must move
+    # together or the fail-safe breaks: a zero network and a zero anchor have
+    # to reproduce the teacher exactly, which is what makes this architecture
+    # degrade onto the teacher rather than onto whatever the net happened to
+    # learn.
+    target = yall if residual_anchor is None else (yall - anch)
+    if residual_anchor is not None:
+        tr["y"] = target[m_tr].astype(np.float32)
+        va["y"] = target[m_va].astype(np.float32)
+
     ols = B.OLS(BASE_COLS).fit(pd.DataFrame(tr["Xb"], columns=BASE_COLS),
                                tr["y"].astype(np.float64), wtr)
-    bl = B.fit_vol_baselines(X[m_tr], yall[m_tr], wtr)
+    bl = B.fit_vol_baselines(X[m_tr], target[m_tr], wtr)
     models = [train_model(tr, wtr, va, hidden=hidden, epochs=40, seed=s,
-                          verbose=verbose, ols_beta=ols.beta)[0] for s in range(seeds)]
+                          verbose=verbose, ols_beta=ols.beta, lam_r=lam_r)[0]
+              for s in range(seeds)]
 
     def predict_avg(mask):
         d, _ = prepare(ep, X, mask, *stds, shape_cols=shape_cols)
         lp = bl["log_har_cal"].predict(X[mask])
+        # `post_shift_fn(mask, train_mask)` returns the shift wanted on the
+        # FINAL blended log-vol level, applied before Stage B sees it -- so the
+        # barrier curves, the committee and the calibration all inherit it.
+        # That is the whole point: E2c re-weighted a recorded median and could
+        # not say what its correction does to a touch probability, which is the
+        # actual product.
+        #
+        # THE DIVISION IS NOT A FUDGE, IT IS THE BLEND ALGEBRA. infer.predict
+        # shifts the distribution so its median lands on
+        #
+        #     qa_med = w * qa_raw + (1 - w) * har_logvol
+        #
+        # so adding D to `har_logvol` moves the final level by (1 - w) * D, not
+        # by D. With w = 0.25 a correction passed in naively would arrive 25%
+        # attenuated -- and E2c's coefficients were fitted against the FINAL
+        # blended sigma, so an attenuated version is a different experiment
+        # wearing the same name. Dividing by (1 - w) here makes the realized
+        # shift equal the requested one, and the assertion below checks that
+        # rather than trusting the algebra.
+        #
+        # Default None reproduces the previous behaviour exactly.
+        if post_shift_fn is not None:
+            want = np.asarray(post_shift_fn(mask, m_tr), np.float64)
+            if want.shape != lp.shape:
+                raise ValueError(
+                    f"post_shift_fn returned {want.shape}, expected {lp.shape}")
+            lp = lp + want / (1.0 - I.BLEND_W)
         preds = [I.predict(m, d, har_logvol=lp) for m in models]
         out = dict(preds[0])
-        for k in ("qa", "sigma_atoms", "sigma_med", "q_r", "q_up", "q_dn"):
-            out[k] = np.mean([p[k] for p in preds], axis=0)
+        # `sigma_mean` joins the seed-averaged keys because P2-mean-level needs
+        # the ENSEMBLE's median-to-mean ratio, not seed 0's. Until this line it
+        # was passed through from preds[0] alone, which nothing read -- and a
+        # value that is silently one seed's is exactly the kind of thing that
+        # gets read later and believed (R41).
+        for k in ("qa", "sigma_atoms", "sigma_med", "sigma_mean",
+                  "q_r", "q_up", "q_dn", "q_mx"):
+            if all(k in p for p in preds):
+                out[k] = np.mean([p[k] for p in preds], axis=0)
         return out, lp
+
+    def predict_avg_noshift(mask):
+        """`predict_avg` with the shift suppressed. Used only by the assertion
+        above; defined here so the two paths cannot drift apart."""
+        nonlocal post_shift_fn
+        keep, post_shift_fn = post_shift_fn, None
+        try:
+            return predict_avg(mask)
+        finally:
+            post_shift_fn = keep
 
     # ---- calibration slice: fit the committee (equal weights, as shipped) --
     m_cal = m_va & (ep.H == 19).to_numpy()
@@ -405,6 +495,22 @@ def run_fold(ep, X, fold, hidden=32, seeds=3, verbose=False, shape_cols=None,
     comm = Committee(specs).fit_equal()
 
     # ---- test slice --------------------------------------------------------
+    if post_shift_fn is not None:
+        # Verify the blend algebra ON THIS FOLD rather than trusting the
+        # comment above: predict the test slice with and without the shift and
+        # confirm the achieved median moved by exactly what was asked for.
+        p_off, _ = predict_avg_noshift(m_te)
+        p_on, _ = predict_avg(m_te)
+        want = np.asarray(post_shift_fn(m_te, m_tr), np.float64)
+        got = (np.log(np.maximum(p_on["sigma_med"], 1e-300))
+               - np.log(np.maximum(p_off["sigma_med"], 1e-300)))
+        err = float(np.max(np.abs(got - want)))
+        if not err < 1e-6:
+            raise AssertionError(
+                f"post_shift_fn asked for a log-level shift and got a different "
+                f"one: max |achieved - requested| = {err:.3e}. The blend algebra "
+                f"in predict_avg is wrong, so the correction being scored is not "
+                f"the correction that was fitted.")
     p_te, lp_te = predict_avg(m_te)
     e_te = ep[m_te]
     Ht = H[m_te]
@@ -426,7 +532,14 @@ def run_fold(ep, X, fold, hidden=32, seeds=3, verbose=False, shape_cols=None,
 
     tr_up = np.abs(ep.M_up.to_numpy()[m_tr])
     tr_dn = np.abs(ep.M_dn.to_numpy()[m_tr])
-    sig_tr = np.exp(bl["log_har_cal"].predict(X[m_tr])) * np.sqrt(H[m_tr])
+    # ScaledClimatology's reference scale. Under a residual anchor `bl`
+    # predicts the RESIDUAL, so the anchor has to be added back here too --
+    # otherwise the climatology competitor would be handed a sigma near 1 and
+    # would look catastrophic for a reason that has nothing to do with it.
+    lp_tr = bl["log_har_cal"].predict(X[m_tr])
+    if residual_anchor is not None:
+        lp_tr = lp_tr + anch[m_tr]
+    sig_tr = np.exp(lp_tr) * np.sqrt(H[m_tr])
 
     competitors = [
         NoctuaCommittee(comm),
@@ -482,7 +595,49 @@ def run_fold(ep, X, fold, hidden=32, seeds=3, verbose=False, shape_cols=None,
         Q = comm.quantiles(ctx["sigma"], p_te, up=(side == "up"))
         chr_[side] = christoffersen((M[side] >= Q[:, j5]).astype(int), 0.05)
 
-    return {"rows": rows, "vol": vol, "christoffersen": chr_, "year": fold["year"]}
+    # Per-episode arrays, so a caller can condition the fold's scores on
+    # anything (regime, spike/calm, hour) WITHOUT rebuilding the pipeline.
+    # Additive: every existing key is unchanged. This exists because the
+    # alternative -- reimplementing prepare/train/predict in the caller -- is
+    # how two "identical" comparisons silently stop being identical, which
+    # research/pitfalls.py lists as a known failure mode here.
+    # `qa_med` and `har_logvol` are recorded so the ensemble weight can be
+    # re-evaluated WITHOUT retraining. The blend is affine in log space --
+    #     qa_med = w * qa_med_raw + (1 - w) * har_logvol
+    # -- and seed-averaging `qa` is linear, so the raw neural median inverts
+    # exactly, and any other w is one exponential away. Without these two
+    # arrays a w-sweep costs a full 6-fold retrain per value of w.
+    return {"rows": rows, "vol": vol, "christoffersen": chr_, "year": fold["year"],
+            "per_episode": {"rv": rv,
+                            "sigma_med": np.asarray(p_te["sigma_med"], np.float64),
+                            "qa_med": np.asarray(p_te["qa"][:, I.MEDIAN_IDX], np.float64),
+                            "har_logvol": np.asarray(lp_te, np.float64),
+                            "blend_w": float(I.BLEND_W),
+                            "H": np.asarray(Ht, np.float64),
+                            "test_idx": np.flatnonzero(m_te),
+                            # CALIB-side sigma and RV, added for `E-scale`'s
+                            # barrier condition. Purely additive: every existing
+                            # key is untouched and no number above changes. A
+                            # scale correction has to be FITTED on calib and
+                            # then applied through the whole pipeline, and
+                            # without these two arrays the caller would have to
+                            # reimplement predict_avg to get them -- which R18
+                            # names as how two "identical" comparisons stop
+                            # being identical.
+                            # The model's OWN conditional-mean level, on both
+                            # slices. Purely additive. P2-mean-level needs the
+                            # per-episode ratio sigma_mean/sigma_med, which is
+                            # a function of the predictive distribution alone
+                            # and uses no target.
+                            "sigma_mean": np.asarray(
+                                p_te["sigma_mean"], np.float64),
+                            "sigma_mean_cal": np.asarray(
+                                p_cal["sigma_mean"], np.float64),
+                            "cal_idx": np.flatnonzero(m_cal),
+                            "sigma_cal": np.asarray(
+                                p_cal["sigma_med"], np.float64),
+                            "rv_cal": np.asarray(
+                                ep.RV.to_numpy()[m_cal], np.float64)}}
 
 
 def main(argv=None) -> int:
@@ -490,16 +645,41 @@ def main(argv=None) -> int:
     p.add_argument("--artifacts", type=Path, default=Path("model/artifacts"))
     p.add_argument("--hidden", type=int, default=32)
     p.add_argument("--seeds", type=int, default=3)
+    p.add_argument("--no-causal-sigma", action="store_true",
+                   help="train Stage B against realized RV, the pre-16 behaviour. "
+                        "Kept ONLY so the historical numbers can be reproduced; "
+                        "it is not the shipped configuration.")
     p.add_argument("--out", type=Path, default=Path("model/artifacts/benchmark.json"))
     a = p.parse_args(argv)
 
     ep, X = load_all(a.artifacts)
     folds = S.walk_forward_folds(ep)
+
+    # Stage B is retargeted onto a CAUSAL volatility reference, matching what
+    # train_v2.py builds for the shipped artifact. Until this was added, main()
+    # called run_fold with no `sigma_ref_fn`, so `prepare()` fell through to its
+    # default -- realized RV -- which its own docstring documents as a
+    # train/serve skew that manufactures Spearman -0.4331 from arithmetic
+    # alone. BENCHMARK.md 6b records the causal retarget as ADOPTED and
+    # train_v2 stamps `stage_b_sigma_ref: causal_har_1d_clipped` into the
+    # artifact, so the benchmark was scoring a configuration that does not
+    # ship. See BENCHMARK.md 16.
+    #
+    # The CALLABLE form matters: clip bounds are refit on each fold's own
+    # training episodes, so nothing downstream of a fold boundary influences
+    # the reference. A single global clip would be a subtle leak.
+    _H = ep["H"].to_numpy(np.float64)
+    _raw = np.exp(X["har_1d"].to_numpy(np.float64)) * np.sqrt(_H)
+
+    def sig_fn(train_mask):
+        lo, hi = np.quantile(_raw[train_mask], [0.005, 0.995])
+        return np.maximum(np.clip(_raw, lo, hi), 1e-12)
     print(f"[bench] {len(folds)} walk-forward folds, hidden={a.hidden}, seeds={a.seeds}\n")
 
     res = []
     for f in folds:
-        r = run_fold(ep, X, f, a.hidden, a.seeds)
+        r = run_fold(ep, X, f, a.hidden, a.seeds,
+                     sigma_ref_fn=None if a.no_causal_sigma else sig_fn)
         if r is None:
             continue
         print(f"  fold {r['year']} done  (n={r['rows'][0]['n']})")
