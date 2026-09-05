@@ -114,6 +114,21 @@ designed.**
 It is what ruled out a plain IV feature column (32.7% train vs 100% test) and
 produced the residual design that worked. *(`iv-coverage-2`)*
 
+**R51. A paired bootstrap over episodes conditions on the fitted models. It
+does not contain training variance, and between separately-trained arms that
+omission can be the whole effect.**
+`P2-event-window` compared two arms differing only in how one indicator column
+is defined. At H=1 the right clock beat the wrong one by **+0.19 % of base**
+with a CI excluding zero. At H=24 — where `P2-event-footprint` measured
+chi-square 3.0, p = 1.000, so both columns are noise by construction — the same
+estimator returned **−0.14 % of base, also excluding zero**. The moving-block
+bootstrap resamples EPISODES while holding both networks fixed, so it answers
+"is the difference between *these* two fits consistent across episodes", not
+"would a re-run agree". Seed-averaging shrinks that variance without putting it
+in the interval. **When two arms are separately trained, the uncertainty has to
+come from independent seed sets, not from resampling episodes.**
+*(`P2-event-window-result`)*
+
 **R50. A control whose transformation is a symmetry of your statistic is not a
 control.**
 `P2-dst-alignment` pre-registered "no fixed hour offset may beat the Eastern
