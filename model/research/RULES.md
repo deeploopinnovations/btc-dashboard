@@ -114,6 +114,19 @@ designed.**
 It is what ruled out a plain IV feature column (32.7% train vs 100% test) and
 produced the residual design that worked. *(`iv-coverage-2`)*
 
+**R52. A control horizon is clean only for the confound it was measured
+against.**
+H=24 is used across several experiments as the no-footprint control because
+`P2-event-footprint` measured chi-square 3.0, p = 1.000 there. That establishes
+the absence of an **hour-of-day** footprint. It does **not** establish that two
+arbitrary 4-of-24-hour partitions score alike: `P2-event-window` found a
+**0.14 %-of-base difference between two of them, reproducible across three
+independent ensembles** — not seed noise (`P2-seed-variance`) and not
+seasonality (`P2-artifact-locus`, corr with summer −0.00013). The two arms are
+identical in winter and differ on the 10.9 % of episodes that are US summer, so
+the whole artifact lives there. Name the confound a control rules out, and do
+not borrow it for a different one. *(`P2-artifact-locus`)*
+
 **R51. A paired bootstrap over episodes conditions on the fitted models, so it
 omits training variance — and that omission is LARGEST where there is no signal.**
 *(Measured, and narrower than the version first written here.)*
