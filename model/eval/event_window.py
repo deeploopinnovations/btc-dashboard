@@ -174,7 +174,7 @@ def self_test() -> int:
     return 1 if bad else 0
 
 
-def run_arm(ep, X, fold, H, arm, et_h, utc_h, hidden, seeds, rng):
+def run_arm(ep, X, fold, H, arm, et_h, utc_h, hidden, seeds, rng, seed0=0):
     at_h = (ep.H == H).to_numpy()
     cols40 = [c for c in X.columns if c not in UNDEFINED_AT_1W]
     Xu, names = add_cols(X[cols40], et_h, utc_h, arm, rng)
@@ -196,7 +196,11 @@ def run_arm(ep, X, fold, H, arm, et_h, utc_h, hidden, seeds, rng):
     ols = B.OLS(BASE_COLS).fit(pd.DataFrame(tr["Xb"], columns=BASE_COLS),
                                tr["y"].astype(np.float64), w)
     bl = B.fit_vol_baselines(Xu[m_tr], yall[m_tr], w)
-    models = [train_model(tr, w, va, hidden=hidden, epochs=40, seed=k,
+    # `seed0` offsets the ensemble so an independent seed SET can be drawn.
+    # P2-seed-variance needs several complete ensembles, not several seeds:
+    # the quantity in question is the variance of a 3-seed fit, which a single
+    # wider ensemble would average away rather than measure.
+    models = [train_model(tr, w, va, hidden=hidden, epochs=40, seed=seed0 + k,
                           verbose=False, ols_beta=ols.beta)[0] for k in range(seeds)]
     d, _ = prepare(ep, Xu, m_te, *stds, shape_cols=sc)
     lp = bl["log_har_cal"].predict(Xu[m_te])
