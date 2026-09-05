@@ -114,20 +114,26 @@ designed.**
 It is what ruled out a plain IV feature column (32.7% train vs 100% test) and
 produced the residual design that worked. *(`iv-coverage-2`)*
 
-**R51. A paired bootstrap over episodes conditions on the fitted models. It
-does not contain training variance, and between separately-trained arms that
-omission can be the whole effect.**
-`P2-event-window` compared two arms differing only in how one indicator column
-is defined. At H=1 the right clock beat the wrong one by **+0.19 % of base**
-with a CI excluding zero. At H=24 — where `P2-event-footprint` measured
-chi-square 3.0, p = 1.000, so both columns are noise by construction — the same
-estimator returned **−0.14 % of base, also excluding zero**. The moving-block
-bootstrap resamples EPISODES while holding both networks fixed, so it answers
-"is the difference between *these* two fits consistent across episodes", not
-"would a re-run agree". Seed-averaging shrinks that variance without putting it
-in the interval. **When two arms are separately trained, the uncertainty has to
-come from independent seed sets, not from resampling episodes.**
-*(`P2-event-window-result`)*
+**R51. A paired bootstrap over episodes conditions on the fitted models, so it
+omits training variance — and that omission is LARGEST where there is no signal.**
+*(Measured, and narrower than the version first written here.)*
+`P2-seed-variance` re-ran the `P2-event-window` contrast with three independent
+3-seed ensembles. Across-seed-set sd against the bootstrap half-width:
+
+| horizon | gaps | sd | half-width | ratio |
+|---|---|---|---|---|
+| H=1 (signal) | +0.00136 / +0.00128 / +0.00120 | 0.000079 | 0.00050 | **0.16** |
+| H=24 (no signal) | −0.00037 / −0.00001 / −0.00043 | 0.000225 | 0.000375 | **0.60** |
+
+The first draft of this rule claimed the omission "can be the whole effect".
+**It cannot** — it is smaller than the bootstrap interval at both horizons.
+What survives, and is the useful part: the seed component is **~3× larger where
+there is nothing to fit**, because two arms with real signal converge to similar
+solutions that differ consistently while two arms with none differ by whatever
+the optimiser landed on. So seed-set replication is most needed on **controls and
+null cells**, which is exactly where it is least likely to be run — and is not
+worth tripling the cost of a primary that clears widely.
+*(`P2-seed-variance-result`)*
 
 **R50. A control whose transformation is a symmetry of your statistic is not a
 control.**
