@@ -114,6 +114,17 @@ designed.**
 It is what ruled out a plain IV feature column (32.7% train vs 100% test) and
 produced the residual design that worked. *(`iv-coverage-2`)*
 
+**R53. A p-value from a library function is not a p-value until you know that
+function's valid range at your n.**
+An audit agent reported `scipy.stats.spearmanr` p = **0.000** for a rank
+correlation on **three points** and built a "devastating, fatal flaw" on it. The
+exact combinatorial answer is 1/3! = **0.167** for a specific monotone ordering,
+0.333 either direction — an unremarkable coincidence. scipy returns its
+asymptotic approximation without complaint at n = 3. The same report also wrote
+"1/6 ≈ 0.0167", off by a factor of ten, and reasoned from it. This is R2 in a
+new place: not a guard that cannot fail, but a **statistic that cannot be valid,
+reported as though it were**. *(`P2-audit-seedvar`)*
+
 **R52. A control horizon is clean only for the confound it was measured
 against.**
 H=24 is used across several experiments as the no-footprint control because
@@ -140,13 +151,16 @@ omits training variance — and that omission is LARGEST where there is no signa
 
 The first draft of this rule claimed the omission "can be the whole effect".
 **It cannot** — it is smaller than the bootstrap interval at both horizons.
-What survives, and is the useful part: the seed component is **~3× larger where
+What survives, and is the useful part: the seed component is **3.8× larger where
 there is nothing to fit**, because two arms with real signal converge to similar
 solutions that differ consistently while two arms with none differ by whatever
 the optimiser landed on. So seed-set replication is most needed on **controls and
 null cells**, which is exactly where it is least likely to be run — and is not
 worth tripling the cost of a primary that clears widely.
-*(`P2-seed-variance-result`)*
+**PROVISIONAL:** the chi-square CI on that sd from n=3 puts the ratio at
+[0.082, 0.990] — it excludes 1.0 by one hundredth, so this is supported by a
+marginal interval and should be re-measured with more seed sets before it gates
+anything load-bearing. *(`P2-seed-variance-result`, `P2-audit-seedvar`)*
 
 **R50. A control whose transformation is a symmetry of your statistic is not a
 control.**

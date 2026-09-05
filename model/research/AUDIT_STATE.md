@@ -133,4 +133,33 @@ Recorded so the audit can be scored honestly rather than rationalised:
 clean on all five, that is more likely a sign the audit was too easy than that
 the work is sound.
 
+---
+
+## 5. Agent returns — scored against §4
+
+### Agent 4 — `P2-seed-variance` / R51 / R52 (Haiku) — RETURNED
+
+| its attack | its verdict | mine after re-testing |
+|---|---|---|
+| (a) n=3 sd is marginal | supported, borderline | **ACCEPTED** — ratio CI [0.082, 0.990], excludes 1.0 by 0.010 |
+| (b) seed dependence = "FATAL FLAW" | devastating | **REFUTED on all three supports** |
+| (c) "~3x" overstated | 3.81× | **ACCEPTED**, corrected in R51 |
+| (d) `P2-artifact-locus` | all claims exact | **CONFIRMED** independently |
+| (e) R52 justification weak | weak | **partially** — practical claim unaffected |
+
+**Why (b) fails.** Tested rather than argued: |corr| between draws is 0.01110
+for consecutive torch seeds vs 0.01099 for non-consecutive, against 0.01200
+expected for independent draws — t = +0.040, p = 0.969. The agent asserted the
+mechanism without testing it. Its `p = 0.000` came from `scipy.stats.spearmanr`
+on **three points**, where the exact answer is 1/6 = 0.167; and it wrote
+"1/6 ≈ 0.0167", off by ten, then reasoned from that. → **R53**.
+
+**Score against §4:** prediction 4 ("R51's narrowing from n=3 is under-powered
+and may not survive contact") is **CORRECT**. R51 is now marked PROVISIONAL.
+
+**The instructive part:** the report's *headline* was wrong and its *footnote*
+was right. Accepting it as written would have withdrawn a correct rule on a
+false mechanism; dismissing it for containing a tenfold arithmetic error would
+have lost the one interval that changed what I believe.
+
 *Educational research only. Not financial advice.*
