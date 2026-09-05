@@ -116,6 +116,20 @@
    "params": 6939,
    "cost_s": 56.0,
    "note": "WINS calm QLIKE at H=1 (0.40275) and H=6 (0.30222) -- best of any teacher -- while posting near-worst spike (4.8005, 2.8765) and deep tail (13.05, 6.65). Calibration ratio 1.166-1.464: systematically under-forecasts"
+  },
+  {
+   "id": "T-timesfm-3.0",
+   "name": "TimesFM 3.0 (PyTorch), Google Research",
+   "source": "hf://models/google/timesfm-3.0-pytorch",
+   "licence_code": "Apache-2.0 (the timesfm repo)",
+   "licence_weights": "timesfm-non-commercial-license-v1.0 -- NON-COMMERCIAL",
+   "eval_mode": "zero-shot only; see the leakage verdict",
+   "params": "20 transformer layers, model dim 1280, 16 heads; context patch 32, horizon patch 64",
+   "probabilistic_output": "YES -- quantile head, median at index 4. Meets TEACHER_ZOO's requirement for a distributional teacher, unlike a point forecaster.",
+   "leakage_risk": "HIGH",
+   "verdict": "DISQUALIFIED_LEAKAGE",
+   "training_data_concerns": "VERIFIED DIRECTLY THIS SESSION, not inferred. The model card states pretraining on 'GiftEvalPretrain excluding the datasets that overlap with fev-bench', plus Wikipedia Pageviews (cutoff Nov 2023), Google Trends top queries (cutoff EoY 2022), and synthetic data.\n  1. `Salesforce/GiftEvalPretrain` CONTAINS a config named `bitcoin_with_missing` (18 series,      329,328-byte arrow). Confirmed by `find --name *bitcoin*` over the repo.\n  2. This is the SAME Monash-archive Bitcoin dataset whose presence in LOTSA disqualified      Moirai 1.x and TiRex-2 in TEACHER_CANDIDATES.md.\n  3. The ONLY exclusion TimesFM 3.0 applies is fev-bench overlap. A recursive      `find --name *bitcoin*` over the fev-bench-lite mirror (Leogrin/fev-bench-lite-n3)      returns EMPTY, so the bitcoin dataset does not overlap fev-bench and was therefore NOT      excluded. CAVEAT: that is a 'lite' mirror and may not carry every fev-bench task; the      canonical autogluon/fev_bench path 404s from here.\n  4. The exact DATE RANGE of `bitcoin_with_missing` -- which would say how much of our      2021-2026 test window it actually touches -- is NOT MEASURABLE in this environment.      huggingface.co returns 000 to direct egress under this network policy, and the dataset      viewer exposes only `default/train`, not the `bitcoin_with_missing` config. Recorded as      unmeasured rather than assumed.",
+   "note": "THE STANDARD IS APPLIED AS IT WAS TO MOIRAI AND TiREX-2, AND THAT IS THE POINT. TEACHER_CANDIDATES.md #11 and the TiRex-2 entry both disqualify on exactly this dataset, and the TiRex-2 entry states the reason in words that fit TimesFM 3.0 verbatim: 'their decontamination is benchmark-targeted (GIFT-Eval overlap, fev-bench overlap), not BTC-targeted, so even the clean variants do not address this leakage risk for a BTC volatility task.' TimesFM 3.0's exclusion is fev-bench-targeted. Exempting it because it was specifically requested is what R3 exists to prevent -- a rule only binds if it binds when it is inconvenient.\nWHAT WOULD MAKE IT USABLE, and it is a real route rather than a consolation. The leak is DAILY on-chain and price metrics; the target is HOURLY realized volatility 2021-2026, so this is not a verbatim leak and the practical risk is probably small -- but 'probably small' is not measurable here (point 4). A defensible clean-window evaluation restricts scoring to test folds AFTER every stated cutoff (Google Trends EoY 2022, Wikipedia Nov 2023, and the Monash series which cannot postdate GiftEval's 2024 publication), i.e. the 2024-2026 folds. That is pre-registrable and would let TimesFM 3.0 be scored as a CAVEATED reference. It may never be the bar NOCTUA must beat, and any number from it carries the leakage disclosure.\nSEPARATELY, THE LICENCE IS NON-COMMERCIAL. Consistent with this repository's stated purpose ('Educational research only. Not financial advice.') but it forecloses any commercial derivative, and a distilled student trained on its outputs would inherit that question."
   }
  ],
  "mechanisms": [
