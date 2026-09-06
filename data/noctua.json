@@ -1,154 +1,154 @@
 {
-  "anchor_utc": "2026-09-06 10:00:00+00:00",
-  "settle_utc": "2026-09-07 05:00:00+00:00",
+  "anchor_utc": "2026-09-06 13:00:00+00:00",
+  "settle_utc": "2026-09-07 08:00:00+00:00",
   "H_hours": 19,
-  "spot": 79881.52,
-  "sigma_window_pct": 1.057,
-  "sigma_annualized_pct": 22.7,
-  "trailing_rv_pct": 0.737,
-  "p_up": 0.5059,
-  "p_vol_amplify": 0.9322,
+  "spot": 79927.8,
+  "sigma_window_pct": 1.066,
+  "sigma_annualized_pct": 22.9,
+  "trailing_rv_pct": 0.69,
+  "p_up": 0.5064,
+  "p_vol_amplify": 0.9692,
   "safe_levels": [
     {
       "alpha": 0.01,
-      "call_strike": 83953.47,
-      "put_strike": 76012.55,
-      "call_pct": 5.097,
-      "put_pct": -4.843
+      "call_strike": 84097.34,
+      "put_strike": 75990.36,
+      "call_pct": 5.217,
+      "put_pct": -4.926
     },
     {
       "alpha": 0.02,
-      "call_strike": 83121.81,
-      "put_strike": 76763.38,
-      "call_pct": 4.056,
-      "put_pct": -3.903
+      "call_strike": 83247.0,
+      "put_strike": 76752.87,
+      "call_pct": 4.153,
+      "put_pct": -3.972
     },
     {
       "alpha": 0.05,
-      "call_strike": 82224.19,
-      "put_strike": 77615.05,
-      "call_pct": 2.933,
-      "put_pct": -2.837
+      "call_strike": 82325.66,
+      "put_strike": 77623.42,
+      "call_pct": 3.0,
+      "put_pct": -2.883
     },
     {
       "alpha": 0.1,
-      "call_strike": 81734.95,
-      "put_strike": 78086.11,
-      "call_pct": 2.32,
-      "put_pct": -2.248
+      "call_strike": 81822.79,
+      "put_strike": 78102.93,
+      "call_pct": 2.371,
+      "put_pct": -2.283
     },
     {
       "alpha": 0.2,
-      "call_strike": 81196.44,
-      "put_strike": 78587.59,
-      "call_pct": 1.646,
-      "put_pct": -1.62
+      "call_strike": 81271.13,
+      "put_strike": 78614.55,
+      "call_pct": 1.681,
+      "put_pct": -1.643
     }
   ],
   "barrier_curves": {
     "up": [
       {
         "pct": 0.5,
-        "price": 80280.93,
-        "touch_prob": 0.6958
+        "price": 80327.44,
+        "touch_prob": 0.7009
       },
       {
         "pct": 1.0,
-        "price": 80680.34,
-        "touch_prob": 0.4371
+        "price": 80727.08,
+        "touch_prob": 0.4456
       },
       {
         "pct": 1.5,
-        "price": 81079.74,
-        "touch_prob": 0.2417
+        "price": 81126.72,
+        "touch_prob": 0.2503
       },
       {
         "pct": 2.0,
-        "price": 81479.15,
-        "touch_prob": 0.1474
+        "price": 81526.36,
+        "touch_prob": 0.1537
       },
       {
         "pct": 3.0,
-        "price": 82277.97,
-        "touch_prob": 0.0482
+        "price": 82325.63,
+        "touch_prob": 0.05
       },
       {
         "pct": 4.0,
-        "price": 83076.78,
-        "touch_prob": 0.0215
+        "price": 83124.91,
+        "touch_prob": 0.024
       },
       {
         "pct": 5.0,
-        "price": 83875.6,
-        "touch_prob": 0.0109
+        "price": 83924.19,
+        "touch_prob": 0.012
       },
       {
         "pct": 7.5,
-        "price": 85872.63,
-        "touch_prob": 0.0027
+        "price": 85922.38,
+        "touch_prob": 0.0029
       },
       {
         "pct": 10.0,
-        "price": 87869.67,
-        "touch_prob": 0.001
+        "price": 87920.58,
+        "touch_prob": 0.0011
       }
     ],
     "dn": [
       {
         "pct": -0.5,
-        "price": 79482.11,
-        "touch_prob": 0.7004
+        "price": 79528.16,
+        "touch_prob": 0.7037
       },
       {
         "pct": -1.0,
-        "price": 79082.7,
-        "touch_prob": 0.4415
+        "price": 79128.52,
+        "touch_prob": 0.4473
       },
       {
         "pct": -1.5,
-        "price": 78683.3,
-        "touch_prob": 0.2417
+        "price": 78728.88,
+        "touch_prob": 0.2476
       },
       {
         "pct": -2.0,
-        "price": 78283.89,
-        "touch_prob": 0.1458
+        "price": 78329.24,
+        "touch_prob": 0.1504
       },
       {
         "pct": -3.0,
-        "price": 77485.07,
-        "touch_prob": 0.0479
+        "price": 77529.97,
+        "touch_prob": 0.0492
       },
       {
         "pct": -4.0,
-        "price": 76686.26,
-        "touch_prob": 0.0216
+        "price": 76730.69,
+        "touch_prob": 0.0235
       },
       {
         "pct": -5.0,
-        "price": 75887.44,
-        "touch_prob": 0.0109
+        "price": 75931.41,
+        "touch_prob": 0.0117
       },
       {
         "pct": -7.5,
-        "price": 73890.41,
-        "touch_prob": 0.0026
+        "price": 73933.22,
+        "touch_prob": 0.0028
       },
       {
         "pct": -10.0,
-        "price": 71893.37,
+        "price": 71935.02,
         "touch_prob": 0.001
       }
     ]
   },
   "model": "NOCTUA-v2",
   "vol_calibration": {
-    "factor": 0.9958,
+    "factor": 0.9808,
     "applied": true,
     "n_settled_episodes": 161,
     "window_days": 60,
     "note": "trailing 60d median over 161 settled episodes"
   },
   "source": "bitstamp:btcusd",
-  "history_hours": 9749
+  "history_hours": 9752
 }
