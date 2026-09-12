@@ -21,5 +21,22 @@
   "filled_minutes": 0.0,
   "zero_volume_pct": 17.08,
   "bad_print_pct": 0.15
+ },
+ "reproduction": {
+  "episodes_h4_rebuilt": 476359,
+  "episodes_h4_published": 476362,
+  "delta": -3,
+  "delta_pct": -0.00063,
+  "source_revision_test": {
+   "sidecar_rows_2026_08_29": 7710019,
+   "sidecar_last_bar_utc": "2026-08-29T04:19:00+00:00",
+   "original_rows": 7681837,
+   "original_last_bar_utc": "2026-08-09T14:37:00+00:00",
+   "row_difference": 28182,
+   "elapsed_minutes": 28182,
+   "drift_rows": 0,
+   "conclusion": "The source's own provenance sidecar records a row count that differs from the original corpus by EXACTLY the elapsed wall-clock minutes, zero drift. Upstream history was not revised; the minute grid is identical. The 3-episode gap is therefore NOT a data difference and is a bookkeeping discrepancy in the published figure itself."
+  },
+  "materiality": "3 of 476,362 episodes is 0.00063%. The Phase 2 contrasts at issue are pooled QLIKE differences of 0.006 to 0.062; three episodes cannot move one. The rebuild is adequate to AUDIT the published ranking and is a near-reproduction, not an identity. The committed content hash exists so that the NEXT rebuild can be an identity."
  }
 }

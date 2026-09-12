@@ -369,6 +369,19 @@ the same distribution. A prediction stated without the depth was not a falsifiab
 prediction. Name the depth, and read the MAGNITUDE rather than the p-value.
 *(`P2-tail-clustering`)*
 
+**R59. Prove whether the SOURCE moved before blaming it for a reproduction gap.**
+The rebuilt corpus came back 3 episodes short of the published 476,362, and the
+ready explanation was an upstream revision to a daily-updated dataset. It is
+testable and it is false: the source's own provenance sidecar records 7,710,019
+rows at 2026-08-29 04:19 against the original's 7,681,837 at 2026-08-09 14:37, a
+difference of 28,182 rows against 28,182 elapsed minutes — **zero drift**. History
+was appended to, never revised, so the minute grid is identical and the gap is a
+bookkeeping error in my own published figure. Blaming the source would have closed
+the question with the one explanation that the evidence excludes. Also: the gap is
+0.00063% against contrasts of 0.006–0.062, so it is immaterial — which is a reason
+to state it, not a reason to stop looking for it.
+*(`corpus_manifest.json`, `P2-corpus-restored`)*
+
 ## Rules about interpretation
 
 **R20. Correcting a number in the humbler direction does not make the
