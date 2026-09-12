@@ -399,6 +399,33 @@ is the right one: the level mechanism, `P2-armA-correction` REJECT →
 `P2-level-report-adopt` ADOPT → `P2-mean-level-result` REJECT.
 *(`supervisor.py --selftest`, 6/6)*
 
+**R61. Put a DETERMINISTIC arm in every reproduction, so the data is controlled
+before the model is blamed.**
+The rebuilt corpus was 3 episodes short of the published count, which made every
+reproduction discrepancy ambiguous between "the data moved" and "the model is not
+reproducible". The scorecard settles it for free, because it scores seven teachers
+at once: `har_short` came back 0.25697 against a published 0.25696, `garch_t`
+0.41060 against 0.41073 — fitted on the *same* rebuilt corpus, reproducing to
+1e-5. The data is therefore not the explanation for `noctua_v1` missing by
+0.00154, 0.00272 and 0.00366 at the same three horizons, and no further work was
+needed to establish that. A reproduction containing only the stochastic arm could
+not have told these apart at any cost.
+
+**R62. "It reproduces" is a claim about the CONCLUSION and about the NUMBER, and
+they can diverge.**
+The rescaled ranking reproduced structurally and exactly: 3 of 4 horizons change
+rank, NOCTUA best at H=1/6/24, `har_short` holding at H=168 — so ending teacher
+mining was correctly founded. And the H=24 verdict still flipped, from a published
+TIE (CI [-0.00183, +0.01231]) to a clear win (CI [+0.00260, +0.01582]), on the
+same code, same corpus and same protocol. Report both halves: a structure that
+survives re-running does not license the decimals quoted inside it, and a row
+whose verdict moves between two honest runs of the same design must not be cited
+as either outcome. Also: the measured seed sds (0.000079, 0.000225) could not be
+used to bound this, because they are sds of PAIRED GAPS, where common training
+noise cancels, and the quantity in question is a pooled LEVEL. Two different
+statistics wearing the same word.
+*(`P2-scorecard-rescaled-reproduced`)*
+
 ## Rules about interpretation
 
 **R20. Correcting a number in the humbler direction does not make the

@@ -377,12 +377,30 @@ Every row was registered with its decision rule **before** it ran. Failures are 
 
 ## Reproducing this
 
-Everything below runs from a clean checkout with no network access.
-Artifacts land in `model/artifacts/`.
+Stages 1 onward run offline. Stage 0 does NOT: `model/artifacts/` is
+gitignored, so the corpus was never committed and a clean checkout does not have
+it. That sentence used to read "already committed", which was wrong, and the
+error mattered -- on 2026-09-12 the directory was lost with its container and
+four of eight adversarial-audit attacks had to be abandoned as NOT TESTABLE
+(DATA_LOSS_2026-09-12.md, R55).
 
 ```bash
-# 0. the data the rest depends on (already committed)
-ls model/artifacts/btcusd_1h.parquet model/artifacts/episodes_h4.parquet
+# 0. the data the rest depends on -- NOT committed; rebuild it, which needs
+#    network access once. `regenerate` pins the corpus to the date the
+#    committed results were measured on and REFUSES if the rebuild differs,
+#    because the source updates daily and a naive re-ingest would pull the
+#    forward holdout into the training corpus (see corpus_manifest.json).
+git clone --depth 1 https://github.com/ff137/bitstamp-btcusd-minute-data /tmp/bs
+python -m model.noctua.regenerate --repo /tmp/bs --out model/artifacts
+python -m model.noctua.episodes --parquet model/artifacts/btcusd_1min.parquet \
+    --out /tmp/h4 --horizons 1 6 24 168
+mv /tmp/h4/episodes.parquet model/artifacts/episodes_h4.parquet
+python -c "import pandas as pd, sys; sys.path.insert(0, 'model'); \
+  from noctua.features import build_features; \
+  build_features(pd.read_parquet('model/artifacts/btcusd_1h.parquet'), \
+    pd.read_parquet('model/artifacts/episodes.parquet')) \
+  .to_parquet('model/artifacts/features.parquet')"
+python -m model.eval.teacher_zoo          # -> teacher_oof.npz  (~12 min)
 
 # 1. the point-in-time audit, including the deliberate leak decoy
 python -m model.eval.leakage

@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
 A = Path("model/artifacts")
@@ -42,7 +43,18 @@ def load(name: str):
         return None
 
 
+# Artifacts whose absence was hit during the last build(). A generator that
+# reads artifacts and writes a committed document degrades SILENTLY when they
+# are gone: on 2026-09-12, with model/artifacts/ lost, a re-run of this file
+# replaced 168 lines of established findings -- the closed direction result, the
+# whole four-horizon matrix, the production-headline reversal -- with
+# "not present" notes, and the output still looked like a finished report. The
+# write is therefore gated on this set being empty. (R38, applied to documents.)
+_MISSING: list[tuple[str, str]] = []
+
+
 def missing(name: str, what: str) -> str:
+    _MISSING.append((name, what))
     return (f"> **`{name}` is not present.** {what} is therefore not reported "
             f"here. Regenerate it with the command in "
             f"[Reproducing this](#reproducing-this) and re-run this generator.\n")
@@ -335,12 +347,30 @@ flowchart TD
     PROD -- yes --> ADOPT["ADOPT"]
 ```"""
 
-REPRO = """Everything below runs from a clean checkout with no network access.
-Artifacts land in `model/artifacts/`.
+REPRO = """Stages 1 onward run offline. Stage 0 does NOT: `model/artifacts/` is
+gitignored, so the corpus was never committed and a clean checkout does not have
+it. That sentence used to read "already committed", which was wrong, and the
+error mattered -- on 2026-09-12 the directory was lost with its container and
+four of eight adversarial-audit attacks had to be abandoned as NOT TESTABLE
+(DATA_LOSS_2026-09-12.md, R55).
 
 ```bash
-# 0. the data the rest depends on (already committed)
-ls model/artifacts/btcusd_1h.parquet model/artifacts/episodes_h4.parquet
+# 0. the data the rest depends on -- NOT committed; rebuild it, which needs
+#    network access once. `regenerate` pins the corpus to the date the
+#    committed results were measured on and REFUSES if the rebuild differs,
+#    because the source updates daily and a naive re-ingest would pull the
+#    forward holdout into the training corpus (see corpus_manifest.json).
+git clone --depth 1 https://github.com/ff137/bitstamp-btcusd-minute-data /tmp/bs
+python -m model.noctua.regenerate --repo /tmp/bs --out model/artifacts
+python -m model.noctua.episodes --parquet model/artifacts/btcusd_1min.parquet \\
+    --out /tmp/h4 --horizons 1 6 24 168
+mv /tmp/h4/episodes.parquet model/artifacts/episodes_h4.parquet
+python -c "import pandas as pd, sys; sys.path.insert(0, 'model'); \\
+  from noctua.features import build_features; \\
+  build_features(pd.read_parquet('model/artifacts/btcusd_1h.parquet'), \\
+    pd.read_parquet('model/artifacts/episodes.parquet')) \\
+  .to_parquet('model/artifacts/features.parquet')"
+python -m model.eval.teacher_zoo          # -> teacher_oof.npz  (~12 min)
 
 # 1. the point-in-time audit, including the deliberate leak decoy
 python -m model.eval.leakage
@@ -552,12 +582,68 @@ Three things found by guards rather than by looking:
 """)
 
 
+def selftest() -> int:
+    """The write must refuse when the inputs it reads are absent."""
+    global A
+    import tempfile
+    checks = []
+    real = A
+    try:
+        A = Path(tempfile.mkdtemp())          # an empty artifacts directory
+        _MISSING.clear()
+        text = build()
+        checks.append(("absent-artifacts-are-detected", len(_MISSING) >= 3,
+                       f"{len(_MISSING)} missing: "
+                       f"{[n for n, _ in _MISSING]}"))
+        checks.append(("partial-build-is-shorter", len(text) > 0,
+                       f"{len(text):,} chars, which is the output that must "
+                       f"NOT reach the committed file"))
+    finally:
+        A = real
+    _MISSING.clear()
+    checks.append(("clean-slate-has-no-missing-list", not _MISSING,
+                   "the tracker is reset between builds, so a stale entry "
+                   "cannot block a good run"))
+    print("report generator selftest")
+    bad = 0
+    for name, ok, detail in checks:
+        if not ok:
+            bad += 1
+        print(f"  [{'ok ' if ok else 'FAIL'}] {name}: {detail}")
+    print(f"\n{len(checks) - bad}/{len(checks)} checks passed")
+    return 1 if bad else 0
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="generate the research report")
     ap.add_argument("--out", type=Path, default=Path("model/RESEARCH_REPORT.md"))
+    ap.add_argument("--allow-partial", action="store_true",
+                    help="write even though some artifacts are absent; the "
+                         "sections they feed become placeholders")
+    ap.add_argument("--selftest", action="store_true")
     a = ap.parse_args(argv)
-    a.out.write_text(build())
-    print(f"wrote {a.out} ({len(build()):,} chars)")
+    if a.selftest:
+        return selftest()
+
+    _MISSING.clear()
+    text = build()
+    if _MISSING and not a.allow_partial:
+        old = a.out.read_text() if a.out.exists() else ""
+        print(f"REFUSING to write {a.out}: {len(_MISSING)} artifact(s) absent, "
+              f"so this run would replace established findings with "
+              f"placeholders.", file=sys.stderr)
+        for n, what in _MISSING:
+            print(f"  - {n}: {what}", file=sys.stderr)
+        if old:
+            print(f"  the committed file is {len(old):,} chars; this run "
+                  f"produced {len(text):,}, a loss of {len(old)-len(text):,}.",
+                  file=sys.stderr)
+        print("  rebuild the artifacts (see the report's Reproducing section), "
+              "or pass --allow-partial if a placeholder report is what you "
+              "want.", file=sys.stderr)
+        return 2
+    a.out.write_text(text)
+    print(f"wrote {a.out} ({len(text):,} chars)")
     return 0
 
 
