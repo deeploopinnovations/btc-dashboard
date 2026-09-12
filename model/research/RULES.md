@@ -330,6 +330,45 @@ separate runs. Assert it; do not assume it.
 
 ---
 
+**R56. A guard on a POOLED statistic cannot detect a PARTIAL violation, and
+aggregation can invert its sign.**
+`scorecard_rescaled` refused to run if the post-rescale calibration ratio was
+exactly 1, the signature of a constant fitted on the slice it is scored against.
+That check ran on the ratio POOLED across six folds. It fires correctly when
+every fold leaked — the pooled ratio is then exactly 1 by construction — and is
+blind when only some did, because the honest folds pull the average off 1. Worse
+than blind: with two of six folds leaking the pooled ratio sat at 1.00217 while
+the fully honest run sat at 1.00152, so the leaking run looked *more* honest than
+the clean one and no tolerance on the pooled number could ever separate them. The
+guard must be evaluated at the granularity at which the thing it guards is
+FITTED — per fold, because `c` is fitted per fold. An adversarial agent reported
+this slot as defective for a different and incorrect reason (an index-set
+mismatch between calib and test, which `nanmean` makes impossible); the real
+defect was found only by building the partial-leak case the agent never ran.
+*(`P2-audit-rescaled-ranking`, `scorecard_rescaled.py --selftest`)*
+
+**R57. An agent that searches the wrong surface reports absence, not absence.**
+An audit concluded the served `sigma_window_pct` and `barrier_curves` were
+"orphaned outputs... not consumed by any downstream system", having grepped
+`src/*.js` and `scripts/*.js`. `model/serve/app.py:87` renders
+`sigma_window_pct` to the reader; it is the published number. The true and
+narrower finding — the dashboard front-end does not read NOCTUA's sigma or
+barriers, only Kronos `upside` and `volAmp` — was available from the same
+evidence and is worth knowing. Take the residue, not the headline.
+*(`P2-audit-levelfix`)*
+
+**R58. "Is the tail clustered?" has no answer until you name the tail depth —
+and the answer can flip across it.**
+I pre-registered band B for the day-concentration of extreme episodes and was
+wrong twice over: the worst 5% of hours touch 180 of 401 days (fraction 0.449,
+band C — labelling that is labelling the calendar), while the worst 1% touch 58
+(0.145, band A — forty-one percent of them on ten days). Both crush both nulls at
+p = 0.0000, so "statistically clustered" is true at either depth and decides
+nothing; the fraction is what decides, and it moves by 3x between two depths of
+the same distribution. A prediction stated without the depth was not a falsifiable
+prediction. Name the depth, and read the MAGNITUDE rather than the p-value.
+*(`P2-tail-clustering`)*
+
 ## Rules about interpretation
 
 **R20. Correcting a number in the humbler direction does not make the

@@ -41,6 +41,15 @@ evidence the fit leaked. Per fold rather than pooled because a constant fitted
 on calib pooled across all six folds had to be withdrawn once already (R44),
 and every read goes through FoldScopedFit.
 
+The leak check itself is PER FOLD for the same reason the fit is. Checking only
+the POOLED ratio catches a run where every fold leaked -- that ratio is exactly
+1 by construction -- but is blind to a run where some folds leaked and others
+did not, because the clean folds pull the pooled average off 1. `--selftest`
+holds a 2-of-6-fold leak whose pooled ratio (1.00217) sits FURTHER from 1 than
+the honest run's (1.00152), so no tolerance on the pooled number can separate
+them: the fold-level check is what has teeth, and the selftest is what proves
+it still does.
+
     python -m model.eval.scorecard_rescaled
 """
 from __future__ import annotations
@@ -68,6 +77,22 @@ def optimal_c(rv, sig):
                              1e-12)))
 
 
+def test_ratio(rv, sig) -> float:
+    """The post-rescale calibration ratio on one fold's test slice."""
+    return float(np.nanmean(rv ** 2 / np.maximum(sig, 1e-12) ** 2))
+
+
+def leak_folds(d: dict) -> list:
+    """Folds whose post-rescale TEST ratio is 1 to within LEAK_TOL.
+
+    A ratio of exactly 1 on the slice being scored means the constant was
+    fitted on that slice. Returned per fold, because the pooled ratio of a
+    partially-leaking run is not near 1 and says nothing (see module docstring).
+    """
+    return [y for y, r in zip(d["years"], d["fold_ratio"])
+            if abs(r - 1.0) < LEAK_TOL]
+
+
 def gather_rescaled(z, H: int, teacher: str, rescale: bool):
     """Test-slice predictions, optionally each fold rescaled by its own calib c.
 
@@ -75,7 +100,7 @@ def gather_rescaled(z, H: int, teacher: str, rescale: bool):
     published scorecard exactly -- which is the check that this file is
     measuring the same object and not a re-derivation of it.
     """
-    rv, sig, fold_q, years, cs = [], [], [], [], []
+    rv, sig, fold_q, years, cs, fold_ratio = [], [], [], [], [], []
     for y in YEARS:
         with FoldScopedFit(year=y) as sc:
             kt, kc = f"{y}/{H}/test", f"{y}/{H}/calib"
@@ -98,21 +123,114 @@ def gather_rescaled(z, H: int, teacher: str, rescale: bool):
         s = c * s
         rv.append(r); sig.append(s); cs.append(c)
         fold_q.append(float(np.nanmean(qlike_vec(r, s))))
+        fold_ratio.append(test_ratio(r, s))
         years.append(y)
     if not rv:
         return None
     rv = np.concatenate(rv); sig = np.concatenate(sig)
     return {"rv": rv, "sigma": sig, "q": qlike_vec(rv, sig),
-            "per_fold": fold_q, "years": years, "c": cs}
+            "per_fold": fold_q, "years": years, "c": cs,
+            "fold_ratio": fold_ratio}
+
+
+def _synth(H: int, teacher: str, seed: int = 7) -> dict:
+    """A shape-only oof archive. No research number is read off it.
+
+    Holes are punched at DIFFERENT rates in calib and test so the two valid
+    index sets genuinely differ -- the condition under which the per-fold
+    check was claimed to be defeated.
+    """
+    rng = np.random.default_rng(seed)
+    z = {}
+    for y in YEARS:
+        for sl, n, hole in (("test", 900, 0.03), ("calib", 400, 0.12)):
+            sig = np.exp(rng.normal(-4.0, 0.35, n))
+            rv = sig * 1.22 * np.exp(rng.normal(0, 0.5, n))
+            sig[rng.random(n) < hole] = np.nan
+            rv[rng.random(n) < 0.02] = np.nan
+            z[f"{y}/{H}/{sl}/sigma/{teacher}"] = sig
+            z[f"{y}/{H}/{sl}/rv"] = rv
+    return z
+
+
+def _leaky(z, H: int, teacher: str, n_leak: int) -> dict:
+    """gather_rescaled with the first `n_leak` folds' c fitted on TEST."""
+    rv, sig, fold_q, years, cs, fr = [], [], [], [], [], []
+    for i, y in enumerate(YEARS):
+        kt, kc = f"{y}/{H}/test", f"{y}/{H}/calib"
+        s = np.asarray(z[f"{kt}/sigma/{teacher}"], np.float64)
+        r = np.asarray(z[f"{kt}/rv"], np.float64)
+        ok = np.isfinite(s) & (s > 0)
+        s = np.where(ok, s, np.nan)
+        if i < n_leak:
+            c = optimal_c(r[ok], s[ok])
+        else:
+            sc_ = np.asarray(z[f"{kc}/sigma/{teacher}"], np.float64)
+            rc = np.asarray(z[f"{kc}/rv"], np.float64)
+            okc = np.isfinite(sc_) & (sc_ > 0)
+            c = optimal_c(rc[okc], sc_[okc])
+        s = c * s
+        rv.append(r); sig.append(s); cs.append(c)
+        fold_q.append(float(np.nanmean(qlike_vec(r, s))))
+        fr.append(test_ratio(r, s)); years.append(y)
+    rv = np.concatenate(rv); sig = np.concatenate(sig)
+    return {"rv": rv, "sigma": sig, "q": qlike_vec(rv, sig),
+            "per_fold": fold_q, "years": years, "c": cs, "fold_ratio": fr}
+
+
+def selftest() -> int:
+    """The guard must fire on a leak in ANY fold, not only in all of them."""
+    H, T = 24, "probe"
+    z = _synth(H, T)
+    checks = []
+
+    clean = gather_rescaled(z, H, T, rescale=True)
+    checks.append(("honest-run-passes", not leak_folds(clean),
+                   f"leak folds {leak_folds(clean)}, pooled ratio "
+                   f"{test_ratio(clean['rv'], clean['sigma']):.9f}"))
+
+    for k in range(1, len(YEARS) + 1):
+        d = _leaky(z, H, T, k)
+        bad = leak_folds(d)
+        checks.append((f"leak-in-{k}-of-{len(YEARS)}-folds-caught",
+                       len(bad) == k,
+                       f"named {len(bad)} of {k}: {bad}"))
+
+    # the point of the per-fold check: the pooled number cannot do this job
+    two = _leaky(z, H, T, 2)
+    p_clean = abs(test_ratio(clean["rv"], clean["sigma"]) - 1.0)
+    p_leak = abs(test_ratio(two["rv"], two["sigma"]) - 1.0)
+    checks.append(("pooled-ratio-cannot-separate", p_leak > p_clean,
+                   f"|pooled-1| honest {p_clean:.6f} vs 2-fold leak "
+                   f"{p_leak:.6f} -- the leaking run looks MORE honest"))
+
+    # and a fold-level check on an all-fold leak still fires
+    allf = _leaky(z, H, T, len(YEARS))
+    checks.append(("all-fold-leak-also-pooled-detectable",
+                   abs(test_ratio(allf["rv"], allf["sigma"]) - 1.0) < LEAK_TOL,
+                   f"pooled ratio {test_ratio(allf['rv'], allf['sigma']):.12f}"))
+
+    print("scorecard_rescaled leak-guard selftest")
+    bad = 0
+    for name, ok, detail in checks:
+        if not ok:
+            bad += 1
+        print(f"  [{'ok ' if ok else 'FAIL'}] {name}: {detail}")
+    print(f"\n{len(checks) - bad}/{len(checks)} checks passed")
+    return 1 if bad else 0
 
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="P2-scorecard-rescaled")
+    ap.add_argument("--selftest", action="store_true",
+                    help="prove the leak guard fires on a partial-fold leak")
     ap.add_argument("--oof", type=Path,
                     default=Path("model/artifacts/teacher_oof.npz"))
     ap.add_argument("--out", type=Path,
                     default=Path("model/artifacts/scorecard_rescaled.json"))
     a = ap.parse_args(argv)
+    if a.selftest:
+        return selftest()
 
     z, teachers = load_oof(a.oof)
     alpha = 0.05 / N_FAMILY
@@ -132,12 +250,15 @@ def main(argv=None) -> int:
                 continue
             raw[t], resc[t] = metrics(d0), metrics(d1)
             resc[t]["c_per_fold"] = [float(c) for c in d1["c"]]
-            if abs(resc[t]["calib_ratio"] - 1.0) < LEAK_TOL:
+            resc[t]["fold_ratio"] = [float(r) for r in d1["fold_ratio"]]
+            bad = leak_folds(d1)
+            if bad or abs(resc[t]["calib_ratio"] - 1.0) < LEAK_TOL:
+                where = (f"fold(s) {bad}" if bad else "the pooled slice")
                 raise SystemExit(
                     f"REFUSING: {t} at H={H} has a post-rescale TEST "
-                    f"calibration ratio of exactly 1. The constant was fitted "
-                    f"on the slice it is being checked against, so this run "
-                    f"measures nothing.")
+                    f"calibration ratio of exactly 1 on {where}. The constant "
+                    f"was fitted on the slice it is being checked against, so "
+                    f"this run measures nothing.")
         if not raw:
             continue
         n = raw[next(iter(raw))]["n"]
