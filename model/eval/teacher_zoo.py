@@ -497,12 +497,45 @@ def main(argv=None) -> int:
     np.savez_compressed(a.out, **store)
     h = hashlib.sha256(a.out.read_bytes()).hexdigest()
     side = a.out.with_suffix(".json")
+    # Stamp the INPUTS and the ENVIRONMENT, not only the output.
+    #
+    # On 2026-09-12 noctua_v1 missed its published QLIKE by up to 0.00366 while
+    # every deterministic teacher returned to 3e-4, and settling why cost three
+    # full rebuilds and two falsified explanations -- because nothing recorded
+    # what the published run had been fed. A content hash of the episode table
+    # would have answered "is this the same input?" in one second. It is the
+    # CONTENT that is hashed, not the parquet bytes, so a pyarrow bump cannot
+    # forge a mismatch. (R63's surviving half, R64.)
+    prov = {}
+    try:
+        from noctua.regenerate import content_sha256
+        from eval import env_check
+        for name, path in (("episodes_h4", a.artifacts / "episodes_h4.parquet"),
+                           ("features", a.artifacts / "features.parquet")):
+            if path.exists():
+                prov[f"{name}_rows"] = int(len(pd.read_parquet(
+                    path, columns=["H"] if name == "episodes_h4" else None)))
+                prov[f"{name}_content_sha256"] = content_sha256(
+                    pd.read_parquet(path))
+        prov["environment"] = env_check.stamp()
+    except Exception as exc:                                     # noqa: BLE001
+        # Never fail the build over provenance, but never claim it silently
+        # either -- an absent stamp must be visible as an absent stamp.
+        prov["error"] = f"{type(exc).__name__}: {exc}"
     side.write_text(json.dumps({
         "sha256": h, "n_arrays": len(store), "emitted_slices": list(EMITTED_SLICES),
         "horizons": list(HORIZONS), "seeds": a.seeds, "hidden": a.hidden,
         "teachers": sorted({k.rsplit("/", 1)[1] for k in store if "/sigma/" in k}),
+        "inputs": prov,
         "slices": meta,
     }, indent=1) + "\n")
+    if prov.get("error"):
+        print(f"  provenance stamp INCOMPLETE: {prov['error']}")
+    else:
+        print(f"  inputs stamped: episodes_h4 "
+              f"{prov.get('episodes_h4_rows', '?'):,} rows, content "
+              f"{prov.get('episodes_h4_content_sha256', '?')[:16]}…, "
+              f"env drift {prov['environment']['drift'] or 'none'}")
     print(f"\nwrote {a.out}  sha256 {h[:16]}…")
     print(f"wrote {side}")
     return 0
