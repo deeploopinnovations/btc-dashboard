@@ -406,10 +406,20 @@ reproduction discrepancy ambiguous between "the data moved" and "the model is no
 reproducible". The scorecard settles it for free, because it scores seven teachers
 at once: `har_short` came back 0.25697 against a published 0.25696, `garch_t`
 0.41060 against 0.41073 — fitted on the *same* rebuilt corpus, reproducing to
-1e-5. The data is therefore not the explanation for `noctua_v1` missing by
-0.00154, 0.00272 and 0.00366 at the same three horizons, and no further work was
-needed to establish that. A reproduction containing only the stochastic arm could
-not have told these apart at any cost.
+1e-5. A reproduction containing only the stochastic arm could not have told a
+data difference from a model difference at any cost, so carry the deterministic
+arms.
+
+**NARROWED, 2026-09-12, and the narrowing matters more than the rule.** I drew
+from this that "the data is therefore not the explanation" for the neural arm's
+gap. That inference is invalid. A closed-form or MLE estimator depends on sample
+composition *smoothly* — drop three of 476,359 rows and the normal equations move
+by order 1/n — while SGD depends on it *chaotically*, because three fewer rows
+shift every minibatch boundary for the rest of training. So a deterministic arm
+controls the data for other **smooth** estimators and not for a neural one. What
+the deterministic arms actually licensed was the much weaker claim that the
+corpus is not *grossly* different. Stating the stronger one sent me chasing an
+environment difference that turned out to be nothing (R63).
 
 **R62. "It reproduces" is a claim about the CONCLUSION and about the NUMBER, and
 they can diverge.**
@@ -426,8 +436,9 @@ noise cancels, and the quantity in question is a pooled LEVEL. Two different
 statistics wearing the same word.
 *(`P2-scorecard-rescaled-reproduced`)*
 
-**R63. A pin you never check is a comment. Verify the installed versions against
-it before calling anything irreproducible.**
+**R63. A pin you never check is a comment — but an unchecked pin is not thereby
+the cause of anything. ~~Verify the versions~~ *Verify the versions, then test
+whether they matter.*  [PARTLY FALSIFIED — see the correction below]**
 `noctua_v1` missed its published QLIKE at all three horizons while every
 deterministic teacher returned to 1e-5. I hypothesised seed nondeterminism; two
 full runs came back **bit-identical**, 528 of 528 arrays, worst diff `0.000e+00`,
@@ -438,9 +449,32 @@ is the proof — the packages that drifted and the arms that moved are the same 
 OLS through numpy and GARCH MLE through arch converge to the same optimum whatever
 the summation order, while SGD over thousands of steps amplifies a last-bit
 difference into a pooled-loss shift of 0.002–0.004, enough to flip a verdict.
-Nothing in CI compared the installed version to the pin, which is why a one-minor
-drift silently made every neural number in the repo unreproducible.
-*(`P2-repro-cause`)*
+Nothing in CI compared the installed version to the pin.
+
+**FALSIFIED THE SAME DAY, BY THE TEST I SET MYSELF.** The pin was satisfied
+exactly — PyPI's `torch==2.13.0` is the `+cu130` build — and the rebuild came back
+**bit-identical to the drifted one**, 528 of 528 arrays, worst |diff|
+`0.000e+00`. The torch drift moves nothing. The "perfect correspondence" between
+the packages that drifted and the arms that moved was a **coincidence**, and it
+was mine: three packages had drifted, not one, and *which* of them touch a neural
+arm is not evidence about *whether* their drift changed a number. What survives
+is only the hygiene half — check pins, stamp the environment beside results — and
+`env_check.py` earns its place on that alone. What does not survive is any claim
+that this drift explained the reproduction gap. Two explanations offered, two
+falsified by running them; the gap stays open rather than taking a third story.
+*(`P2-repro-cause`, amended)*
+
+**R64. A correspondence between which things changed and which results moved is
+not a mechanism, and it is the most persuasive kind of wrong.**
+Three packages had drifted from their pins; `torch` was one; `noctua_v1` was the
+only arm that failed to reproduce and the only torch-dependent arm. The fit was
+exact, the story was mechanical and correct in general (SGD does amplify kernel
+arithmetic), and I wrote it into the ledger and a rule. Pinning torch exactly then
+produced a **bit-identical** archive: the drift moves nothing. The failure was not
+the hypothesis, it was treating a correspondence over three items as settled
+before running the one-command test that could refute it — and the test was cheap.
+Any explanation of this form gets run, not written up, however well it fits.
+*(`P2-repro-cause`, `P2-sample-sensitivity`)*
 
 ## Rules about interpretation
 
