@@ -426,6 +426,22 @@ noise cancels, and the quantity in question is a pooled LEVEL. Two different
 statistics wearing the same word.
 *(`P2-scorecard-rescaled-reproduced`)*
 
+**R63. A pin you never check is a comment. Verify the installed versions against
+it before calling anything irreproducible.**
+`noctua_v1` missed its published QLIKE at all three horizons while every
+deterministic teacher returned to 1e-5. I hypothesised seed nondeterminism; two
+full runs came back **bit-identical**, 528 of 528 arrays, worst diff `0.000e+00`,
+so that was falsified. The cause was one line of `requirements-research.txt`:
+torch is pinned at **2.13.0+cu130** and the container had **2.14.0+cu130**, while
+numpy, scipy, pandas and arch all matched their pins exactly. The correspondence
+is the proof — the packages that drifted and the arms that moved are the same set:
+OLS through numpy and GARCH MLE through arch converge to the same optimum whatever
+the summation order, while SGD over thousands of steps amplifies a last-bit
+difference into a pooled-loss shift of 0.002–0.004, enough to flip a verdict.
+Nothing in CI compared the installed version to the pin, which is why a one-minor
+drift silently made every neural number in the repo unreproducible.
+*(`P2-repro-cause`)*
+
 ## Rules about interpretation
 
 **R20. Correcting a number in the humbler direction does not make the
