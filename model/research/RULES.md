@@ -382,6 +382,23 @@ the question with the one explanation that the evidence excludes. Also: the gap 
 to state it, not a reason to stop looking for it.
 *(`corpus_manifest.json`, `P2-corpus-restored`)*
 
+**R60. A detector that fires on nearly everything has the same value as one
+that fires on nothing, and is more dangerous because it looks alive.**
+The stagnation supervisor raised OSCILLATION on eight of nine topics — including
+`features` (20 entries) and `phase2` (32) — so nothing it said could gate
+anything, and its output read as a wall of confirmed stagnation. Two independent
+defects, both invisible while the alerts looked plausible:
+*the key* was `topic`, a chapter of the research rather than a question; and
+*the test* was whether a bucket CONTAINED both an ADOPT and a REJECT anywhere,
+which in 32 unrelated entries is close to certain. Oscillation is a claim about a
+SEQUENCE on ONE question: same mechanism, date-ordered, consecutive decisive
+verdicts reversing, and **excluding supersessions** — a successor overturning its
+predecessor is this project's method working, not stagnation. Rekeyed to
+topic/mechanism with that test, the real ledger yields exactly one alert, and it
+is the right one: the level mechanism, `P2-armA-correction` REJECT →
+`P2-level-report-adopt` ADOPT → `P2-mean-level-result` REJECT.
+*(`supervisor.py --selftest`, 6/6)*
+
 ## Rules about interpretation
 
 **R20. Correcting a number in the humbler direction does not make the
