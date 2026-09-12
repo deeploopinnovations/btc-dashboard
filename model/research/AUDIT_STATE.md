@@ -162,4 +162,111 @@ was right. Accepting it as written would have withdrawn a correct rule on a
 false mechanism; dismissing it for containing a tenfold arithmetic error would
 have lost the one interval that changed what I believe.
 
+### Agents 5 and 6 — the shipped level fix, and the rescaled ranking (Haiku) — RETURNED
+
+Both were dispatched before the artifact loss was known and were redirected
+mid-flight with explicit instructions not to fabricate, estimate, or substitute a
+synthetic dataset. Both complied: four of eight attacks came back NOT TESTABLE
+and were reported as such rather than answered.
+
+| agent | its verdict | mine after re-testing |
+|---|---|---|
+| 5 (a) look-ahead in `_settled_anchors` | no leak | **CONFIRMED** — 1,440 episodes, every one `row + H < anchor_row` |
+| 5 (b) the 6.5% claim | NOT TESTABLE | **stands unaudited**, not confirmed |
+| 5 (c) the CI gate can fail | passes, can fail | **CONFIRMED** — a leaked scalar moves 18 barrier fields |
+| 5 (d) "sigma and barriers are orphaned outputs" | no consumers | **FALSE** — `app.py:87` renders it; it searched only `src/*.js` → **R57** |
+| 6 (1,3,4) fold scope, family size, `optimal_c` inputs | clean | **CONFIRMED** by reading the source |
+| 6 (2) "the leak guard is worthless" | critical defect | **REFUTED as stated** — but a REAL defect sits in the same slot → **R56** |
+
+**Why agent 6's mechanism fails, and what was there instead.** It argued the
+guard cannot fire because `c` is fitted over the CALIB valid-index set while the
+ratio averages over the TEST one. Both sides use `nanmean`, which drops exactly
+the masked entries, so a fully test-fitted run gives a pooled ratio of
+1.000000000000 and the guard **does** fire — shown by building it with 3% holes in
+test against 12% in calib, the agent's own stated condition. The real defect was
+found by running the case the agent never built: the guard checked the **pooled**
+ratio, so a leak in SOME folds passes silently, and with 2 of 6 folds leaking the
+pooled ratio (1.00217) sits FURTHER from 1 than the honest run's (1.00152) — the
+leaking run looks more honest. Now per-fold and naming the offending years.
+
+**Score against §4:** prediction 1 **CORRECT**. Prediction 2 is now **UNTESTED** —
+the rescaled ranking has never been independently recomputed, and
+`P2-scorecard-rescaled-result` is demoted from ADVANCE to **OPEN** until it is.
+Predictions 3 and 5 were already scored. Four of five beliefs survived; the one
+that mattered most — that the ranking is fair — turns out to be unexamined rather
+than examined and sound.
+
+**The pattern across all three agents.** Three for three, the headline was wrong
+and something smaller in the same report was right or pointed somewhere right.
+Accepting any headline as written would have been an error; dismissing any report
+wholesale would have lost R53, R56 and R57.
+
+---
+
+## 6. Corpus restored — what is now auditable that was not
+
+`model/artifacts/` was lost with the container; the source is a public MIT
+dataset, so the corpus was rebuilt behind a gate (`noctua/regenerate.py`, 5/5).
+
+* **The holdout hazard was real.** The source updates daily; a clone taken
+  2026-09-12 carries 21,697 minutes at or after 2026-08-28, inside the forward
+  holdout. A naive re-ingest would have spent it silently. The corpus is pinned
+  to a DATE, the row count cross-checks it, and a disagreement is refused.
+* **Fidelity against statistics published BEFORE the loss**: filled minutes 0
+  (published 0), zero-volume 17.0846% (17.08%), bad prints 0.1505% (0.15%). The
+  zero-volume target is the discriminating one — on the untruncated corpus it
+  reads 16.98%, so it separates the right truncation from a near-miss.
+* **One honest residue**: 476,359 h4 episodes against a published 476,362. The
+  easy explanation (upstream revision) is **false** — the source's own provenance
+  sidecar differs from the original by exactly the elapsed minutes, zero drift →
+  **R59**. Immaterial (0.00063% against contrasts of 0.006–0.062), recorded
+  anyway.
+* The pipeline's own H=6 cross-check between the two independently built feature
+  tables: 127,074 episodes, max |diff| `0.000e+00`.
+
+`teacher_oof.npz` is rebuilding. When it lands, the single load-bearing Phase 2
+number becomes auditable for the first time.
+
+---
+
+## 7. Supervisor, rebuilt — it can now gate something
+
+The defect recorded in §3 was worse than recorded: OSCILLATION fired on **eight of
+nine topics**. Two causes, and the second was not the key at all — the test asked
+whether a bucket CONTAINED both an ADOPT and a REJECT, never whether a verdict
+flipped on one question. Rekeyed to topic/mechanism, date-ordered, consecutive
+decisive reversals only, **supersessions excluded** (a successor overturning its
+predecessor is the method working). The real ledger now yields **one** alert:
+
+    phase2/level-scale
+      P2-armA-correction REJECT -> P2-level-report-adopt ADOPT
+      P2-level-report-adopt ADOPT -> P2-mean-level-result REJECT
+
+which is the mechanism §3 identified by hand as attacked four times. REPETITION
+now names it too: `phase2/level-scale`, 19 attempts — the most-attacked question
+in the project. → **R60**, selftest 6/6.
+
+---
+
+## 8. The labelled-dataset decision — made
+
+Delegated explicitly and now answered in `LABELLING_DECISION.md`, on a
+measurement (`P2-tail-clustering`) rather than an opinion: **no** hand-built
+event-label set, **yes** to one dense continuous exogenous channel.
+
+The deciding number, and it flips across the tail depth (**R58**):
+
+| tail | episodes | distinct days | of calendar | band |
+|---|---|---|---|---|
+| worst 5% | 480 | 180 of 401 | 0.449 | C — labelling the calendar |
+| worst 1% | 96 | 58 of 401 | 0.145 | A — labellable |
+
+Both beat both nulls at p = 0.0000, so significance decides nothing. The tail
+carrying 52.8% of the loss is spread over 45% of days; the tail that fits on 58
+days holds 15.9% of variance mass across 96 episodes and cannot clear a
+0.34%-per-column cost at a 1.53× effective-n multiplier. My pre-registered band
+(B) was wrong at both depths — the prediction had not named the depth.
+
+---
+
 *Educational research only. Not financial advice.*
