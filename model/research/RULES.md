@@ -114,6 +114,29 @@ designed.**
 It is what ruled out a plain IV feature column (32.7% train vs 100% test) and
 produced the residual design that worked. *(`iv-coverage-2`)*
 
+**R55. Uncommitted work in an ephemeral container is not state.**
+This container restarted mid-audit and took with it a confirmed bug fix, a
+rewritten self-test, a ledger entry and a rule — all verified, none committed.
+The ledger went from 122 entries back to 121, `numpy` vanished from the
+environment, and the scratchpad emptied. Nothing was recoverable; all of it had
+to be rebuilt from the conversation transcript, which is the only reason it
+survived at all. **Commit a verified result before starting the next one**, and
+treat the transcript as the write-ahead log it accidentally is. *(this session)*
+
+**R54. Rivals that all assume the same mechanism are not a control set.**
+`P2-dst-shift` was framed as a sharp two-hypothesis test: lag 0 if the footprint
+is UTC-anchored, lag +1 if it follows the US Eastern schedule — two rivals
+predicting different integers, which felt like good design. **Both assumed the
+answer was a clock.** The rival that mattered — *the warm half of the year
+differs from the cold half for reasons unrelated to any schedule* — predicts the
+**same** integer and was never tested. A plain Mar–Oct calendar split, touching
+no timezone code, reproduces the result at corr@+1 = **3.6575** against the true
+DST split's 3.6476 (the two splits agree on 96.19 % of episodes, so it is the
+same partition reached differently — which is the point, not a defence). R50
+asks for a control that *can return a different number*; this needed one that
+could return the **same** number for a different reason.
+*(`P2-dst-shift-audited`)*
+
 **R53. A p-value from a library function is not a p-value until you know that
 function's valid range at your n.**
 An audit agent reported `scipy.stats.spearmanr` p = **0.000** for a rank

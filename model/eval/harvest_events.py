@@ -145,18 +145,40 @@ def fetch_window(start: datetime, end: datetime, as_of: int,
     return df.reindex(columns=list(SCHEMA))
 
 
-def merge_archive(new: pd.DataFrame, path: Path = OUT) -> pd.DataFrame:
-    """Append-only. An existing row is NEVER overwritten by a later harvest.
+# Preference order for a duplicated hour. LIVE always beats BACKFILL, whatever
+# the timestamps say. Lower sorts first and is kept.
+_PROV_RANK = {"live": 0, "backfill": 1}
 
-    Not tidiness -- it is the causality guarantee. A live row written at the
-    time is point-in-time correct; letting a backfill overwrite it would
-    silently replace an observable value with one nobody could have had.
+
+def merge_archive(new: pd.DataFrame, path: Path = OUT) -> pd.DataFrame:
+    """Append-only, and a LIVE row is never displaced by a backfilled one.
+
+    THE CAUSALITY GUARANTEE, AND THE BUG IT SHIPPED WITH FOR ONE AFTERNOON
+
+    The first version sorted by ["hour_ts", "as_of"] and kept the first row,
+    i.e. it kept the EARLIEST HARVEST. That is wrong, and wrong in the ordinary
+    workflow rather than in some exotic corner: the backfill runs ONCE at setup
+    with as_of = T1, live accumulates afterwards with as_of > T1, and for every
+    hour the backfill also covered the backfilled row therefore sorted first
+    and WON. The append-only rule was silently preferring the revision-prone
+    row over the point-in-time one -- the exact inversion of what the docstring
+    promised. Found by an adversarial audit, reproduced, and fixed here.
+
+    Correct order: prefer LIVE over BACKFILL on provenance alone; only within
+    the same provenance does the earliest observation win, because two live
+    harvests of one hour are two observations of the same thing and the first
+    is the one nobody could have revised.
     """
     old = pd.read_parquet(path) if path.exists() else pd.DataFrame(
         columns=list(SCHEMA))
     both = pd.concat([old, new], ignore_index=True)
-    both = both.sort_values(["hour_ts", "as_of"]).drop_duplicates(
-        subset=["hour_ts"], keep="first")
+    if both.empty:
+        return both.reindex(columns=list(SCHEMA))
+    both = both.assign(
+        _rank=both["provenance"].map(_PROV_RANK).fillna(len(_PROV_RANK)))
+    both = (both.sort_values(["hour_ts", "_rank", "as_of"])
+                .drop_duplicates(subset=["hour_ts"], keep="first")
+                .drop(columns="_rank"))
     return both.sort_values("hour_ts").reset_index(drop=True)
 
 
@@ -180,23 +202,60 @@ def self_test() -> int:
     ok.append(("empty-is-empty", len(parse_timeline({}, "art_volume")) == 0,
                "an empty payload yields no rows rather than raising"))
 
-    # the append-only guarantee, which is the causality guarantee
-    live = pd.DataFrame({"hour_ts": [100, 200], "art_volume": [1.0, 2.0],
-                         "tone_mean": [0.1, 0.2], "as_of": [150, 250],
-                         "provenance": ["live", "live"]})
-    backfill = pd.DataFrame({"hour_ts": [100, 300], "art_volume": [99.0, 3.0],
-                             "tone_mean": [9.9, 0.3], "as_of": [9999, 9999],
-                             "provenance": ["backfill", "backfill"]})
-    m = merge_archive(backfill, Path("/nonexistent"))
-    m = pd.concat([live, backfill], ignore_index=True).sort_values(
-        ["hour_ts", "as_of"]).drop_duplicates(subset=["hour_ts"], keep="first")
-    kept = float(m.loc[m.hour_ts == 100, "art_volume"].iloc[0])
-    ok.append(("live-row-wins", kept == 1.0,
-               f"hour 100 keeps the LIVE value {kept} and not the backfill's 99.0"))
-    ok.append(("backfill-fills-gaps", 300 in set(m.hour_ts),
-               "a backfill still contributes hours the live feed never saw"))
-    ok.append(("provenance-survives", set(m.provenance) == {"live", "backfill"},
-               "every row stays attributable to how it was obtained"))
+    # THE APPEND-ONLY GUARANTEE. These checks MUST go through merge_archive
+    # itself. The first version of this block called it and then overwrote the
+    # result with an inline re-implementation, so it asserted against its own
+    # copy of the logic and could not have caught the bug that was actually in
+    # the function (R2, R18). An adversarial audit found that; it is the reason
+    # every assertion below reads from `m`, which comes only from the function.
+    import tempfile
+    with tempfile.TemporaryDirectory() as td:
+        arch = Path(td) / "a.parquet"
+
+        # (i) the ORDINARY workflow, which is where the bug lived: backfill
+        # first with a SMALL as_of, live afterwards with a LARGER one.
+        pd.DataFrame({"hour_ts": [100, 300], "art_volume": [99.0, 3.0],
+                      "tone_mean": [9.9, 0.3], "as_of": [1000, 1000],
+                      "provenance": ["backfill", "backfill"]}
+                     ).to_parquet(arch, index=False)
+        m = merge_archive(
+            pd.DataFrame({"hour_ts": [100, 200], "art_volume": [1.0, 2.0],
+                          "tone_mean": [0.1, 0.2], "as_of": [2000, 2000],
+                          "provenance": ["live", "live"]}), arch)
+        kept = float(m.loc[m.hour_ts == 100, "art_volume"].iloc[0])
+        prov = m.loc[m.hour_ts == 100, "provenance"].iloc[0]
+        ok.append(("live-wins-over-earlier-backfill",
+                   kept == 1.0 and prov == "live",
+                   f"hour 100 keeps LIVE {kept} (as_of 2000) over the backfill's "
+                   f"99.0 (as_of 1000) -- the case the old test never ran"))
+        ok.append(("backfill-fills-gaps", 300 in set(m.hour_ts),
+                   "a backfill still contributes hours the live feed never saw"))
+        ok.append(("provenance-survives", set(m.provenance) == {"live", "backfill"},
+                   "every row stays attributable to how it was obtained"))
+
+        # (ii) clock skew: a backfill whose as_of is SMALLER than a live row's
+        pd.DataFrame({"hour_ts": [400], "art_volume": [5.0], "tone_mean": [0.5],
+                      "as_of": [9000], "provenance": ["live"]}
+                     ).to_parquet(arch, index=False)
+        m2 = merge_archive(
+            pd.DataFrame({"hour_ts": [400], "art_volume": [77.0],
+                          "tone_mean": [7.7], "as_of": [10],
+                          "provenance": ["backfill"]}), arch)
+        ok.append(("live-survives-clock-skew",
+                   float(m2.iloc[0]["art_volume"]) == 5.0,
+                   "a backfill with a SMALLER as_of than the live row still loses"))
+
+        # (iii) two live observations of one hour: earliest wins
+        pd.DataFrame({"hour_ts": [500], "art_volume": [11.0], "tone_mean": [1.1],
+                      "as_of": [100], "provenance": ["live"]}
+                     ).to_parquet(arch, index=False)
+        m3 = merge_archive(
+            pd.DataFrame({"hour_ts": [500], "art_volume": [22.0],
+                          "tone_mean": [2.2], "as_of": [200],
+                          "provenance": ["live"]}), arch)
+        ok.append(("earliest-live-observation-wins",
+                   float(m3.iloc[0]["art_volume"]) == 11.0,
+                   "within one provenance the first observation is kept"))
 
     # the URL must carry the window, or a backfill silently returns 'now'
     u = _url("timelinevolraw", datetime(2021, 3, 1, tzinfo=timezone.utc),
