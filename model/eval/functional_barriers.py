@@ -223,6 +223,34 @@ def main(argv=None) -> int:
                      f"{v['paired_ci'][1]:+.5f}]" if "paired_ci" in v else ""))
         worse = [k for k, v in bar.items() if not v["better"]]
         degraded = [k for k, v in bar.items() if v.get("degraded_by_interval")]
+        # THE BATTERY MUST NOT REPORT A PASS IT CANNOT EARN.
+        # Every metric identical to 0.000 is not "no degradation", it is no
+        # CHANNEL: the committee's specialists all take the `sigma_atoms` branch
+        # and never read the scalar `sigma`, so swapping sigma_med for
+        # sigma_mean cannot move a barrier curve. Proven by probe, not inferred:
+        # a 13% change in the scalar moves Q by 0.000e+00 while a 13% change in
+        # sigma_atoms moves it by 8.9e-03. An exact zero everywhere is a
+        # statement about the harness (R65), and saying "all guards pass" here
+        # would be the purest form of a guard that cannot fail (R2).
+        if all(abs(v["delta"]) == 0.0 for v in bar.values()):
+            print("\n  *** NO CHANNEL, NOT NO DEGRADATION ***")
+            print("  every barrier metric is bit-identical. The committee builds"
+                  " its curves from")
+            print("  pred['sigma_atoms'], never from the reported scalar, so "
+                  "this comparison")
+            print("  cannot vary anything. The functional change is safe by "
+                  "CONSTRUCTION rather")
+            print("  than by test -- which is a stronger statement than a pass,"
+                  " and a different")
+            print("  one. Recorded as INAPPLICABLE.")
+            out["horizons"][str(H)] = {"verdict": "INAPPLICABLE -- no channel "
+                                       "from the reported scalar to the curves",
+                                       "qlike_delta": float(np.nanmean(dd)),
+                                       "qlike_ci": [float(ci["ci95"][0]),
+                                                    float(ci["ci95"][1])],
+                                       "folds": folds}
+            a.out.write_text(json.dumps(out, indent=1, default=float) + "\n")
+            continue
         print(f"\n  point-wise worse: {worse or 'none'}")
         print(f"  DEGRADED by paired interval (the guard that counts): "
               f"{degraded or 'none'}")
