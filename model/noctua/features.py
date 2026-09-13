@@ -8,9 +8,15 @@ NO-LOOKAHEAD CONTRACT
 For an episode anchored at hour index `a`, every feature is a function of
 hourly rows with index <= a-1 only. This is enforced structurally rather than
 by convention: all trailing aggregates are built from cumulative sums that are
-shifted by one hour before use, so an off-by-one cannot silently leak the
-anchor hour itself. `audit_lookahead()` re-verifies it numerically by
-perturbing the future and confirming no feature moves.
+exclusive of their own index, so an off-by-one cannot silently leak the anchor
+hour itself. `audit_lookahead()` re-verifies it numerically by perturbing the
+future and confirming no feature moves.
+
+The contract is now met EXACTLY rather than with an hour to spare. Until the
+freshness ablation the aggregates were shifted a second time and stopped at
+`a-2`, discarding the last complete hour on every episode; recovering it is
+worth 3.33% QLIKE across 6 of 6 walk-forward folds. See `build_features`'
+`extra_lag_hours` and `eval/freshness.py`.
 
 The single exception is deliberate and sound: CALENDAR features of the forward
 window (how much of it lands on a weekend, which hours it spans). The calendar
@@ -31,6 +37,8 @@ Feature families
   reg_*        Regime: RV percentile, post-ETF flag, volume trend
 """
 from __future__ import annotations
+
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -73,8 +81,45 @@ def _safe_log(x: np.ndarray) -> np.ndarray:
     return np.log(np.maximum(x, EPS))
 
 
-def build_features(hours: pd.DataFrame, episodes: pd.DataFrame) -> pd.DataFrame:
-    """Return a feature matrix aligned row-for-row with `episodes`."""
+def build_features(hours: pd.DataFrame, episodes: pd.DataFrame,
+                   extra_lag_hours: int = 0) -> pd.DataFrame:
+    """Return a feature matrix aligned row-for-row with `episodes`.
+
+    `extra_lag_hours` controls how much MORE than the contract requires the
+    trailing aggregates are held back. **The default is 0, and was 1 until the
+    freshness ablation.**
+
+    The contract at the top of this file is "rows with index <= a-1". The
+    trailing aggregates satisfy it twice over: `_trailing_sum(x, k)[i]` is
+    already `sum(x[i-k:i])`, exclusive of `i`, and the result is then indexed
+    at `a - extra_lag_hours`. At the old default of 1 the freshest hour
+    reaching the model was `a-2`: the last COMPLETE hour before the anchor,
+    `a-1`, was discarded on every episode. `har_1h` IS a one-hour window, so
+    at that setting it was not the last hour's realized volatility at all but
+    the hour before it -- a feature whose name had been wrong since it was
+    written.
+
+    The double shift was defensive, not accidental (see the contract note
+    about off-by-one), and safe in the only direction that matters. But the
+    safety was redundant: `audit_lookahead()` verifies the contract
+    NUMERICALLY by corrupting the future, and passes at 0 with max feature
+    change 0.000e+00 over 306,261 probed episodes. So the second shift bought
+    no protection that was not already checked, and cost the single most
+    informative observation available.
+
+    `eval/freshness.py` measured what it cost, on the same six walk-forward
+    folds with one variable changed: QLIKE -3.33% at 6/6 folds (t-like +4.06),
+    pinball 6/6 (+4.99), CRPS 6/6 (+3.63). Barrier discrimination moved 4/6
+    (+1.68), which is not a result and is recorded as null.
+
+    The parameter survives so the old behaviour stays reproducible -- every
+    number in BENCHMARK.md predating this change was measured at 1, and
+    `extra_lag_hours=1` regenerates exactly those features. Serving calls this
+    function with no argument, so the default is what training and production
+    BOTH get; that is deliberate, and changing one without the other would
+    manufacture the train/serve skew this repository has already been bitten
+    by twice.
+    """
     rv5 = hours["rv5"].to_numpy(np.float64)
     rv_pos = hours["rv5_pos"].to_numpy(np.float64)
     rv_neg = hours["rv5_neg"].to_numpy(np.float64)
@@ -195,7 +240,11 @@ def build_features(hours: pd.DataFrame, episodes: pd.DataFrame) -> pd.DataFrame:
     # gather per-episode
     # ------------------------------------------------------------------
     rows = episodes["row"].to_numpy(np.int64)
-    prev_rows = rows - 1  # the last hour STRICTLY before the anchor
+    # `_trailing_sum` is already exclusive of its own index, so indexing at
+    # `rows` yields aggregates over [a-k, a-1] -- strictly before the anchor,
+    # exactly what the contract allows. Any extra_lag_hours > 0 discards that
+    # many further hours of real information; see build_features' docstring.
+    prev_rows = np.maximum(rows - int(extra_lag_hours), 0)
     out = {k: v[prev_rows] for k, v in F.items()}
 
     # ---- seasonal HAR: same clock window on prior days ----------------------
@@ -254,7 +303,8 @@ def build_features(hours: pd.DataFrame, episodes: pd.DataFrame) -> pd.DataFrame:
     return X
 
 
-def audit_lookahead(hours: pd.DataFrame, episodes: pd.DataFrame, n_probe: int = 200) -> dict:
+def audit_lookahead(hours: pd.DataFrame, episodes: pd.DataFrame, n_probe: int = 200,
+                    extra_lag_hours: int = 0) -> dict:
     """Numerically verify the no-lookahead contract.
 
     Corrupt every hourly row at or after each probed anchor, rebuild features,
@@ -262,7 +312,7 @@ def audit_lookahead(hours: pd.DataFrame, episodes: pd.DataFrame, n_probe: int = 
     feature reads the anchor hour or beyond, this catches it.
     """
     rng = np.random.default_rng(0)
-    base = build_features(hours, episodes)
+    base = build_features(hours, episodes, extra_lag_hours=extra_lag_hours)
 
     lo = int(len(hours) * 0.6)
     probe_rows = rng.choice(np.arange(lo, len(hours) - 30), size=n_probe, replace=False)
@@ -275,7 +325,7 @@ def audit_lookahead(hours: pd.DataFrame, episodes: pd.DataFrame, n_probe: int = 
         v[mask] = v[mask] * rng.uniform(2.0, 5.0, size=mask.sum())
         corrupt[c] = v
 
-    after = build_features(corrupt, episodes)
+    after = build_features(corrupt, episodes, extra_lag_hours=extra_lag_hours)
     sel = episodes["row"].to_numpy() <= cut  # anchors whose features predate the cut
     a = base.loc[sel].to_numpy(np.float64)
     b = after.loc[sel].to_numpy(np.float64)
@@ -296,3 +346,56 @@ def audit_lookahead(hours: pd.DataFrame, episodes: pd.DataFrame, n_probe: int = 
         "leak_free": bool(bad == 0.0),
         "offending_features": offenders,
     }
+
+
+# --------------------------------------------------------------------------
+def main(argv=None) -> int:
+    """Regenerate `features.parquet` from the hourly bars and episodes.
+
+    This entry point did not exist: the committed feature matrix had been
+    built ad hoc, so reproducing it meant reconstructing a call by hand and
+    the `extra_lag_hours` setting it was built at was recorded nowhere. Both
+    are now explicit, and the run writes a small report next to the matrix so
+    the setting travels with the data.
+    """
+    import argparse
+    import json
+
+    p = argparse.ArgumentParser(description="Build the feature matrix")
+    p.add_argument("--artifacts", type=Path, default=Path("model/artifacts"))
+    p.add_argument("--extra-lag-hours", type=int, default=0)
+    p.add_argument("--audit", action="store_true",
+                   help="run the numerical no-lookahead audit and refuse to "
+                        "write if it fails")
+    a = p.parse_args(argv)
+
+    hours = pd.read_parquet(a.artifacts / "btcusd_1h.parquet")
+    ep = pd.read_parquet(a.artifacts / "episodes.parquet")
+    print(f"[features] {len(hours):,} hours, {len(ep):,} episodes, "
+          f"extra_lag_hours={a.extra_lag_hours}")
+
+    if a.audit:
+        rep = audit_lookahead(hours, ep, n_probe=200,
+                              extra_lag_hours=a.extra_lag_hours)
+        print(f"[features] lookahead audit: leak_free={rep['leak_free']} "
+              f"max_change={rep['max_abs_feature_change']:.3e} "
+              f"episodes={rep['episodes_checked']:,}")
+        if not rep["leak_free"]:
+            raise SystemExit(f"REFUSING to write: {rep['offending_features']}")
+
+    X = build_features(hours, ep, extra_lag_hours=a.extra_lag_hours)
+    out = a.artifacts / "features.parquet"
+    X.to_parquet(out, index=False, compression="zstd")
+    (a.artifacts / "features_report.json").write_text(json.dumps({
+        "extra_lag_hours": int(a.extra_lag_hours),
+        "n_rows": int(len(X)), "n_cols": int(X.shape[1]),
+        "columns": list(X.columns),
+    }, indent=2) + "\n")
+    print(f"[features] wrote {out} ({out.stat().st_size/1e6:.1f} MB), "
+          f"{X.shape[0]:,} x {X.shape[1]}")
+    return 0
+
+
+if __name__ == "__main__":
+    import sys
+    sys.exit(main())

@@ -180,6 +180,25 @@ def main() -> int:
           legacy["upside_is_informative"] is False)
     check("legacy is JSON-serialisable", isinstance(json.dumps(legacy), str))
 
+    # ---- 8: has_mx() must actually detect the head -----------------------
+    # Regression. The first version checked `b.q_mx.weight`, a key that cannot
+    # exist: q_mx is a MonotoneQuantileHead whose state_dict keys are
+    # `b.q_mx.median.weight` / `.up.` / `.dn.`. So the guard returned False for
+    # EVERY artifact -- a constant wearing a guard's name -- and would have
+    # silently dropped the head from serving the moment a re-export carried it.
+    # A guard that cannot ever return True is exactly what a test is for.
+    from serve.runtime import NumpyNoctua
+    class _Probe(NumpyNoctua):
+        def __init__(self, keys): self.w = {k: None for k in keys}
+    check("has_mx False on a pre-q_mx artifact",
+          _Probe(["m0.b.q_up.median.weight"]).has_mx() is False)
+    check("has_mx True on a seed-scoped artifact WITH the head",
+          _Probe(["m0.b.q_mx.median.weight"]).has_mx() is True)
+    check("has_mx True on a flat artifact WITH the head",
+          _Probe(["b.q_mx.median.weight"]).has_mx() is True)
+    check("has_mx not fooled by a bare .weight that never exists",
+          _Probe(["m0.b.q_mx.weight"]).has_mx() is False)
+
     print()
     if FAILS:
         print(f"{len(FAILS)} FAILED: {', '.join(FAILS)}")

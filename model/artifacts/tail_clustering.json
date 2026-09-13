@@ -1,0 +1,42 @@
+{
+ "0.95": {
+  "n_episodes": 9600,
+  "days_available": 401,
+  "tail_q": 0.95,
+  "tail_n": 480,
+  "tail_days": 180,
+  "tail_day_fraction": 0.4488778054862843,
+  "rv_mass_in_tail": 0.36858247301658825,
+  "tail_share_on_busiest_10_days": 0.23541666666666666,
+  "longest_consecutive_run_h": 14,
+  "null_free_mean_days": 283.746,
+  "null_free_p05_days": 273.0,
+  "null_diurnal_mean_days": 286.3105,
+  "null_diurnal_p05_days": 276.0,
+  "p_free": 0.0,
+  "p_diurnal": 0.0,
+  "n_perm": 2000,
+  "band": "C",
+  "band_text": "WEAKLY CLUSTERED. Labelling the tail means labelling most of the calendar. The 'few big events' premise is wrong and the cost case for labelling is gone."
+ },
+ "0.99": {
+  "n_episodes": 9600,
+  "days_available": 401,
+  "tail_q": 0.99,
+  "tail_n": 96,
+  "tail_days": 58,
+  "tail_day_fraction": 0.14463840399002495,
+  "rv_mass_in_tail": 0.1590604781618352,
+  "tail_share_on_busiest_10_days": 0.4166666666666667,
+  "longest_consecutive_run_h": 6,
+  "null_free_mean_days": 85.803,
+  "null_free_p05_days": 81.0,
+  "null_diurnal_mean_days": 85.9095,
+  "null_diurnal_p05_days": 81.0,
+  "p_free": 0.0,
+  "p_diurnal": 0.0,
+  "n_perm": 2000,
+  "band": "A",
+  "band_text": "HIGHLY CLUSTERED. Labelling is tractable: a few dozen days per year carry the tail. Build the labelled set."
+ }
+}
