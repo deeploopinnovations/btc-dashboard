@@ -598,6 +598,24 @@ replaces. The corollary is the useful half: a rival that looks weak may simply b
 the one you gave fewer parameters to.
 *(`P3-mz-result`, `P2-scorecard-rescaled-reproduced`)*
 
+**R74. Ask which FUNCTIONAL of your model's output the loss actually wants, before
+asking anything else about the model.**
+NOCTUA emits a predictive distribution. The teacher zoo read its **median** and
+compared it against rivals whose single point forecast behaves like a **mean**,
+under QLIKE — a loss minimised by the conditional **mean of variance**. Switching
+to the model's own `sigma_mean`, from the same forward pass, fitting nothing,
+improves raw QLIKE by **13.3%, 20.7%, 26.0% and 11.9%** at H=1/6/24/168. For
+scale: the largest adopted gain in the programme before this was 6.5%, and the
+whole exogenous-data effort produced one uncertain 1.9% at one horizon.
+The value was available from the day the model first emitted a distribution, and
+three things hid it: `sigma_mean` existed and was never scored; the fitted level
+constant `c` was silently doing part of the median→mean conversion, so the gap
+looked like a calibration problem rather than a functional one; and the serving
+side found the same defect from the other end (`P2-level-report-adopt`) without
+the research side connecting it. Before tuning an architecture, a feature set or a
+loss, check that you are scoring the functional the loss is minimised by.
+*(`P3-functional-parity`)*
+
 ## Rules about interpretation
 
 **R20. Correcting a number in the humbler direction does not make the
