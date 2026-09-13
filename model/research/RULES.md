@@ -652,6 +652,24 @@ that before panicking — no artifact on this branch was produced by any of the
 14 callers after the bug landed, so no published number ever passed through it.
 *(`scripts/precommit.sh`, `.github/workflows/model-ci.yml`)*
 
+**R77. A diagnostic whose job is to validate a threshold must run BEFORE the
+threshold is used, not after.**
+`P3-regularisation` pre-registered a bar — what a shuffled noise column achieved
+by accident — and ran sixteen arms against it. The `col-shuf` arm existed in the
+module for exactly one purpose: to reproduce that accident on the same sample the
+arms use, because the bar had been measured on the DVOL-era subset. It was run
+fourteen minutes AFTER the arms finished. On the full sample the accident at H=1
+is **−0.363%**, not +1.46%: the shuffled column hurts, there was never anything
+at that horizon to reproduce, and the entire H=1 family was scored against a
+number that does not exist. Ordering is not a detail here — had the diagnostic
+run first, the pre-registration would have been written differently or not at
+all, and the correct finding (at H=6, where the accident is real at +0.363%,
+input noise at 0.15 reaches it) would have been the whole experiment instead of
+a footnote to a void one. The general form: whenever a rule contains a constant
+that came from somewhere else, the run that re-derives that constant HERE is a
+dependency of the pre-registration, not a companion to it.
+*(`P3-regularisation-result`, and R66 for the import itself)*
+
 ## Rules about interpretation
 
 **R20. Correcting a number in the humbler direction does not make the

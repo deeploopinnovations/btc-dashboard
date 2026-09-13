@@ -75,8 +75,23 @@ ARMS = {
 SHUF_SOURCE = "har_1d"          # the column whose values get permuted
 # 16, pre-registered: base and the col-shuf diagnostic are not family members
 N_FAMILY = len(HORIZONS) * (len(ARMS) - 2)
-# what the accident achieved, and therefore the bar
+# what the accident achieved, and therefore the bar.
+#
+# PRE-REGISTERED, AND SUBSEQUENTLY FOUND INVALID. These four numbers were
+# measured on the DVOL-era subset and imported here as a threshold for arms that
+# run on the full 476,359 -- which is precisely the error R66 was written about,
+# committed one commit after writing it. They are kept, unchanged, because a
+# pre-registered bar that is quietly replaced by one measured later is not a
+# pre-registration; the correction belongs beside it, not on top of it.
 ACCIDENT = {1: 1.46, 6: 1.24, 24: 0.12, 168: 0.30}
+
+# The SAME diagnostic, re-run on the SAME full sample as the arms. This is the
+# bar that actually binds, and at H=1 it reverses sign: the shuffled column
+# HURTS by 0.363%, so there is no accident at H=1 to explain and the question
+# this module was built to answer is void at that horizon. H=24 and H=168 have
+# not been measured on this sample; None means "unknown", and an arm cannot
+# clear an unknown bar.
+ACCIDENT_SAME_SAMPLE = {1: -0.363, 6: +0.363, 24: None, 168: None}
 
 
 def run_arm(ep, X, fold, H, arm, hidden, seeds):
@@ -239,10 +254,15 @@ def main(argv=None) -> int:
             rel = 100 * np.nanmean(dd) / np.nanmean(q0)
             clears = bool(ci["ci95"][0] > 0)
             beats = rel >= ACCIDENT.get(H, np.inf)
+            same_bar = ACCIDENT_SAME_SAMPLE.get(H)
+            beats_same = (None if same_bar is None
+                          else bool(rel >= same_bar and clears))
             row[arm] = {"pooled": float(np.nanmean(q)),
                         "delta": float(np.nanmean(dd)), "rel_pct": float(rel),
                         "ci": [float(ci["ci95"][0]), float(ci["ci95"][1])],
                         "clears": clears, "beats_accident": bool(beats),
+                        "beats_accident_same_sample": beats_same,
+                        "accident_same_sample_pct": same_bar,
                         "block_len": int(L)}
             mark = "" if arm == "base" else (
                 f"[{ci['ci95'][0]:+.5f}, {ci['ci95'][1]:+.5f}]"
@@ -258,7 +278,17 @@ def main(argv=None) -> int:
                    "NONE -- under-regularisation is then the WRONG explanation "
                    "for that control arm")
         bar = ACCIDENT.get(H, float("nan"))
-        print(f"  reaches the accident's {bar:+.2f}%: {verdict}")
+        print(f"  reaches the IMPORTED bar {bar:+.2f}%: {verdict}")
+        sb = ACCIDENT_SAME_SAMPLE.get(H)
+        if sb is None:
+            print("  same-sample bar: NOT MEASURED at this horizon -- no arm can "
+                  "clear an unknown bar, so nothing is concluded here")
+        else:
+            beat_s = [k for k, v in live.items() if v["beats_accident_same_sample"]]
+            print(f"  reaches the SAME-SAMPLE bar {sb:+.3f}%: "
+                  f"{', '.join(beat_s) if beat_s else 'NONE'}"
+                  + ("   (bar is NEGATIVE -- the shuffled column HURTS here, so "
+                     "there is no accident to explain)" if sb < 0 else ""))
         out["horizons"][str(H)] = row
         a.out.parent.mkdir(parents=True, exist_ok=True)
         a.out.write_text(json.dumps(out, indent=1, default=float) + "\n")
