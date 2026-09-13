@@ -670,6 +670,24 @@ that came from somewhere else, the run that re-derives that constant HERE is a
 dependency of the pre-registration, not a companion to it.
 *(`P3-regularisation-result`, and R66 for the import itself)*
 
+**R78. Do not address a background job by a name pattern, and do not edit a
+script while bash is reading it.**
+Two ways the same queue broke in one session, neither of them about statistics.
+First: `pkill -f "queue2.sh"` killed the shell that issued it, because the
+harness puts the whole command string — pattern included — into the invoking
+shell's own command line, so `pgrep -f`/`pkill -f` match the watcher as readily
+as the watched. A waiter built on `while pgrep -f "seedtest.sh"` can therefore
+wait on itself, or on a shell that merely mentioned the script. Wait on a **PID**
+(`while kill -0 "$PID"`), and kill by PID.
+Second: `seedtest.sh` was corrected while it was executing. Bash reads a script
+lazily by byte offset, so an in-place edit that changes the file's length can
+make the running shell resume in the middle of a line — the correction was right
+and applying it that way was not. Edit a copy and relaunch, or make the edit
+before the job starts.
+Both were caught before they produced a wrong number, which is the only reason
+they are a rule and not an incident.
+*(`scratchpad/chain.sh`)*
+
 ## Rules about interpretation
 
 **R20. Correcting a number in the humbler direction does not make the
