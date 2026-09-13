@@ -108,29 +108,47 @@ def pooled(z, H: int, teacher: str) -> float:
     return float(np.nanmean(qlike_vec(np.concatenate(rv), np.concatenate(sig))))
 
 
-def model_table_keys():
-    """(anchor_ts, H) of the rows that actually reach the model."""
+def trainable_keys():
+    """(anchor_ts, H) of rows that are in the TRAIN slice of some fold.
+
+    This is the mask that actually governs, and nothing short of it will do.
+    Two earlier versions of this function each selected by a PROXY and each
+    produced a no-op that was reported as a null:
+
+      1. earliest rows of `episodes_h4.parquet` -- those are warm-up rows the
+         40-column completeness mask removes;
+      2. earliest rows of the model table -- still 2012, and
+         `splits.SAMPLE_START` is **2017-08-01**, so every pre-2017 episode is
+         outside train, calib and test alike.
+
+    Both times the tell was the same and was ignored once: a move of exactly
+    0.00000 in the SGD-trained arm. A real perturbation cannot leave an SGD
+    trajectory bit-identical. (R38, R65.)
+    """
     from eval.vol_matrix import build_h4_table
+    from noctua import splits as S
     ep4, _ = build_h4_table(Path("model/artifacts"))
-    return set(zip(ep4["anchor_ts"].to_numpy().tolist(),
-                   ep4["H"].to_numpy().tolist()))
+    folds = S.walk_forward_folds(ep4)
+    tr = np.zeros(len(ep4), bool)
+    for f in folds:
+        tr |= f["train"]
+    a, H = ep4["anchor_ts"].to_numpy(), ep4["H"].to_numpy()
+    return set(zip(a[tr].tolist(), H[tr].tolist()))
 
 
 def choose_drops(ep: pd.DataFrame, n: int) -> np.ndarray:
-    """Earliest rows of `ep` that are present in the model table.
+    """Earliest rows of `ep` that are in some fold's TRAIN slice.
 
-    Selecting on `ep` alone is what made the first run a no-op: its earliest
-    rows are warm-up rows the completeness mask removes, so dropping them
-    changes nothing the model ever sees.
+    Earliest, so they fall in train for every fold and no test slice can change.
     """
-    keys = model_table_keys()
+    keys = trainable_keys()
     a = ep["anchor_ts"].to_numpy()
     H = ep["H"].to_numpy()
     order = a.argsort(kind="stable")
     out = [p for p in order if (a[p].item(), H[p].item()) in keys][:n]
     if len(out) < n:
-        raise SystemExit("REFUSING: fewer than "
-                         f"{n} droppable rows reach the model table.")
+        raise SystemExit(f"REFUSING: fewer than {n} rows are in any train "
+                         f"slice.")
     return np.asarray(out, np.int64)
 
 
@@ -159,18 +177,20 @@ def selftest() -> int:
         yrs = pd.to_datetime(ep["anchor_ts"].to_numpy()[pos], unit="s",
                              utc=True).year
         checks.append(("dropped-rows-are-pre-test",
-                       bool((yrs < min(YEARS)).all()),
+                       bool((np.asarray(yrs) < min(YEARS)).all()),
                        f"year(s) {sorted(set(yrs))}, all before the first test "
                        f"fold {min(YEARS)} -- so test slices cannot change"))
-        # THE CHECK WHOSE ABSENCE MADE THE FIRST RUN MEANINGLESS
-        keys = model_table_keys()
+        # THE CHECK WHOSE ABSENCE MADE TWO RUNS MEANINGLESS
+        keys = trainable_keys()
         inside = [(ep["anchor_ts"].to_numpy()[p].item(),
                    ep["H"].to_numpy()[p].item()) in keys for p in pos]
-        checks.append(("dropped-rows-ACTUALLY-REACH-the-model", all(inside),
-                       f"{sum(inside)}/{len(inside)} are in the model table; "
-                       f"the first version dropped warm-up rows the "
-                       f"completeness mask already removed and measured a "
-                       f"no-op as a null"))
+        checks.append(("dropped-rows-are-IN-A-TRAIN-SLICE", all(inside),
+                       f"{sum(inside)}/{len(inside)} in some fold's train "
+                       f"mask, anchors from "
+                       f"{pd.to_datetime(ep['anchor_ts'].to_numpy()[pos].min(), unit='s', utc=True).date()}"
+                       f" -- selecting by 'earliest in file' and by 'in the "
+                       f"model table' each gave a no-op, because "
+                       f"SAMPLE_START is 2017-08-01"))
     else:
         checks.append(("dropped-rows-are-pre-test", True, "skipped"))
     print("sample_sensitivity selftest")

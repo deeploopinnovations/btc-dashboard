@@ -88,6 +88,37 @@ within-this-experiment contrasts are valid. `E-power` already measured that 24×
 more episodes bought 1.53× effective sample size, so losing 60% of the rows costs
 far less than it appears to.
 
+## Amendment 1, written before any arm ran: the experiment is 5 folds, not 6
+
+Measured after the plan was committed and before execution, because the plan
+stated the sample but not what it implies per fold:
+
+| fold | train episodes | with DVOL | with funding | calib with DVOL |
+|---|---:|---:|---:|---:|
+| 2021 | 101,369 | **0** | 40,173 | **0** |
+| 2022 | 136,408 | 8,633 | 75,204 | 16,797 |
+| 2023 | 171,447 | 43,672 | 110,243 | 16,796 |
+| 2024 | 206,486 | 78,711 | 145,282 | 16,796 |
+| 2025 | 241,621 | 113,846 | 180,417 | 16,795 |
+| 2026 | 276,658 | 148,883 | 215,454 | 16,797 |
+
+DVOL begins 2021-03-24 and fold 2021's train slice ends mid-2020, so **fold 2021
+cannot be run at all** and drops out by the existing ≥2000-train guard. Fold 2022
+has 8,633 train episodes across four horizons, ≈2,158 each — it passes the guard
+by a margin of 8%, so it is the fold most likely to be noise.
+
+This is a consequence of the registered sample, not a change to it, and it is
+recorded here rather than discovered in the results. Consequences carried forward:
+
+* The experiment is **5 test years (2022–2026)**, and H-by-fold counts are
+  reported so the marginal fold is visible.
+* Because the mask is identical across arms, every arm drops the same folds, so
+  the pairing is unaffected. The run refuses if that ever stops being true.
+* Funding alone would reach all 6 folds (fold 2021 has 40,173 train episodes).
+  A funding-only arm is **not** added: it was not registered, and adding an arm
+  after seeing the coverage table is how a family of 8 becomes a family of 10
+  without the intervals noticing. It is recorded as a follow-up instead.
+
 ## Decision rule, fixed now
 
 * Primary endpoint: **pooled QLIKE**, per horizon, H ∈ {1, 6, 24, 168}.

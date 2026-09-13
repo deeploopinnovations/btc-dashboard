@@ -400,7 +400,11 @@ def main(argv=None) -> int:
                      if row["D1-lag"]["delta"] >= row["D1"]["delta"] * 0.8
                      else "  -> freshness matters, consistent with news"))
         out["horizons"][str(H)] = {"arms": row, "verdicts": verdicts}
-        print()
+        # written after EVERY horizon: this run takes hours and a crash at the
+        # last horizon must not discard the first three
+        a.out.parent.mkdir(parents=True, exist_ok=True)
+        a.out.write_text(json.dumps(out, indent=1, default=float) + "\n")
+        print(f"  (partial result written to {a.out})\n")
 
     a.out.parent.mkdir(parents=True, exist_ok=True)
     a.out.write_text(json.dumps(out, indent=1, default=float) + "\n")
