@@ -173,7 +173,8 @@ def arm_frame(Xb: pd.DataFrame, exo: pd.DataFrame, arm: str,
 
 
 # ------------------------------------------------------------------- arms
-def run_arm(ep, X, exo, fold, H, arm, keep, hidden, seeds, rng):
+def run_arm(ep, X, exo, fold, H, arm, keep, hidden, seeds, rng,
+            want_curves: bool = False):
     at_h = (ep.H == H).to_numpy()
     cols40 = [c for c in X.columns if c not in UNDEFINED_AT_1W]
     Xb = X[cols40]
@@ -205,8 +206,36 @@ def run_arm(ep, X, exo, fold, H, arm, keep, hidden, seeds, rng):
     lp = bl["log_har_cal"].predict(Xu[m_te])
     preds = [I.predict(m, d, har_logvol=lp) for m in models]
     sg = np.asarray(np.mean([p["sigma_med"] for p in preds], axis=0), np.float64)
-    return {"rv": ep.RV.to_numpy()[m_te], "sigma": sg,
-            "anchor": ep.anchor_ts.to_numpy()[m_te], "n_cols": len(sc)}
+    out = {"rv": ep.RV.to_numpy()[m_te], "sigma": sg,
+           "anchor": ep.anchor_ts.to_numpy()[m_te], "n_cols": len(sc)}
+    if want_curves:
+        # Everything the barrier battery needs, produced by the SAME fitted
+        # models that produced the QLIKE number -- so the two cannot disagree
+        # about which model is being scored. The committee is fitted by the
+        # caller on the CALIB arrays returned here: `benchmark.run_fold` pins
+        # its committee calibration to `ep.H == 19`, which does not exist in the
+        # h4 table at all, and that is why this path exists rather than reusing
+        # that driver.
+        d_cal, _ = prepare(ep, Xu, m_va, *stds, shape_cols=sc)
+        lp_cal = bl["log_har_cal"].predict(Xu[m_va])
+        p_cal = [I.predict(m, d_cal, har_logvol=lp_cal) for m in models]
+        avg = lambda ps, k: np.mean([q[k] for q in ps], axis=0)
+        out.update({
+            "m_te": m_te, "m_va": m_va,
+            "pred": {k: avg(preds, k) for k in ("qa", "sigma_atoms", "q_r",
+                                                "q_up", "q_dn", "q_mx")},
+            "pred_cal": {k: avg(p_cal, k) for k in ("qa", "sigma_atoms", "q_r",
+                                                    "q_up", "q_dn", "q_mx")},
+            "sigma_cal": np.asarray(avg(p_cal, "sigma_med"), np.float64),
+            "M_up": np.abs(ep.M_up.to_numpy()[m_te]),
+            "M_dn": np.abs(ep.M_dn.to_numpy()[m_te]),
+            "M_up_cal": np.abs(ep.M_up.to_numpy()[m_va]),
+            "M_dn_cal": np.abs(ep.M_dn.to_numpy()[m_va]),
+            "M_up_tr": np.abs(ep.M_up.to_numpy()[m_tr]),
+            "M_dn_tr": np.abs(ep.M_dn.to_numpy()[m_tr]),
+            "RV_tr": ep.RV.to_numpy()[m_tr],
+        })
+    return out
 
 
 # --------------------------------------------------------------- selftest
