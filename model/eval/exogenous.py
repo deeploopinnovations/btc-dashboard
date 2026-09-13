@@ -73,10 +73,16 @@ EXO_COLS = {
     "D1":      ["x_ivrv"],
     "D2":      ["x_ivrv", "x_dvol_chg", "x_fund"],
     "D1-shuf": ["x_ivrv"],
+    "D2-shuf": ["x_ivrv", "x_dvol_chg", "x_fund"],
     "D1-lag":  ["x_ivrv"],
 }
 LIVE_ARMS = ("D1", "D2")
-CONTROL_ARMS = ("D1-shuf", "D1-lag")
+# D2-shuf was ADDED AFTER the first run, and only a control may be added that
+# way. D1-shuf is capacity-matched to D1's single column; D2 adds three, so D2's
+# pass at H=168 had no capacity-matched control at all. A control can only sink a
+# result, never raise one, so adding it cannot inflate the family -- which is
+# exactly why the pre-registration puts controls outside it.
+CONTROL_ARMS = ("D1-shuf", "D2-shuf", "D1-lag")
 N_FAMILY = len(HORIZONS) * len(LIVE_ARMS)       # 8, pre-registered
 
 
@@ -143,13 +149,17 @@ def arm_frame(Xb: pd.DataFrame, exo: pd.DataFrame, arm: str,
         add = add.rename(columns={"x_ivrv": "_tmp"})
         add["_tmp"] = exo["x_ivrv_stale"].to_numpy()
         add = add.rename(columns={"_tmp": "x_ivrv"})
-    if arm == "D1-shuf":
+    if arm in ("D1-shuf", "D2-shuf"):
         # permute WITHIN the fold's usable episodes: same capacity, same
-        # marginal distribution, no alignment to the episode
-        v = add["x_ivrv"].to_numpy(np.float64).copy()
+        # marginal distribution, no alignment to the episode. Each column gets
+        # its OWN permutation, so the joint structure between them is destroyed
+        # too -- a shared permutation would preserve their correlation and leave
+        # a multi-column arm partly informative.
         idx = np.flatnonzero(fold_mask)
-        v[idx] = v[rng.permutation(idx)]
-        add["x_ivrv"] = v
+        for c in cols:
+            v = add[c].to_numpy(np.float64).copy()
+            v[idx] = v[rng.permutation(idx)]
+            add[c] = v
     return pd.concat([Xb, add[cols]], axis=1)
 
 
@@ -371,18 +381,28 @@ def main(argv=None) -> int:
 
         # the pre-registered rule, applied here rather than in prose
         verdicts = {}
-        shuf = row.get("D1-shuf", {})
+        # each live arm is judged against the shuffle of its OWN width
+        MATCHED = {"D1": "D1-shuf", "D2": "D2-shuf"}
         for arm in LIVE_ARMS:
             if arm not in row:
                 continue
+            shuf = row.get(MATCHED[arm], {})
             r = row[arm]
             why = []
             if not r["clears"]:
                 why.append("interval does not clear zero favourably")
-            if shuf.get("clears"):
-                why.append(f"the SHUFFLE control also clears "
+            if not shuf:
+                why.append(f"NO capacity-matched control was run for this arm "
+                           f"({MATCHED[arm]} absent) -- the result is "
+                           f"unprotected and may not be claimed")
+            elif shuf.get("clears"):
+                why.append(f"the {MATCHED[arm]} control also clears "
                            f"({shuf['delta']:+.5f}) -- any gain here is "
                            f"capacity or noise, not information")
+            elif r["clears"] and r["delta"] <= shuf.get("delta", -1e9):
+                why.append(f"the control does not clear but still matches or "
+                           f"beats the arm ({shuf['delta']:+.5f} vs "
+                           f"{r['delta']:+.5f})")
             if r["clears"] and r["spike_rel_pct"] <= r["calm_rel_pct"]:
                 why.append(f"gain is NOT spike-concentrated "
                            f"(spike {r['spike_rel_pct']:+.2f}% vs calm "
