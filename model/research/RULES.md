@@ -708,6 +708,20 @@ correct under *either* convention. Cost: one hour of feature freshness.
 artifacts did not, because one run predated the patch and the other came from
 `--from-json`. Verify the artifact, not the source. *(`E2-paired-estimator`)*
 
+**R73. Piping a gate's output through `tail` disarms the gate.**
+A commit was pushed that failed CI on `ledger --validate` while the validator had
+*already reported the problem locally, in the same command that did the push*:
+
+    python -m model.research.ledger --validate 2>&1 | tail -1 && git commit ...
+
+A pipeline returns the exit status of its **last** command, so `tail` returning 0
+masked the validator returning 1 and the `&&` proceeded. The habit of piping a
+long-running check through `tail` to keep the output short is exactly what
+silently converts a gate into a print statement. Use `set -o pipefail`, or do not
+pipe a gate at all. `scripts/precommit.sh` now runs the checks CI runs with
+`pipefail` set, so the mistake cannot recur by hand.
+*(`scripts/precommit.sh`)*
+
 ## Rules about shipping
 
 **R25. ADVANCE is not ADOPT.**
