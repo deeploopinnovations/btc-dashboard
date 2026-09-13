@@ -1,0 +1,105 @@
+{
+ "n_family": 8,
+ "alpha": 0.00625,
+ "common_episodes": 187727,
+ "horizons": {
+  "1": {
+   "arms": {
+    "base": {
+     "pooled": 0.7224446465866026,
+     "delta": 0.0,
+     "rel_pct": 0.0,
+     "spike": 5.972711919475223,
+     "calm": 0.44606433207794904,
+     "spike_rel_pct": 0.0,
+     "calm_rel_pct": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "clears": false,
+     "block_len": 34,
+     "n_cols": null
+    },
+    "D1": {
+     "pooled": 0.7157384978222494,
+     "delta": 0.00670614876435324,
+     "rel_pct": 0.928257797471179,
+     "spike": 5.852405405247966,
+     "calm": 0.4453382416807312,
+     "spike_rel_pct": 2.0142694951513396,
+     "calm_rel_pct": 0.16277705815109728,
+     "ci": [
+      0.003648433263872361,
+      0.010366385437468538
+     ],
+     "clears": true,
+     "block_len": 34,
+     "n_cols": null
+    },
+    "D2": {
+     "pooled": 0.7171902187371848,
+     "delta": 0.005254427849417869,
+     "rel_pct": 0.7273121718382058,
+     "spike": 5.8515870407525075,
+     "calm": 0.44690946259196707,
+     "spike_rel_pct": 2.0279712190330828,
+     "calm_rel_pct": -0.18946381793878486,
+     "ci": [
+      0.0013715174645932329,
+      0.010434097251853616
+     ],
+     "clears": true,
+     "block_len": 34,
+     "n_cols": null
+    },
+    "D1-shuf": {
+     "pooled": 0.7119192191630164,
+     "delta": 0.010525427423586342,
+     "rel_pct": 1.4569181837413774,
+     "spike": 5.825708271959877,
+     "calm": 0.4427232805026781,
+     "spike_rel_pct": 2.4612546109249163,
+     "calm_rel_pct": 0.7490066645111365,
+     "ci": [
+      0.0073821544092499665,
+      0.01440996135670759
+     ],
+     "clears": true,
+     "block_len": 34,
+     "n_cols": null
+    },
+    "D1-lag": {
+     "pooled": 0.7160117464786953,
+     "delta": 0.006432900107907359,
+     "rel_pct": 0.8904350164820855,
+     "spike": 5.869465175085557,
+     "calm": 0.4447278278944082,
+     "spike_rel_pct": 1.7286409554261282,
+     "calm_rel_pct": 0.2996213970560895,
+     "ci": [
+      0.00394321776736383,
+      0.009379705583269013
+     ],
+     "clears": true,
+     "block_len": 34,
+     "n_cols": null
+    }
+   },
+   "verdicts": {
+    "D1": {
+     "passes": false,
+     "reasons": [
+      "the SHUFFLE control also clears (+0.01053) -- any gain here is capacity or noise, not information"
+     ]
+    },
+    "D2": {
+     "passes": false,
+     "reasons": [
+      "the SHUFFLE control also clears (+0.01053) -- any gain here is capacity or noise, not information"
+     ]
+    }
+   }
+  }
+ }
+}
