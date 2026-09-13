@@ -585,7 +585,11 @@ def run_fold(ep, X, fold, hidden=32, seeds=3, verbose=False, shape_cols=None,
         r = np.maximum(rv ** 2, 1e-18) / np.maximum(pv, 1e-18)
         return float(np.mean(r - np.log(r) - 1.0))
 
-    vol = {"noctua": ql(p_te["sigma_med"]), "log_har": ql(sig_model),
+    # `noctua_mean` is the same forecast read on the functional QLIKE is
+    # minimised by; see the note in vol_matrix.run_fold and P3-functional-adopt.
+    vol = {"noctua": ql(p_te["sigma_med"]),
+           "noctua_mean": ql(p_te["sigma_mean"]),
+           "log_har": ql(sig_model),
            "persistence": ql(sig_persist)}
 
     # Christoffersen on the shipped model's own alpha=5% level

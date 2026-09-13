@@ -417,6 +417,18 @@ def run_fold(ep, X, fold, ret, hidden=32, seeds=3, verbose=False,
             # Seeds are averaged on the ATOM outputs, where the shipped path
             # averages them -- not on the final QLIKE.
             arms[name] = np.mean([p["sigma_med"] for p in preds], axis=0)
+            # THE FUNCTIONAL THE LOSS IS MINIMISED BY, as a separate arm rather
+            # than a silent substitution. This matrix scored sigma_med -- the
+            # MEDIAN of a predictive distribution -- against rivals whose single
+            # point forecast behaves like a mean, under QLIKE, which is minimised
+            # by the conditional MEAN of variance. That is what produced the
+            # "NOCTUA fails at all four horizons" headline. sigma_mean comes from
+            # the same forward pass and fits nothing. Both are reported so the
+            # size of the artifact is visible in the table rather than argued
+            # about. Adopted in serving as P3-functional-adopt; measured at
+            # 13.3%-26.0% of raw pooled QLIKE in P3-functional-parity.
+            arms[name + "_mean"] = np.mean([p["sigma_mean"] for p in preds],
+                                           axis=0)
 
         if ret is not None:
             from eval.garch import fit_and_forecast
