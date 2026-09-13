@@ -151,7 +151,11 @@ def main(argv=None) -> int:
         base_fresh = prev["base_cols_treated"]
         print(f"re-deriving from {a.from_json} -- {len(recs)} stored folds, "
               f"no model is retrained")
-        return _verdict(recs, base_orig, base_fresh, a.out)
+        # spike=None: this path re-derives from stored folds and never loads
+        # the episode table, so the spike mask genuinely does not exist here.
+        # _verdict reports the spike/calm SPLIT as unavailable rather than
+        # silently omitting it.
+        return _verdict(recs, base_orig, base_fresh, a.out, spike=None)
 
     ep, X = load_all(a.artifacts)
     spike = causal_spike_flag(ep)
@@ -233,10 +237,17 @@ def main(argv=None) -> int:
 
     if not recs:
         print("no fold produced both arms"); return 1
-    return _verdict(recs, base_orig, base_fresh, a.out)
+    return _verdict(recs, base_orig, base_fresh, a.out, spike=spike)
 
 
-def _verdict(recs, base_orig, base_fresh, out_path):
+def _verdict(recs, base_orig, base_fresh, out_path, spike=None):
+    """`spike` is the episode-level spike mask, or None when the caller had no
+    episode table to build it from (the --from-json path). It is a PARAMETER
+    because the paired spike/calm diagnostic below read it as a free variable
+    off `main`'s scope -- a bare NameError that never fired only because the
+    block is guarded by `all("_q" in r ...)`, which the stored-fold path does
+    not satisfy. A diagnostic that cannot run is not the same as a diagnostic
+    that ran and found nothing, so the unavailable case now says so."""
     """Everything downstream of the fold scores. Separated so a statistic can be
     corrected without retraining -- and so the corrected verdict is produced by
     the SAME code path as the original, not a one-off recomputation."""
@@ -293,7 +304,11 @@ def _verdict(recs, base_orig, base_fresh, out_path):
     # 22 exists to answer.
     paired = {}
     if all("_q" in r for r in recs):
-        for key, sel in (("spike", True), ("calm", False)):
+        splits = (("spike", True), ("calm", False)) if spike is not None else ()
+        if spike is None:
+            print("\n--- paired per-episode bootstrap: spike/calm split "
+                  "UNAVAILABLE (no episode table in this path) ---")
+        for key, sel in splits:
             d_ep = []
             for r in recs:
                 ic, it = r["_idx"]["control"], r["_idx"]["fresh_anchor"]

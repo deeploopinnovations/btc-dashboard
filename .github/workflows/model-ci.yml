@@ -43,6 +43,15 @@ jobs:
       - name: Install serving runtime
         run: pip install --quiet -r model/serve/requirements-ci.txt
 
+      # FIRST, and cheap. Two live NameErrors sat in the eval suite for 106
+      # commits (direction.block_bootstrap_ci, anchor_freshness._verdict),
+      # reachable by neither test nor artifact rerun. Every test below executes
+      # code; this is the only step that audits code nothing executes.
+      - name: Undefined names (ruff F821)
+        run: |
+          pip install --quiet ruff
+          ruff check --no-cache --select F821 model/ scripts/
+
       - name: Model self-test
         run: python model/tests/test_serving.py
 

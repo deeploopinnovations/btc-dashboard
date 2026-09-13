@@ -32,6 +32,19 @@ run() {
   rm -f /tmp/precommit.$$
 }
 
+# F821 FIRST, and it is not decoration. On 2026-09-13 ruff found two live
+# NameErrors in the eval suite: `direction.block_bootstrap_ci` referenced a
+# `block_len` that was added to a NEIGHBOURING function's signature and not its
+# own -- broken for 106 commits across 14 call sites -- and
+# `anchor_freshness._verdict` read a `spike` mask off `main`'s scope. Neither
+# was caught by a single test, because neither code path is reached by one: the
+# first sits behind modules nothing had rerun, the second behind a guard the
+# stored-fold path never satisfies. Unreached code is exactly what a test suite
+# cannot audit and a static check can, so the static check runs unconditionally
+# and runs first -- it costs under a second and it is the only gate here that
+# looks at code nothing executes.
+run "ruff F821 (undefined names)" ruff check --no-cache --select F821 model/ scripts/
+
 echo "precommit gates (the same ones CI runs)"
 run "ledger --validate"      python -m model.research.ledger --validate
 run "test_serving"           python model/tests/test_serving.py
@@ -40,6 +53,11 @@ run "test_adaptive"          python model/tests/test_adaptive.py
 run "test_features"          python model/tests/test_features.py
 run "test_selfimprove"       python model/tests/test_selfimprove.py
 run "test_level_report"      python model/tests/test_level_report.py
+# These two were in CI and NOT here, so the header's claim to run "the same
+# ones CI runs" was aspirational. Both check FILES written by scripts rather
+# than a write path, which is the version of the check that binds.
+run "pitfalls --self-test"   python -m model.research.pitfalls --self-test
+run "teacher_ledger"         python -m model.research.teacher_ledger --validate
 
 if [ "$fail" -ne 0 ]; then
   echo

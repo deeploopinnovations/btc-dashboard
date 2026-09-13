@@ -630,6 +630,28 @@ runs them in sequence, cheapest first, skipping any artifact that already exists
 and printing free memory after each.
 *(`scripts/regen_artifacts.sh`)*
 
+**R76. A test suite cannot audit code it never reaches — run a static
+undefined-name check, and run it first.**
+`direction.block_bootstrap_ci` referenced a `block_len` that had been added to
+the signature of the function BELOW it and not to its own. Every call raised a
+bare `NameError`, across 14 call sites, for 106 commits. `anchor_freshness`
+had a second one: `_verdict` read a `spike` mask off `main`'s local scope.
+Neither was caught, and the reason is the same in both cases — neither line is
+reachable by anything that runs. The first sits in modules nothing had rerun
+since the bug landed; the second sits behind an `all("_q" in r ...)` guard that
+the stored-fold path does not satisfy, so the diagnostic silently did not exist
+rather than failing. Ten passing gates said nothing about either, because all
+ten execute code. `ruff check --select F821` found both in under a second and is
+now the first gate in `scripts/precommit.sh` and in CI.
+Two corollaries, both earned here. First: when you add a parameter to one
+function, check whether the edit landed in a neighbour — the commit that did
+this said "default unchanged, so no existing number moves", which was true of
+the function it meant to change and false of the one it hit. Second: the
+blast radius of a latent crash is bounded by what has been RERUN, so establish
+that before panicking — no artifact on this branch was produced by any of the
+14 callers after the bug landed, so no published number ever passed through it.
+*(`scripts/precommit.sh`, `.github/workflows/model-ci.yml`)*
+
 ## Rules about interpretation
 
 **R20. Correcting a number in the humbler direction does not make the

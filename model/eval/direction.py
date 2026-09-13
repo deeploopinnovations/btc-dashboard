@@ -212,13 +212,24 @@ def shuffled_dsc_null(p, y, n_rep=200, seed=0):
     return out
 
 
-def block_bootstrap_ci(d, n_rep=2000, seed=0, alpha=0.05):
+def block_bootstrap_ci(d, n_rep=2000, seed=0, alpha=0.05, block_len=None):
     """Moving-block bootstrap CI for the mean of a dependent series.
 
     Block length n^(1/3) is the standard choice for a stationary bootstrap of
     a mean under weak dependence. `d` is a per-episode loss DIFFERENCE, so the
     interval answers: is one forecaster better than the other, allowing for
     the fact that neighbouring episodes share most of their window?
+
+    `block_len` overrides the rule of thumb with an explicit block, honoured as
+    given -- it is NOT floored at the default here, so a caller passing a block
+    SHORTER than n^(1/3) will get a narrower interval than the pre-registered
+    one. Flooring is the caller's job, as `vol_matrix` does at 2H. (An earlier
+    draft of this docstring claimed the floor was applied here; it is not, in
+    this function or in `mean_ci`.) The parameter was added to `mean_ci` on
+    2026-08-28 and the edit leaked into
+    this function's body without reaching its signature, leaving a bare
+    NameError on every call for 106 commits. Default None reproduces the
+    pre-2026-08-28 behaviour exactly, so no published number moves.
     """
     d = np.asarray(d, dtype=np.float64)
     n = len(d)
