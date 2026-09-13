@@ -340,6 +340,7 @@ def main(argv=None) -> int:
         print("=" * 92)
         rv0 = got["base"]["rv"]
         q0 = qlike_vec(rv0, got["base"]["sigma"])
+        per_ep = {}
         hi5 = rv0 >= np.quantile(rv0, 0.95)
         print(f"{'arm':>9} {'pooled':>9} {'vs base':>10} {'rel %':>7} "
               f"{'spike':>9} {'calm':>9} {'spike rel%':>10} "
@@ -350,6 +351,7 @@ def main(argv=None) -> int:
                 raise SystemExit(f"REFUSING: arm {arm} scored different "
                                  f"episodes than base -- the pairing is void")
             q = qlike_vec(d["rv"], d["sigma"])
+            per_ep[arm] = q                  # kept for the arm-vs-control test
             dd = q0 - q                      # positive = arm better than base
             g = np.isfinite(dd)
             L = block_len_for(H, int(g.sum()))
@@ -412,6 +414,40 @@ def main(argv=None) -> int:
             print(f"\n  {arm}: {'PASSES the pre-registered rule' if not why else 'FAILS'}")
             for w in why:
                 print(f"      - {w}")
+        # THE DECIDING CONTRAST, and the one the first version omitted.
+        # "the arm clears against base and the control does not" is two separate
+        # tests against a third thing; it can be satisfied while the arm and its
+        # control are statistically indistinguishable from EACH OTHER. Only a
+        # paired interval between them answers the question the control was
+        # built to ask.
+        for arm in LIVE_ARMS:
+            ctl = {"D1": "D1-shuf", "D2": "D2-shuf"}[arm]
+            if arm not in per_ep or ctl not in per_ep:
+                continue
+            dv = per_ep[ctl] - per_ep[arm]   # positive = arm beats its control
+            g = np.isfinite(dv)
+            L = block_len_for(H, int(g.sum()))
+            ci = mean_ci(dv[g], alpha=alpha, block_len=L)
+            beats = bool(ci["ci95"][0] > 0)
+            print(f"\n  {arm} vs its OWN-WIDTH control {ctl}: "
+                  f"{np.nanmean(dv):+.5f}  CI [{ci['ci95'][0]:+.5f}, "
+                  f"{ci['ci95'][1]:+.5f}]  "
+                  + ("-> the feature beats same-width noise"
+                     if beats else
+                     "-> NOT DISTINGUISHABLE from same-width noise; any pass "
+                     "against base is hollow"))
+            row[arm]["vs_control"] = {"delta": float(np.nanmean(dv)),
+                                      "ci": [float(ci["ci95"][0]),
+                                             float(ci["ci95"][1])],
+                                      "beats_control": beats}
+            if arm in verdicts and not beats:
+                verdicts[arm]["passes"] = False
+                verdicts[arm]["reasons"].append(
+                    f"not distinguishable from {ctl} in a direct paired test "
+                    f"({np.nanmean(dv):+.5f}, CI [{ci['ci95'][0]:+.5f}, "
+                    f"{ci['ci95'][1]:+.5f}])")
+                print(f"      -> {arm} verdict downgraded to FAILS")
+
         if "D1-lag" in row and "D1" in row:
             print(f"\n  regime-proxy check: D1 {row['D1']['delta']:+.5f} vs "
                   f"week-stale D1-lag {row['D1-lag']['delta']:+.5f}"

@@ -496,6 +496,31 @@ the input really changed, so an exact zero there is a statement about your
 harness, not about your model. Read a suspiciously clean null as a bug report.
 *(`P2-sample-sensitivity`)*
 
+**R66. The capacity effect of an extra column is not a constant — it changed
+sign between two of this project's own experiments.**
+`P2-event-window-result`'s shuffle arm measured **−0.34%** at H=1 and the figure
+was quoted thereafter as "one extra column costs about 0.34%", including as a
+hurdle in a decision document. `P3-exogenous-dvol`'s shuffle arm measures
+**+1.46%** at H=1: same construct, same horizon, opposite sign, four times the
+size, and it clears a Bonferroni-corrected interval. The sample differs (187,727
+episodes against 476,359) and so does the column's type (continuous against a
+sparse indicator); which drives the sign is open. What is settled is that no
+design may assume a per-column cost from another design. Measure it inside your
+own, with a control matched to the arm's **own width** — a one-column shuffle does
+not control a three-column arm.
+*(`P2-capacity-profile`, `P2-event-window-result`, `LABELLING_DECISION.md` amended)*
+
+**R67. A pre-registered threshold can pass on its letter and fail on the property
+it was written to detect — say so, and do not bank the pass.**
+`D2` at H=168 was registered to need a gain "concentrated in the spike bucket",
+operationalised as spike > calm. It came in at **+2.00% spike against +1.91%
+calm** — passing by 0.09 percentage points while being, plainly, a uniform gain.
+The threshold was a proxy for a qualitative claim and the proxy can be satisfied
+without the claim. Report the margin, not just the verdict, and when the margin
+makes the test vacuous treat the result as unestablished rather than as a win
+defended by the letter of your own rule.
+*(`P3-exogenous-dvol`)*
+
 ## Rules about interpretation
 
 **R20. Correcting a number in the humbler direction does not make the

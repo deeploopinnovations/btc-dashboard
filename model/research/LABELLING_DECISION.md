@@ -76,6 +76,16 @@ Three measured costs, all already in the ledger:
    not buy years of evidence; it buys one column.
 2. **`P2-event-window-result`**: one extra column costs about **0.34%** at H=1.
    A feature must clear that to break even before it has helped anything.
+   **AMENDED 2026-09-13 — this number does not transfer and should not have been
+   quoted as a hurdle.** `P2-capacity-profile` measures the same construct (one
+   shuffled column) on the DVOL-era sample and gets a **gain**, not a cost:
+   +1.46% at H=1, +1.24% at H=6, +0.12% at H=24, +0.30% at H=168. Same
+   construct, same horizon, opposite sign, four times the magnitude. The sample
+   differs (187,727 episodes against 476,359) and so does the column's type
+   (continuous against a sparse indicator), and which of those drives the sign is
+   open. The capacity effect is not a constant, so the honest form of this point
+   is *"a new column's capacity effect must be measured inside its own design
+   with a width-matched control"*, not *"it must clear 0.34%"*.
 3. **Three timing features have already failed** (`P2-dst-alignment-result`,
    `P2-event-window-result`, and the arm-A correction), and
    `P2-dst-shift-audited` removed the evidence that the driver is *scheduled*
@@ -83,9 +93,18 @@ Three measured costs, all already in the ledger:
    surprise **timing**.
 
 A sparse flag firing on 96 episodes, inside a sample with roughly six
-independent regime observations, against a 0.34% entry cost, cannot be fitted.
-It is not a close call and no amount of annotation quality changes it. The
-limit is the effective sample size, not the labels.
+independent regime observations, cannot be fitted. It is not a close call and no
+amount of annotation quality changes it. The limit is the effective sample size,
+not the labels.
+
+**And `P3-exogenous-dvol` has since made this worse, not better.** At H=1 and
+H=6, a column of *shuffled* values beat the real exogenous feature on every
+pre-registered endpoint — interval excluding zero, gain concentrated in the spike
+bucket. So the binding problem is not only that labels are expensive to obtain:
+at this sample size the model **cannot distinguish a real exogenous signal from
+noise of the same shape**, which is a precondition for any labelled dataset to
+repay its cost. That is now measured rather than assumed, and it strengthens the
+decision rather than changing it.
 
 And one more constraint the premise cannot be argued past: **direction is
 measurably NULL at all four horizons.** No label can be justified by a promise
