@@ -229,21 +229,31 @@ def main(argv=None) -> int:
           f"-- earliest rows that SURVIVE the completeness mask, so they are in "
           f"the train slice of every fold AND actually reach the model\n")
 
-    bak = scratch / "episodes_h4_full.parquet"
-    ep.to_parquet(bak, index=False)
-    try:
-        ep.loc[keep].reset_index(drop=True).to_parquet(EP, index=False)
-        out_npz = scratch / "teacher_oof_minus3.npz"
-        print(f"rebuilding teacher_oof on {int(keep.sum()):,} episodes ...")
-        r = subprocess.run([sys.executable, "-m", "model.eval.teacher_zoo",
-                            "--out", str(out_npz)],
-                           capture_output=True, text=True, timeout=5400)
-        if r.returncode != 0:
-            print(r.stdout[-2000:], r.stderr[-2000:], file=sys.stderr)
-            return 3
-    finally:
-        pd.read_parquet(bak).to_parquet(EP, index=False)
-        print("episodes_h4.parquet restored")
+    # Build a SHADOW artifacts directory rather than mutating the canonical
+    # episode table. The first version swapped model/artifacts/episodes_h4.parquet
+    # in place and restored it in a `finally`, which has two defects: a crash or
+    # a kill between the two leaves the corpus silently perturbed, and any other
+    # run started meanwhile reads the perturbed table -- which happened, and the
+    # exogenous arms had to be killed after reading 476,356 rows instead of
+    # 476,359. The canonical table is now never written.
+    shadow = scratch / "artifacts"
+    shadow.mkdir(parents=True, exist_ok=True)
+    ep.loc[keep].reset_index(drop=True).to_parquet(
+        shadow / "episodes_h4.parquet", index=False)
+    for name in ("features.parquet", "btcusd_1h.parquet", "episodes.parquet"):
+        src = EP.parent / name
+        dst = shadow / name
+        if src.exists() and not dst.exists():
+            dst.symlink_to(src.resolve())
+    out_npz = scratch / "teacher_oof_minus3.npz"
+    print(f"rebuilding teacher_oof on {int(keep.sum()):,} episodes, reading "
+          f"from {shadow} (the canonical table is not touched) ...")
+    r = subprocess.run([sys.executable, "-m", "model.eval.teacher_zoo",
+                        "--artifacts", str(shadow), "--out", str(out_npz)],
+                       capture_output=True, text=True, timeout=5400)
+    if r.returncode != 0:
+        print(r.stdout[-2000:], r.stderr[-2000:], file=sys.stderr)
+        return 3
 
     z0, teachers = load_oof(BASE)
     z1, _ = load_oof(out_npz)
