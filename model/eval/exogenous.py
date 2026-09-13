@@ -75,7 +75,16 @@ EXO_COLS = {
     "D1-shuf": ["x_ivrv"],
     "D2-shuf": ["x_ivrv", "x_dvol_chg", "x_fund"],
     "D1-lag":  ["x_ivrv"],
+    # DIAGNOSTICS, not family members. D2 passed while D1 -- the primary
+    # registered feature -- cleared at no horizon, so the gain is carried by
+    # x_dvol_chg and/or x_fund and not by the IV-RV spread the hypothesis was
+    # about. These single-column arms say which. They can only explain a result
+    # already established; they cannot create a new claim, and the 1-column
+    # capacity control D1-shuf already exists for them.
+    "X-chg":   ["x_dvol_chg"],
+    "X-fund":  ["x_fund"],
 }
+DIAGNOSTIC_ARMS = ("X-chg", "X-fund")
 LIVE_ARMS = ("D1", "D2")
 # D2-shuf was ADDED AFTER the first run, and only a control may be added that
 # way. D1-shuf is capacity-matched to D1's single column; D2 adds three, so D2's
