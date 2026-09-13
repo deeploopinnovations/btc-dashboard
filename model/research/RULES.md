@@ -688,6 +688,25 @@ Both were caught before they produced a wrong number, which is the only reason
 they are a rule and not an incident.
 *(`scratchpad/chain.sh`)*
 
+**R79. A regeneration script must reproduce the VARIANT the document reports,
+not the tool's default.**
+`scripts/regen_artifacts.sh` rebuilt `vol_matrix.json` with the bare invocation.
+The document's volatility section is the **fair** run — OLS baselines refitted
+per horizon, written to `vol_matrix_fair.json` — and `report.py` prefers that
+file, falling through to `vol_matrix.json` only if it is absent. So the driver
+was regenerating the horizon-blind matrix the ledger has already **rejected**,
+and the report would have fallen through to it. Worse, it would have done so
+quietly: the paragraph explaining which comparison this is, is gated on
+`d.get("fair_baselines")`, so the rejected result would have appeared with the
+sentence that identifies it simply missing. The report's own *Reproducing*
+section carried the same bare command, so following the documented instructions
+reproduced a different result from the one documented.
+The general form: a default is a property of the tool, not of the result. When a
+document reports a non-default run, the flag is part of the result's identity
+and belongs in every place that claims to rebuild it — the driver, the
+reproduction block, and the filename.
+*(`scripts/regen_artifacts.sh`, `report.py` REPRO)*
+
 ## Rules about interpretation
 
 **R20. Correcting a number in the humbler direction does not make the

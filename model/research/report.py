@@ -381,7 +381,14 @@ python -m model.eval.leakage --episodes model/artifacts/episodes_h4.parquet \\
 python -m model.eval.slice_power
 
 # 3. the four-horizon volatility matrix  (~1h, 6 folds x 2 variants x 3 seeds)
-python -m model.eval.vol_matrix
+python -m model.eval.vol_matrix --fair-baselines \
+        --out model/artifacts/vol_matrix_fair.json
+#    NOT the bare invocation. report.py prefers vol_matrix_fair.json, and the
+#    volatility section above IS the fair run -- OLS baselines refitted per
+#    horizon. The default produces the horizon-blind matrix the ledger
+#    rejected, so following the bare command reproduces a different result
+#    from the one this document reports. It said the bare command until
+#    2026-09-13.
 
 # 4. the direction benchmark             (~30 min)
 python -m model.eval.direction_bench
