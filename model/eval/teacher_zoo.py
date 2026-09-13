@@ -283,7 +283,15 @@ def _noctua_fold(ep, X, fold, hidden, seeds, verbose=False):
             d, _ = prepare(ep, Xv, m, *stds)
             lp = bl["log_har_cal"].predict(Xv[m])
             ps = [I.predict(mm, d, har_logvol=lp) for mm in models]
-            out.setdefault(H, {})[sl] = np.mean([p["sigma_med"] for p in ps], axis=0)
+            # BOTH functionals. The zoo emitted only the median, and QLIKE is
+            # minimised by the conditional MEAN of variance (E-scale), so every
+            # Phase 2 ranking compared NOCTUA's median against rivals whose
+            # single point forecast behaves like a mean. sigma_mean comes from
+            # the same forward pass and fits nothing. See P3-functional-parity.
+            out.setdefault(H, {})[sl] = np.mean([p["sigma_med"] for p in ps],
+                                                axis=0)
+            out[H][f"{sl}__mean"] = np.mean([p["sigma_mean"] for p in ps],
+                                            axis=0)
     return out
 
 
@@ -490,6 +498,9 @@ def main(argv=None) -> int:
                     store[f"{pre}/sigma/{k}"] = np.asarray(v, np.float64)
                 if H in nn and sl in nn[H]:
                     store[f"{pre}/sigma/noctua_v1"] = np.asarray(nn[H][sl], np.float64)
+                    if f"{sl}__mean" in nn[H]:
+                        store[f"{pre}/sigma/noctua_v1_mean"] = np.asarray(
+                            nn[H][f"{sl}__mean"], np.float64)
                 meta.append({"year": f["year"], "H": int(H), "slice": sl,
                              "n": int(len(d["anchor_ts"]))})
         print(f"  fold {f['year']}  ({time.time()-t0:.0f}s)", flush=True)
