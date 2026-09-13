@@ -222,6 +222,9 @@ def run_arm(ep, X, exo, fold, H, arm, keep, hidden, seeds, rng,
         avg = lambda ps, k: np.mean([q[k] for q in ps], axis=0)
         out.update({
             "m_te": m_te, "m_va": m_va,
+            # the MEAN functional, for the barrier battery on P3-functional-parity
+            "sigma_mean": np.asarray(avg(preds, "sigma_mean"), np.float64),
+            "sigma_mean_cal": np.asarray(avg(p_cal, "sigma_mean"), np.float64),
             "pred": {k: avg(preds, k) for k in ("qa", "sigma_atoms", "q_r",
                                                 "q_up", "q_dn", "q_mx")},
             "pred_cal": {k: avg(p_cal, k) for k in ("qa", "sigma_atoms", "q_r",
