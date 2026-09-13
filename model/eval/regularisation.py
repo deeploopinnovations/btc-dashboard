@@ -62,8 +62,19 @@ ARMS = {
     "wd-1e-2":  (1e-2, 0.00),
     "noise-05": (1e-4, 0.05),
     "noise-15": (1e-4, 0.15),
+    # THE ARM THAT SHOULD HAVE BEEN HERE FROM THE START. The +1.46% bar was
+    # measured on the 187,727-episode DVOL-era sample and this experiment runs
+    # on the full 476,359, so "no regulariser reaches the bar" confounds a
+    # mechanism difference with a SAMPLE difference -- importing a number across
+    # samples as a threshold is the error R66 was written about. This arm
+    # reproduces the accident itself HERE: one existing feature, its values
+    # permuted within the fold, appended as a 41st column. It is a DIAGNOSTIC,
+    # not a family member: it can only explain the bar, never raise a claim.
+    "col-shuf": (1e-4, 0.00),
 }
-N_FAMILY = len(HORIZONS) * (len(ARMS) - 1)        # 16, pre-registered
+SHUF_SOURCE = "har_1d"          # the column whose values get permuted
+# 16, pre-registered: base and the col-shuf diagnostic are not family members
+N_FAMILY = len(HORIZONS) * (len(ARMS) - 2)
 # what the accident achieved, and therefore the bar
 ACCIDENT = {1: 1.46, 6: 1.24, 24: 0.12, 168: 0.30}
 
@@ -73,7 +84,15 @@ def run_arm(ep, X, fold, H, arm, hidden, seeds):
     at_h = (ep.H == H).to_numpy()
     cols40 = [c for c in X.columns if c not in UNDEFINED_AT_1W]
     Xb = X[cols40]
-    fin = np.isfinite(Xb.to_numpy(np.float64)).all(1)
+    use = list(cols40)
+    if arm == "col-shuf":
+        v = Xb[SHUF_SOURCE].to_numpy(np.float64).copy()
+        idx = np.flatnonzero(at_h)
+        rs = np.random.default_rng(20260913 + int(fold["year"]))
+        v[idx] = v[rs.permutation(idx)]
+        Xb = Xb.assign(x_shuf=v)
+        use = cols40 + ["x_shuf"]
+    fin = np.isfinite(Xb[use].to_numpy(np.float64)).all(1)
     Hall = ep.H.to_numpy(np.float64)
     yall = B.har_target(ep.RV.to_numpy(), Hall)
     m_tr = fold["train"] & fin & at_h
@@ -84,18 +103,18 @@ def run_arm(ep, X, fold, H, arm, hidden, seeds):
     raw = np.exp(X["har_1d"].to_numpy(np.float64)) * np.sqrt(Hall)
     lo, hi = np.quantile(raw[m_tr], [0.005, 0.995])
     sref = np.maximum(np.clip(raw, lo, hi), 1e-12)
-    tr, stds = prepare(ep, Xb, m_tr, shape_cols=cols40, sigma_ref=sref[m_tr])
+    tr, stds = prepare(ep, Xb, m_tr, shape_cols=use, sigma_ref=sref[m_tr])
     w = S.sample_weights(ep, m_tr)
-    va, _ = prepare(ep, Xb, m_va, *stds, shape_cols=cols40, sigma_ref=sref[m_va])
+    va, _ = prepare(ep, Xb, m_va, *stds, shape_cols=use, sigma_ref=sref[m_va])
     ols = B.OLS(BASE_COLS).fit(pd.DataFrame(tr["Xb"], columns=BASE_COLS),
                                tr["y"].astype(np.float64), w)
-    bl = B.fit_vol_baselines(Xb[m_tr], yall[m_tr], w)
+    bl = B.fit_vol_baselines(Xb[cols40][m_tr], yall[m_tr], w)
     models = [train_model(tr, w, va, hidden=hidden, epochs=40, seed=k,
                           verbose=False, ols_beta=ols.beta,
                           weight_decay=wd, input_noise=noise)[0]
               for k in range(seeds)]
-    d, _ = prepare(ep, Xb, m_te, *stds, shape_cols=cols40)
-    lp = bl["log_har_cal"].predict(Xb[m_te])
+    d, _ = prepare(ep, Xb, m_te, *stds, shape_cols=use)
+    lp = bl["log_har_cal"].predict(Xb[cols40][m_te])
     preds = [I.predict(m, d, har_logvol=lp) for m in models]
     sg = np.asarray(np.mean([p["sigma_med"] for p in preds], axis=0), np.float64)
     return {"rv": ep.RV.to_numpy()[m_te], "sigma": sg,
@@ -107,11 +126,14 @@ def self_test() -> int:
     ok = []
     ok.append(("base-is-the-shipped-setting", ARMS["base"] == (1e-4, 0.0),
                "weight_decay 1e-4 and no input noise, as train.py hard-coded"))
-    ok.append(("arms-are-distinct", len(set(ARMS.values())) == len(ARMS),
-               f"{len(ARMS)} arms, {len(set(ARMS.values()))} distinct settings"))
+    live = {k: v for k, v in ARMS.items() if k != "col-shuf"}
+    ok.append(("arms-are-distinct", len(set(live.values())) == len(live),
+               f"{len(live)} hyperparameter arms, "
+               f"{len(set(live.values()))} distinct settings; col-shuf shares "
+               f"base's settings and differs only by the extra column"))
     ok.append(("family-size", N_FAMILY == 16,
-               f"{len(HORIZONS)} horizons x {len(ARMS)-1} non-base arms = "
-               f"{N_FAMILY}"))
+               f"{len(HORIZONS)} horizons x {len(ARMS)-2} family arms = "
+               f"{N_FAMILY}; base and the col-shuf diagnostic are excluded"))
 
     # the two knobs must actually reach the optimiser and the loop
     rng = np.random.default_rng(0)
