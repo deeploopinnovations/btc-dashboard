@@ -1663,7 +1663,7 @@
    "mechanism": "level-scale",
    "date": "2026-09-13",
    "supersedes": [
-    "P3-exogenous-decomposition"
+    "P2-scorecard-rescaled-reproduced"
    ],
    "question": "After removing AFFINE bias (level AND slope) from every teacher symmetrically, does NOCTUA retain any advantage -- or was its whole edge calibration?",
    "rule": "Instrument taken from arXiv 2607.05291 ('Forecasting Realized Volatility with Time Series Foundation Models'), which runs nine zero-shot foundation models against eight econometric specifications on 50 assets under QLIKE with formal forecast-comparison tests and reports that at short horizons the neural edge over Log-HAR is 'largely a calibration effect' while only at the monthly horizon does a genuine informational advantage remain. Parameters fitted on each fold's CALIB slice through FoldScopedFit and applied to that fold's TEST slice, symmetrically to every teacher. Family 4, Bonferroni -> 98.75%. No retraining: read off the existing teacher_oof.npz.",
