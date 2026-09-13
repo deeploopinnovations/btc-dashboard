@@ -112,6 +112,12 @@ recorded here rather than discovered in the results. Consequences carried forwar
 
 * The experiment is **5 test years (2022–2026)**, and H-by-fold counts are
   reported so the marginal fold is visible.
+  **CORRECTED after execution (R70): at H=168 it is FOUR folds — 2023, 2024,
+  2025, 2026, 31,432 episodes — because fold 2022's 8,633 train episodes are a
+  count across all four horizons and do not clear the ≥2000 gate at H=168 alone.
+  The one surviving result in this experiment therefore rests on four folds. An
+  amendment written to forestall exactly this surprise got it wrong by pooling
+  horizons.**
 * Because the mask is identical across arms, every arm drops the same folds, so
   the pairing is unaffected. The run refuses if that ever stops being true.
 * Funding alone would reach all 6 folds (fold 2021 has 40,173 train episodes).

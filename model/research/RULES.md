@@ -536,6 +536,30 @@ as a contributing feature. Per column the information is ~0.0007, far under what
 one column can demonstrate at this n.
 *(`P3-exogenous-decomposition`)*
 
+**R69. A point-comparison guard with no tolerance fires on numerical noise —
+and you may not fix it after it fires.**
+The pre-registered barrier battery blocked `D2` on three metrics: Brier +0.0080%,
+logs +0.0043%, DSC −1.67% (0.00120 → 0.00118). Every movement is in the fifth
+decimal place, three metrics moved up by 1e-5 and three moved down by 1e-5, so the
+substantive reading is *barriers unchanged*, not *barriers damaged* — nothing like
+`P2-scale-v2`, the precedent the guard was written from, which degraded every
+metric substantially. Both halves have to be reported: the guard blocked, and the
+guard is over-sharp. **The guard still stands for this result.** It was registered
+as a strict inequality, it failed, and rewriting it after seeing it fail is the
+selective rigor this project exists to avoid. The fix belongs in the NEXT
+pre-registration — a paired interval per barrier metric, not a bare inequality —
+and the current arm stays unadopted in the meantime.
+*(`P3-exogenous-barriers`, `P2-scale-v2-result`)*
+
+**R70. Check a per-fold guard AT THE HORIZON, not across horizons pooled.**
+Amendment 1 to `P3-exogenous-dvol` announced "5 test years, 2022–2026" from a
+coverage table of 8,633 training episodes in fold 2022. That count is across all
+four horizons; at H=168 alone it does not clear the ≥2000 gate, so the one
+surviving result rests on **four** folds (2023–2026), not five. A guard that
+applies per horizon must be evaluated per horizon, and an amendment written to
+forestall exactly this kind of surprise got it wrong by pooling.
+*(`P3-exogenous-barriers`)*
+
 ## Rules about interpretation
 
 **R20. Correcting a number in the humbler direction does not make the
