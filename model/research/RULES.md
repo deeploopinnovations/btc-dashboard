@@ -521,6 +521,21 @@ makes the test vacuous treat the result as unestablished rather than as a win
 defended by the letter of your own rule.
 *(`P3-exogenous-dvol`)*
 
+**R68. Decompose a multi-column win before crediting any column in it, and
+subtract the width-matched capacity floor.**
+`D2` cleared at H=168 while every one of its three columns failed alone:
+`x_ivrv` +0.00165, `x_dvol_chg` +0.00110, `x_fund` +0.00062, none clearing, against
+a one-column noise floor of +0.00051. Their sum, +0.00337, is D2's +0.00325 — the
+effect is **additive with no interaction term to appeal to**, so the honest unit
+of the finding is the block and not any feature in it. Two further things only the
+decomposition shows: capacity scales with width (one noise column +0.00051, three
++0.00111), so the informative content is +0.00325 − 0.00111 = **+0.00214**,
+independently equal to the direct paired contrast against `D2-shuf`; and `x_fund`
+at 1.2× the floor is **nothing**, which a block-level result would have let pass
+as a contributing feature. Per column the information is ~0.0007, far under what
+one column can demonstrate at this n.
+*(`P3-exogenous-decomposition`)*
+
 ## Rules about interpretation
 
 **R20. Correcting a number in the humbler direction does not make the
