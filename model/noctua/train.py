@@ -146,7 +146,7 @@ def prepare(ep, X, mask, std_all=None, std_shape=None, std_base=None,
 def train_model(
     tr, wtr, va, *, hidden=128, epochs=40, bs=4096, lr=2e-3, lam_couple=1.0,
     lam_anchor=0.0, seed=0, verbose=True, ols_beta=None, lam_r=1.0,
-    lam_mx=1.0,
+    lam_mx=1.0, weight_decay=1e-4, input_noise=0.0,
 ):
     """Fit one Noctua network.
 
@@ -188,7 +188,17 @@ def train_model(
     V = {k: torch.tensor(v, device=dev) for k, v in va.items()
          if k in ("Xa", "Xb", "Xs", "y", "log_sigma", "r", "m_up", "m_dn", "m_mx")}
 
-    opt = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
+    # `weight_decay` and `input_noise` exist because a CONTROL ARM measured
+    # something nobody was looking for: in P3-exogenous-dvol, adding ONE column
+    # of shuffled values -- carrying no information at all -- improved pooled
+    # QLIKE by 1.46% at H=1 and 1.24% at H=6, both clearing a Bonferroni-
+    # corrected interval. A model that is helped by a noise input is a model
+    # that is under-regularised, and the regularisation it had was this single
+    # hard-coded 1e-4. Both parameters DEFAULT to the shipped behaviour
+    # (weight_decay=1e-4, input_noise=0.0), so nothing changes unless a caller
+    # asks. See P3-regularisation.
+    opt = torch.optim.AdamW(model.parameters(), lr=lr,
+                            weight_decay=float(weight_decay))
     n = len(T["y"])
     steps = max(1, n // bs)
     sched = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=lr, total_steps=epochs * steps)
@@ -200,8 +210,16 @@ def train_model(
         tot = 0.0
         for i in range(steps):
             idx = perm[i * bs : (i + 1) * bs]
-            qa, res_med = model.a(T["Xa"][idx], T["Xb"][idx], return_parts=True)
-            qr, qu, qd, qm = model.b(T["Xs"][idx], T["log_sigma"][idx][:, None])
+            Xa, Xb_, Xs = T["Xa"][idx], T["Xb"][idx], T["Xs"][idx]
+            if input_noise > 0.0:
+                # Gaussian noise on the STANDARDISED inputs, training only.
+                # This is the explicit form of whatever the shuffled column was
+                # doing by accident; at prediction time nothing is added.
+                Xa = Xa + input_noise * torch.randn_like(Xa)
+                Xb_ = Xb_ + input_noise * torch.randn_like(Xb_)
+                Xs = Xs + input_noise * torch.randn_like(Xs)
+            qa, res_med = model.a(Xa, Xb_, return_parts=True)
+            qr, qu, qd, qm = model.b(Xs, T["log_sigma"][idx][:, None])
 
             loss = (
                 pinball_loss(qa, T["y"][idx], lv, W[idx])
