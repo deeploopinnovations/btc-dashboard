@@ -61,6 +61,13 @@ def _next_anchor(now_ts: int) -> int:
     return int(anchor.timestamp())
 
 
+# Which functional of the predictive distribution the REPORTED sigma is.
+# "mean" is the QLIKE-optimal choice and the adopted default; "median" is the
+# historical behaviour, kept so `tests/test_level_report.py` can run both and
+# assert that the choice reaches the reported number and nothing else.
+REPORT_FUNCTIONAL = "mean"
+
+
 def forecast(model, hours: pd.DataFrame, H: int = PROD_H,
              anchor_ts: int | None = None, source: str = "unknown") -> dict:
     """Run one forecast anchored at `anchor_ts` (default: the latest full hour).
@@ -116,9 +123,37 @@ def forecast(model, hours: pd.DataFrame, H: int = PROD_H,
     # function twice and requiring every touch probability, safe level, p_up
     # and p_vol_amplify to be bit-identical. That test fails the moment this
     # scalar reaches `pred`.
-    qs = qlike_scale(model, hours, row, H)
+    # ADOPTED 2026-09-13 (P3-functional-parity, P3-functional-scorecard):
+    # report the model's OWN conditional mean, not its median times a fitted
+    # trailing estimate of the gap between them.
+    #
+    # `sigma_mean` is sqrt(mean(exp(2*atoms_y)) * H) -- the conditional mean of
+    # variance, computed in the same forward pass in runtime.py and never used.
+    # `qlike_scale` was a WINDOWED EMPIRICAL ESTIMATE of the same median-to-mean
+    # ratio, with a clip rail and a settled-episode lag. Replacing an estimate of
+    # a quantity with the quantity removes the window, the lag, the rail, and the
+    # requirement that enough episodes have settled; and it is conditional per
+    # episode where the trailing scalar was an average.
+    #
+    # MEASURED, on the research side: reading sigma_mean instead of sigma_med
+    # improves raw pooled QLIKE by 13.3% / 20.7% / 26.0% / 11.9% at
+    # H=1/6/24/168, and the resulting forecast beats every teacher in the zoo at
+    # H=1, H=6 and H=24 under a symmetric two-parameter affine correction, tying
+    # the HAR family at H=168. A FURTHER fitted level correction on top of it
+    # makes it WORSE at all four horizons (0.54119 -> 0.54815 at H=1), which is
+    # why the trailing scalar is dropped rather than kept on top.
+    #
+    # SAFE BY CONSTRUCTION, not merely by test (P3-barrier-channel): the
+    # committee builds every barrier curve from `pred["sigma_atoms"]` and never
+    # reads the reported scalar -- a 13% change in it moves the curves by
+    # 0.000e+00 while the same change to sigma_atoms moves them by 8.9e-03. So
+    # this cannot repeat P2-scale-v2, whose damage came from post_shift_fn
+    # rewriting the log-vol that FEEDS the quantiles.
+    qs = qlike_scale(model, hours, row, H)          # reported for continuity
     spot = float(hours["close"].to_numpy()[row - 1])
-    sigma = float(pred["sigma_med"][0]) * (qs["scale"] if qs["applied"] else 1.0)
+    sig_med = float(pred["sigma_med"][0])
+    sig_mean = float(pred["sigma_mean"][0])
+    sigma = sig_mean if REPORT_FUNCTIONAL == "mean" else sig_med
 
     # trailing realized vol over the same window length, for volAmp
     rv5 = hours["rv5"].to_numpy(np.float64)
@@ -162,14 +197,31 @@ def forecast(model, hours: pd.DataFrame, H: int = PROD_H,
         "barrier_curves": curves,
         "model": model.meta.get("version", "NOCTUA-v1"),
         # The reported sigma carries this; the predictive object does not.
-        "sigma_scale": {
-            "scale": round(float(qs["scale"]), 4),
-            "applied": bool(qs["applied"]),
-            "n_settled_episodes": int(qs["n_episodes"]),
-            "note": qs["reason"],
+        # The reported sigma is now a FUNCTIONAL CHOICE, not a correction. The
+        # trailing scalar is still computed and published so the two can be
+        # compared in the field -- it is an empirical estimate of the same
+        # median-to-mean ratio this now takes exactly -- but it no longer
+        # multiplies anything.
+        "sigma_functional": {
+            "reported": REPORT_FUNCTIONAL,
+            "sigma_med_pct": round(100 * sig_med, 3),
+            "sigma_mean_pct": round(100 * sig_mean, 3),
+            "mean_over_median": round(sig_mean / max(sig_med, 1e-12), 4),
+            "why": "QLIKE is minimised by the conditional MEAN of variance; "
+                   "sigma_mean is that mean, from the same forward pass. See "
+                   "P3-functional-parity.",
             "applies_to": "sigma_window_pct and sigma_annualized_pct only; "
                           "barrier_curves, safe_levels, p_up and p_vol_amplify "
-                          "are computed from the uncorrected predictive object",
+                          "are built from pred['sigma_atoms'] and cannot see "
+                          "this choice (P3-barrier-channel)",
+        },
+        "sigma_scale": {
+            "scale": round(float(qs["scale"]), 4),
+            "applied": False,
+            "n_settled_episodes": int(qs["n_episodes"]),
+            "note": "NO LONGER APPLIED. Superseded by the exact conditional "
+                    "mean; reported for comparison only. " + str(qs["reason"]),
+            "applies_to": "nothing -- retained as a field for continuity",
         },
         "vol_calibration": {
             "factor": round(float(cal["factor"]), 4),
