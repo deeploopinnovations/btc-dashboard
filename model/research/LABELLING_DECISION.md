@@ -86,6 +86,14 @@ Three measured costs, all already in the ledger:
    open. The capacity effect is not a constant, so the honest form of this point
    is *"a new column's capacity effect must be measured inside its own design
    with a width-matched control"*, not *"it must clear 0.34%"*.
+   **RE-AMENDED 2026-09-13 — my first amendment was too sweeping.**
+   `P3-colshuf-sample` ran the same noise column on the FULL sample and got
+   **−0.36%**, against `P2-event-window-result`'s **−0.34%**: two independent
+   measurements on the same sample agreeing to 0.02 pp. The 0.34% figure was
+   therefore *correct for the full sample* and the +1.46% was the restricted
+   sample talking. So the hurdle stands for a feature evaluated on the full
+   corpus — which is the relevant case for labelling — and what does not
+   transfer is a capacity number across samples of different size.
 3. **Three timing features have already failed** (`P2-dst-alignment-result`,
    `P2-event-window-result`, and the arm-A correction), and
    `P2-dst-shift-audited` removed the evidence that the driver is *scheduled*

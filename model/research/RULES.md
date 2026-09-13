@@ -508,6 +508,17 @@ sparse indicator); which drives the sign is open. What is settled is that no
 design may assume a per-column cost from another design. Measure it inside your
 own, with a control matched to the arm's **own width** — a one-column shuffle does
 not control a three-column arm.
+
+**NARROWED, and the narrowing vindicates the original figure.** Running the same
+noise column on the FULL sample gives **−0.36%** at H=1, against
+`P2-event-window-result`'s **−0.34%** — two independent experiments, different
+columns, same sample, agreeing to 0.02 percentage points. So a per-column cost IS
+reasonably stable *within* a sample and does not transfer *across* samples of
+different size: −0.35% at 476,359 episodes against +1.46% at 187,727. The figure
+the project had been quoting was right for the sample it came from, and the sign
+flip was the 2.5×-smaller sample, not the construct. Which makes the real rule
+narrower and more useful: **sample size, not the column, is what a capacity
+measurement is conditional on.** *(`P3-colshuf-sample`)*
 *(`P2-capacity-profile`, `P2-event-window-result`, `LABELLING_DECISION.md` amended)*
 
 **R67. A pre-registered threshold can pass on its letter and fail on the property
@@ -559,6 +570,33 @@ surviving result rests on **four** folds (2023–2026), not five. A guard that
 applies per horizon must be evaluated per horizon, and an amendment written to
 forestall exactly this kind of surprise got it wrong by pooling.
 *(`P3-exogenous-barriers`)*
+
+**R71. A published instrument may be calibrated for a different loss than yours —
+check before importing it.**
+`arXiv 2607.05291`'s Mincer–Zarnowitz recalibration is the standard way to separate
+"better scaled" from "better informed". Applied here unchanged it **degraded QLIKE
+for six of seven teachers**, by 31–38% at H=1, and left a post-correction
+calibration ratio near **1.7** instead of 1. MZ minimises squared error; QLIKE is
+minimised by the conditional **mean of variance** — this project's own `E-scale`.
+Fitting a level by least squares and then scoring it with QLIKE charges a Jensen
+gap that has nothing to do with whether the forecast is informative. The fix keeps
+the part that answers the question (the slope β, which carries responsiveness) and
+sets the level by the closed-form QLIKE optimum: ratios move to 0.87–1.15 and the
+comparison becomes meaningful. Import the *question* a published method answers,
+not its arithmetic.
+*(`P3-mz-result`)*
+
+**R72. Give every rival the same number of free parameters you give your candidate,
+and a claim will often narrow.**
+`P2-scorecard-rescaled` handed every teacher ONE free parameter (a level) and
+concluded NOCTUA was best at H=1, H=6 and H=24. Handing every teacher **two**
+(level and slope, fitted on calib, applied symmetrically) leaves the ranking intact
+but moves H=6 from a win to **not established** — CI [−0.00391, +0.01498]. The
+surviving claim, H=1 and H=24, is the first positive statement about NOCTUA in
+Phase 2 to survive a strong symmetric control, and it is narrower than the one it
+replaces. The corollary is the useful half: a rival that looks weak may simply be
+the one you gave fewer parameters to.
+*(`P3-mz-result`, `P2-scorecard-rescaled-reproduced`)*
 
 ## Rules about interpretation
 
