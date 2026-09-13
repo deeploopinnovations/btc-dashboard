@@ -616,6 +616,20 @@ the research side connecting it. Before tuning an architecture, a feature set or
 loss, check that you are scoring the functional the loss is minimised by.
 *(`P3-functional-parity`)*
 
+**R75. A process that dies without a traceback was KILLED, not crashed — and
+check the resource that binds, not the one you can see.**
+`vol_matrix`, `direction_bench` and `econ_voltarget` were launched together
+because CPU load was 0.58 on four cores. All three died. None left a traceback,
+all three truncated mid-output, and memory came back fully reclaimed — the
+signature of the OOM killer, not of three independent bugs. Each job holds the
+full 476,359 × 42 episode table plus torch; load was never the constraint,
+resident memory was. The distinction matters because a crash is a defect in your
+code and a kill is a defect in your scheduling, and an hour spent debugging the
+first when it was the second is an hour wasted. `scripts/regen_artifacts.sh` now
+runs them in sequence, cheapest first, skipping any artifact that already exists
+and printing free memory after each.
+*(`scripts/regen_artifacts.sh`)*
+
 ## Rules about interpretation
 
 **R20. Correcting a number in the humbler direction does not make the
