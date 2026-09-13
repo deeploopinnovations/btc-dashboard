@@ -421,6 +421,12 @@ the deterministic arms actually licensed was the much weaker claim that the
 corpus is not *grossly* different. Stating the stronger one sent me chasing an
 environment difference that turned out to be nothing (R63).
 
+**Now measured, so the narrowing is a number rather than an argument:** dropping
+3 of 476,359 training episodes moves `noctua_v1` by up to **0.00209** and every
+deterministic teacher by at most **0.00006** — a factor of **35**. That is the
+sensitivity ratio between the arm you are testing and the arm you offered as its
+control. *(`P2-sample-sensitivity`)*
+
 **R62. "It reproduces" is a claim about the CONCLUSION and about the NUMBER, and
 they can diverge.**
 The rescaled ranking reproduced structurally and exactly: 3 of 4 horizons change
@@ -475,6 +481,20 @@ the hypothesis, it was treating a correspondence over three items as settled
 before running the one-command test that could refute it — and the test was cheap.
 Any explanation of this form gets run, not written up, however well it fits.
 *(`P2-repro-cause`, `P2-sample-sensitivity`)*
+
+**R65. Select by the mask that governs, never by a proxy for it — and an exact
+zero in a stochastic arm is evidence about the harness.**
+Three times I built a perturbation test and three times it perturbed nothing,
+because the rows to drop were chosen by a stand-in for "is in the train slice":
+the earliest rows in the episode file (removed as warm-up by the completeness
+mask), then the earliest rows in the model table (2012, while
+`splits.SAMPLE_START` is **2017-08-01**, so outside train, calib and test alike).
+Selecting from the union of the folds' actual `train` masks worked on the first
+attempt. The diagnostic was available from the first run and I used it only after
+the second: a move of **exactly 0.00000** in an SGD-trained arm cannot happen if
+the input really changed, so an exact zero there is a statement about your
+harness, not about your model. Read a suspiciously clean null as a bug report.
+*(`P2-sample-sensitivity`)*
 
 ## Rules about interpretation
 
