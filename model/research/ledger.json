@@ -1486,7 +1486,10 @@
    "verdict": "OPEN",
    "result": "pre-registered; no data exists yet",
    "implication": "The expected outcome in P3-attention-feature stands verbatim and is not restated.\nONE ADDITION FROM P2-artifact-locus, and it is a caution about a control this project has been treating as clean: H=24 is used as the no-footprint control horizon in several experiments on the strength of chi-square 3.0, p = 1.000. That measures the absence of an HOUR-OF-DAY footprint. It does NOT establish that two arbitrary hour partitions score identically there -- the event-window run found a reproducible 0.14%-of-base difference between two of them. If this experiment uses H=24 as a control, that is the standard to hold it to: a control horizon is only clean for the specific confound it was measured against.",
-   "lesson": ""
+   "lesson": "",
+   "superseded_by": [
+    "P3-exogenous-dvol"
+   ]
   },
   {
    "id": "P2-audit-seedvar",
@@ -1567,6 +1570,20 @@
    "verdict": "REJECT",
    "result": "TWO EXPLANATIONS OFFERED, TWO FALSIFIED BY RUNNING THEM. THE SECOND WAS MINE AND I HAD ALREADY WRITTEN IT UP.\n(1) NONDETERMINISM -- FALSIFIED. Two full zoo runs in the same environment on the same corpus produced BIT-IDENTICAL archives: 528 of 528 arrays, worst |diff| 0.000e+00, same sha256. The training path is fully deterministic here.\n(2) A CODE CHANGE -- EXCLUDED. train.py, features.py and baselines.py untouched since before publication; teacher_zoo.py's one post-publication commit adds an `H is None` branch that the teacher_oof build does not take.\n(3) THE ENVIRONMENT -- FALSIFIED, and this is the one I recorded as CONFIRMED. requirements-research.txt pins torch==2.13.0+cu130 and the container carried 2.14.0+cu130, while numpy, scipy, pandas and arch matched exactly; noctua_v1 was the only torch-dependent arm and the only one that missed. The correspondence was exact and the mechanism was plausible. PyPI's torch==2.13.0 turns out to BE the +cu130 build, so the pin was satisfied exactly -- and the rebuild was BIT-IDENTICAL to the drifted one, 528 of 528 arrays, worst |diff| 0.000e+00. The torch drift moves NOTHING. The correspondence was a coincidence over three drifted packages (pyarrow and statsmodels had drifted too), and which packages touch a neural arm is not evidence about whether their drift changed a number. R64.\nWHAT I ALSO GOT WRONG IN THE PROCESS: I had excluded the 3-episode corpus difference on the grounds that the deterministic teachers share the corpus and reproduce to 1e-5. That inference is invalid -- OLS and GARCH MLE depend on sample composition SMOOTHLY (order 1/n) while SGD depends on it CHAOTICALLY, since three fewer rows shift every minibatch boundary thereafter. R61 is narrowed accordingly, and P2-sample-sensitivity now tests the corpus hypothesis directly with pre-registered bands.\nWHAT SURVIVES: the hygiene half only. Pins were unchecked, three had drifted, and eval/env_check.py now reports drift and stamps the environment beside results -- worth having on its own terms, and NOT evidence about this gap. THE REPRODUCTION GAP REMAINS OPEN and will be reported as open rather than given a third story.",
    "notes": "Superseded in substance by its own test. The H=24 rescaled row stays uncitable as either a tie or a win. R63 is marked PARTLY FALSIFIED in place rather than deleted; R64 records the general lesson, which is that a correspondence over a handful of items is not a mechanism and is the most persuasive kind of wrong."
+  },
+  {
+   "id": "P3-exogenous-dvol",
+   "topic": "phase3",
+   "mechanism": "exogenous",
+   "date": "2026-09-13",
+   "supersedes": [
+    "P3-attention-feature-a2"
+   ],
+   "question": "Does the options market's forward volatility expectation, measured at the anchor as IV minus trailing RV, carry information about realized volatility that OHLCV and the clock do not -- and is the gain CONCENTRATED IN THE SPIKE BUCKET as an event signal must be?",
+   "rule": "PRE-REGISTERED BEFORE ANY ARM WAS RUN; full design in PLAN_EXOGENOUS.md. Primary endpoint pooled QLIKE per horizon; primary estimator the paired per-episode moving-block bootstrap on identical episodes, block max(round(n^(1/3)), 2H). Family = 4 horizons x 2 live arms = 8 comparisons, Bonferroni -> 99.375%. D1 CLEARS ONLY IF its interval excludes zero favourably AND the within-fold SHUFFLE control D1-shuf does not clear at the same level. Secondary and pre-declared: the spike bucket (RV >= 95th pct) must show a LARGER relative gain than the calm bucket, else the hypothesis is recorded as FAILED even if pooled QLIKE clears. A week-stale arm D1-lag tests whether the feature is merely a regime proxy. Barrier battery required for any arm that clears. Every arm including base is fitted and scored on the DVOL-era sample only, so the sample is identical across arms and no absolute QLIKE here is comparable to a previously published one (R47).",
+   "verdict": "OPEN",
+   "result": "pre-registered before the run, awaiting execution. PREDICTION: D1 clears at H=1 and H=6 and not at H=168; the gain is concentrated in the spike bucket; D1-shuf does not clear; D2 does not beat D1 by enough to pay for two extra columns. Confidence moderate on H=1/H=6, LOW on the spike concentration, because three previous attempts to find structure in the tail each found a level effect instead. THE HONEST PRIOR: every feature added in Phase 2 has failed -- three timing features and two level corrections -- so the base rate for clearing is low. The reason to run it is that this is the first feature built from information genuinely OUTSIDE the price series.",
+   "notes": "GDELT (the P3-attention-feature source) is blocked by organization network policy from this environment: api.gdeltproject.org returns CONNECT 403. The harvester stays written and tested but cannot be fed. DVOL is a better candidate on the exact objection pre-registered against GDELT -- news is written BECAUSE the price moved, so attention is a candidate lagging indicator, while DVOL is a forward expectation by construction. Coverage measured: funding 100% of all test-fold anchors, DVOL 100% from 2022 and 77.53% in 2021."
   }
  ]
 }

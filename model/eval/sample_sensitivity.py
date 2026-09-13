@@ -28,12 +28,26 @@ are not a small perturbation of the weights that would have come out. A
 deterministic arm therefore controls the data for other smooth estimators and
 NOT for a neural one, which is the hole in R61 as first written.
 
-THE DESIGN
+THE DESIGN, AND THE NO-OP THAT THE FIRST VERSION MEASURED
 
-Three episodes are dropped from the EARLIEST anchors in the table, which sit in
-the train slice of every fold. The test slices are therefore bit-identical, so
-any movement in test QLIKE is a pure training-path effect and not a change in
-what is being scored. That is the whole point: it isolates the mechanism.
+Three episodes are dropped from the earliest anchors that ACTUALLY REACH THE
+MODEL, which sit in the train slice of every fold. The test slices are therefore
+bit-identical, so any movement in test QLIKE is a pure training-path effect and
+not a change in what is being scored.
+
+The first version dropped the earliest anchors in `episodes_h4.parquet` and
+reported REFUTED on a move of 0.00000 in every arm -- a suspiciously exact zero.
+It was exact because the test did nothing: `episodes_h4.parquet` starts at
+2012-01-01 01:00, and those rows are inside the warm-up region that the
+40-column completeness mask drops, so the effective training sample was
+byte-identical. The earliest anchor that survives the mask is 2012-12-31. A null
+produced with an unchanged input is not a null (R38), and "exactly zero" in every
+arm including the stochastic one was the tell -- a real perturbation cannot leave
+an SGD trajectory bit-identical.
+
+The drop is therefore chosen from the rows `build_h4_table` RETURNS, not from the
+raw episode file, and the selftest asserts that the chosen rows are in the model
+table rather than merely early.
 
 BANDS, FIXED BEFORE THE RUN
 
@@ -94,6 +108,32 @@ def pooled(z, H: int, teacher: str) -> float:
     return float(np.nanmean(qlike_vec(np.concatenate(rv), np.concatenate(sig))))
 
 
+def model_table_keys():
+    """(anchor_ts, H) of the rows that actually reach the model."""
+    from eval.vol_matrix import build_h4_table
+    ep4, _ = build_h4_table(Path("model/artifacts"))
+    return set(zip(ep4["anchor_ts"].to_numpy().tolist(),
+                   ep4["H"].to_numpy().tolist()))
+
+
+def choose_drops(ep: pd.DataFrame, n: int) -> np.ndarray:
+    """Earliest rows of `ep` that are present in the model table.
+
+    Selecting on `ep` alone is what made the first run a no-op: its earliest
+    rows are warm-up rows the completeness mask removes, so dropping them
+    changes nothing the model ever sees.
+    """
+    keys = model_table_keys()
+    a = ep["anchor_ts"].to_numpy()
+    H = ep["H"].to_numpy()
+    order = a.argsort(kind="stable")
+    out = [p for p in order if (a[p].item(), H[p].item()) in keys][:n]
+    if len(out) < n:
+        raise SystemExit("REFUSING: fewer than "
+                         f"{n} droppable rows reach the model table.")
+    return np.asarray(out, np.int64)
+
+
 def band_for(move: float) -> str:
     for thr, name in BANDS:
         if move >= thr:
@@ -115,17 +155,24 @@ def selftest() -> int:
     # test slices must be untouched
     if EP.exists():
         ep = pd.read_parquet(EP, columns=["anchor_ts", "H"])
-        keep = ep.sort_values("anchor_ts").index[N_DROP:]
-        dropped = ep.drop(index=keep)
-        yrs = pd.to_datetime(dropped["anchor_ts"], unit="s", utc=True).dt.year
-        checks.append(("dropped-rows-are-earliest-and-pre-test",
+        pos = choose_drops(ep, N_DROP)
+        yrs = pd.to_datetime(ep["anchor_ts"].to_numpy()[pos], unit="s",
+                             utc=True).year
+        checks.append(("dropped-rows-are-pre-test",
                        bool((yrs < min(YEARS)).all()),
-                       f"dropping {len(dropped)} rows from year(s) "
-                       f"{sorted(set(yrs))}, all before the first test fold "
-                       f"{min(YEARS)} -- so test slices cannot change"))
+                       f"year(s) {sorted(set(yrs))}, all before the first test "
+                       f"fold {min(YEARS)} -- so test slices cannot change"))
+        # THE CHECK WHOSE ABSENCE MADE THE FIRST RUN MEANINGLESS
+        keys = model_table_keys()
+        inside = [(ep["anchor_ts"].to_numpy()[p].item(),
+                   ep["H"].to_numpy()[p].item()) in keys for p in pos]
+        checks.append(("dropped-rows-ACTUALLY-REACH-the-model", all(inside),
+                       f"{sum(inside)}/{len(inside)} are in the model table; "
+                       f"the first version dropped warm-up rows the "
+                       f"completeness mask already removed and measured a "
+                       f"no-op as a null"))
     else:
-        checks.append(("dropped-rows-are-earliest-and-pre-test", True,
-                       "skipped: episodes_h4 absent"))
+        checks.append(("dropped-rows-are-pre-test", True, "skipped"))
     print("sample_sensitivity selftest")
     bad = 0
     for n, ok, d in checks:
@@ -154,13 +201,13 @@ def main(argv=None) -> int:
     print(__doc__[__doc__.index("BANDS, FIXED"):__doc__.index("    python")])
 
     ep = pd.read_parquet(EP)
-    order = ep["anchor_ts"].to_numpy().argsort(kind="stable")
-    drop_pos = order[:N_DROP]
+    drop_pos = choose_drops(ep, N_DROP)
     keep = np.ones(len(ep), bool); keep[drop_pos] = False
     yrs = sorted(set(pd.to_datetime(ep["anchor_ts"].to_numpy()[drop_pos],
                                     unit="s", utc=True).year))
     print(f"dropping {N_DROP} of {len(ep):,} episodes, anchors in {yrs} "
-          f"-- train slice of every fold, so test slices are unchanged\n")
+          f"-- earliest rows that SURVIVE the completeness mask, so they are in "
+          f"the train slice of every fold AND actually reach the model\n")
 
     bak = scratch / "episodes_h4_full.parquet"
     ep.to_parquet(bak, index=False)
