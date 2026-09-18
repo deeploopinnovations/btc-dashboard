@@ -1,5 +1,12 @@
 # NOCTUA — Results
 
+> **Scope: this file describes NOCTUA v1, which is no longer what ships.**
+> Every number below is a correct record of the v1 model (width 128, 49,866
+> parameters, single seed). The deployed model is v2 — a 3-seed committee of
+> 6,445-parameter networks — documented in `RESULTS_V2.md`, and the current
+> source of truth for all numbers is `BENCHMARK.md`. Kept unedited as the
+> historical record; do not quote it as current.
+
 **49,866 parameters. 198 KB. ~6 ms per forecast on one CPU core.**
 
 Everything below is out-of-sample. The headline table is an expanding-window
@@ -242,7 +249,7 @@ rather than into the repository.
 | Parameters | **49,866** | 24.7 M + tokenizer |
 | Artifact | **198 KB** | ~100 MB |
 | Dependencies at inference | NumPy + SciPy | PyTorch |
-| Time per forecast | **~6 ms** | 20–60 s (24 rollouts) |
+| Time per forecast | **~6 ms** | 20–60 s (24 rollouts) — *estimated here; later MEASURED at 114.8 s/episode over 120 episodes at 32 samples, see `BENCHMARK.md` §5* |
 | Tail probability error from sampling | **0** (analytic) | ±4.4 pp at α = 5 %, n = 24 |
 | Free 2 vCPU / 16 GB Space | comfortable | marginal — this repo hit `MemoryError` |
 
