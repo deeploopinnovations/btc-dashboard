@@ -1,91 +1,98 @@
 {
   "items": [
     {
-      "headline": "13 Eylül 2026 Piyasa Bülteni : Döviz , Altın ve Kripto - Kıbrıs Gazetesi - Kıbrıs Haber , KKTC Son Dakika ve Gündem Haberleri",
-      "url": "https://kibrisgazetesi.com/13-eylul-2026-piyasa-bulteni-doviz-altin-ve-kripto/",
+      "headline": "Česko je třetí v EU ve využívání kryptoměn v maloobchodě",
+      "url": "https://www.idnes.cz/ekonomika/domaci/kryptomeny-nakup-maloobchod-investice.A260920_095808_ekonomika_rts",
+      "src": "idnes.cz",
+      "date": "20260920T124500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Islamic Coin ( ISLM ) Trading 5 % Lower This Week",
+      "url": "https://www.tickerreport.com/banking-finance/13590773/islamic-coin-islm-trading-5-lower-this-week.html",
+      "src": "tickerreport.com",
+      "date": "20260920T121500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Subsquid ( SQD ) Tops 24 Hour Volume of $1 . 33 Million",
+      "url": "https://www.tickerreport.com/banking-finance/13590776/subsquid-sqd-tops-24-hour-volume-of-1-33-million.html",
+      "src": "tickerreport.com",
+      "date": "20260920T121500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Nebulas Trading Down 0 % This Week ( NAS ) ",
+      "url": "https://www.tickerreport.com/banking-finance/13590775/nebulas-trading-down-0-this-week-nas.html",
+      "src": "tickerreport.com",
+      "date": "20260920T121500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "UZDT ( UZDT ) Achieves Self Reported Market Capitalization of $165 . 07",
+      "url": "https://www.themarketsdaily.com/2026/09/20/uzdt-uzdt-achieves-self-reported-market-capitalization-of-165-07.html",
+      "src": "themarketsdaily.com",
+      "date": "20260920T120000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Strategy Is Up 53 % in the Past Month . Here the Bull and Bear Case for One of Wall Street Most Polarizing Stocks . ",
+      "url": "https://www.aol.com/articles/strategy-53-past-month-heres-105000000.html",
+      "src": "aol.com",
+      "date": "20260920T114500Z",
+      "sent": "neg"
+    },
+    {
+      "headline": "Bullish ( BLSH ) and Its Peers Critical Review",
+      "url": "https://www.dailypolitical.com/2026/09/20/bullish-blsh-and-its-peers-critical-review.html",
+      "src": "dailypolitical.com",
+      "date": "20260920T113000Z",
+      "sent": "pos"
+    },
+    {
+      "headline": "STBL Self Reported Market Cap Hits $17 . 22 Million ( STBL ) ",
+      "url": "https://www.dailypolitical.com/2026/09/20/stbl-self-reported-market-cap-hits-17-22-million-stbl.html",
+      "src": "dailypolitical.com",
+      "date": "20260920T113000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Gradium ( GRD ) Trading Up 160 . 6 % Over Last 7 Days",
+      "url": "https://www.dailypolitical.com/2026/09/20/gradium-grd-trading-up-160-6-over-last-7-days.html",
+      "src": "dailypolitical.com",
+      "date": "20260920T113000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Open Loot Trading 17 . 3 % Higher This Week ( OL ) ",
+      "url": "https://www.dailypolitical.com/2026/09/20/open-loot-trading-17-3-higher-this-week-ol.html",
+      "src": "dailypolitical.com",
+      "date": "20260920T113000Z",
+      "sent": "pos"
+    },
+    {
+      "headline": "74 Wild Stories Of People Who Found Themselves Richer Than They Ever Dreamed",
+      "url": "https://www.aol.com/articles/74-wild-stories-people-found-032202000.html",
+      "src": "aol.com",
+      "date": "20260920T071500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "20 Eylül 2026 Piyasa Bülteni : Döviz , Altın ve Kripto - Kıbrıs Gazetesi - Kıbrıs Haber , KKTC Son Dakika ve Gündem Haberleri",
+      "url": "https://kibrisgazetesi.com/20-eylul-2026-piyasa-bulteni-doviz-altin-ve-kripto/",
       "src": "kibrisgazetesi.com",
-      "date": "20260913T081500Z",
+      "date": "20260920T063000Z",
       "sent": "neu"
     },
     {
-      "headline": "What Is the Best Crypto to Buy Right Now : XRP or Bitcoin ? ",
-      "url": "https://finance.yahoo.com/markets/crypto/articles/best-crypto-buy-now-xrp-223841295.html",
-      "src": "finance.yahoo.com",
-      "date": "20260913T064500Z",
+      "headline": "Hyperliquid Surges 18 % to New High as Bitcoin Sees 5 % Gain . What Behind the Divergence ? ",
+      "url": "https://www.aol.com/articles/hyperliquid-surges-18-high-bitcoin-011455000.html",
+      "src": "aol.com",
+      "date": "20260920T030000Z",
       "sent": "pos"
-    },
-    {
-      "headline": "Ripple David Schwartz Says XRP Can Flip Bitcoin . Here the $24 . 50 Math",
-      "url": "https://finance.yahoo.com/markets/crypto/articles/ripple-david-schwartz-says-xrp-222937740.html",
-      "src": "finance.yahoo.com",
-      "date": "20260913T061500Z",
-      "sent": "pos"
-    },
-    {
-      "headline": "We Asked ChatGPT Whether Ethereum or Bitcoin Ends September Higher",
-      "url": "https://finance.yahoo.com/markets/crypto/articles/asked-chatgpt-whether-ethereum-bitcoin-220318468.html",
-      "src": "finance.yahoo.com",
-      "date": "20260913T060000Z",
-      "sent": "pos"
-    },
-    {
-      "headline": "1 Popular Cryptocurrency Cathie Wood of Ark Invest Sees Soaring in Value by 1 , 490 % ",
-      "url": "https://finance.yahoo.com/markets/crypto/articles/1-popular-cryptocurrency-cathie-wood-213900213.html",
-      "src": "finance.yahoo.com",
-      "date": "20260913T053000Z",
-      "sent": "pos"
-    },
-    {
-      "headline": "How Low Can Bitcoin Go ? ",
-      "url": "https://www.aol.com/articles/low-bitcoin-202956000.html",
-      "src": "aol.com",
-      "date": "20260912T220000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Can XRP Flip Bitcoin ? ",
-      "url": "https://www.aol.com/articles/xrp-flip-bitcoin-212432000.html",
-      "src": "aol.com",
-      "date": "20260912T220000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "If You Invested $1 , 000 in XRP When Trump Won the Election , Here What Youd Have Today",
-      "url": "https://www.aol.com/articles/invested-1-000-xrp-trump-210107000.html",
-      "src": "aol.com",
-      "date": "20260912T220000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Ethereum ETFs Took In $216 Million on Friday . Bitcoin Lost Money for a Fourth Day and XRP Took Zero",
-      "url": "https://www.aol.com/articles/ethereum-etfs-took-216-million-211140000.html",
-      "src": "aol.com",
-      "date": "20260912T220000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Why Is Bitcoin Dropping Today ? ",
-      "url": "https://www.aol.com/articles/why-bitcoin-dropping-today-204955000.html",
-      "src": "aol.com",
-      "date": "20260912T220000Z",
-      "sent": "neg"
-    },
-    {
-      "headline": "Why Is XRP Dropping Today ? ",
-      "url": "https://www.aol.com/articles/why-xrp-dropping-today-194553000.html",
-      "src": "aol.com",
-      "date": "20260912T203000Z",
-      "sent": "neg"
-    },
-    {
-      "headline": "10 Best Zero - Fee Crypto Exchanges in 2026 for Low - Cost Trading",
-      "url": "https://memeburn.com/best-zero-fee-crypto-exchanges/",
-      "src": "memeburn.com",
-      "date": "20260912T193000Z",
-      "sent": "neu"
     }
   ],
-  "ts": 1789863274989,
+  "ts": 1789912798216,
   "source": "GDELT",
-  "_updatedMs": 1789863274989
+  "_updatedMs": 1789912798216
 }
