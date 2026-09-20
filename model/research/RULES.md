@@ -707,6 +707,30 @@ and belongs in every place that claims to rebuild it — the driver, the
 reproduction block, and the filename.
 *(`scripts/regen_artifacts.sh`, `report.py` REPRO)*
 
+**R80. When several designs oscillate on one question, question what they all
+ASSUME, not what they disagree about.**
+`phase2/level-scale` went REJECT → ADOPT → REJECT across three entries. The
+three designs — a trailing QLIKE scalar, a fitted per-fold constant, and the
+model's own per-episode mean/median delta — are three estimators of one number,
+and they disagreed about the estimator while agreeing, silently, about the
+intervention: **move the level**. The agreement was the part that was wrong.
+There was no level error. The served scalar was the median of a predictive
+distribution under a loss minimised by the mean, and the fix is to report the
+other functional — which fits nothing and moves nothing downstream.
+The evidence was already in hand and was read as a rejection instead of a
+diagnosis. `P2-mean-level-result`'s **shuffled control** degraded every barrier
+metric identically to the real arm (DSC 0.007254 against 0.007169). A control
+that destroys the correction's content and reproduces the damage exactly proves
+the damage belongs to the INTERVENTION CLASS, not the correction — and that
+entry's own pre-registration had said in advance that this pattern "closes the
+level question in the other direction". It closed. Nobody acted on it for
+eleven days, because the arm had failed and a failed arm gets filed rather than
+read.
+So: a control that matches the treatment is not just a reason to reject the
+treatment. It is a measurement of what the guard is actually responding to, and
+it is often the most informative number in the run.
+*(`P3-level-oscillation-closed`)*
+
 ## Rules about interpretation
 
 **R20. Correcting a number in the humbler direction does not make the
