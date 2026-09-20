@@ -614,6 +614,13 @@ def run_fold(ep, X, fold, hidden=32, seeds=3, verbose=False, shape_cols=None,
     return {"rows": rows, "vol": vol, "christoffersen": chr_, "year": fold["year"],
             "per_episode": {"rv": rv,
                             "sigma_med": np.asarray(p_te["sigma_med"], np.float64),
+                            # The functional QLIKE is actually minimised by, off
+                            # the SAME forward pass and post-blend (var_mean is
+                            # built from the blended atoms). Purely additive:
+                            # every existing key is untouched and no committed
+                            # number moves. Without it the production slice
+                            # cannot score the arm that is now served.
+                            "sigma_mean": np.asarray(p_te["sigma_mean"], np.float64),
                             "qa_med": np.asarray(p_te["qa"][:, I.MEDIAN_IDX], np.float64),
                             "har_logvol": np.asarray(lp_te, np.float64),
                             "blend_w": float(I.BLEND_W),

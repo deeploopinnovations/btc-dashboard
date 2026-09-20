@@ -130,9 +130,19 @@ def predict(model, d: dict, n_atoms: int = N_ATOMS,
     # is a real trap: QLIKE (and any squared-error loss on variance) is
     # minimised by the conditional MEAN of the variance, not its median. For a
     # roughly lognormal volatility with residual sd s, the median understates
-    # the mean variance by exp(2 s^2) -- about 28% at s = 0.35. Measured here,
-    # though, the mean OVER-forecasts (ratio 1.205) and scores worse, so the
-    # median is what the evaluation reports; both are returned.
+    # the mean variance by exp(2 s^2) -- about 28% at s = 0.35.
+    #
+    # THIS COMMENT USED TO END: "Measured here, though, the mean OVER-forecasts
+    # (ratio 1.205) and scores worse, so the median is what the evaluation
+    # reports." That was wrong, it was never accompanied by a run, and it cost
+    # this project months. The mean does not score worse -- it improves raw
+    # pooled QLIKE by 13.3% / 20.7% / 26.0% / 11.9% at H = 1 / 6 / 24 / 168
+    # (P3-functional-parity), and its calibration ratio against E[RV^2] is
+    # 0.963 / 0.988 / 0.992 / 0.899 where the median's is 1.43-1.46
+    # (P3-functional-audited). The 1.205 figure is the mean/median RATIO, which
+    # is a fact about the two functionals and says nothing about which one the
+    # loss wants. serve/predict.py now reports the mean (P3-functional-adopt).
+    # R34: a comment saying a thing was checked is not a check.
     var_mean = np.mean(np.exp(2.0 * atoms_y), axis=1) * H
     return {
         "qa": qa,

@@ -146,6 +146,15 @@ def main(argv=None) -> int:
         Xte = X.iloc[idx]
         arms = {
             "noctua": pe["sigma_med"],
+            # REPORTED, NOT A FAMILY MEMBER. N_FAMILY stays at 5 and no verdict
+            # is issued for this arm: the family was fixed before the functional
+            # question existed, and admitting an arm to it afterwards is
+            # enlarging a family until something clears. It is here because the
+            # production headline -- the number that matters most, since this is
+            # the slice that is actually served -- had never been scored on the
+            # functional that is now actually served. Omitting it would leave
+            # that gap invisible.
+            "noctua_mean": pe["sigma_mean"],
             "persistence": np.maximum(np.exp(Xte["har_1d"].to_numpy()) * sq, 1e-12),
         }
         for k in POOLED_ARMS:

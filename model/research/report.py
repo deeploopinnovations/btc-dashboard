@@ -349,6 +349,25 @@ def sec_production() -> str:
         f"zero too, so this is not a multiple-testing artifact.\n\n"
         f"NOCTUA still posts the best pooled QLIKE of any arm here. It is simply not "
         f"*significantly* better than the best baseline at this sample size.\n")
+    # Same disclosure as the matrix, for the same reason: the family was fixed
+    # at five rows before the functional question existed, and `noctua_mean` is
+    # reported without a verdict rather than admitted to it after the fact.
+    nm = d["arms"].get("noctua_mean")
+    if nm is not None:
+        med = d["arms"]["noctua"]["rel_pct_vs_best"]
+        out.append(
+            f"\n**The arm that is now served, scored on this slice for the first "
+            f"time.** Every number above is `sigma_med` — the scalar this slice "
+            f"was serving when the family was registered. `noctua_mean` is the "
+            f"functional QLIKE is minimised by, off the same forward pass and "
+            f"after the same blend: {nm['qlike']:.5f} against "
+            f"`{d['best_baseline']}`, {nm['rel_pct_vs_best']:+.2f}% versus "
+            f"{med:+.2f}% for the median. It carries **no pre-registered "
+            f"verdict** — the family was fixed at {d['family_size']} rows before "
+            f"this question existed, and adding arms to a family until one "
+            f"clears is not a test. It is reported because this is the slice "
+            f"that is actually served, and until now the headline for it had "
+            f"never been measured on the scalar it actually serves.\n")
     return "".join(out)
 
 
