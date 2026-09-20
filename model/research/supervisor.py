@@ -142,9 +142,35 @@ def reversals(group: list) -> list:
     return out
 
 
+def explained_pairs(es: list) -> dict:
+    """{(id_a, id_b): explaining_id} for oscillations an entry has EXPLAINED.
+
+    An oscillation alert means two things at once: these verdicts flipped, and
+    nobody has said why. The first half stays true forever -- it is history --
+    so suppressing the alert on the strength of a successor would delete the
+    record. But leaving it identical after the mechanism has been diagnosed
+    makes the detector uninformative in the other direction: it cannot tell a
+    live problem from a closed one, and an alert that never changes state is an
+    alert nobody reads.
+
+    So an entry may carry `explains_oscillation: [id_a, id_b]`, and the pair is
+    then reported as EXPLAINED with a pointer, still listed, never silently
+    dropped. Crucially this requires naming the exact pair: a successor on the
+    topic does not qualify, because "we did more work on this area" is what the
+    alert is complaining about.
+    """
+    out = {}
+    for e in es:
+        for pair in e.get("explains_oscillation") or []:
+            if isinstance(pair, (list, tuple)) and len(pair) == 2:
+                out[(str(pair[0]), str(pair[1]))] = e["id"]
+    return out
+
+
 def detect(d: dict) -> list:
     es = d["experiments"]
     alerts = []
+    explained = explained_pairs(es)
 
     by_key = defaultdict(list)
     for e in es:
@@ -161,12 +187,22 @@ def detect(d: dict) -> list:
                        "measures that the previous ones could not"))
         rev = reversals(group)
         if rev:
-            txt = "; ".join(f"{a} {av} -> {b} {bv}" for a, av, b, bv in rev)
-            alerts.append(("OSCILLATION", key,
-                           f"{len(rev)} unsuperseded verdict reversal(s): {txt}",
-                           "a verdict that changes with the design is a "
-                           "property of the design; decide on the effect size "
-                           "with an interval, not on a count"))
+            open_rev = [r for r in rev if (r[0], r[2]) not in explained]
+            done_rev = [r for r in rev if (r[0], r[2]) in explained]
+            if open_rev:
+                txt = "; ".join(f"{a} {av} -> {b} {bv}" for a, av, b, bv in open_rev)
+                alerts.append(("OSCILLATION", key,
+                               f"{len(open_rev)} UNEXPLAINED verdict "
+                               f"reversal(s): {txt}",
+                               "a verdict that changes with the design is a "
+                               "property of the design; decide on the effect "
+                               "size with an interval, not on a count"))
+            for a, av, b, bv in done_rev:
+                alerts.append(("EXPLAINED", key,
+                               f"{a} {av} -> {b} {bv}",
+                               f"diagnosed by {explained[(a, b)]} -- kept in "
+                               f"the record because the flip happened; it is "
+                               f"the open question that closed, not the history"))
 
     for e in es:
         if e.get("superseded_by") or e["verdict"] == "WITHDRAWN":
@@ -229,11 +265,13 @@ def selftest() -> int:
     fired OSCILLATION on eight of nine topics, including `features` (20 entries)
     and `phase2` (32). An alert on nearly everything gates nothing.
     """
-    def E(i, topic, q, verdict, date, sup=None):
+    def E(i, topic, q, verdict, date, sup=None, explains=None):
         e = {"id": i, "topic": topic, "question": q, "rule": "", "result": "x",
              "verdict": verdict, "date": date}
         if sup:
             e["supersedes"] = sup
+        if explains:
+            e["explains_oscillation"] = explains
         return e
 
     checks = []
@@ -248,6 +286,45 @@ def selftest() -> int:
     noise = [E(f"n{k}", "t", f"is the bootstrap interval right at n={k}",
                "ADOPT", f"2026-04-{k:02d}")
              for k in range(1, 16)]
+    # --- the EXPLAINED state, and the three ways it must not become a mute button
+    # Naming the exact pair moves it from OSCILLATION to EXPLAINED ...
+    # The explaining entry lives in ANOTHER bucket, as the real one does: it
+    # answers "do these two interventions differ", not the level question, and
+    # `explained_pairs` scans every entry regardless of bucket. Wording it into
+    # the same bucket -- as a first draft of this fixture did -- makes it a
+    # fourth decisive verdict in the same sequence and it raises a NEW reversal
+    # against its own predecessor. That is the code behaving correctly on an
+    # unrepresentative fixture, so the fixture is what changed.
+    exp_ok = detect({"experiments": real + noise + [
+        E("x1", "u", "do the two interventions touch the same thing", "REJECT",
+          "2026-05-01", explains=[["r1", "r2"], ["r2", "r3"]])]})
+    checks.append(("explained-pair-changes-state",
+                   not [a for a in exp_ok if a[0] == "OSCILLATION"]
+                   and len([a for a in exp_ok if a[0] == "EXPLAINED"]) == 2,
+                   f"{len([a for a in exp_ok if a[0] == 'EXPLAINED'])} explained, "
+                   f"{len([a for a in exp_ok if a[0] == 'OSCILLATION'])} still open"))
+    # ... but it is still LISTED. Suppressing it would delete the history, and
+    # the flip is history whatever anyone later worked out about it.
+    checks.append(("explained-is-still-reported",
+                   any(a[0] == "EXPLAINED" and "r1" in a[2] for a in exp_ok),
+                   "the reversal is still named in the output, with its diagnosis"))
+    # Explaining ONE pair must not silence the OTHER. Otherwise a single link
+    # clears a topic, which is how a guard quietly stops guarding.
+    one = detect({"experiments": real + noise + [
+        E("x2", "u", "do the two interventions touch the same thing",
+          "REJECT", "2026-05-01", explains=[["r1", "r2"]])]})
+    checks.append(("explaining-one-pair-leaves-the-other-open",
+                   len([a for a in one if a[0] == "OSCILLATION"]) == 1
+                   and len([a for a in one if a[0] == "EXPLAINED"]) == 1,
+                   "one open, one explained"))
+    # A successor on the TOPIC, naming no pair, explains nothing. "We did more
+    # work in this area" is the thing the alert exists to complain about.
+    vague = detect({"experiments": real + noise + [
+        E("x3", "t", "more level work", "REJECT", "2026-05-01")]})
+    checks.append(("a-successor-alone-explains-nothing",
+                   len([a for a in vague if a[0] == "OSCILLATION"]) >= 1,
+                   "the alert survives an entry that merely follows it"))
+
     al = detect({"experiments": real + noise})
     osc = [a for a in al if a[0] == "OSCILLATION"]
     checks.append(("finds-the-masked-reversal",
