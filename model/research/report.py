@@ -120,6 +120,27 @@ def sec_volatility() -> str:
         out.append("\nPre-registered verdict: "
                    + " · ".join(f"**{k}** {vv}" for k, vv in r["verdicts"].items())
                    + "\n")
+        # The `_mean` arms are REPORTED but carry no verdict, and that asymmetry
+        # needs saying out loud. The pre-registered family is four rows -- four
+        # horizons, one primary contrast, fixed before the matrix was built --
+        # and it is about the arm NOCTUA actually served, the median. The mean
+        # arms were added afterwards. Letting them inherit a verdict they were
+        # not registered for would be adding arms to a family until one clears;
+        # hiding them would be worse. So: in the table, out of the family, and
+        # the claim they support is made in its own section against a correction
+        # applied symmetrically to every teacher.
+        if any(k.endswith("_mean") for k in r["arms"]):
+            out.append(
+                "\nThe `_mean` arms are reported here but receive **no "
+                "pre-registered verdict**. The family was fixed a priori at four "
+                "rows — one primary contrast per horizon — and that contrast is "
+                "the median arm, the one that was actually served when the "
+                "registration was written. The mean arms were added after the "
+                "fact; admitting them to the family would be enlarging it until "
+                "something clears. Their claim is made in "
+                "[the functional section](#volatility-the-functional-the-loss-"
+                "actually-wants) instead, under a correction applied "
+                "symmetrically to every teacher.\n")
     out.append(
         "\nThe fold-level spread is carried in the artifact as `per_fold` and is "
         "**not** the primary. `vol-matrix-power` measured its minimum detectable "
