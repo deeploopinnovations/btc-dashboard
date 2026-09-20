@@ -731,6 +731,25 @@ treatment. It is a measurement of what the guard is actually responding to, and
 it is often the most informative number in the run.
 *(`P3-level-oscillation-closed`)*
 
+**R81. A synthetic fixture tests LOGIC, never a CONVENTION — touch the real
+data in the selftest or the fixture will agree with the bug.**
+`frvp.py` filtered bars with `d["filled"] & ~d["bad_print"]`. In this corpus
+`filled` marks a **forward-filled synthetic** bar, so that expression selects
+exactly the rows to discard — of which the corpus has zero — and handed the
+builder an empty frame. Twelve selftests passed, because the fixture set
+`"filled": True` on its rows: it was written from the same wrong belief about
+the column as the code, so it agreed with it. The tests were not weak; they
+were testing the right logic against the wrong world.
+No amount of synthetic coverage fixes this, because the fixture's author and
+the code's author are the same and share the misunderstanding. The only check
+that binds is one that reads the actual file: `frvp`'s selftest now builds from
+a one-week slice of the real corpus and asserts it yields anchors, and it
+FAILS loudly if the corpus is absent rather than passing vacuously.
+Generalise: whenever a function encodes an assumption about what a column
+MEANS — a flag's polarity, a unit, a timezone, a sign convention — that
+assumption is unfalsifiable against data you generated yourself.
+*(`P3-frvp-double-touch`, `eval/frvp.py`)*
+
 ## Rules about interpretation
 
 **R20. Correcting a number in the humbler direction does not make the
