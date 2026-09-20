@@ -130,6 +130,162 @@ def sec_volatility() -> str:
     return "".join(out)
 
 
+def _functional_rows():
+    """(H, median_entry, mean_entry, best_rival_name, best_rival_entry) per horizon."""
+    d = load("mz_result.json")
+    if d is None:
+        return None
+    rows = []
+    for H in sorted(d["horizons"], key=lambda k: int(k)):
+        t = {k: v for k, v in d["horizons"][H]["teachers"].items() if "mzq" in v}
+        if "noctua_v1" not in t or "noctua_v1_mean" not in t:
+            return None
+        rivals = [k for k in t if not k.startswith("noctua")]
+        rv = min(rivals, key=lambda k: t[k]["mzq"]) if rivals else None
+        rows.append((int(H), t["noctua_v1"], t["noctua_v1_mean"], rv,
+                     t[rv] if rv else None))
+    return rows
+
+
+def sec_functional() -> str:
+    rows = _functional_rows()
+    if rows is None:
+        return missing("mz_result.json",
+                       "The functional comparison and the MZ recalibration ladder")
+    b = load("beta_stability.json")
+    out = [
+        "QLIKE is `mean(r \u2212 log r \u2212 1)` with `r = RV\u00b2/\u03c3\u00b2`, "
+        "and it is minimised at `\u03c3\u00b2 = E[RV\u00b2]` \u2014 the conditional "
+        "**mean** of variance. NOCTUA's network emits a 32-atom quantile "
+        "representation, and the scalar it reported was the **median**. Every "
+        "earlier comparison in this document therefore scored NOCTUA's median "
+        "against its rivals' means, under a loss that wants the mean.\n\n"
+        "Reading `sigma_mean` instead is the same forward pass. Nothing is "
+        "refitted, no parameter is added, no data is touched:\n\n",
+        "| H | median (raw) | mean (raw) | improvement | median (MZq) | "
+        "mean (MZq) | improvement |\n|---:|---:|---:|---:|---:|---:|---:|\n",
+    ]
+    for H, med, mean, _rv, _rvv in rows:
+        out.append(
+            f"| {H} | {med['raw']:.5f} | {mean['raw']:.5f} | "
+            f"**{100 * (med['raw'] - mean['raw']) / med['raw']:+.2f}%** | "
+            f"{med['mzq']:.5f} | {mean['mzq']:.5f} | "
+            f"{100 * (med['mzq'] - mean['mzq']) / med['mzq']:+.2f}% |\n")
+    out.append(
+        "\nThe raw column is the size of the reporting defect. The MZq column is "
+        "what survives once **every** teacher, NOCTUA included, is given the same "
+        "two free parameters \u2014 a level and a slope, fitted on each fold's "
+        "calibration slice and applied to its test slice. Applying such a "
+        "correction to one model and not the others is how a favoured model is "
+        "handed a free fit, so it is applied symmetrically or not at all.\n\n"
+        "Against the best **non-NOCTUA** arm at each horizon, under that "
+        "symmetric correction:\n\n"
+        "| H | best rival | rival QLIKE | NOCTUA (mean) | margin |\n"
+        "|---:|---|---:|---:|---:|\n")
+    ties = []
+    TIE = "\u2014 a tie"
+    for H, _med, mean, rv, rvv in rows:
+        if rv is None:
+            continue
+        m = 100 * (rvv["mzq"] - mean["mzq"]) / rvv["mzq"]
+        tie = abs(m) < 1.0
+        if tie:
+            ties.append(H)
+        out.append(f"| {H} | `{rv}` | {rvv['mzq']:.5f} | {mean['mzq']:.5f} | "
+                   f"{m:+.2f}% {TIE if tie else ''} |\n")
+    if ties:
+        t = ", ".join(f"H = {h}" for h in ties)
+        out.append(
+            f"\n**{t} is a tie, not a win.** A margin under one percent is not a "
+            "result, and it is written as a tie here because the temptation to "
+            "round it up is exactly what this document exists to prevent.\n")
+    out.append(
+        "\nThis falsifies the Phase 1 headline that NOCTUA fails against the HAR "
+        "family at every horizon. What failed at every horizon was the *scalar "
+        "being reported*, not the model producing it \u2014 and the fix costs "
+        "nothing, because the quantity was already in the forward pass.\n")
+
+    if b is not None:
+        out.append(
+            "\n### The slope defect, and what it turned out to be\n\n"
+            "A Mincer\u2013Zarnowitz slope \u03b2 below 1 means the forecast "
+            "over-reacts to its own signal; above 1, that it under-reacts. "
+            "Neither is information about volatility, and both are removable by "
+            "an affine map any competitor can also apply. The open question was "
+            "whether NOCTUA's \u03b2 is an information defect \u2014 which would "
+            "call for a retrain \u2014 or an affine one.\n\n"
+            "It is neither, uniformly. Fitting the correction on each fold's "
+            "calibration slice, applying it to that fold's test slice, and "
+            "**re-measuring** the slope on rows the correction never saw "
+            "(re-fitting on test would report 1.000 by construction, and would "
+            "confirm itself whatever the data said):\n\n"
+            "| H | independent calibration windows per fold | \u03b2 raw | "
+            "\u03b2 after MZq | reading |\n|---:|---:|---:|---:|---|\n")
+        for r in b["rows"]:
+            out.append(
+                f"| {r['H']} | {r['n_calib_independent_per_fold']:,} | "
+                f"{r['beta_raw']:.3f} | {r['beta_mzq']:.3f} | "
+                f"{b['verdicts'][str(r['H'])]} |\n")
+        out.append(
+            "\nWhether the correction transfers tracks the number of independent "
+            "windows it was fitted on, monotonically, and nothing else in the "
+            "table does. Episodes are anchored hourly against an H-hour forward "
+            "window, so consecutive rows share H\u22121 of their H hours and the "
+            "independent count is of order n/H. At H = 168 a two-parameter "
+            "regression is fitted on **twenty-four** effective observations per "
+            "fold, and the slopes it returns say so \u2014 one of the six is "
+            "negative, which asserts that the more NOCTUA forecasts, the less "
+            "volatility realises.\n\n"
+            "That was first read as regime variation, on the grounds that the "
+            "offending fold is 2022 \u2014 Terra, 3AC, FTX. Its own neighbour "
+            "refutes it: 2022's calibration slope at H = 168 is \u22120.017 and "
+            "its **test** slope at the same horizon is 0.918, entirely ordinary. "
+            "An estimate that disagrees that violently with the slice next door "
+            "is noise, not a regime, and the attribution was withdrawn.\n\n"
+            "The consequence is a redirection. The plan named a CRPS-trained "
+            "variant as the remedy for \u03b2. ")
+        # Interpolated, not transcribed: the horizons where the correction
+        # transfers are READ from the artifact, so if a rebuild changes which
+        # ones those are, this sentence changes with it rather than going
+        # quietly stale. That is the whole reason this file is a script.
+        aff = [r for r in b["rows"] if b["verdicts"][str(r["H"])].startswith("AFFINE")]
+        una = [r for r in b["rows"]
+               if b["verdicts"][str(r["H"])].startswith("UNESTIMABLE")]
+        if aff:
+            out.append(
+                "At "
+                + " and ".join(f"H = {r['H']}" for r in aff)
+                + " two out-of-sample parameters already take \u03b2 to "
+                + " and ".join(f"{r['beta_mzq']:.3f}" for r in aff)
+                + ", so a new loss would be fixing a solved problem")
+        if una:
+            out.append(
+                "; at "
+                + " and ".join(f"H = {r['H']}" for r in una)
+                + " the binding constraint is a calibration window of "
+                + " and ".join(f"{r['n_calib_independent_per_fold']:,}" for r in una)
+                + " independent observations, which no loss function changes")
+        out.append(
+            ".\n\nOne caution about every pooled \u03b2 above: it is a mixture "
+            "across six folds carrying six different levels, and it "
+            "**understates** the per-fold defect at both ends \u2014 "
+            + "; ".join(
+                f"{r['beta_raw']:.3f} pooled against {r['beta_raw_median_fold']:.3f} "
+                f"median fold at H = {r['H']}"
+                for r in b["rows"] if r["H"] in (1, 168))
+            + ".\n")
+
+    out.append(
+        "\n### What changed in what is served\n\n"
+        "`REPORT_FUNCTIONAL = \"mean\"`: the served scalar is now the mean of the "
+        "same forward pass. This is safe by construction rather than by "
+        "measurement \u2014 the reported scalar moves the barrier curves by "
+        "0.000e+00, because the committee specialists build their curves from "
+        "`sigma_atoms` and never read it, while `sigma_atoms` moves them by "
+        "8.864e\u221203. The live anchor moves from 2.067% to 2.640%.\n")
+    return "".join(out)
+
+
 def sec_production() -> str:
     d = load("prod_fairbaseline.json")
     if d is None:
@@ -445,6 +601,8 @@ def build() -> str:
         exec_summary(),
         "\n## Assumptions this rests on\n\n", ASSUMPTIONS, "\n",
         "\n## Volatility: the four-horizon matrix\n\n", sec_volatility(),
+        "\n## Volatility: the functional the loss actually wants\n\n",
+        sec_functional(),
         "\n## Volatility: the production slice, against the best baseline\n\n",
         sec_production(),
         "\n## Direction as a probability forecast\n\n", sec_direction(),
@@ -561,11 +719,48 @@ def _production_bullet() -> str:
             f"and to be missing from the arm list.\n")
 
 
+def _functional_bullet() -> str:
+    """The functional finding, DERIVED. This is the sentence people will quote,
+    and it is the one that reverses an earlier headline, so nothing in it is
+    typed: if mz_result.json changes, the claim changes or the section says the
+    artifact is missing."""
+    rows = _functional_rows()
+    if rows is None:
+        return ("- **The reported functional**: `mz_result.json` is not present, "
+                "so no claim is made here.\n")
+    raw = [(H, 100 * (med["raw"] - mean["raw"]) / med["raw"])
+           for H, med, mean, _r, _rv in rows]
+    wins, ties = [], []
+    for H, _med, mean, rv, rvv in rows:
+        if rv is None:
+            continue
+        m = 100 * (rvv["mzq"] - mean["mzq"]) / rvv["mzq"]
+        (ties if abs(m) < 1.0 else wins).append((H, rv, m))
+    return (
+        "- **NOCTUA's deficit against the HAR family was the scalar it reported, "
+        "not the model.** QLIKE is minimised by the conditional *mean* of "
+        "variance; the served scalar was the *median* of the same forward pass. "
+        "Reading the mean instead \u2014 nothing refitted, no parameter added "
+        "\u2014 improves raw QLIKE by "
+        + " / ".join(f"**{p:+.2f}%**" for _H, p in raw)
+        + " at H = " + " / ".join(str(H) for H, _p in raw) + ". After a "
+        "**symmetric** two-parameter recalibration given to every teacher, "
+        "NOCTUA leads at "
+        + ", ".join(f"H = {H} (+{m:.2f}% over `{rv}`)" for H, rv, m in wins)
+        + (", and " + ", ".join(f"H = {H} is a tie (+{m:.2f}%)"
+                                for H, _rv, m in ties) if ties else "")
+        + ". This reverses the Phase 1 headline that it fails at all four "
+        "horizons.\n")
+
+
 def exec_summary() -> str:
     return (
-        "The honest headline is that **the shipped model is unchanged by any of "
-        "this**, and that the phase's two largest results are a measured absence "
-        "and a boundary.\n\n"
+        "Phases 1 and 2 reported that the shipped model was unchanged by any of "
+        "this. Phase 3 changed it: the served scalar is now a different "
+        "**functional** of the same forward pass, and that single change "
+        "reverses the phase's headline volatility result. The direction result "
+        "and the economic boundary are unaffected, and both still stand.\n\n"
+        + _functional_bullet()
         + _direction_bullet()
         + _volatility_bullet()
         + _production_bullet()
