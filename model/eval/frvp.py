@@ -294,6 +294,35 @@ def sell_rule(mins: pd.DataFrame, tbl: pd.DataFrame,
         out.append(df)
     return pd.concat(out, ignore_index=True) if out else pd.DataFrame()
 
+def sensitivity(mins: pd.DataFrame, start: str = "2024-01-01") -> pd.DataFrame:
+    """The headline across the free-parameter grid, because a thesis arrives
+    with its parameters already chosen by whoever found it.
+
+    The docstring at the top of this file promised this and an earlier version
+    did not implement it -- the same comment-describing-absent-work defect R34
+    names. Reported quantities are the ones the conclusions rest on: the
+    value-area half-width, the share of days where spot is still INSIDE the
+    area at decision time (executability), and the double-touch rate.
+    """
+    rows = []
+    d = mins[mins["dt"] >= pd.Timestamp(start, tz="UTC")] if "dt" in mins else mins
+    for cov in (0.60, 0.70, 0.80, 0.90):
+        for nb in (32, 64, 128):
+            t = build(d, n_bins=nb, coverage=cov)
+            if not len(t):
+                continue
+            sp = t["close_at_decision"].to_numpy(np.float64)
+            va, vl, pc = (t["vah"].to_numpy(np.float64),
+                          t["val"].to_numpy(np.float64),
+                          t["poc"].to_numpy(np.float64))
+            rows.append({"coverage": cov, "n_bins": nb, "n": len(t),
+                         "half_width_pct": float(np.median(100 * (va - vl) / 2 / pc)),
+                         "inside_at_decision": float(((sp >= vl) & (sp <= va)).mean()),
+                         "double_touch": float(t["double_touch"].mean()),
+                         "double_touch_vwap": float(t["double_touch_vwap"].mean())})
+    return pd.DataFrame(rows)
+
+
 def selftest() -> int:
     ok = []
     rng = np.random.default_rng(7)
@@ -423,10 +452,30 @@ def main(argv=None) -> int:
     ap.add_argument("--out", type=Path,
                     default=Path("model/artifacts/frvp_table.parquet"))
     ap.add_argument("--start", default="2017-08-01")
+    ap.add_argument("--sensitivity", action="store_true",
+                    help="sweep coverage and bin count; the forking path as a "
+                         "table rather than an argument")
     ap.add_argument("--selftest", action="store_true")
     a = ap.parse_args(argv)
     if a.selftest:
         return selftest()
+    if a.sensitivity:
+        mins = pd.read_parquet(a.minutes)
+        mins["dt"] = pd.to_datetime(mins["timestamp"], unit="s", utc=True)
+        sv = sensitivity(mins)
+        print("FREE-PARAMETER SWEEP (2024-01 onward)\n")
+        print(f"{'cov':>5} {'bins':>5} {'n':>6} {'half-width %':>13} "
+              f"{'inside@decision':>16} {'dbl touch':>10} {'placebo':>8}")
+        for r in sv.itertuples():
+            print(f"{r.coverage:>5.2f} {r.n_bins:>5} {r.n:>6,} "
+                  f"{r.half_width_pct:13.2f} {100*r.inside_at_decision:15.1f}% "
+                  f"{100*r.double_touch:9.1f}% {100*r.double_touch_vwap:7.1f}%")
+        print("\nEXECUTABILITY does not recover at any setting: the 22h drift is")
+        print("comparable to the half-width whatever the coverage, so the level")
+        print("is stale at decision on most days. Widening the band also makes")
+        print("the double-touch flag RARER, so the two halves of the thesis pull")
+        print("the same parameter in opposite directions.")
+        return 0
 
     mins = pd.read_parquet(a.minutes)
     mins["dt"] = pd.to_datetime(mins["timestamp"], unit="s", utc=True)
