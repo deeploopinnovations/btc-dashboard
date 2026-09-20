@@ -102,10 +102,15 @@ def parse_instrument(name: str) -> dict | None:
 
 
 def to_frame(rows: list[dict], venue: str = "deribit",
-             asof: datetime | None = None) -> pd.DataFrame:
+             snapshot_ts: datetime | None = None) -> pd.DataFrame:
     """Chain rows -> tidy per-instrument frame. Unparseable names are DROPPED
     and counted, never coerced."""
-    asof = asof or datetime.now(timezone.utc)
+    # NOT named `asof`: pandas defines DataFrame.asof, so `df.asof` returns
+    # the METHOD and attribute access silently yields a function instead of the
+    # column. Caught on the first real snapshot; renamed while exactly one file
+    # existed, because the same rename after a year of daily snapshots is a
+    # migration rather than an edit.
+    snapshot_ts = snapshot_ts or datetime.now(timezone.utc)
     out, skipped = [], 0
     for r in rows:
         p = parse_instrument(str(r.get("instrument_name", "")))
@@ -113,7 +118,7 @@ def to_frame(rows: list[dict], venue: str = "deribit",
             skipped += 1
             continue
         out.append({
-            "asof": asof, "venue": venue,
+            "snapshot_ts": snapshot_ts, "venue": venue,
             "instrument": r.get("instrument_name"),
             "currency": p["currency"], "expiry": p["expiry"],
             "strike": p["strike"], "right": p["right"],
@@ -188,6 +193,11 @@ def self_test() -> int:
     df = to_frame(rows)
     ok.append(("the perpetual is dropped", len(df) == 3
                and df.attrs["skipped"] == 1))
+    # The timestamp column must not shadow a DataFrame method, or attribute
+    # access returns the method and a downstream `df.asof` reads as callable.
+    ok.append(("timestamp column does not shadow a pandas method",
+               "snapshot_ts" in df.columns and "asof" not in df.columns
+               and not callable(getattr(df, "snapshot_ts", None))))
     ok.append(("no 90000-ish strike was invented",
                not (df["strike"] > 500000).any()))
 
