@@ -187,6 +187,7 @@ def build(mins: pd.DataFrame, window_h: int = WINDOW_H, gap_h: int = GAP_H,
                "width_pct": 100.0 * width / max(va["poc"], 1e-12),
                "gap_range_pct": 100.0 * (float(np.nanmax(gh)) - float(np.nanmin(gl)))
                                 / max(va["poc"], 1e-12),
+               "vwap": va["vwap"], "mid": va["mid"],
                "close_at_decision": float(d["close"].to_numpy()[max(g1 - 1, 0)])}
         up, dn = _touches(gh, gl, va["vah"], va["val"])
         rec["touch_vah"], rec["touch_val"] = up, dn
@@ -201,6 +202,97 @@ def build(mins: pd.DataFrame, window_h: int = WINDOW_H, gap_h: int = GAP_H,
         rows.append(rec)
     return pd.DataFrame(rows)
 
+
+def sell_rule(mins: pd.DataFrame, tbl: pd.DataFrame,
+              horizons=(6, 19, 24, 48)) -> pd.DataFrame:
+    """The PRIMARY rule, scored as first passage rather than as direction.
+
+    "Above POC sell VAH, below POC sell VAL" reads like a direction call, and
+    direction is closed in this project at all four horizons. But selling a
+    strike is a bet it is NOT TOUCHED before expiry, which is a first-passage
+    question -- a different object, with a different base rate, and one the
+    committee already emits curves for. So it is scored on P(touch), and no
+    option price is required, which keeps it clear of R28.
+
+    TWO CONTROLS, because "sell something far away" is not a thesis:
+
+      vwap  the same-width band centred on the window VWAP -- a strike the
+            volume profile did not choose, at a DIFFERENT distance. Tests
+            whether the POC's location places the strike better.
+      fixed a constant-percentage strike at the sample-median distance of the
+            real strike. Tests the practical question: does adapting the
+            strike to the profile beat simply selling a fixed % OTM every
+            day? This control is calibrated IN SAMPLE, which makes it harder
+            to beat than it should be -- deliberately, because a control that
+            flatters the candidate is not a control.
+
+    Horizons are swept rather than fixed. The thesis was supplied without an
+    expiry, and a first-passage rate is meaningless without one: P(touch)
+    rises monotonically with the window, so quoting a single horizon would be
+    quoting a choice.
+    """
+    d = mins.copy()
+    if "dt" not in d:
+        d["dt"] = pd.to_datetime(d["timestamp"], unit="s", utc=True)
+    if "filled" in d:
+        d = d[~d["filled"].astype(bool) & ~d["bad_print"].astype(bool)]
+    d = d.sort_values("dt").reset_index(drop=True)
+    ts = d["dt"].to_numpy("datetime64[s]").astype(np.int64)
+    hi_a = d["high"].to_numpy(np.float64)
+    lo_a = d["low"].to_numpy(np.float64)
+
+    out = []
+    for H in horizons:
+        rows = []
+        for r in tbl.itertuples():
+            dec = int(r.anchor_ts)
+            a, b = np.searchsorted(ts, [dec, dec + H * HOUR])
+            if b - a < H * 30:
+                continue
+            gh, gl = hi_a[a:b], lo_a[a:b]
+            spot = float(r.close_at_decision)
+            width = float(r.width)
+            up = bool(r.above_poc)
+            # the rule's strike, and whether spot is ALREADY beyond it
+            strike = float(r.vah) if up else float(r.val)
+            breached = (spot >= strike) if up else (spot <= strike)
+            touched = (float(np.nanmax(gh)) >= strike) if up \
+                else (float(np.nanmin(gl)) <= strike)
+            # CONTROL 1, actually computed: the same-width band centred on the
+            # window VWAP. Its upper/lower edge is a strike the volume profile
+            # did NOT choose, at a different distance from spot. An earlier
+            # draft carried a comment describing this control without
+            # computing it, which is the defect R34 is about.
+            c = float(r.vwap)
+            vstrike = c + width / 2.0 if up else c - width / 2.0
+            vtouched = (float(np.nanmax(gh)) >= vstrike) if up \
+                else (float(np.nanmin(gl)) <= vstrike)
+            rows.append({"anchor_ts": dec, "H": H, "above_poc": up,
+                         "spot": spot, "strike": strike, "width": width,
+                         "dist_pct": 100.0 * abs(strike - spot) / max(spot, 1e-12),
+                         "breached_at_entry": breached, "touched": touched,
+                         "vwap_strike": vstrike, "vwap_touched": vtouched,
+                         "vwap_dist_pct": 100.0 * abs(vstrike - spot)
+                                          / max(spot, 1e-12),
+                         "hi": float(np.nanmax(gh)), "lo": float(np.nanmin(gl))})
+        if not rows:
+            continue
+        df = pd.DataFrame(rows)
+        # CONTROL 2: a constant-percentage strike at the median distance of the
+        # EXECUTABLE days only. Taking the median over all rows -- as a first
+        # draft did -- mixes in days where spot is already beyond the strike,
+        # whose "distance" is a distance to something already breached and is
+        # not a strike anyone would sell. That biases the control's distance
+        # and therefore its touch rate, in an unknown direction.
+        live_m = df[~df["breached_at_entry"]]
+        med = float((live_m if len(live_m) else df)["dist_pct"].median())
+        k = df["spot"].to_numpy() * (1.0 + np.where(df["above_poc"], 1.0, -1.0)
+                                     * med / 100.0)
+        df["fixed_strike"] = k
+        df["fixed_touched"] = np.where(
+            df["above_poc"], df["hi"].to_numpy() >= k, df["lo"].to_numpy() <= k)
+        out.append(df)
+    return pd.concat(out, ignore_index=True) if out else pd.DataFrame()
 
 def selftest() -> int:
     ok = []
