@@ -109,6 +109,19 @@ Source: `model/ROADMAP.md` §4, citing the in-sample regression fit of RV on the
 
 On spike nights (volatility jumps >1σ), the model's median RV/sigma ratio is **1.453** vs **0.964** on normal nights — a **45% underforecast** of realized move relative to sigma.
 
+> **STALE AS OF 2026-09-13, AND NOT YET RE-MEASURED.** Both ratios were measured
+> against the scalar the model served at the time, `sigma_med`. Serving now
+> reports `sigma_mean` of the same forward pass (`P3-functional-adopt`), and the
+> published level rose 27.7% — so the denominator of both ratios changed and
+> neither number describes what is served today. They are **not** rescaled here
+> by that factor: dividing 1.453 by 1.2774 would be transcribing an arithmetic
+> correction onto a slice nobody re-ran, and the spike/calm split is exactly
+> where a level change need not act uniformly. `P3-spike-ratio-refresh` is
+> pre-registered to re-measure both on the production slice under both
+> functionals. Until it runs, the **direction** of this finding stands — spike
+> nights are under-forecast relative to calm ones — and the **magnitude** does
+> not.
+
 Spike nights are 7.7% of episodes but carry **25.8% of total loss**.
 
 Source: `model/ROADMAP.md` (Priority 1), citing the decomposition through NOCTUA's own Stage B mapping. The onset AUC is 0.733, indicating the information exists but modelling or parameterization is not capturing it.
