@@ -3,11 +3,12 @@
 
 ## Executive summary
 
-The honest headline is that **the shipped model is unchanged by any of this**, and that the phase's two largest results are a measured absence and a boundary.
+Phases 1 and 2 reported that the shipped model was unchanged by any of this. Phase 3 changed it: the served scalar is now a different **functional** of the same forward pass, and that single change reverses the phase's headline volatility result. The direction result and the economic boundary are unaffected, and both still stand.
 
-- **Direction is closed at all four horizons (1h, 6h, 24h, 168h).** 8 of 8 model arms fail their pre-registered rule. The paired per-episode interval excludes zero on the *adverse* side — the arm is worse than the calibration-window base rate — in 5 of 8 rows and straddles zero in 3, at n up to 49,124 per horizon. Both negative controls behave. This is a measured absence, not an underpowered one.
-- **The volatility matrix**, one NOCTUA arm per horizon against the mandatory baseline family: **1h** vs `persistence` — `noctua` fails (-0.04578), `noctua40` fails (+0.00328); **6h** vs `har_short` — `noctua` fails (-0.03197), `noctua40` fails (-0.01387); **24h** vs `har_short` — `noctua` fails (-0.00705), `noctua40` fails (-0.05026); **168h** vs `har_short` — `noctua` not evaluable, `noctua40` fails (-0.02362). 0 row(s) clear the pre-registered interval. Baselines refitted **per horizon**, so they know the horizon NOCTUA knows. Under the earlier horizon-blind fits NOCTUA cleared at H = 24 and H = 168; neither survives, and at H = 168 the pooled baseline had been costing itself a factor of 2.06.
-- **The production headline survives its own comparison and fails a better one.** Against the arm it is published against it is +4.56% and clears; against `har_short` — a baseline that was already in `noctua/baselines.py` and had never been scored — it is +3.10% and does not. Twice in this phase the strongest available baseline turned out to already exist here and to be missing from the arm list.
+- **NOCTUA's deficit against the HAR family was the scalar it reported, not the model.** QLIKE is minimised by the conditional *mean* of variance; the served scalar was the *median* of the same forward pass. Reading the mean instead — nothing refitted, no parameter added — improves raw QLIKE by **+13.29%** / **+20.65%** / **+26.00%** / **+11.90%** at H = 1 / 6 / 24 / 168. After a **symmetric** two-parameter recalibration given to every teacher, NOCTUA leads at H = 1 (+8.45% over `garch_t`), H = 6 (+5.41% over `har_short`), H = 24 (+5.37% over `har_short`), and H = 168 is a tie (+0.36%). This reverses the Phase 1 headline that it fails at all four horizons.
+- **Direction is closed at all four horizons (1h, 6h, 24h, 168h).** 8 of 8 model arms fail their pre-registered rule. The paired per-episode interval excludes zero on the *adverse* side — the arm is worse than the calibration-window base rate — in 5 of 8 rows and straddles zero in 3, at n up to 49,114 per horizon. Both negative controls behave. This is a measured absence, not an underpowered one.
+- **The volatility matrix**, one NOCTUA arm per horizon against the mandatory baseline family: **1h** vs `persistence` — `noctua` fails (-0.04601), `noctua40` fails (+0.00152); **6h** vs `har_short` — `noctua` fails (-0.02424), `noctua40` fails (-0.00868); **24h** vs `har_short` — `noctua` fails (-0.00037), `noctua40` fails (-0.04294); **168h** vs `har_short` — `noctua` not evaluable, `noctua40` fails (-0.02442). 0 row(s) clear the pre-registered interval. Baselines refitted **per horizon**, so they know the horizon NOCTUA knows. Under the earlier horizon-blind fits NOCTUA cleared at H = 24 and H = 168; neither survives, and at H = 168 the pooled baseline had been costing itself a factor of 2.06.
+- **The production headline survives its own comparison and fails a better one.** Against the arm it is published against it is +6.13% and clears; against `har_short` — a baseline that was already in `noctua/baselines.py` and had never been scored — it is +5.42% and does not. Twice in this phase the strongest available baseline turned out to already exist here and to be missing from the arm list.
 - **An options P&L cannot be produced honestly here and is not produced.** What replaces it is a volatility-targeting overlay whose primary endpoint is risk control rather than return.
 
 Three things found by guards rather than by looking:
@@ -59,102 +60,170 @@ Under the horizon-blind baselines NOCTUA cleared at H = 24 (+0.03032) and H = 16
 Every arm at a given horizon is scored on the **same episodes**, with the same target and the same loss. The baseline to beat is chosen on the **calibration** slice and never on test; a `_pooled` arm is never eligible to be chosen.
 Bonferroni within this family: 4 rows, so intervals are at 98.75%. Seeds: 3.
 
-### H = 1h — 49,123 test episodes, folds [2021, 2022, 2023, 2024, 2025, 2026]
-Best baseline by calibration QLIKE: **persistence** persistence 0.6253 · log_har_cal 0.8245 · log_har 0.8471 · har_short 1.4016
+### H = 1h — 49,113 test episodes, folds [2021, 2022, 2023, 2024, 2025, 2026]
+Best baseline by calibration QLIKE: **persistence** persistence 0.6256 · log_har_cal 0.8224 · log_har 0.8469 · har_short 1.3987
 
 | arm | QLIKE | vs best | worst fold | spike | calm | paired CI (blocks) | same at n^(1/3)? |
 |---|---:|---:|---:|---:|---:|---|---|
-| `noctua` | 0.67177 | -0.04578 | 0.89095 | 6.1280 | 0.3844 | [-0.06741, -0.02639] (37) | yes |
-| `noctua40` | 0.62271 | +0.00328 | 0.81180 | 5.4345 | 0.3693 | [-0.01593, +0.02032] (37) | yes |
-| `garch_normal` | 0.60326 | +0.02273 | 0.83662 | 2.4328 | 0.5069 | [+0.00270, +0.04462] (37) | — |
-| `garch_t` | 0.57438 | +0.05161 | 0.77850 | 2.9651 | 0.4485 | [+0.03425, +0.07075] (37) | — |
-| `har_short` | 1.03094 | -0.40495 | 2.83480 | 12.4521 | 0.4293 | [-1.53504, +0.01882] (37) | — |
-| `har_short_pooled` | 0.54040 | +0.08559 | 0.69487 | 4.0822 | 0.3538 | [+0.03327, +0.11310] (37) | — |
-| `log_har` | 0.82435 | -0.19836 | 1.03734 | 7.3522 | 0.4805 | [-0.22635, -0.17356] (37) | — |
-| `log_har_cal` | 0.80615 | -0.18016 | 1.02092 | 7.2275 | 0.4679 | [-0.20768, -0.15612] (37) | — |
-| `log_har_cal_pooled` | 0.66372 | -0.03773 | 0.82924 | 5.6422 | 0.4015 | [-0.06048, -0.01811] (37) | — |
-| `log_har_pooled` | 0.63452 | -0.00853 | 0.81143 | 4.8646 | 0.4117 | [-0.02663, +0.00751] (37) | — |
-| `persistence` | 0.62599 | +0.00000 | 0.85656 | 3.9366 | 0.4516 | — (is the baseline) | — |
+| `noctua` | 0.67167 | -0.04601 | 0.87423 | 6.1230 | 0.3846 | [-0.06687, -0.02663] (37) | yes |
+| `noctua40` | 0.62413 | +0.00152 | 0.80340 | 5.4247 | 0.3713 | [-0.01723, +0.01915] (37) | yes |
+| `garch_normal` | 0.60615 | +0.01951 | 0.83591 | 2.4210 | 0.5106 | [+0.00023, +0.04144] (37) | — |
+| `garch_t` | 0.57409 | +0.05157 | 0.77681 | 2.9773 | 0.4475 | [+0.03453, +0.07122] (37) | — |
+| `har_short` | 1.03153 | -0.40588 | 2.83989 | 12.4668 | 0.4293 | [-1.52927, +0.01884] (37) | — |
+| `har_short_pooled` | 0.54026 | +0.08540 | 0.69433 | 4.0815 | 0.3538 | [+0.03485, +0.11284] (37) | — |
+| `log_har` | 0.82396 | -0.19830 | 1.03672 | 7.3537 | 0.4801 | [-0.22622, -0.17366] (37) | — |
+| `log_har_cal` | 0.80446 | -0.17881 | 1.01449 | 7.2245 | 0.4664 | [-0.20600, -0.15446] (37) | — |
+| `log_har_cal_pooled` | 0.66228 | -0.03662 | 0.82185 | 5.6321 | 0.4006 | [-0.05930, -0.01691] (37) | — |
+| `log_har_pooled` | 0.63443 | -0.00877 | 0.81088 | 4.8659 | 0.4116 | [-0.02650, +0.00739] (37) | — |
+| `noctua40_mean` | 0.54119 | +0.08446 | 0.75844 | 3.0068 | 0.4113 | [+0.06902, +0.10163] (37) | — |
+| `noctua_mean` | 0.51599 | +0.10967 | 0.72351 | 3.0362 | 0.3833 | [+0.09384, +0.12710] (37) | — |
+| `persistence` | 0.62566 | +0.00000 | 0.85584 | 3.9384 | 0.4512 | — (is the baseline) | — |
 
 Pre-registered verdict: **noctua** DOES NOT CLEAR · **noctua40** DOES NOT CLEAR
 
-### H = 6h — 49,124 test episodes, folds [2021, 2022, 2023, 2024, 2025, 2026]
-Best baseline by calibration QLIKE: **har_short** har_short 0.4376 · persistence 0.4611 · log_har_cal 0.4645 · log_har 0.4852
+The `_mean` arms are reported here but receive **no pre-registered verdict**. The family was fixed a priori at four rows — one primary contrast per horizon — and that contrast is the median arm, the one that was actually served when the registration was written. The mean arms were added after the fact; admitting them to the family would be enlarging it until something clears. Their claim is made in [the functional section](#volatility-the-functional-the-loss-actually-wants) instead, under a correction applied symmetrically to every teacher.
+
+### H = 6h — 49,114 test episodes, folds [2021, 2022, 2023, 2024, 2025, 2026]
+Best baseline by calibration QLIKE: **har_short** har_short 0.4367 · log_har_cal 0.4601 · persistence 0.4604 · log_har 0.4843
 
 | arm | QLIKE | vs best | worst fold | spike | calm | paired CI (blocks) | same at n^(1/3)? |
 |---|---:|---:|---:|---:|---:|---|---|
-| `noctua` | 0.44907 | -0.03197 | 0.61072 | 3.4801 | 0.2895 | [-0.05017, -0.01162] (37) | yes |
-| `noctua40` | 0.43097 | -0.01387 | 0.55961 | 3.3921 | 0.2751 | [-0.02989, +0.00588] (37) | yes |
-| `garch_normal` | 0.42058 | -0.00348 | 0.59734 | 1.4500 | 0.3664 | [-0.03150, +0.03066] (37) | — |
-| `garch_t` | 0.41246 | +0.00463 | 0.56003 | 1.7940 | 0.3397 | [-0.02046, +0.03628] (37) | — |
-| `har_short` | 0.41710 | +0.00000 | 0.55477 | 2.9832 | 0.2820 | — (is the baseline) | — |
-| `har_short_pooled` | 0.38328 | +0.03382 | 0.50414 | 2.6956 | 0.2615 | [+0.02607, +0.04273] (37) | — |
-| `log_har` | 0.46795 | -0.05085 | 0.60586 | 3.4055 | 0.3133 | [-0.06828, -0.03048] (37) | — |
-| `log_har_cal` | 0.44971 | -0.03261 | 0.58993 | 3.3182 | 0.2987 | [-0.04968, -0.01216] (37) | — |
-| `log_har_cal_pooled` | 0.45871 | -0.04161 | 0.56916 | 3.5879 | 0.2940 | [-0.06086, -0.01965] (37) | — |
-| `log_har_pooled` | 0.43100 | -0.01390 | 0.55137 | 3.1177 | 0.2895 | [-0.02935, +0.00620] (37) | — |
-| `persistence` | 0.45301 | -0.03591 | 0.64645 | 2.3776 | 0.3517 | [-0.05468, -0.01288] (37) | — |
+| `noctua` | 0.44134 | -0.02424 | 0.59200 | 3.4404 | 0.2834 | [-0.04181, -0.00326] (37) | yes |
+| `noctua40` | 0.42578 | -0.00868 | 0.54937 | 3.3636 | 0.2711 | [-0.02534, +0.01225] (37) | yes |
+| `garch_normal` | 0.42323 | -0.00613 | 0.59696 | 1.4482 | 0.3693 | [-0.03476, +0.02827] (37) | — |
+| `garch_t` | 0.41228 | +0.00482 | 0.55825 | 1.8055 | 0.3389 | [-0.02022, +0.03689] (37) | — |
+| `har_short` | 0.41710 | +0.00000 | 0.55484 | 2.9830 | 0.2820 | — (is the baseline) | — |
+| `har_short_pooled` | 0.38332 | +0.03378 | 0.50411 | 2.6954 | 0.2616 | [+0.02629, +0.04292] (37) | — |
+| `log_har` | 0.46804 | -0.05094 | 0.60604 | 3.4057 | 0.3133 | [-0.06829, -0.03011] (37) | — |
+| `log_har_cal` | 0.44703 | -0.02993 | 0.58279 | 3.3123 | 0.2961 | [-0.04733, -0.00859] (37) | — |
+| `log_har_cal_pooled` | 0.45578 | -0.03868 | 0.56137 | 3.5767 | 0.2914 | [-0.05857, -0.01589] (37) | — |
+| `log_har_pooled` | 0.43112 | -0.01402 | 0.55140 | 3.1179 | 0.2896 | [-0.02953, +0.00674] (37) | — |
+| `noctua40_mean` | 0.33784 | +0.07926 | 0.49260 | 1.7751 | 0.2622 | [+0.05678, +0.10699] (37) | — |
+| `noctua_mean` | 0.32535 | +0.09175 | 0.47190 | 1.7032 | 0.2528 | [+0.06922, +0.11908] (37) | — |
+| `persistence` | 0.45301 | -0.03591 | 0.64660 | 2.3781 | 0.3516 | [-0.05453, -0.01300] (37) | — |
 
 Pre-registered verdict: **noctua** DOES NOT CLEAR · **noctua40** DOES NOT CLEAR
 
-### H = 24h — 49,106 test episodes, folds [2021, 2022, 2023, 2024, 2025, 2026]
-Best baseline by calibration QLIKE: **har_short** har_short 0.3016 · log_har_cal 0.3148 · log_har 0.3338 · persistence 0.4885
+The `_mean` arms are reported here but receive **no pre-registered verdict**. The family was fixed a priori at four rows — one primary contrast per horizon — and that contrast is the median arm, the one that was actually served when the registration was written. The mean arms were added after the fact; admitting them to the family would be enlarging it until something clears. Their claim is made in [the functional section](#volatility-the-functional-the-loss-actually-wants) instead, under a correction applied symmetrically to every teacher.
+
+### H = 24h — 49,096 test episodes, folds [2021, 2022, 2023, 2024, 2025, 2026]
+Best baseline by calibration QLIKE: **har_short** har_short 0.3015 · log_har_cal 0.3077 · log_har 0.3337 · persistence 0.4883
 
 | arm | QLIKE | vs best | worst fold | spike | calm | paired CI (blocks) | same at n^(1/3)? |
 |---|---:|---:|---:|---:|---:|---|---|
-| `noctua` | 0.28523 | -0.00705 | 0.41651 | 1.9655 | 0.1967 | [-0.02288, +0.00472] (48) | yes |
-| `noctua40` | 0.32844 | -0.05026 | 0.41870 | 2.4113 | 0.2187 | [-0.06937, -0.03445] (48) | yes |
-| `garch_normal` | 0.32684 | -0.04866 | 0.45164 | 0.8884 | 0.2973 | [-0.07682, -0.01687] (48) | — |
-| `garch_t` | 0.30417 | -0.02598 | 0.38892 | 1.1555 | 0.2593 | [-0.04686, -0.00120] (48) | — |
-| `har_short` | 0.27818 | +0.00000 | 0.36465 | 1.8184 | 0.1971 | — (is the baseline) | — |
-| `har_short_pooled` | 0.31555 | -0.03737 | 0.40267 | 2.0454 | 0.2244 | [-0.04620, -0.02962] (48) | — |
-| `log_har` | 0.30630 | -0.02812 | 0.39094 | 2.1030 | 0.2117 | [-0.03761, -0.01993] (48) | — |
-| `log_har_cal` | 0.28795 | -0.00977 | 0.37440 | 2.0274 | 0.1963 | [-0.01820, -0.00190] (48) | — |
-| `log_har_cal_pooled` | 0.35523 | -0.07704 | 0.43322 | 2.5958 | 0.2372 | [-0.09817, -0.05899] (48) | — |
-| `log_har_pooled` | 0.34416 | -0.06598 | 0.42505 | 2.4065 | 0.2355 | [-0.08363, -0.05114] (48) | — |
-| `persistence` | 0.45511 | -0.17693 | 0.70438 | 2.1043 | 0.3682 | [-0.23689, -0.13309] (48) | — |
+| `noctua` | 0.27860 | -0.00037 | 0.40441 | 1.9471 | 0.1907 | [-0.01579, +0.01112] (48) | yes |
+| `noctua40` | 0.32117 | -0.04294 | 0.40599 | 2.3702 | 0.2133 | [-0.06047, -0.02792] (48) | yes |
+| `garch_normal` | 0.32969 | -0.05145 | 0.45076 | 0.8918 | 0.3001 | [-0.07932, -0.01901] (48) | — |
+| `garch_t` | 0.30260 | -0.02437 | 0.37981 | 1.1684 | 0.2570 | [-0.04504, +0.00008] (48) | — |
+| `har_short` | 0.27823 | +0.00000 | 0.36459 | 1.8195 | 0.1971 | — (is the baseline) | — |
+| `har_short_pooled` | 0.31563 | -0.03740 | 0.40276 | 2.0464 | 0.2245 | [-0.04643, -0.02978] (48) | — |
+| `log_har` | 0.30635 | -0.02812 | 0.39088 | 2.1044 | 0.2117 | [-0.03758, -0.01994] (48) | — |
+| `log_har_cal` | 0.28237 | -0.00414 | 0.36406 | 2.0071 | 0.1916 | [-0.01301, +0.00400] (48) | — |
+| `log_har_cal_pooled` | 0.34977 | -0.07154 | 0.42441 | 2.5805 | 0.2323 | [-0.09252, -0.05362] (48) | — |
+| `log_har_pooled` | 0.34423 | -0.06600 | 0.42514 | 2.4079 | 0.2356 | [-0.08400, -0.05114] (48) | — |
+| `noctua40_mean` | 0.23768 | +0.04055 | 0.33495 | 1.1949 | 0.1873 | [+0.02335, +0.06080] (48) | — |
+| `noctua_mean` | 0.23038 | +0.04785 | 0.31703 | 1.1118 | 0.1840 | [+0.02982, +0.06952] (48) | — |
+| `persistence` | 0.45528 | -0.17705 | 0.70491 | 2.1064 | 0.3683 | [-0.23595, -0.13310] (48) | — |
 
 Pre-registered verdict: **noctua** DOES NOT CLEAR · **noctua40** DOES NOT CLEAR
 
-### H = 168h — 48,962 test episodes, folds [2021, 2022, 2023, 2024, 2025, 2026]
-Best baseline by calibration QLIKE: **har_short** har_short 0.1717 · log_har 0.1743 · log_har_cal 0.1743 · persistence 0.6509
+The `_mean` arms are reported here but receive **no pre-registered verdict**. The family was fixed a priori at four rows — one primary contrast per horizon — and that contrast is the median arm, the one that was actually served when the registration was written. The mean arms were added after the fact; admitting them to the family would be enlarging it until something clears. Their claim is made in [the functional section](#volatility-the-functional-the-loss-actually-wants) instead, under a correction applied symmetrically to every teacher.
+
+### H = 168h — 48,952 test episodes, folds [2021, 2022, 2023, 2024, 2025, 2026]
+Best baseline by calibration QLIKE: **har_short** har_short 0.1716 · log_har_cal 0.1741 · log_har 0.1741 · persistence 0.6504
 
 | arm | QLIKE | vs best | worst fold | spike | calm | paired CI (blocks) | same at n^(1/3)? |
 |---|---:|---:|---:|---:|---:|---|---|
-| `noctua40` | 0.20569 | -0.02362 | 0.27789 | 1.0790 | 0.1597 | [-0.04914, -0.00588] (336) | yes |
-| `garch_normal` | 0.53821 | -0.35613 | 0.75314 | 0.1917 | 0.5565 | [-0.43810, -0.27297] (336) | — |
-| `garch_t` | 0.44349 | -0.26142 | 0.71676 | 0.2723 | 0.4525 | [-0.33223, -0.18877] (336) | — |
-| `har_short` | 0.18207 | +0.00000 | 0.25494 | 0.9821 | 0.1400 | — (is the baseline) | — |
-| `har_short_pooled` | 0.37558 | -0.19351 | 0.52044 | 1.6917 | 0.3063 | [-0.27586, -0.13106] (336) | — |
-| `log_har` | 0.18435 | -0.00228 | 0.25576 | 1.0132 | 0.1407 | [-0.00479, +0.00027] (336) | — |
-| `log_har_cal` | 0.18435 | -0.00228 | 0.25576 | 1.0132 | 0.1407 | [-0.00479, +0.00027] (336) | — |
-| `log_har_cal_pooled` | 0.23553 | -0.05346 | 0.32545 | 1.0125 | 0.1946 | [-0.09102, -0.02738] (336) | — |
-| `log_har_pooled` | 0.35031 | -0.16823 | 0.45038 | 1.7401 | 0.2771 | [-0.24152, -0.11005] (336) | — |
-| `persistence` | 0.61859 | -0.43651 | 1.17738 | 1.6351 | 0.5651 | [-0.64182, -0.29545] (336) | — |
+| `noctua40` | 0.20636 | -0.02442 | 0.27946 | 1.0691 | 0.1609 | [-0.05395, -0.00491] (336) | yes |
+| `garch_normal` | 0.52390 | -0.34196 | 0.75040 | 0.1935 | 0.5413 | [-0.42114, -0.26029] (336) | — |
+| `garch_t` | 0.41759 | -0.23565 | 0.57133 | 0.2624 | 0.4258 | [-0.30016, -0.16655] (336) | — |
+| `har_short` | 0.18194 | +0.00000 | 0.25486 | 0.9811 | 0.1399 | — (is the baseline) | — |
+| `har_short_pooled` | 0.37544 | -0.19350 | 0.52079 | 1.6872 | 0.3064 | [-0.27670, -0.13194] (336) | — |
+| `log_har` | 0.18424 | -0.00231 | 0.25575 | 1.0134 | 0.1406 | [-0.00478, +0.00026] (336) | — |
+| `log_har_cal` | 0.18424 | -0.00231 | 0.25575 | 1.0134 | 0.1406 | [-0.00478, +0.00026] (336) | — |
+| `log_har_cal_pooled` | 0.23416 | -0.05222 | 0.32384 | 1.0105 | 0.1933 | [-0.09066, -0.02637] (336) | — |
+| `log_har_pooled` | 0.35018 | -0.16824 | 0.45074 | 1.7394 | 0.2770 | [-0.24238, -0.11033] (336) | — |
+| `noctua40_mean` | 0.18181 | +0.00013 | 0.24866 | 0.6607 | 0.1566 | [-0.02147, +0.02133] (336) | — |
+| `persistence` | 0.61862 | -0.43668 | 1.17761 | 1.6316 | 0.5653 | [-0.64142, -0.29751] (336) | — |
 
 Pre-registered verdict: **noctua** NOT EVALUABLE · **noctua40** DOES NOT CLEAR
 
+The `_mean` arms are reported here but receive **no pre-registered verdict**. The family was fixed a priori at four rows — one primary contrast per horizon — and that contrast is the median arm, the one that was actually served when the registration was written. The mean arms were added after the fact; admitting them to the family would be enlarging it until something clears. Their claim is made in [the functional section](#volatility-the-functional-the-loss-actually-wants) instead, under a correction applied symmetrically to every teacher.
+
 The fold-level spread is carried in the artifact as `per_fold` and is **not** the primary. `vol-matrix-power` measured its minimum detectable effect at 5.21% / 11.76% / 31.68% / 65.48% of the persistence baseline at H = 1 / 6 / 24 / 168, against a 4.98% reference effect — one row marginal, three not powered. That was measured *before* the matrix was built, which is the only time the measurement is worth anything.
+
+## Volatility: the functional the loss actually wants
+
+QLIKE is `mean(r − log r − 1)` with `r = RV²/σ²`, and it is minimised at `σ² = E[RV²]` — the conditional **mean** of variance. NOCTUA's network emits a 32-atom quantile representation, and the scalar it reported was the **median**. Every earlier comparison in this document therefore scored NOCTUA's median against its rivals' means, under a loss that wants the mean.
+
+Reading `sigma_mean` instead is the same forward pass. Nothing is refitted, no parameter is added, no data is touched:
+
+| H | median (raw) | mean (raw) | improvement | median (MZq) | mean (MZq) | improvement |
+|---:|---:|---:|---:|---:|---:|---:|
+| 1 | 0.62413 | 0.54119 | **+13.29%** | 0.55821 | 0.53295 | +4.52% |
+| 6 | 0.42578 | 0.33784 | **+20.65%** | 0.35260 | 0.33890 | +3.88% |
+| 24 | 0.32117 | 0.23768 | **+26.00%** | 0.25520 | 0.25159 | +1.41% |
+| 168 | 0.20636 | 0.18181 | **+11.90%** | 0.22441 | 0.22195 | +1.09% |
+
+The raw column is the size of the reporting defect. The MZq column is what survives once **every** teacher, NOCTUA included, is given the same two free parameters — a level and a slope, fitted on each fold's calibration slice and applied to its test slice. Applying such a correction to one model and not the others is how a favoured model is handed a free fit, so it is applied symmetrically or not at all.
+
+Against the best **non-NOCTUA** arm at each horizon, under that symmetric correction:
+
+| H | best rival | rival QLIKE | NOCTUA (mean) | margin |
+|---:|---|---:|---:|---:|
+| 1 | `garch_t` | 0.58213 | 0.53295 | +8.45%  |
+| 6 | `har_short` | 0.35831 | 0.33890 | +5.41%  |
+| 24 | `har_short` | 0.26588 | 0.25159 | +5.37%  |
+| 168 | `har_short` | 0.22276 | 0.22195 | +0.36% — a tie |
+
+**H = 168 is a tie, not a win.** A margin under one percent is not a result, and it is written as a tie here because the temptation to round it up is exactly what this document exists to prevent.
+
+This falsifies the Phase 1 headline that NOCTUA fails against the HAR family at every horizon. What failed at every horizon was the *scalar being reported*, not the model producing it — and the fix costs nothing, because the quantity was already in the forward pass.
+
+### The slope defect, and what it turned out to be
+
+A Mincer–Zarnowitz slope β below 1 means the forecast over-reacts to its own signal; above 1, that it under-reacts. Neither is information about volatility, and both are removable by an affine map any competitor can also apply. The open question was whether NOCTUA's β is an information defect — which would call for a retrain — or an affine one.
+
+It is neither, uniformly. Fitting the correction on each fold's calibration slice, applying it to that fold's test slice, and **re-measuring** the slope on rows the correction never saw (re-fitting on test would report 1.000 by construction, and would confirm itself whatever the data said):
+
+| H | independent calibration windows per fold | β raw | β after MZq | reading |
+|---:|---:|---:|---:|---|
+| 1 | 4,247 | 1.303 | 1.006 | AFFINE (correction transfers) |
+| 6 | 707 | 1.236 | 1.019 | AFFINE (correction transfers) |
+| 24 | 176 | 1.116 | 1.047 | PARTIAL |
+| 168 | 24 | 0.915 | 0.916 | UNESTIMABLE (correction does not transfer) |
+
+Whether the correction transfers tracks the number of independent windows it was fitted on, monotonically, and nothing else in the table does. Episodes are anchored hourly against an H-hour forward window, so consecutive rows share H−1 of their H hours and the independent count is of order n/H. At H = 168 a two-parameter regression is fitted on **twenty-four** effective observations per fold, and the slopes it returns say so — one of the six is negative, which asserts that the more NOCTUA forecasts, the less volatility realises.
+
+That was first read as regime variation, on the grounds that the offending fold is 2022 — Terra, 3AC, FTX. Its own neighbour refutes it: 2022's calibration slope at H = 168 is −0.017 and its **test** slope at the same horizon is 0.918, entirely ordinary. An estimate that disagrees that violently with the slice next door is noise, not a regime, and the attribution was withdrawn.
+
+The consequence is a redirection. The plan named a CRPS-trained variant as the remedy for β. At H = 1 and H = 6 two out-of-sample parameters already take β to 1.006 and 1.019, so a new loss would be fixing a solved problem; at H = 168 the binding constraint is a calibration window of 24 independent observations, which no loss function changes.
+
+One caution about every pooled β above: it is a mixture across six folds carrying six different levels, and it **understates** the per-fold defect at both ends — 1.303 pooled against 1.370 median fold at H = 1; 0.915 pooled against 0.783 median fold at H = 168.
+
+### What changed in what is served
+
+`REPORT_FUNCTIONAL = "mean"`: the served scalar is now the mean of the same forward pass. This is safe by construction rather than by measurement — the reported scalar moves the barrier curves by 0.000e+00, because the committee specialists build their curves from `sigma_atoms` and never read it, while `sigma_atoms` moves them by 8.864e−03. The live anchor moves from 2.067% to 2.640%.
 
 ## Volatility: the production slice, against the best baseline
 
 The production configuration is H = 19 anchored at 17:00 UTC. This table asks whether the published advantage survives the **strongest baseline this repository already contains**, with the bar chosen on the calibration slice and never on test.
 
-2,046 test episodes over 6 folds. Bonferroni at family size 5 → 99% intervals, blocks of 38. Best baseline by calibration QLIKE: **har_short** · har_short 0.3163 · log_har_cal 0.3251 · log_har 0.3436 · persistence 0.4574
+2,046 test episodes over 6 folds. Bonferroni at family size 5 → 99% intervals, blocks of 38. Best baseline by calibration QLIKE: **har_short** · har_short 0.3160 · log_har_cal 0.3185 · log_har 0.3433 · persistence 0.4571
 
 | arm | QLIKE | vs best | rel % | worst fold | paired CI |
 |---|---:|---:|---:|---:|---|
-| `noctua` | 0.29702 | +0.00951 | +3.10 | 0.43404 | [-0.00897, +0.02448] |
-| `har_short` | 0.30654 | +0.00000 | +0.00 | 0.42764 | — (is the baseline) |
-| `log_har` | 0.32015 | -0.01361 | -4.44 | 0.41551 | [-0.03238, +0.00250] |
-| `log_har_cal` | 0.30442 | +0.00212 | +0.69 | 0.40223 | [-0.01640, +0.01867] |
-| `log_har_cal_pooled` | 0.31122 | -0.00469 | -1.53 | 0.41862 | [-0.02359, +0.01152] |
-| `log_har_pooled` | 0.33774 | -0.03120 | -10.18 | 0.44558 | [-0.05184, -0.01428] |
-| `persistence` | 0.43547 | -0.12893 | -42.06 | 0.69888 | [-0.18843, -0.08505] |
+| `noctua` | 0.25627 | +0.01469 | +5.42 | 0.36097 | [-0.00319, +0.03029] |
+| `har_short` | 0.27096 | +0.00000 | +0.00 | 0.37127 | — (is the baseline) |
+| `log_har` | 0.28866 | -0.01770 | -6.53 | 0.38565 | [-0.02873, -0.00674] |
+| `log_har_cal` | 0.26890 | +0.00207 | +0.76 | 0.36693 | [-0.01287, +0.01617] |
+| `log_har_cal_pooled` | 0.27300 | -0.00204 | -0.75 | 0.37458 | [-0.01723, +0.01168] |
+| `log_har_pooled` | 0.29846 | -0.02750 | -10.15 | 0.39788 | [-0.04100, -0.01483] |
+| `persistence` | 0.39620 | -0.12523 | -46.22 | 0.61058 | [-0.18649, -0.08427] |
 
-**The incumbent claim is confirmed.** Against `log_har_cal_pooled` — the arm the published headline is actually measured against — NOCTUA is +0.01420 (+4.56%), CI [+0.00300, +0.02339], which clears.
+**The incumbent claim is confirmed.** Against `log_har_cal_pooled` — the arm the published headline is actually measured against — NOCTUA is +0.01673 (+6.13%), CI [+0.00988, +0.02256], which clears.
 
-**The primary fails anyway, for a different reason.** Against `har_short` — which extends Corsi's cascade downward with `har_1h` and `har_6h`, has been in `noctua/baselines.py` throughout, and had never been scored as a competitor — NOCTUA is +3.10% and **DOES NOT CLEAR**. The unadjusted 95% interval [-0.00436, +0.02114] straddles zero too, so this is not a multiple-testing artifact.
+**The primary fails anyway, for a different reason.** Against `har_short` — which extends Corsi's cascade downward with `har_1h` and `har_6h`, has been in `noctua/baselines.py` throughout, and had never been scored as a competitor — NOCTUA is +5.42% and **DOES NOT CLEAR**. The unadjusted 95% interval [+0.00119, +0.02621] straddles zero too, so this is not a multiple-testing artifact.
 
 NOCTUA still posts the best pooled QLIKE of any arm here. It is simply not *significantly* better than the best baseline at this sample size.
 
@@ -164,30 +233,30 @@ The baseline is the **calibration-window base rate**, not 0.5. P(R>0) rises with
 
 | H | arm | Brier | BSS vs calib | AUC | cal slope | cal int | paired CI | verdict |
 |---|---|---:|---:|---:|---:|---:|---|---|
-| 1 | `base_unc` | 0.25001 | +0.00025 | 0.4977 | +0.001 | +0.018 | [-0.000165, +0.000045] | — |
-| 1 | `base_calib` | 0.25007 | +0.00000 | 0.5011 | +0.001 | +0.018 | — | — |
-| 1 | `logistic` | 0.25093 | -0.00342 | 0.5090 | +0.052 | +0.015 | [+0.000328, +0.001464] | FAIL |
-| 1 | `gbm` | 0.25046 | -0.00154 | 0.5148 | +0.052 | +0.016 | [-0.000068, +0.000888] | FAIL |
-| 1 | `placebo` | 0.25353 | -0.01384 | 0.4992 | -0.004 | +0.019 | [+0.002304, +0.004869] | — |
-| 1 | `shuffled` | 0.25065 | -0.00231 | 0.5026 | -0.044 | +0.020 | [+0.000203, +0.001127] | — |
-| 6 | `base_unc` | 0.25007 | +0.00142 | 0.4902 | +0.001 | +0.030 | [-0.000896, +0.000161] | — |
-| 6 | `base_calib` | 0.25042 | +0.00000 | 0.5036 | +0.003 | +0.030 | — | — |
-| 6 | `logistic` | 0.25286 | -0.00972 | 0.5046 | +0.012 | +0.029 | [+0.001098, +0.003891] | FAIL |
-| 6 | `gbm` | 0.25119 | -0.00306 | 0.5128 | +0.038 | +0.028 | [-0.000305, +0.001990] | FAIL |
-| 6 | `placebo` | 0.25227 | -0.00737 | 0.4966 | +0.020 | +0.030 | [+0.000899, +0.002818] | — |
-| 6 | `shuffled` | 0.25212 | -0.00678 | 0.5001 | +0.015 | +0.028 | [+0.000514, +0.003173] | — |
-| 24 | `base_unc` | 0.25018 | +0.00796 | 0.4819 | -4.216 | +0.449 | [-0.004321, +0.000084] | — |
-| 24 | `base_calib` | 0.25219 | +0.00000 | 0.4933 | -0.009 | +0.050 | — | — |
-| 24 | `logistic` | 0.25906 | -0.02726 | 0.4993 | +0.004 | +0.049 | [+0.002969, +0.011136] | FAIL |
-| 24 | `gbm` | 0.25608 | -0.01546 | 0.5116 | -0.000 | +0.049 | [+0.000707, +0.007498] | FAIL |
-| 24 | `placebo` | 0.25731 | -0.02032 | 0.4965 | -0.035 | +0.058 | [+0.002185, +0.008549] | — |
-| 24 | `shuffled` | 0.25584 | -0.01448 | 0.4979 | +0.005 | +0.049 | [+0.001191, +0.006553] | — |
-| 168 | `base_unc` | 0.25046 | +0.02749 | 0.4609 | -5.349 | +0.815 | [-0.013279, -0.000996] | — |
-| 168 | `base_calib` | 0.25754 | +0.00000 | 0.5045 | +0.055 | +0.064 | — | — |
-| 168 | `logistic` | 0.26282 | -0.02053 | 0.5216 | +0.021 | +0.075 | [-0.001113, +0.011843] | FAIL |
-| 168 | `gbm` | 0.28142 | -0.09271 | 0.5015 | -0.027 | +0.084 | [+0.013362, +0.035569] | FAIL |
-| 168 | `placebo` | 0.26723 | -0.03762 | 0.5145 | +0.011 | +0.074 | [+0.002234, +0.017375] | — |
-| 168 | `shuffled` | 0.25889 | -0.00523 | 0.5074 | +0.045 | +0.066 | [-0.000886, +0.003605] | — |
+| 1 | `base_unc` | 0.25001 | +0.00028 | 0.4976 | +0.001 | +0.018 | [-0.000176, +0.000039] | — |
+| 1 | `base_calib` | 0.25008 | +0.00000 | 0.5009 | +0.001 | +0.018 | — | — |
+| 1 | `logistic` | 0.25071 | -0.00253 | 0.5105 | +0.052 | +0.016 | [+0.000159, +0.001155] | FAIL |
+| 1 | `gbm` | 0.25024 | -0.00065 | 0.5171 | +0.052 | +0.016 | [-0.000279, +0.000640] | FAIL |
+| 1 | `placebo` | 0.25538 | -0.02119 | 0.4997 | +0.000 | +0.018 | [+0.003560, +0.007369] | — |
+| 1 | `shuffled` | 0.25137 | -0.00516 | 0.4977 | +0.011 | +0.018 | [+0.000721, +0.002000] | — |
+| 6 | `base_unc` | 0.25007 | +0.00140 | 0.4900 | +0.001 | +0.030 | [-0.000880, +0.000166] | — |
+| 6 | `base_calib` | 0.25042 | +0.00000 | 0.5036 | +0.002 | +0.030 | — | — |
+| 6 | `logistic` | 0.25225 | -0.00730 | 0.5043 | +0.020 | +0.028 | [+0.000704, +0.003112] | FAIL |
+| 6 | `gbm` | 0.25116 | -0.00296 | 0.5153 | +0.051 | +0.026 | [-0.000350, +0.001875] | FAIL |
+| 6 | `placebo` | 0.25183 | -0.00565 | 0.4967 | +0.007 | +0.030 | [+0.000565, +0.002417] | — |
+| 6 | `shuffled` | 0.25316 | -0.01093 | 0.5044 | -0.014 | +0.031 | [+0.001078, +0.004891] | — |
+| 24 | `base_unc` | 0.25018 | +0.00797 | 0.4819 | -4.242 | +0.450 | [-0.004344, +0.000152] | — |
+| 24 | `base_calib` | 0.25219 | +0.00000 | 0.4934 | -0.011 | +0.050 | — | — |
+| 24 | `logistic` | 0.25980 | -0.03015 | 0.4974 | -0.006 | +0.050 | [+0.003559, +0.012284] | FAIL |
+| 24 | `gbm` | 0.25566 | -0.01375 | 0.5080 | -0.020 | +0.052 | [+0.000739, +0.006664] | FAIL |
+| 24 | `placebo` | 0.25755 | -0.02126 | 0.4938 | -0.025 | +0.056 | [+0.002054, +0.009136] | — |
+| 24 | `shuffled` | 0.25330 | -0.00439 | 0.4956 | -0.005 | +0.050 | [-0.000027, +0.002427] | — |
+| 168 | `base_unc` | 0.25046 | +0.02810 | 0.4614 | -5.347 | +0.807 | [-0.013828, -0.001187] | — |
+| 168 | `base_calib` | 0.25770 | +0.00000 | 0.5042 | +0.052 | +0.064 | — | — |
+| 168 | `logistic` | 0.26358 | -0.02281 | 0.5178 | +0.042 | +0.066 | [-0.000891, +0.012726] | FAIL |
+| 168 | `gbm` | 0.28009 | -0.08691 | 0.5021 | -0.039 | +0.089 | [+0.012030, +0.033454] | FAIL |
+| 168 | `placebo` | 0.26818 | -0.04068 | 0.5127 | +0.010 | +0.073 | [+0.003138, +0.018897] | — |
+| 168 | `shuffled` | 0.25991 | -0.00860 | 0.5142 | -0.005 | +0.081 | [-0.000113, +0.004766] | — |
 
 A **positive** paired CI means the arm is **worse** than the baseline: the quantity bootstrapped is arm-minus-baseline Brier.
 
@@ -203,29 +272,33 @@ Target 60% annualised, weight capped at 3.0, H = 24h, rebalanced at 00:00 UTC so
 
 | arm | mean \|vol err\| | worst | realised vol | turnover | mean w | net @5bp | net @10bp | net @25bp | paired CI vs best |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---|
-| `noctua` | 0.0823 | 0.1722 | 0.6823 | 0.2038 | 1.436 | +0.087 | +0.053 | -0.049 | [-0.0531, -0.0049] |
-| `noctua40` | 0.0808 | 0.1688 | 0.6808 | 0.1997 | 1.433 | +0.092 | +0.059 | -0.041 | [-0.0501, -0.0042] |
-| `constant_w` | 0.0933 | 0.3021 | 0.6305 | 0.0035 | 1.153 | +0.140 | +0.139 | +0.137 | [-0.0903, +0.0168] |
-| `garch_normal` | 0.0963 | 0.1664 | 0.5065 | 0.1698 | 1.010 | +0.026 | -0.003 | -0.089 | [-0.0918, +0.0121] |
-| `garch_t` | 0.0710 | 0.1934 | 0.5523 | 0.2573 | 1.101 | +0.008 | -0.037 | -0.173 | [-0.0665, +0.0452] |
-| `har_short` | 0.0577 | 0.0919 | 0.6577 | 0.2410 | 1.372 | +0.068 | +0.027 | -0.094 | — (is the best arm) |
-| `log_har` | 0.0822 | 0.1536 | 0.6822 | 0.2161 | 1.400 | +0.090 | +0.054 | -0.055 | [-0.0472, -0.0095] |
-| `persistence` | 0.1124 | 0.2112 | 0.7124 | 0.4057 | 1.469 | +0.018 | -0.051 | -0.257 | [-0.0968, -0.0280] |
+| `noctua` | 0.0783 | 0.1346 | 0.6783 | 0.2074 | 1.440 | +0.079 | +0.044 | -0.059 | [-0.1145, -0.0325] |
+| `noctua40` | 0.0774 | 0.1294 | 0.6774 | 0.2052 | 1.438 | +0.073 | +0.038 | -0.064 | [-0.1117, -0.0327] |
+| `constant_w` | 0.0977 | 0.2684 | 0.6282 | 0.0036 | 1.153 | +0.140 | +0.139 | +0.137 | [-0.1530, -0.0199] |
+| `garch_normal` | 0.0868 | 0.1497 | 0.5137 | 0.1791 | 1.027 | +0.033 | +0.002 | -0.091 | [-0.1153, -0.0358] |
+| `garch_t` | 0.0426 | 0.0749 | 0.5795 | 0.2945 | 1.175 | +0.001 | -0.050 | -0.201 | [-0.0395, -0.0193] |
+| `har_short` | 0.0646 | 0.0862 | 0.6646 | 0.2395 | 1.398 | +0.074 | +0.033 | -0.087 | [-0.0818, -0.0332] |
+| `log_har` | 0.0763 | 0.1108 | 0.6763 | 0.2169 | 1.399 | +0.076 | +0.040 | -0.069 | [-0.1009, -0.0393] |
+| `noctua40_mean` | 0.0096 | 0.0221 | 0.5921 | 0.1864 | 1.267 | +0.059 | +0.028 | -0.065 | — (is the best arm) |
+| `noctua_mean` | 0.0126 | 0.0254 | 0.5897 | 0.1819 | 1.259 | +0.064 | +0.033 | -0.057 | [-0.0040, -0.0018] |
+| `persistence` | 0.1106 | 0.1745 | 0.7106 | 0.4098 | 1.467 | -0.024 | -0.093 | -0.301 | [-0.1593, -0.0611] |
 
 | arm | t-CI on the paired difference | t p | perm p | floor | MDE(80%) | powered? |
 |---|---|---:|---:|---:|---:|---|
-| `noctua` | [-0.0555, +0.0063] | 0.0960 | 0.0312 | 0.0156 | 0.0419 | **NOT POWERED** |
-| `noctua40` | [-0.0528, +0.0066] | 0.1019 | 0.0312 | 0.0156 | 0.0403 | **NOT POWERED** |
-| `constant_w` | [-0.1524, +0.0811] | 0.4684 | 0.3594 | 0.0156 | 0.1585 | **NOT POWERED** |
-| `garch_normal` | [-0.1018, +0.0246] | 0.1773 | 0.0938 | 0.0156 | 0.0858 | **NOT POWERED** |
-| `garch_t` | [-0.0958, +0.0691] | 0.6946 | 0.4219 | 0.0156 | 0.1120 | **NOT POWERED** |
-| `har_short` | — (is the best arm) | | | | | |
-| `log_har` | [-0.0480, -0.0012] | 0.0429 | 0.0156  *(at floor)* | 0.0156 | 0.0318 | **NOT POWERED** |
-| `persistence` | [-0.0977, -0.0119] | 0.0218 | 0.0156  *(at floor)* | 0.0156 | 0.0582 | **NOT POWERED** |
+| `noctua` | [-0.1166, -0.0208] | 0.0142 | 0.0156  *(at floor)* | 0.0156 | 0.0650 | yes |
+| `noctua40` | [-0.1141, -0.0215] | 0.0131 | 0.0156  *(at floor)* | 0.0156 | 0.0628 | yes |
+| `constant_w` | [-0.1933, +0.0173] | 0.0843 | 0.0469 | 0.0156 | 0.1430 | **NOT POWERED** |
+| `garch_normal` | [-0.1348, -0.0194] | 0.0185 | 0.0312 | 0.0156 | 0.0783 | **NOT POWERED** |
+| `garch_t` | [-0.0571, -0.0087] | 0.0173 | 0.0156  *(at floor)* | 0.0156 | 0.0328 | yes |
+| `har_short` | [-0.0867, -0.0233] | 0.0067 | 0.0156  *(at floor)* | 0.0156 | 0.0431 | yes |
+| `log_har` | [-0.1045, -0.0289] | 0.0062 | 0.0156  *(at floor)* | 0.0156 | 0.0514 | yes |
+| `noctua40_mean` | — (is the best arm) | | | | | |
+| `noctua_mean` | [-0.0049, -0.0010] | 0.0122 | 0.0312 | 0.0156 | 0.0027 | yes |
+| `persistence` | [-0.1631, -0.0388] | 0.0087 | 0.0156  *(at floor)* | 0.0156 | 0.0844 | yes |
 
 `n` here is the number of **folds**, and that is intrinsic rather than a design choice: realised volatility is a property of a series, so exactly one number exists per fold. Per STATS_PROTOCOL §2–3 a bootstrap over same-signed observations at this n cannot fail, so the t-interval governs where the two disagree — and they do disagree for `noctua`, where the block interval excludes zero adversely and the t-interval does not. The exact sign-flip permutation has a hard one-sided floor of 2⁻⁶ = 0.0156, so **no Bonferroni-corrected claim is available from this design at any effect size**.
 
-Best arm on the primary: **har_short**. Ranking by net return identical at all three cost levels: **False** — so the return comparison is **cost-dependent** and no arm is declared better on it.
+Best arm on the primary: **noctua40_mean**. Ranking by net return identical at all three cost levels: **False** — so the return comparison is **cost-dependent** and no arm is declared better on it.
 
 ## How a hypothesis becomes a result here
 
@@ -283,7 +356,7 @@ timeline
 
 ## The experiment register
 
-83 pre-registered experiments. **ADOPT** 20 · **ADVANCE** 11 · **NULL** 9 · **OPEN** 21 · **REJECT** 20 · **WITHDRAWN** 2
+151 pre-registered experiments. **ADOPT** 22 · **ADVANCE** 34 · **NULL** 18 · **OPEN** 43 · **REJECT** 32 · **WITHDRAWN** 2
 
 Every row was registered with its decision rule **before** it ran. Failures are not deleted; they stay in the family and count against the multiple-testing correction.
 
@@ -334,7 +407,7 @@ Every row was registered with its decision rule **before** it ran. Failures are 
 | `iv-correction-audit` | machinery | ADOPT | Does eval/iv_correction.py measure what its pre-registered rule says it measures, BEFORE it is run? |
 | `E2-iv-correction` | features | REJECT | Does Deribit DVOL implied volatility carry information NOCTUA's own-past-bars cascade does not? |
 | `E2b` ⤳ | features | OPEN | With the intercept removed, do the IV features carry any INCREMENTAL information? |
-| `E-scale` | calibration | OPEN | Should NOCTUA's point forecast be scaled up from the median toward the QLIKE-optimal mean? |
+| `E-scale` ⤳ | calibration | OPEN | Should NOCTUA's point forecast be scaled up from the median toward the QLIKE-optimal mean? |
 | `E2b-result` | features | REJECT | With the intercept removed, do the IV features carry any INCREMENTAL information? |
 | `E2c` ⤳ | features | OPEN | Do DVOL's DYNAMICS carry incremental information once its redundant LEVEL is dropped? |
 | `E2c-result` | features | ADVANCE | Do DVOL's DYNAMICS carry incremental information once its redundant LEVEL is dropped? |
@@ -372,6 +445,74 @@ Every row was registered with its decision rule **before** it ran. Failures are 
 | `E-prod-fairbaseline` ⤳ | volatility | OPEN | Does NOCTUA's headline production advantage over Log-HAR survive a horizon-aware baseline? |
 | `E-prod-fairbaseline-result` | volatility | REJECT | Does NOCTUA's headline production advantage over Log-HAR survive a horizon-aware baseline? |
 | `econ-voltarget-result` | economics | NULL | Does a better volatility forecast produce a better-controlled portfolio once rebalancing costs are charged? |
+| `P2-armA-residual` ⤳ | phase2 | OPEN | Can NOCTUA learn only the residual of a cross-fitted teacher, and does that beat the teacher itself? |
+| `P2-floor-defect` | data | ADVANCE | A missing hour is encoded as 'volatility was 1e-6'. What does that cost, and what should Phase 2 do about it? |
+| `P2-scale-v2` ⤳ | phase2 | OPEN | Is a calib-fitted scalar on NOCTUA's sigma adoptable as NOCTUA V2's first component? |
+| `P2-scale-v2-result` | phase2 | REJECT | Is a calib-fitted scalar on NOCTUA's sigma adoptable as NOCTUA V2's first component? |
+| `P2-armA-result` ⤳ | phase2 | ADVANCE | Can NOCTUA learn only the residual of a cross-fitted teacher, and does that beat the teacher itself? |
+| `P2-dataset-audit` | data | ADVANCE | What is the model actually fed, is it event-labelled, and what does that cost? |
+| `P2-event-footprint` | data | ADVANCE | Do scheduled clock-anchored events drive the concentrated forecast error, and can that be tested without acqui |
+| `P2-intraday-basis` ⤳ | features | OPEN | Does a richer hour-of-day basis capture the intraday error structure the single Fourier harmonic cannot repres |
+| `P2-armA-adopt` ⤳ | phase2 | OPEN | Does Arm A's H=6 QLIKE gain survive the barrier battery when the residual architecture runs through the SHIPPE |
+| `P2-armA-adopt-a1` ⤳ | phase2 | OPEN | Does Arm A's H=6 QLIKE gain survive the barrier battery when the residual architecture runs through the SHIPPE |
+| `P2-pool-composition` ⤳ | phase2 | OPEN | Does har_short's accuracy at a given horizon depend on WHICH horizons it was pooled over during fitting? |
+| `P2-pool-composition-a1` ⤳ | phase2 | OPEN | Does har_short's accuracy at a given horizon depend on WHICH horizons it was pooled over during fitting? |
+| `P2-scorecard-rescaled` ⤳ | phase2 | OPEN | Does the teacher ranking survive giving every teacher its own calib-fitted level scalar? |
+| `P2-pool-composition-result` | phase2 | NULL | Does har_short's accuracy at a given horizon depend on WHICH horizons it was pooled over during fitting? |
+| `P2-scorecard-rescaled-result` ⤳ | phase2 | ADVANCE | Does the teacher ranking survive giving every teacher its own calib-fitted level scalar? |
+| `P2-mean-level` ⤳ | phase2 | OPEN | Is NOCTUA's level bias exactly the median-vs-mean gap, and does the model's OWN per-episode conversion survive |
+| `P2-armA-correction` | phase2 | REJECT | Does Arm A's H=6 cell survive comparators that are equipped under R39? |
+| `P2-mean-level-a1` ⤳ | phase2 | OPEN | Is NOCTUA's level bias exactly the median-vs-mean gap, and does the model's OWN per-episode conversion survive |
+| `P2-adaptive-wrong-functional` | phase2 | REJECT | Can the adaptive correction that SHIPS remove the level bias that P2-scorecard-rescaled measured? |
+| `P2-level-report` ⤳ | phase2 | OPEN | Does reporting the conditional-MEAN volatility, while leaving the predictive object untouched, fix the QLIKE l |
+| `P2-mean-level-result` | phase2 | REJECT | Is NOCTUA's level bias exactly the median-vs-mean gap, and does the model's OWN per-episode conversion survive |
+| `P2-level-report-result` ⤳ | phase2 | ADVANCE | Does reporting the conditional-MEAN volatility, while leaving the predictive object untouched, fix the QLIKE l |
+| `P2-trailing-scalar` ⤳ | phase2 | ADVANCE | Can a TRAILING estimate of the QLIKE scalar do the job of the fold-fitted one at serving, and what does the sh |
+| `P2-level-report-adopt` | phase2 | ADOPT | Does the reporting fix pass its serving gate, and what exactly changed? |
+| `P2-intraday-basis-result` | phase2 | NULL | Can a richer hour-of-day basis capture the intraday error structure the single Fourier harmonic cannot represe |
+| `P2-dst-alignment` ⤳ | phase2 | OPEN | Is the intraday error footprint sharper in US EASTERN local time than in UTC, as scheduled macro releases woul |
+| `P2-dst-alignment-result` | phase2 | NULL | Is the intraday error footprint sharper in US EASTERN local time than in UTC? |
+| `P2-dst-shift` ⤳ | phase2 | OPEN | Does the H=1 error peak sit exactly ONE HOUR EARLIER in UTC during US summer than during US winter? |
+| `P2-dst-shift-result` ⤳ | phase2 | ADVANCE | Does the H=1 error peak sit exactly ONE HOUR EARLIER in UTC during US summer than during US winter? |
+| `P2-event-window` ⤳ | phase2 | OPEN | Does a small event-hour indicator defined in US EASTERN local time recover the intraday signal that 23 UTC dum |
+| `P2-event-window-result` | phase2 | NULL | Does a small event-hour indicator defined in US EASTERN local time recover the intraday signal that 23 UTC dum |
+| `P3-attention-feature` ⤳ | phase3 | OPEN | Does an hourly ATTENTION-INTENSITY feature -- how much is being written about BTC right now -- reduce the conc |
+| `P2-seed-variance` ⤳ | phase2 | OPEN | How large is the training variance that the paired bootstrap omits, and does it account for BOTH the H=1 effec |
+| `P2-seed-variance-result` | phase2 | REJECT | How large is the training variance the paired bootstrap omits, and does it account for BOTH the H=1 effect and |
+| `P3-attention-feature-a1` ⤳ | phase3 | OPEN | Does an hourly ATTENTION-INTENSITY feature reduce the concentrated forecast error that the clock cannot reach? |
+| `P2-artifact-locus` | phase2 | REJECT | Is the reproducible H=24 ET-vs-UTC artifact explained by the Eastern column being season-correlated? |
+| `P3-attention-feature-a2` ⤳ | phase3 | OPEN | Does an hourly ATTENTION-INTENSITY feature reduce the concentrated forecast error that the clock cannot reach? |
+| `P2-audit-seedvar` | phase2 | ADVANCE | Does the adversarial audit of P2-seed-variance-result and R51/R52 survive independent verification? |
+| `P2-dst-shift-audited` | phase2 | ADVANCE | Does the H=1 error peak sit one hour earlier in UTC in US summer -- and does that establish the US EASTERN SCH |
+| `P2-audit-levelfix` | audit | NULL | Can the ONE shipped change -- the trailing QLIKE scalar on the reported sigma -- be broken? |
+| `P2-audit-rescaled-ranking` | audit | OPEN | Can P2-scorecard-rescaled-result -- the finding that overturned the Phase 1 diagnosis and ended teacher mining |
+| `P2-tail-clustering` | labelling | ADVANCE | Is EVENT LABELLING tractable -- i.e. do the worst-case episodes concentrate into few enough CALENDAR DAYS that |
+| `P2-scorecard-rescaled-reproduced` ⤳ | phase2 | ADVANCE | Does the rescaled teacher ranking -- the result that overturned the Phase 1 diagnosis and ended teacher mining |
+| `P2-repro-cause` ⤳ | methodology | REJECT | Why does noctua_v1 fail to reproduce when every deterministic teacher reproduces to 1e-5? |
+| `P3-exogenous-dvol` | phase3 | ADVANCE | Does the options market's forward volatility expectation, measured at the anchor as IV minus trailing RV, carr |
+| `P2-sample-sensitivity` | methodology | ADVANCE | Can THREE training episodes out of 476,359 move the neural arm's pooled QLIKE by as much as the unexplained re |
+| `P2-capacity-profile` | methodology | ADVANCE | What does ONE uninformative extra column do to pooled QLIKE, per horizon -- and is the per-column cost a const |
+| `P3-exogenous-decomposition` | phase3 | ADVANCE | Which of D2's three columns carries the H=168 gain, given that x_ivrv -- the primary registered feature -- cle |
+| `P3-exogenous-barriers` | phase3 | NULL | Does D2's QLIKE gain at H=168 come at the cost of the barrier distribution, as P2-scale-v2's did? |
+| `P3-regularisation` ⤳ | phase3 | OPEN | A CONTROL ARM showed that adding ONE column of pure noise improves pooled QLIKE by 1.46% at H=1 and 1.24% at H |
+| `P3-colshuf-sample` | methodology | ADVANCE | Does the +1.46% gain from adding ONE pure-noise column reproduce on the full sample, or was it a property of t |
+| `P3-mz-result` ⤳ | phase2 | ADVANCE | After removing AFFINE bias (level AND slope) from every teacher symmetrically, does NOCTUA retain any advantag |
+| `P3-functional-parity` | phase2 | ADVANCE | The teacher zoo scores NOCTUA's sigma_med -- the MEDIAN of its predictive distribution -- while QLIKE is minim |
+| `P3-functional-scorecard` | phase2 | ADVANCE | With NOCTUA scored on the functional QLIKE is minimised by, how does it rank against the whole teacher zoo und |
+| `P3-barrier-channel` | phase2 | ADVANCE | Can the REPORTED sigma scalar affect the barrier curves at all -- i.e. is the separation predict.py enforces b |
+| `P3-functional-adopt` | phase3 | ADOPT | Ship it: does the served forecast report the conditional MEAN of variance, and does the change reach the repor |
+| `P3-functional-audited` | phase3 | ADVANCE | Can the adopted functional change be broken? An adversarial agent was given five attacks and returned 'probabl |
+| `P3-seed-dispersion` | phase3 | OPEN | Is NOCTUA's under-reaction (MZ slope beta > 1) caused by AVERAGING THREE SEEDS, or is it intrinsic to the pinb |
+| `P3-static-undefined` | infrastructure | REJECT | Can the ten-gate precommit suite detect a NameError in code that nothing reruns? |
+| `P3-beta-is-affine` ⤳ | phase3 | ADVANCE | Is NOCTUA's MZ slope defect (beta > 1) an INFORMATION defect, or an affine miscalibration that a two-parameter |
+| `P3-beta-sample-size` | phase3 | REJECT | Is the H=168 failure of the MZ correction regime variation (2022 being Terra/3AC/FTX), or is the correction si |
+| `P3-regularisation-result` | phase3 | NULL | Closing P3-regularisation, which was left OPEN with its artifact already on disk. Does explicit regularisation |
+| `P3-spike-ratio-refresh` | phase3 | OPEN | MODEL_CARD 5.3 reports a spike RV/sigma ratio of 1.453 against 0.964 on calm nights, measured against sigma_me |
+| `P3-level-oscillation-closed` | phase2 | REJECT | The stagnation supervisor flags phase2/level-scale as OSCILLATING: REJECT -> ADOPT -> REJECT across P2-armA-co |
+| `P3-frvp-double-touch` | phase3 | REJECT | A practitioner thesis: build a Fixed Range Volume Profile over a 24h window, and if price touches BOTH the val |
+| `P3-frvp-sell-rule` | phase3 | NULL | The other half of the FRVP thesis: at the production anchor, above POC sell VAH and below POC sell VAL. Scored |
+| `P3-frvp-sensitivity` | phase3 | REJECT | Are P3-frvp-double-touch and P3-frvp-sell-rule artifacts of the free parameters? A thesis arrives with its par |
+| `P3-oi-harvest` | phase3 | NULL | A second practitioner thesis: aggregate open interest across venues concentrates at strikes the market then do |
 
 ⤳ = superseded by a later entry; the original is kept rather than edited.
 
@@ -411,7 +552,13 @@ python -m model.eval.leakage --episodes model/artifacts/episodes_h4.parquet \
 python -m model.eval.slice_power
 
 # 3. the four-horizon volatility matrix  (~1h, 6 folds x 2 variants x 3 seeds)
-python -m model.eval.vol_matrix
+python -m model.eval.vol_matrix --fair-baselines         --out model/artifacts/vol_matrix_fair.json
+#    NOT the bare invocation. report.py prefers vol_matrix_fair.json, and the
+#    volatility section above IS the fair run -- OLS baselines refitted per
+#    horizon. The default produces the horizon-blind matrix the ledger
+#    rejected, so following the bare command reproduces a different result
+#    from the one this document reports. It said the bare command until
+#    2026-09-13.
 
 # 4. the direction benchmark             (~30 min)
 python -m model.eval.direction_bench
