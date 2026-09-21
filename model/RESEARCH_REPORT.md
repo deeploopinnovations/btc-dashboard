@@ -8,7 +8,7 @@ Phases 1 and 2 reported that the shipped model was unchanged by any of this. Pha
 - **NOCTUA's deficit against the HAR family was the scalar it reported, not the model.** QLIKE is minimised by the conditional *mean* of variance; the served scalar was the *median* of the same forward pass. Reading the mean instead — nothing refitted, no parameter added — improves raw QLIKE by **+13.29%** / **+20.65%** / **+26.00%** / **+11.90%** at H = 1 / 6 / 24 / 168. After a **symmetric** two-parameter recalibration given to every teacher, NOCTUA leads at H = 1 (+8.45% over `garch_t`), H = 6 (+5.41% over `har_short`), H = 24 (+5.37% over `har_short`), and H = 168 is a tie (+0.36%). This reverses the Phase 1 headline that it fails at all four horizons.
 - **Direction is closed at all four horizons (1h, 6h, 24h, 168h).** 8 of 8 model arms fail their pre-registered rule. The paired per-episode interval excludes zero on the *adverse* side — the arm is worse than the calibration-window base rate — in 5 of 8 rows and straddles zero in 3, at n up to 49,114 per horizon. Both negative controls behave. This is a measured absence, not an underpowered one.
 - **The volatility matrix**, one NOCTUA arm per horizon against the mandatory baseline family: **1h** vs `persistence` — `noctua` fails (-0.04601), `noctua40` fails (+0.00152); **6h** vs `har_short` — `noctua` fails (-0.02424), `noctua40` fails (-0.00868); **24h** vs `har_short` — `noctua` fails (-0.00037), `noctua40` fails (-0.04294); **168h** vs `har_short` — `noctua` not evaluable, `noctua40` fails (-0.02442). 0 row(s) clear the pre-registered interval. Baselines refitted **per horizon**, so they know the horizon NOCTUA knows. Under the earlier horizon-blind fits NOCTUA cleared at H = 24 and H = 168; neither survives, and at H = 168 the pooled baseline had been costing itself a factor of 2.06.
-- **The production headline survives its own comparison and fails a better one.** Against the arm it is published against it is +6.13% and clears; against `har_short` — a baseline that was already in `noctua/baselines.py` and had never been scored — it is +5.42% and does not. Twice in this phase the strongest available baseline turned out to already exist here and to be missing from the arm list.
+- **The production headline survives its own comparison and fails a better one.** Against the arm it is published against it is +6.16% and clears; against `har_short` — a baseline that was already in `noctua/baselines.py` and had never been scored — it is +5.45% and does not. Twice in this phase the strongest available baseline turned out to already exist here and to be missing from the arm list.
 - **An options P&L cannot be produced honestly here and is not produced.** What replaces it is a volatility-targeting overlay whose primary endpoint is risk control rather than return.
 
 Three things found by guards rather than by looking:
@@ -205,6 +205,10 @@ One caution about every pooled β above: it is a mixture across six folds carryi
 
 `REPORT_FUNCTIONAL = "mean"`: the served scalar is now the mean of the same forward pass. This is safe by construction rather than by measurement — the reported scalar moves the barrier curves by 0.000e+00, because the committee specialists build their curves from `sigma_atoms` and never read it, while `sigma_atoms` moves them by 8.864e−03. The live anchor moves from 2.067% to 2.640%.
 
+**Scope correction.** Everything above this subsection is the RAW network; the serving path BLENDS with Log-HAR at `blend_w = 0.25`. A uniform log-shift cannot change the mean/median ratio, but it changes the level that ratio multiplies — so the raw network's 1.43 becomes ~1.0 under the mean, while the blended path's 1.12 overshoots to 0.82. On the production slice the median's calibration ratio is **1.1231** and the mean's is **0.8181**, so the median is the closer of the two to 1 there and the “calibrated to within 1–4% with nothing fitted” claim does **not** hold on the pipeline that is served.
+
+The mean is nevertheless still reported, because the paired contrast on that slice is **not separated**: median 0.25619 against mean 0.26039, −1.64% favouring the median, CI [−0.03105, +0.01798], 2 of 6 folds favouring the mean. The production configuration is one episode per day, so n is 2,046 there against 49,000 in the zoo and a 1.6% difference cannot resolve. Flipping a level decision on a point estimate is how `phase2/level-scale` oscillated three times, so it stays put until a properly powered contrast on that slice says otherwise (`P3-functional-adopt-scope`).
+
 ## Volatility: the production slice, against the best baseline
 
 The production configuration is H = 19 anchored at 17:00 UTC. This table asks whether the published advantage survives the **strongest baseline this repository already contains**, with the bar chosen on the calibration slice and never on test.
@@ -213,19 +217,22 @@ The production configuration is H = 19 anchored at 17:00 UTC. This table asks wh
 
 | arm | QLIKE | vs best | rel % | worst fold | paired CI |
 |---|---:|---:|---:|---:|---|
-| `noctua` | 0.25627 | +0.01469 | +5.42 | 0.36097 | [-0.00319, +0.03029] |
+| `noctua` | 0.25619 | +0.01478 | +5.45 | 0.36088 | [-0.00316, +0.03030] |
 | `har_short` | 0.27096 | +0.00000 | +0.00 | 0.37127 | — (is the baseline) |
 | `log_har` | 0.28866 | -0.01770 | -6.53 | 0.38565 | [-0.02873, -0.00674] |
 | `log_har_cal` | 0.26890 | +0.00207 | +0.76 | 0.36693 | [-0.01287, +0.01617] |
 | `log_har_cal_pooled` | 0.27300 | -0.00204 | -0.75 | 0.37458 | [-0.01723, +0.01168] |
 | `log_har_pooled` | 0.29846 | -0.02750 | -10.15 | 0.39788 | [-0.04100, -0.01483] |
+| `noctua_mean` | 0.26039 | +0.01057 | +3.90 | 0.39360 | [-0.01745, +0.03236] |
 | `persistence` | 0.39620 | -0.12523 | -46.22 | 0.61058 | [-0.18649, -0.08427] |
 
-**The incumbent claim is confirmed.** Against `log_har_cal_pooled` — the arm the published headline is actually measured against — NOCTUA is +0.01673 (+6.13%), CI [+0.00988, +0.02256], which clears.
+**The incumbent claim is confirmed.** Against `log_har_cal_pooled` — the arm the published headline is actually measured against — NOCTUA is +0.01682 (+6.16%), CI [+0.01000, +0.02262], which clears.
 
-**The primary fails anyway, for a different reason.** Against `har_short` — which extends Corsi's cascade downward with `har_1h` and `har_6h`, has been in `noctua/baselines.py` throughout, and had never been scored as a competitor — NOCTUA is +5.42% and **DOES NOT CLEAR**. The unadjusted 95% interval [+0.00119, +0.02621] straddles zero too, so this is not a multiple-testing artifact.
+**The primary fails anyway, for a different reason.** Against `har_short` — which extends Corsi's cascade downward with `har_1h` and `har_6h`, has been in `noctua/baselines.py` throughout, and had never been scored as a competitor — NOCTUA is +5.45% and **DOES NOT CLEAR**. The unadjusted 95% interval [+0.00131, +0.02627] straddles zero too, so this is not a multiple-testing artifact.
 
 NOCTUA still posts the best pooled QLIKE of any arm here. It is simply not *significantly* better than the best baseline at this sample size.
+
+**The arm that is now served, scored on this slice for the first time.** Every number above is `sigma_med` — the scalar this slice was serving when the family was registered. `noctua_mean` is the functional QLIKE is minimised by, off the same forward pass and after the same blend: 0.26039 against `har_short`, +3.90% versus +5.45% for the median. It carries **no pre-registered verdict** — the family was fixed at 5 rows before this question existed, and adding arms to a family until one clears is not a test. It is reported because this is the slice that is actually served, and until now the headline for it had never been measured on the scalar it actually serves.
 
 ## Direction as a probability forecast
 
@@ -356,7 +363,7 @@ timeline
 
 ## The experiment register
 
-151 pre-registered experiments. **ADOPT** 22 · **ADVANCE** 34 · **NULL** 18 · **OPEN** 43 · **REJECT** 32 · **WITHDRAWN** 2
+156 pre-registered experiments. **ADOPT** 22 · **ADVANCE** 35 · **NULL** 19 · **OPEN** 43 · **REJECT** 35 · **WITHDRAWN** 2
 
 Every row was registered with its decision rule **before** it ran. Failures are not deleted; they stay in the family and count against the multiple-testing correction.
 
@@ -502,17 +509,22 @@ Every row was registered with its decision rule **before** it ran. Failures are 
 | `P3-barrier-channel` | phase2 | ADVANCE | Can the REPORTED sigma scalar affect the barrier curves at all -- i.e. is the separation predict.py enforces b |
 | `P3-functional-adopt` | phase3 | ADOPT | Ship it: does the served forecast report the conditional MEAN of variance, and does the change reach the repor |
 | `P3-functional-audited` | phase3 | ADVANCE | Can the adopted functional change be broken? An adversarial agent was given five attacks and returned 'probabl |
-| `P3-seed-dispersion` | phase3 | OPEN | Is NOCTUA's under-reaction (MZ slope beta > 1) caused by AVERAGING THREE SEEDS, or is it intrinsic to the pinb |
+| `P3-seed-dispersion` ⤳ | phase3 | OPEN | Is NOCTUA's under-reaction (MZ slope beta > 1) caused by AVERAGING THREE SEEDS, or is it intrinsic to the pinb |
 | `P3-static-undefined` | infrastructure | REJECT | Can the ten-gate precommit suite detect a NameError in code that nothing reruns? |
 | `P3-beta-is-affine` ⤳ | phase3 | ADVANCE | Is NOCTUA's MZ slope defect (beta > 1) an INFORMATION defect, or an affine miscalibration that a two-parameter |
-| `P3-beta-sample-size` | phase3 | REJECT | Is the H=168 failure of the MZ correction regime variation (2022 being Terra/3AC/FTX), or is the correction si |
-| `P3-regularisation-result` | phase3 | NULL | Closing P3-regularisation, which was left OPEN with its artifact already on disk. Does explicit regularisation |
-| `P3-spike-ratio-refresh` | phase3 | OPEN | MODEL_CARD 5.3 reports a spike RV/sigma ratio of 1.453 against 0.964 on calm nights, measured against sigma_me |
+| `P3-beta-sample-size` ⤳ | phase3 | REJECT | Is the H=168 failure of the MZ correction regime variation (2022 being Terra/3AC/FTX), or is the correction si |
+| `P3-regularisation-result` ⤳ | phase3 | NULL | Closing P3-regularisation, which was left OPEN with its artifact already on disk. Does explicit regularisation |
+| `P3-spike-ratio-refresh` ⤳ | phase3 | OPEN | MODEL_CARD 5.3 reports a spike RV/sigma ratio of 1.453 against 0.964 on calm nights, measured against sigma_me |
 | `P3-level-oscillation-closed` | phase2 | REJECT | The stagnation supervisor flags phase2/level-scale as OSCILLATING: REJECT -> ADOPT -> REJECT across P2-armA-co |
 | `P3-frvp-double-touch` | phase3 | REJECT | A practitioner thesis: build a Fixed Range Volume Profile over a 24h window, and if price touches BOTH the val |
 | `P3-frvp-sell-rule` | phase3 | NULL | The other half of the FRVP thesis: at the production anchor, above POC sell VAH and below POC sell VAL. Scored |
 | `P3-frvp-sensitivity` | phase3 | REJECT | Are P3-frvp-double-touch and P3-frvp-sell-rule artifacts of the free parameters? A thesis arrives with its par |
 | `P3-oi-harvest` | phase3 | NULL | A second practitioner thesis: aggregate open interest across venues concentrates at strikes the market then do |
+| `P3-seed-dispersion-result` | phase3 | REJECT | Closing P3-seed-dispersion. Is NOCTUA's under-reaction (MZ slope beta > 1) caused by AVERAGING THREE SEEDS, or |
+| `P3-beta-regime-correction` | phase3 | REJECT | P3-beta-sample-size claimed the H=168 cross-fold scatter in the MZ slope is 'noise, not a regime'. Does a movi |
+| `P3-regularisation-long` | phase3 | REJECT | P3-regularisation-result left H=24 and H=168 unconcluded because the same-sample col-shuf bar had never been m |
+| `P3-functional-adopt-scope` | phase3 | ADVANCE | P3-functional-adopt switched the served scalar to sigma_mean on teacher-zoo evidence, where noctua_v1 is the R |
+| `P3-spike-ratio-result` | phase3 | NULL | Closing P3-spike-ratio-refresh. What are MODEL_CARD 5.3's spike and calm RV/sigma ratios under the adopted fun |
 
 ⤳ = superseded by a later entry; the original is kept rather than edited.
 

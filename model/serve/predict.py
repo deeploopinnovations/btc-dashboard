@@ -143,6 +143,27 @@ def forecast(model, hours: pd.DataFrame, H: int = PROD_H,
     # makes it WORSE at all four horizons (0.54119 -> 0.54815 at H=1), which is
     # why the trailing scalar is dropped rather than kept on top.
     #
+    # SCOPE CORRECTION, 2026-09-21 (P3-functional-adopt-scope). THE NUMBERS
+    # ABOVE ARE THE RAW NETWORK'S, AND THIS PATH IS BLENDED. The teacher zoo
+    # scores `noctua_v1` unblended; the serving runtime applies blend_w = 0.25
+    # inside NumpyNoctua.predict, and a uniform log-shift cannot change the
+    # mean/median RATIO but does change the level that ratio multiplies. Raw
+    # sits at a calibration ratio of 1.43, so a factor near 1.2 lands close to
+    # 1.0 -- that is the zoo result quoted above. The BLENDED path already sits
+    # at 1.12, and the same factor overshoots to 0.82. Measured on the
+    # production slice: median ratio 1.1231, mean ratio 0.8181, so the MEDIAN
+    # is the closer of the two to 1 here and the "calibrated to within 1-4%"
+    # claim does NOT hold on this pipeline.
+    #
+    # WHY THE MEAN IS NEVERTHELESS STILL REPORTED: the paired contrast on the
+    # served slice is NOT SEPARATED -- median 0.25619 against mean 0.26039,
+    # delta -1.64% favouring the median, CI [-0.03105, +0.01798] with 2 of 6
+    # folds favouring the mean. n is 2,046 episodes here against 49,000 in the
+    # zoo, because the production configuration is one episode per day, so a
+    # 1.6% difference cannot resolve. Flipping a level decision on a point
+    # estimate is how phase2/level-scale oscillated three times (R80), so this
+    # stays put until a properly powered contrast on THIS slice says otherwise.
+    #
     # SAFE BY CONSTRUCTION, not merely by test (P3-barrier-channel): the
     # committee builds every barrier curve from `pred["sigma_atoms"]` and never
     # reads the reported scalar -- a 13% change in it moves the curves by

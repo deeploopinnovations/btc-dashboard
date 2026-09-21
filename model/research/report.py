@@ -303,7 +303,26 @@ def sec_functional() -> str:
         "measurement \u2014 the reported scalar moves the barrier curves by "
         "0.000e+00, because the committee specialists build their curves from "
         "`sigma_atoms` and never read it, while `sigma_atoms` moves them by "
-        "8.864e\u221203. The live anchor moves from 2.067% to 2.640%.\n")
+        "8.864e\u221203. The live anchor moves from 2.067% to 2.640%.\n\n"
+        "**Scope correction.** Everything above this subsection is the RAW "
+        "network; the serving path BLENDS with Log-HAR at `blend_w = 0.25`. A "
+        "uniform log-shift cannot change the mean/median ratio, but it changes "
+        "the level that ratio multiplies \u2014 so the raw network's 1.43 "
+        "becomes ~1.0 under the mean, while the blended path's 1.12 overshoots "
+        "to 0.82. On the production slice the median's calibration ratio is "
+        "**1.1231** and the mean's is **0.8181**, so the median is the closer "
+        "of the two to 1 there and the \u201ccalibrated to within 1\u20134% "
+        "with nothing fitted\u201d claim does **not** hold on the pipeline that "
+        "is served.\n\n"
+        "The mean is nevertheless still reported, because the paired contrast "
+        "on that slice is **not separated**: median 0.25619 against mean "
+        "0.26039, \u22121.64% favouring the median, CI [\u22120.03105, "
+        "+0.01798], 2 of 6 folds favouring the mean. The production "
+        "configuration is one episode per day, so n is 2,046 there against "
+        "49,000 in the zoo and a 1.6% difference cannot resolve. Flipping a "
+        "level decision on a point estimate is how `phase2/level-scale` "
+        "oscillated three times, so it stays put until a properly powered "
+        "contrast on that slice says otherwise (`P3-functional-adopt-scope`).\n")
     return "".join(out)
 
 

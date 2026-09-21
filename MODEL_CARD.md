@@ -109,7 +109,22 @@ Source: `model/ROADMAP.md` §4, citing the in-sample regression fit of RV on the
 
 On spike nights (volatility jumps >1σ), the model's median RV/sigma ratio is **1.453** vs **0.964** on normal nights — a **45% underforecast** of realized move relative to sigma.
 
-> **STALE AS OF 2026-09-13, AND NOT YET RE-MEASURED.** Both ratios were measured
+> **RE-MEASURED 2026-09-21, AND THE REFRESH IS VOID BY ITS OWN RULE.**
+> `P3-spike-ratio-result` re-ran both ratios on the production slice under both
+> functionals. Measured, as median(RV/sigma) — the statistic this section
+> quotes: **1.5352 spike / 0.8868 calm** under `sigma_med`, and **1.3200 /
+> 0.7700** under the served `sigma_mean`. The pre-registration required the
+> median column to reproduce 1.453 / 0.964 to within rounding as proof the
+> harness measures what 7a measured; at 5.7% and 8.0% off it does not, so the
+> refresh is recorded as VOID rather than accepted at near agreement, and the
+> residual gap is unexplained (candidate causes: a different fold set, a
+> different spike threshold, an intervening pipeline fix). What IS settled:
+> the **direction** holds under either functional — spike nights are
+> under-forecast relative to calm by a factor near 1.7 in both columns — and
+> the functional change acts almost exactly uniformly on the two (spike −14.0%,
+> calm −13.2%), refuting the prediction that it would act mainly on the tail.
+>
+> **Original note, 2026-09-13:** Both ratios were measured
 > against the scalar the model served at the time, `sigma_med`. Serving now
 > reports `sigma_mean` of the same forward pass (`P3-functional-adopt`), and the
 > published level rose 27.7% — so the denominator of both ratios changed and
