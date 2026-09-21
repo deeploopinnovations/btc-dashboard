@@ -1,6 +1,41 @@
 {
   "items": [
     {
+      "headline": "Bitcoin price has cleared a key hurdle that has historically preceded major bull runs",
+      "url": "https://www.coindesk.com/markets/2026/09/21/bitcoin-s-price-has-cleared-a-key-hurdle-that-has-historically-preceded-major-bull-runs",
+      "src": "coindesk.com",
+      "date": "20260921T044500Z",
+      "sent": "neg"
+    },
+    {
+      "headline": "Who Needs CLARITY Anyway ? ARB Could See 70X Increase : Hodler Digest",
+      "url": "https://cointelegraph.com/magazine/who-needs-clarity-anyway-arb-could-see-70x-increase-asia-express",
+      "src": "cointelegraph.com",
+      "date": "20260921T003000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Analyzing Bullish ( BLSH ) and Its Peers",
+      "url": "https://www.themarketsdaily.com/2026/09/20/analyzing-bullish-blsh-and-its-peers.html",
+      "src": "themarketsdaily.com",
+      "date": "20260920T191500Z",
+      "sent": "pos"
+    },
+    {
+      "headline": "How high can Bitcoin go ? BTC eyes $83 , 000 as ETF inflows fuel its latest rally",
+      "url": "https://www.hindustantimes.com/world-news/us-news/how-high-can-bitcoin-go-btc-eyes-83-000-as-etf-inflows-fuel-its-latest-rally-101789917394601.html",
+      "src": "hindustantimes.com",
+      "date": "20260920T161500Z",
+      "sent": "pos"
+    },
+    {
+      "headline": "UNI and NEAR Rally : Is Altcoin Momentum Spreading ? ",
+      "url": "https://www.dailyforex.com/forex-technical-analysis/2026/09/crypto-overview-forecast-20-september-2026/249877",
+      "src": "dailyforex.com",
+      "date": "20260920T160000Z",
+      "sent": "pos"
+    },
+    {
       "headline": "Česko je třetí v EU ve využívání kryptoměn v maloobchodě",
       "url": "https://www.idnes.cz/ekonomika/domaci/kryptomeny-nakup-maloobchod-investice.A260920_095808_ekonomika_rts",
       "src": "idnes.cz",
@@ -62,37 +97,9 @@
       "src": "dailypolitical.com",
       "date": "20260920T113000Z",
       "sent": "neu"
-    },
-    {
-      "headline": "Open Loot Trading 17 . 3 % Higher This Week ( OL ) ",
-      "url": "https://www.dailypolitical.com/2026/09/20/open-loot-trading-17-3-higher-this-week-ol.html",
-      "src": "dailypolitical.com",
-      "date": "20260920T113000Z",
-      "sent": "pos"
-    },
-    {
-      "headline": "74 Wild Stories Of People Who Found Themselves Richer Than They Ever Dreamed",
-      "url": "https://www.aol.com/articles/74-wild-stories-people-found-032202000.html",
-      "src": "aol.com",
-      "date": "20260920T071500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "20 Eylül 2026 Piyasa Bülteni : Döviz , Altın ve Kripto - Kıbrıs Gazetesi - Kıbrıs Haber , KKTC Son Dakika ve Gündem Haberleri",
-      "url": "https://kibrisgazetesi.com/20-eylul-2026-piyasa-bulteni-doviz-altin-ve-kripto/",
-      "src": "kibrisgazetesi.com",
-      "date": "20260920T063000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Hyperliquid Surges 18 % to New High as Bitcoin Sees 5 % Gain . What Behind the Divergence ? ",
-      "url": "https://www.aol.com/articles/hyperliquid-surges-18-high-bitcoin-011455000.html",
-      "src": "aol.com",
-      "date": "20260920T030000Z",
-      "sent": "pos"
     }
   ],
-  "ts": 1789912798216,
+  "ts": 1789967762934,
   "source": "GDELT",
-  "_updatedMs": 1789912798216
+  "_updatedMs": 1789967762934
 }
