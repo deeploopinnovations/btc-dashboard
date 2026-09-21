@@ -80,6 +80,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from eval.benchmark import run_fold                                      # noqa: E402
 from eval.direction import mean_ci                                       # noqa: E402
+from eval.levers import causal_spike_flag                                # noqa: E402
 from eval.vol_matrix import block_len_for, qlike_vec                     # noqa: E402
 from noctua import baselines as B                                        # noqa: E402
 from noctua import splits as S                                           # noqa: E402
@@ -104,6 +105,7 @@ def main(argv=None) -> int:
     a = ap.parse_args(argv)
 
     ep, X = load_all(a.artifacts)
+    spike_all = causal_spike_flag(ep)
     folds = S.walk_forward_folds(ep)
     alpha = 0.05 / N_FAMILY
     Hall = ep["H"].to_numpy(np.float64)
@@ -174,10 +176,39 @@ def main(argv=None) -> int:
             for k in FAIR_ARMS:
                 sel[k] = float(np.nanmean(qlike_vec(
                     rvv, np.exp(bl_h[k].predict(Xv)) * sqv)))
+        # P3-spike-ratio-refresh: MODEL_CARD 5.3's spike/calm RV/sigma ratios
+        # were measured against sigma_med, and serving now reports sigma_mean.
+        # Both functionals are recorded here, on the SAME episodes and the same
+        # causal spike flag, so the refresh costs no extra model run. The ratio
+        # reported is mean(RV^2/sigma^2), which is the quantity QLIKE is
+        # calibrated by -- 1.0 is a correctly-levelled conditional mean.
+        sp = spike_all[idx]
+        ratios = {}
+        for k in ("noctua", "noctua_mean"):
+            if k not in arms:
+                continue
+            sg = np.asarray(arms[k], np.float64)
+            r2 = rv ** 2 / np.maximum(sg, 1e-12) ** 2       # QLIKE's calibration
+            r1 = rv / np.maximum(sg, 1e-12)                 # the card's ratio
+            # BOTH, because they are not the same number and the
+            # pre-registration compares against the card. MODEL_CARD 5.3 quotes
+            # a MEDIAN of RV/sigma; QLIKE is calibrated by the MEAN of its
+            # SQUARE. A first run reported only the latter and got 3.14 against
+            # the card's 1.45, which looked like a discrepancy in the data and
+            # was a discrepancy in the statistic -- the pre-registered
+            # reproduce-the-median check caught it, which is what it was for.
+            ratios[k] = {
+                "spike": float(np.nanmean(r2[sp])) if sp.any() else float("nan"),
+                "calm": float(np.nanmean(r2[~sp])) if (~sp).any() else float("nan"),
+                "all": float(np.nanmean(r2)),
+                "med_spike": float(np.nanmedian(r1[sp])) if sp.any() else float("nan"),
+                "med_calm": float(np.nanmedian(r1[~sp])) if (~sp).any() else float("nan"),
+                "med_all": float(np.nanmedian(r1)),
+                "n_spike": int(sp.sum()), "n_calm": int((~sp).sum())}
         acc.append({"year": f["year"], "n": len(idx),
                     "qlike": {k: qlike_vec(rv, np.asarray(v, np.float64))
                               for k, v in arms.items()},
-                    "calib_qlike": sel})
+                    "ratios": ratios, "calib_qlike": sel})
         print(f"  fold {f['year']}  n={len(idx)}  ({time.time()-t0:.0f}s)", flush=True)
 
     if not acc:
@@ -244,8 +275,76 @@ def main(argv=None) -> int:
           f"{rel_inc:+.2f}%   against the horizon-AWARE best baseline: "
           f"{out_arms['noctua']['rel_pct_vs_best']:+.2f}%")
 
+    # --- THE FUNCTIONAL CONTRAST ON THE SERVED PIPELINE.
+    # P3-functional-adopt switched serving to sigma_mean on evidence from the
+    # teacher zoo, where noctua_v1 is the RAW network. This slice is BLENDED
+    # (blend_w = 0.25, applied inside the serving runtime too), and a blend
+    # that pulls the median toward Log-HAR already does most of the level
+    # correction the mean functional would do -- so applying both can
+    # double-correct. A uniform log-shift cannot change the mean/median RATIO,
+    # but it changes the level that ratio is applied to, which is exactly why
+    # the zoo result does not transfer here by itself. This is the paired
+    # contrast that decides it, on identical episodes.
+    if "noctua" in pooled and "noctua_mean" in pooled:
+        d_fn = pooled["noctua"] - pooled["noctua_mean"]      # >0 favours mean
+        g_fn = np.isfinite(d_fn)
+        ci_fn = mean_ci(d_fn[g_fn], alpha=alpha, block_len=L)
+        rel_fn = 100.0 * np.nanmean(d_fn) / np.nanmean(pooled["noctua"])
+        lo, hi = ci_fn["ci95"]
+        if hi < 0:
+            call = "MEDIAN is better on the served pipeline"
+        elif lo > 0:
+            call = "MEAN is better on the served pipeline"
+        else:
+            call = "NOT SEPARATED on this slice"
+        print(f"\n   --- functional contrast, served (blended) pipeline ---")
+        print(f"   noctua(median) {np.nanmean(pooled['noctua']):.5f} vs "
+              f"noctua_mean {np.nanmean(pooled['noctua_mean']):.5f}")
+        print(f"   delta {np.nanmean(d_fn):+.5f} ({rel_fn:+.2f}%)  "
+              f"CI [{lo:+.5f}, {hi:+.5f}]  ->  {call}")
+        print(f"   folds favouring mean: "
+              f"{sum(1 for a_, b_ in zip(per_fold['noctua'], per_fold['noctua_mean']) if b_ < a_)}"
+              f" of {len(per_fold['noctua'])}")
+
+    # --- P3-spike-ratio-refresh, reported beside the headline
+    rr = {}
+    for k in ("noctua", "noctua_mean"):
+        vs = [r["ratios"][k] for r in acc if k in r.get("ratios", {})]
+        if not vs:
+            continue
+        rr[k] = {q: float(np.nanmean([v[q] for v in vs]))
+                 for q in ("spike", "calm", "all",
+                           "med_spike", "med_calm", "med_all")}
+        rr[k]["n_spike"] = int(sum(v["n_spike"] for v in vs))
+        rr[k]["n_calm"] = int(sum(v["n_calm"] for v in vs))
+    if rr:
+        print("\n   --- P3-spike-ratio-refresh: calibration ratio "
+              "mean(RV^2/sigma^2), 1.0 is correctly levelled ---")
+        print(f"   {'functional':>12} | {'mean(RV^2/s^2) -- QLIKE':>26} | "
+              f"{'median(RV/s) -- the card':>26}")
+        print(f"   {'':>12} | {'spike':>8} {'calm':>8} {'all':>8} | "
+              f"{'spike':>8} {'calm':>8} {'all':>8}")
+        for k, v in rr.items():
+            print(f"   {k:>12} | {v['spike']:8.4f} {v['calm']:8.4f} {v['all']:8.4f}"
+                  f" | {v['med_spike']:8.4f} {v['med_calm']:8.4f} "
+                  f"{v['med_all']:8.4f}")
+        print("   MODEL_CARD 5.3 quoted 1.453 spike / 0.964 calm against "
+              "sigma_med.")
+        print("   The median column above is the check that this harness "
+              "measures the")
+        print("   same thing 7a did; a mismatch there voids the refresh rather "
+              "than the card.")
+
     a.out.write_text(json.dumps({
         "family_size": N_FAMILY, "alpha": alpha, "block_len": L,
+        "spike_ratio_refresh": rr,
+        "functional_contrast": (
+            {"delta": float(np.nanmean(pooled["noctua"] - pooled["noctua_mean"])),
+             "ci95": [float(v) for v in mean_ci(
+                 (pooled["noctua"] - pooled["noctua_mean"])[
+                     np.isfinite(pooled["noctua"] - pooled["noctua_mean"])],
+                 alpha=alpha, block_len=L)["ci95"]]}
+            if ("noctua" in pooled and "noctua_mean" in pooled) else None),
         "seeds": a.seeds, "n_test": n, "years": [r["year"] for r in acc],
         "best_baseline": best, "calib_qlike": cal, "arms": out_arms,
         "incumbent_claim": {"delta": float(np.nanmean(d_inc)),

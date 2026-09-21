@@ -252,12 +252,18 @@ def main(argv=None) -> int:
             lags = sorted({1, max(1, H // 2), H, 2 * H})
             d = residual_acf(g["rv"], g["sigma"], lags)
             r["residual_acf"] = d
-            a = d["acf"]
-            f = lambda k: f"{a[k]:8.3f}" if k in a else "       -"
+            # NOT `a`: that is the argparse namespace, and assigning to it here
+            # shadowed it for the rest of main(), so `a.out` three blocks later
+            # raised AttributeError on a dict. The run reached the end of a
+            # 6-second pass and threw away the result. ruff F821 cannot see
+            # this -- the name IS defined, just rebound to the wrong object --
+            # and no selftest reached main()'s --se path.
+            acf_map = d["acf"]
+            fmt = (lambda k: f"{acf_map[k]:8.3f}" if k in acf_map else "       -")
             dl = d["decay_lag"]
             just = "YES" if (dl is None or dl >= H) else f"NO -- decays by lag {dl}"
-            print(f"{H:>5} {f(1)} {f(max(1, H // 2)):>9} {f(H)} {f(2 * H):>9} "
-                  f"{str(dl):>10}  {just}")
+            print(f"{H:>5} {fmt(1)} {fmt(max(1, H // 2)):>9} {fmt(H)} "
+                  f"{fmt(2 * H):>9} {str(dl):>10}  {just}")
         print()
         print(f"{'H':>5} {'sd across folds':>16} {'mean within-fold SE':>20}  reading")
         for r in rows:

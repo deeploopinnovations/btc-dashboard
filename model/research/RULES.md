@@ -686,6 +686,19 @@ and applying it that way was not. Edit a copy and relaunch, or make the edit
 before the job starts.
 Both were caught before they produced a wrong number, which is the only reason
 they are a rule and not an incident.
+
+**POSTSCRIPT, three hours later: the author of this rule broke it again.** A
+`pkill -f "model.eval.prod_fairbaseline"` killed the shell that issued it, so a
+file edit and a job launch chained behind it never ran, and the state had to be
+reconstructed. Writing a rule down is not a mechanism. The replacement idiom is
+concrete and has no judgement in it:
+
+    PID=$(pgrep -f -- "<pattern>" | head -1)    # inspect only
+    kill "$PID"                                  # act on the PID, never -f
+
+and prefer not killing at all: launch into a scratch log, read the log, and let
+the job finish. Anything that takes a pattern and acts on every match will
+eventually match the hand holding it.
 *(`scratchpad/chain.sh`)*
 
 **R79. A regeneration script must reproduce the VARIANT the document reports,
