@@ -1608,6 +1608,32 @@ because a second reported finding does:
 > factor-4 it is **4.67×**. The claim is kept, demoted to corroboration. The
 > load-bearing number is the scale-free `RV/σ = 1.453`.
 
+> **AMENDMENT 2026-09-22 — `1.453` AND THE `45 %` DID NOT REPRODUCE, AND THIS
+> SECTION IS THE PLACE THAT STILL QUOTED THEM.** `P3-spike-ratio-refresh` was
+> pre-registered to re-measure both ratios on the production slice under both
+> reported functionals, and required the median column to reproduce
+> `1.453 / 0.964` to within rounding as proof the harness measures what this
+> section measured. It returned **1.5352 / 0.8868** under `sigma_med` and
+> **1.3200 / 0.7700** under the served `sigma_mean` — off by 5.7 % and 8.0 % —
+> so the refresh is recorded **VOID by its own rule** rather than accepted at
+> near agreement, and the residual gap is unexplained (candidates: a different
+> fold set, a different spike threshold, an intervening pipeline fix).
+>
+> What survives is the **direction** and the **ratio-of-ratios**: spike nights
+> are under-forecast relative to calm ones by a factor near **1.7** under either
+> functional, against `1.453 / 0.964 = 1.51` here. The **45 %** is withdrawn as
+> a current figure and kept only as the record of what was measured on
+> 2026-09-13. `MODEL_CARD.md` §5.3 carries the same amendment; this section did
+> not, and a superseded number left in the reasoning record is the exact failure
+> `research/ledger.py` was built to stop.
+>
+> The **share of loss** is NOT affected: `7.7 % of nights / 25.8 % of loss` was
+> measured from the causal trailing-180-day flag and nothing has re-measured it.
+> Note the definition when quoting it — §7a's spike flag is **causal and 7.7 %**,
+> while `eval/vol_matrix.spike_mask` is an outcome-defined **top 5 %**. They are
+> different populations and `P3-dispersion-conditional` used the second while
+> citing the first's loss share.
+
 The mechanism is a **one-day lag**, visible on every stress cluster in the test
 era:
 
@@ -2191,7 +2217,9 @@ nightly shrink buys calibration and pays for it in sharpness.
 ## 12. The one-day lag is NOT an information ceiling — my §7a claim was wrong
 
 §7a measured that NOCTUA under-forecasts spike nights by 45 % (median RV/sigma
-1.453) while those nights carry 25.8 % of total loss, and explained it as
+1.453 — a figure that did NOT reproduce in 2026-09; see the amendment in §7a,
+and read the direction rather than the magnitude) while those nights carry
+25.8 % of total loss, and explained it as
 **structural**: "every input the model has is a trailing statistic, so a
 trailing forecast is what the feature set can express." That explanation was
 asserted, not tested. Tested, it is wrong.
@@ -2715,7 +2743,8 @@ decides three-quarters of the forecast.
 
 Three sections converge here.
 
-- §7a measured the lag — spike nights under-forecast 45 %, 25.8 % of total loss,
+- §7a measured the lag — spike nights under-forecast (the 45 % is VOID since
+  2026-09; the direction stands), 25.8 % of total loss,
   predicted σ correlating 0.920 with realized RV dated one day *after* and only
   0.507 one day *before* — and explained it as **structural**: "every input the
   model has is a trailing statistic."
