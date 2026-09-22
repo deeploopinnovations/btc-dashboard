@@ -190,6 +190,60 @@ def build_arms(z, H: int, teacher: str) -> dict | None:
             "qlike": {a: float(np.nanmean(v)) for a, v in q.items()}}
 
 
+def vs_drift(roll_path: Path, xfer_path: Path) -> dict:
+    """Does the MEASURED level drift rank which teachers rolling helps?
+
+    The two artifacts are produced by different modules and the drift was
+    measured before this experiment ran, so the correlation is not a curve
+    fitted to its own answer. It is still an ORACLE predictor -- `drift_c`
+    is a calib-to-test movement and therefore reads the test slice -- so it
+    ranks the outcome without being usable to choose an estimator in advance.
+    Saying which of those two things a number is worth the one extra
+    paragraph it costs.
+    """
+    from eval.transfer_anatomy import permutation_p, spearman
+
+    R = json.loads(Path(roll_path).read_text())
+    X = json.loads(Path(xfer_path).read_text())
+    print("does a teacher's MEASURED level drift rank the gain from rolling?")
+    print("  (n = 8 teachers per horizon; |rho| >= 0.738 clears p = 0.05)\n")
+    print(f"{'H':>6} {'rho(drift_c, roll gain)':>25} {'teachers':>10}")
+    out, cells = {}, []
+    for H in HORIZONS:
+        tt = R["horizons"].get(str(H), {}).get("teachers", {})
+        xh = X["horizons"].get(str(H), {})
+        xs, gs = [], []
+        for t, v in tt.items():
+            if t not in xh:
+                continue
+            q = v["qlike"]
+            xs.append(xh[t]["drift_c"])
+            gs.append((q["c"] - q["c_roll"]) / q["c"])
+        if len(xs) < 4:
+            continue
+        r = spearman(xs, gs)
+        out[str(H)] = {"rho": r, "n": len(xs)}
+        cells.append((xs, gs))
+        print(f"{H:>6} {r:25.3f} {len(xs):10d}")
+    if cells:
+        # The POOLED correlation is the weaker statement and is reported as
+        # such: drift magnitudes are not comparable across horizons while
+        # gains are, so pooling mixes scales. It is here because it carries a
+        # permutation p-value the per-horizon rows cannot.
+        pr = permutation_p(cells)
+        out["pooled"] = pr
+        print(f"\npooled rho = {pr['rho']:+.3f} over {pr['n_pairs']} pairs, "
+              f"within-cell permutation p = {pr['p']:.4f}")
+    for H in HORIZONS:
+        tt = R["horizons"].get(str(H), {}).get("teachers", {})
+        pref = [t for t, v in tt.items()
+                if v["qlike"]["c_roll"] < v["qlike"]["c_roll_old"]]
+        if tt:
+            print(f"  H={H:>3}: {len(pref)}/{len(tt)} teachers prefer updating "
+                  f"to freezing -> {', '.join(pref) or 'none'}")
+    return out
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="rolling vs fold-fitted level")
     ap.add_argument("--oof", type=Path,
@@ -198,9 +252,21 @@ def main(argv=None) -> int:
                     default=Path("model/artifacts/rolling_level.json"))
     ap.add_argument("--boot", type=int, default=N_BOOT)
     ap.add_argument("--selftest", action="store_true")
+    ap.add_argument("--vs-drift", action="store_true",
+                    help="read both artifacts and rank gain against measured "
+                         "level drift; runs no model")
+    ap.add_argument("--xfer", type=Path,
+                    default=Path("model/artifacts/transfer_anatomy.json"))
     a = ap.parse_args(argv)
     if a.selftest:
         return selftest()
+    if a.vs_drift:
+        if not (a.out.exists() and a.xfer.exists()):
+            print(f"REFUSING: needs both {a.out} and {a.xfer}; run this module "
+                  f"and eval.transfer_anatomy first")
+            return 1
+        vs_drift(a.out, a.xfer)
+        return 0
 
     z, _ = load_oof(a.oof)
     # FAMILY. Intervals are computed for ONE teacher -- the production arm,
