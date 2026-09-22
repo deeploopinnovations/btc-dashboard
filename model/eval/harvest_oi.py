@@ -45,10 +45,24 @@ time rather than a stateful rule that can go wrong.
     python -m model.eval.harvest_oi --self-test     # offline, parses fixtures
     python -m model.eval.harvest_oi --live          # needs network
 
-NETWORK NOTE: the live path is UNVERIFIED from the session that wrote it --
-this environment's egress policy returns 403 for deribit.com, so only the
-parser is exercised below. The GitHub Actions runner does reach Deribit (it
-is how data/newdata/dvol_btc.parquet exists), and `--live` is what runs there.
+NETWORK NOTE: `--live` DOES NOT RUN IN A CLAUDE SESSION and is not expected
+to. This environment's egress policy returns 403 for deribit.com; the proxy
+runbook says to report that rather than work around it, so `--self-test` is
+the only path exercised locally.
+
+It is no longer unverified, though. The push trigger fired this workflow
+against the feature branch on 2026-09-20 and it committed a real snapshot:
+968 option instruments across 12 expiries, 426,178 total open interest,
+underlying near 80,990. Fetch and parser both work against the actual
+response. What that run also showed, and what the thesis will have to
+accommodate: the max-OI strike holds 6-18% of an expiry's total open interest
+on the large expiries -- 70,000 on the 25-Sep monthly at 10.3% of 189,012,
+80,000 on 25-Dec at 8.9% of 115,864. A modest share, not a dominant one.
+
+WHAT IS STILL NOT HAPPENING: daily accumulation. The `push` trigger fires only
+when this file or its workflow changes, so the snapshots so far are incidental.
+Scheduled runs fire from the DEFAULT branch only, so until the pull request is
+merged the clock has not started and each day's chain is lost for good.
 """
 from __future__ import annotations
 
