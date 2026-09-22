@@ -858,6 +858,29 @@ belongs in the family from the start, and for a derived correlation the cheap
 control is the definition.
 *(`P3-rolling-level-audited`, `P3-transfer-anatomy-audited`)*
 
+**R86. Superseding a number in the ledger does not supersede it in the prose —
+grep for the digits in the same commit.**
+Three superseded figures were found still in circulation on 2026-09-22, none of
+them in the machine-readable record:
+- `MODEL_CARD` §5.3's **heading** asserted a 45% spike under-forecast while its
+  own body, fourteen lines down, recorded the refresh as VOID;
+- `BENCHMARK.md` §7a quoted `1.453` and `45 %` in **four** places with no
+  amendment at all, and §12 and the summary quoted §7a;
+- `RESEARCH_REPORT.md`'s **assumption 2** still said "the shipped model reports
+  a median, which is a known and unresolved mismatch", weeks after
+  `P3-functional-adopt` changed serving to publish `sigma_mean`.
+The ledger was correct in all three cases, and so were the generated tables.
+What drifted was the hand-written framing around them — which is the half a
+reader actually reads, and the half no validator checks. `ledger.py`'s own
+docstring already names two earlier instances (the 1.5218 benchmark, the "92% is
+shape" figure), so this is the fifth and sixth.
+The mechanism is cheap: when an entry supersedes a measured figure,
+`grep -rn` the **digits** across `*.md` and `*.py` in the same commit, and
+amend at the point the claim is *read* rather than only where it is corrected —
+a heading, a bold sentence, an assumption list. A correction fifteen lines below
+the claim is a correction a scanner misses.
+*(`P3-spike-ratio-result`, `P3-functional-adopt`)*
+
 ## Rules about interpretation
 
 **R20. Correcting a number in the humbler direction does not make the
