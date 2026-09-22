@@ -214,15 +214,44 @@ def main(argv=None) -> int:
         print("no complete folds"); return 1
 
     print(f"\n{'metric':>9} {'M0':>10} " + " ".join(f"{m:>10}" for m in ARMS))
-    bar = {}
+    bar, per_fold, bar_ci = {}, {}, {}
     for met in METRICS:
-        vals = {}
+        vals, series = {}, {}
         for arm in ("M0",) + ARMS:
             v = [r[f"bar_{arm}"].get(met) for r in rows
                  if met in r.get(f"bar_{arm}", {})]
+            series[arm] = [float(x) for x in v]
             vals[arm] = float(np.mean(v)) if v else float("nan")
         bar[met] = vals
+        per_fold[met] = series
         print(f"{met:>9} " + " ".join(f"{vals[k]:10.6f}" for k in ("M0",) + ARMS))
+
+    # PAIRED INTERVALS, which the registration demands and a first version of
+    # this runner did not produce -- it printed bare inequalities, the exact
+    # thing R69 exists to prevent, and the verdict rule below is not evaluable
+    # without them. The unit is a FOLD, so n = 6: these will be wide, and that
+    # is the honest width rather than a reason to quote the point estimates
+    # instead. `mean_ci` is used because it is defined at every usable n and
+    # reports the sign count beside the interval (anchor_freshness learned that
+    # the hard way, deciding a rule on a NaN).
+    print(f"\n{'metric':>9} {'arm':>4} {'delta vs M0':>13} "
+          f"{'95% CI (corrected)':>28} {'folds better':>13}")
+    for met in METRICS:
+        sgn = 1.0 if met in HIGHER_BETTER else -1.0
+        for arm in ARMS:
+            a_s = np.asarray(per_fold[met][arm], np.float64)
+            b_s = np.asarray(per_fold[met]["M0"], np.float64)
+            if len(a_s) != len(b_s) or len(a_s) < 2:
+                continue
+            d = sgn * (a_s - b_s)          # >0 always means the arm is better
+            ci = mean_ci(d, alpha=alpha)
+            lo, hi = ci["ci95"]
+            bar_ci[f"{met}_{arm}"] = {
+                "delta": float(np.mean(d)), "ci95": [float(lo), float(hi)],
+                "n_folds_better": int(np.sum(d > 0)), "n_folds": int(len(d)),
+                "clears": bool(lo > 0)}
+            print(f"{met:>9} {arm:>4} {np.mean(d):+13.6f} "
+                  f"[{lo:+12.6f}, {hi:+12.6f}] {int(np.sum(d>0)):>6}/{len(d)}")
 
     print("\npaired per-episode QLIKE (reported, NOT a pass condition):")
     L = block_len_for(PROD_H, sum(len(r["q_M0"]) for r in rows))
@@ -242,11 +271,20 @@ def main(argv=None) -> int:
     for arm in ARMS:
         wins = [m for m in METRICS
                 if np.isfinite(bar[m][arm]) and better(m, bar[m][arm], bar[m]["M0"])]
-        verdicts[arm] = {"metrics_better": wins, "n_better": len(wins)}
-        print(f"   {arm}: {len(wins)}/6 metrics better than shipped  {wins}")
+        clears = [m for m in METRICS
+                  if bar_ci.get(f"{m}_{arm}", {}).get("clears")]
+        verdicts[arm] = {"metrics_better": wins, "n_better": len(wins),
+                         "metrics_clearing": clears, "n_clearing": len(clears)}
+        print(f"   {arm}: {len(wins)}/6 better by point estimate {wins}")
+        print(f"        {len(clears)}/6 with an interval EXCLUDING ZERO {clears}"
+              f"   <- this is what the rule asks for")
     m1, m3 = verdicts["M1"]["n_better"], verdicts["M3"]["n_better"]
     print(f"\n   M1 majority-better: {m1 >= 4}   "
           f"MIRROR M3 majority-better: {m3 >= 4}")
+    n_clear_m1 = verdicts["M1"]["n_clearing"]
+    print(f"\n   ADOPTION per the registration needs a MAJORITY of six with "
+          f"intervals\n   excluding zero: M1 has {n_clear_m1}/6 -> "
+          f"{'MET' if n_clear_m1 >= 4 else 'NOT MET'}")
     if m1 >= 4 and m3 >= 4:
         print("   -> BOTH DIRECTIONS HELP: the gain is perturbing the atoms at "
               "all,\n      not correcting the dispersion. Same shape as "
@@ -264,7 +302,8 @@ def main(argv=None) -> int:
     a.out.write_text(json.dumps(
         {"n_family": N_FAMILY, "alpha": alpha, "prod_H": PROD_H,
          "k_const": k_const, "lambdas": {str(r["year"]): r["lam"] for r in rows},
-         "barriers": bar, "qlike_ci": qci, "verdicts": verdicts}, indent=2,
+         "barriers": bar, "barriers_per_fold": per_fold, "barrier_ci": bar_ci,
+         "qlike_ci": qci, "verdicts": verdicts}, indent=2,
         default=float) + "\n")
     print(f"\nwrote {a.out}")
     return 0
