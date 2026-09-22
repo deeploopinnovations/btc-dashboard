@@ -50,12 +50,23 @@ LEDGER = Path(__file__).with_name("ledger.json")
 #             touch-probability curve, not a sigma.
 #   NULL      ran, decided nothing.
 #   REJECT    ran, failed its rule.
+#   DIAGNOSTIC ran, MEASURED A MECHANISM, and cannot adopt anything because it
+#             never had a decision rule to clear. Added for the same reason
+#             ADVANCE was: P3-transfer-anatomy settled why one shrinkage weight
+#             is right for the level and wrong for the slope, which is not
+#             "decided nothing" -- filing it as NULL would have buried a
+#             finding that two registrations depend on -- and is also not a
+#             candidate, because measuring a mechanism post hoc is not
+#             evidence that a change survives a rule fixed in advance.
 #
 # The vocabulary refused ADVANCE the first time it was used, which was the
 # ledger working: a state with no name is a state that gets quietly folded into
 # a neighbouring one, and folding ADVANCE into ADOPT is how an unconfirmed
-# result reaches an artifact.
-VERDICTS = ("ADOPT", "ADVANCE", "REJECT", "NULL", "WITHDRAWN", "OPEN")
+# result reaches an artifact. DIAGNOSTIC is the second instance of the same
+# argument: a measurement with no pre-registered rule folded into NULL is a
+# finding nobody can find again.
+VERDICTS = ("ADOPT", "ADVANCE", "REJECT", "NULL", "WITHDRAWN", "OPEN",
+            "DIAGNOSTIC")
 
 
 def load(path: Path = LEDGER) -> dict:

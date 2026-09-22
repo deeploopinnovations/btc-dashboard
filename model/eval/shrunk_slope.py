@@ -48,6 +48,35 @@ The LEVEL is re-optimised after shrinking, closed-form on calib, exactly as
 `fit_mzq` does -- a slope change moves the optimal level, and leaving the old
 one would charge the shrinkage for a level error it did not make.
 
+THE WEIGHT WAS THE WRONG STATISTIC, AND THAT WAS FOUND ELSEWHERE
+
+`P3-shrunk-level-result` ran the same empirical-Bayes form on the LEVEL and
+found it exactly backwards: the between-fold variance of an estimate is the
+right shrinkage scale when the target is a FITTED POOLED MEAN, and the target
+here is FIXED at beta = 1. A slope that is consistently 1.3 has a large
+departure and almost no between-fold variance, so tau^2 floors at zero and the
+correction is discarded precisely where it is best supported.
+
+Three arms test the corrected form (P3-shrunk-slope-v2), with d = beta_hat - 1:
+
+    mag        w = d^2 / (d^2 + SE^2)              this fold's calib only
+    mag_pool   w = T^2 / (T^2 + SE^2)              T^2 = mean_past(d^2 - SE^2)
+    mag_drift  w = d^2 / (d^2 + SE^2 + D^2)        plug-in, drift-aware
+
+`mag` and `mag_drift` need no past fold at all, so unlike every earlier arm
+here they have no cold start to confound them.
+
+WHAT THE CORRECTED FORM CANNOT SEE, stated before it ran. d^2/(d^2 + SE^2) asks
+whether the departure from the target is REAL. That is the right question when
+the estimate transfers, which is the level's situation. It is the wrong
+question when an estimate is real on calib and reverses out of sample, which is
+this module's situation at H=168: 2022's calib slope of -0.017 sits seven
+standard errors below the target beside its own TEST slope of +0.918. A
+departure can be both highly significant and wholly untransferable, and no
+numerator built from d and SE separates those -- only the drift denominator
+can. So the correction that was right for eval/shrunk_level.py is not
+automatically right here, and that is what the three arms measure.
+
 THE CONTROL THAT DECIDES IT
 
 `half` applies a FIXED w = 0.5 at every horizon and fold. If precision
@@ -74,11 +103,18 @@ from eval.beta_stability import beta_se                                # noqa: E
 from eval.direction import mean_ci                                     # noqa: E402
 from eval.mz_recalibration import (apply_mz, fit_mz, optimal_c,        # noqa: E402
                                    qlike_vec, YEARS)
+from eval.shrunk_level import fixed_target_weight                      # noqa: E402
 from eval.teacher_scorecard import HORIZONS, load_oof                  # noqa: E402
 from eval.teacher_zoo import FoldScopedFit                             # noqa: E402
 
 TEACHER = "noctua_v1_mean"
-ARMS = ("c", "mzq", "shrunk", "drift", "drift_ws", "half")
+ARMS = ("c", "mzq", "shrunk", "drift", "drift_ws", "half",
+        "mag", "mag_pool", "mag_drift")
+# The three candidates in the family, i.e. everything that gets an interval.
+# `c`, `mzq` and `half` are REFERENCES: half entered as a control and is not
+# promoted by anything measured here (R77).
+CANDIDATES = ("shrunk", "drift", "drift_ws", "mag", "mag_pool", "mag_drift")
+REFERENCES = ("c", "mzq", "half")
 FIXED_W = 0.5                      # the control's constant
 # COLD-START DEFAULT. tau^2 needs two past folds, so the first two folds of a
 # walk-forward have no estimate and the original `drift` arm gave them w = 0 --
@@ -125,6 +161,36 @@ def drift2_from_past(bc: list, bt: list) -> float:
     return float(np.mean(d)) if d else 0.0
 
 
+def tau2_target_from_past(betas: list, ses: list) -> float:
+    """Prior second moment of the slope ABOUT THE FIXED TARGET, from past folds.
+
+    THE QUANTITY `tau2_from_past` SHOULD HAVE BEEN. Shrinking toward a fixed
+    point needs E[(beta - 1)^2], not the variance of beta about its own pooled
+    mean; the two coincide only when the pooled mean happens to sit at the
+    target. `P3-shrunk-level-result` found the difference decisive for the
+    level -- a consistently mis-calibrated arm has a large departure with
+    almost no between-fold variance, so the variance form floored at zero and
+    threw the correction away exactly where it was needed.
+
+        T^2 = mean_past( (beta_hat - 1)^2 - SE^2 ),  floored at zero
+
+    subtracting SE^2 for the same reason the variance form subtracts it:
+    E[(beta_hat - 1)^2] = (beta - 1)^2 + SE^2, so the raw squared departure
+    overstates the prior spread by exactly one estimation variance.
+
+    Returns NaN when no past fold exists, which is a different statement from
+    zero: zero means "past folds show no departure worth keeping", NaN means
+    "nothing has been observed yet". The caller distinguishes them -- the first
+    gets w = 0, the second the cold-start constant -- because collapsing them
+    is what cost `drift` a third of its sample (P3-warm-start-result).
+    """
+    d = [(b - 1.0) ** 2 - s * s for b, s in zip(betas, ses)
+         if np.isfinite(b) and np.isfinite(s)]
+    if not d:
+        return float("nan")
+    return max(float(np.mean(d)), 0.0)
+
+
 def tau2_from_past(betas: list, ses: list) -> float:
     """Between-fold variance of the TRUE slope, from past folds only.
 
@@ -140,7 +206,8 @@ def tau2_from_past(betas: list, ses: list) -> float:
     return max(float(np.var(b, ddof=1)) - float(np.mean(np.square(s))), 0.0)
 
 
-def fit_arms(rv_c, sig_c, tau2: float, se: float, drift2: float = 0.0) -> dict:
+def fit_arms(rv_c, sig_c, tau2: float, se: float, drift2: float = 0.0,
+             t2_target: float = float("nan")) -> dict:
     """(alpha, beta) per arm, all fitted on the CALIB slice only."""
     ok = np.isfinite(rv_c) & np.isfinite(sig_c) & (sig_c > 0) & (rv_c > 0)
     if ok.sum() < 50:
@@ -154,6 +221,13 @@ def fit_arms(rv_c, sig_c, tau2: float, se: float, drift2: float = 0.0) -> dict:
     def level_for(beta: float) -> tuple:
         sloped = sig_c ** beta
         return (float(np.log(optimal_c(rv_c, sloped))), float(beta))
+
+    dev = beta_hat - 1.0                      # departure from the FIXED target
+    se_d = float(np.sqrt(se * se + drift2)) if np.isfinite(se) else se
+    w_mag = fixed_target_weight(dev, se)
+    w_magd = fixed_target_weight(dev, se_d)
+    w_pool = (shrink_weight(t2_target, se) if np.isfinite(t2_target)
+              else COLD_START_W)
 
     return {
         "c": level_for(1.0),
@@ -171,12 +245,28 @@ def fit_arms(rv_c, sig_c, tau2: float, se: float, drift2: float = 0.0) -> dict:
             1.0 + (shrink_weight(tau2, np.sqrt(se * se + drift2))
                    if tau2 > 0.0 else COLD_START_W) * (beta_hat - 1.0)),
         "half": level_for(1.0 + FIXED_W * (beta_hat - 1.0)),
+        # ---- P3-shrunk-slope-v2: the fixed-target weight -------------------
+        # w = d^2/(d^2 + SE^2) with d = beta_hat - 1. Asks whether the
+        # departure from the target is real, using this fold's calib slice
+        # alone -- no past fold, hence no cold start at all.
+        "mag": level_for(1.0 + w_mag * (beta_hat - 1.0)),
+        # the same question asked of the POOLED past-fold departure rather
+        # than of this fold's own, which is the textbook empirical-Bayes
+        # quantity; one cold fold, handed the control's constant so that the
+        # comparison is of weights and not of start-up policies.
+        "mag_pool": level_for(1.0 + w_pool * (beta_hat - 1.0)),
+        # plug-in numerator, drift-aware denominator: the strongest form of
+        # the corrected idea, so the idea cannot be dismissed on a weak one.
+        "mag_drift": level_for(1.0 + w_magd * (beta_hat - 1.0)),
         "_beta_hat": beta_hat, "_se": se, "_tau2": tau2, "_drift2": drift2,
         "_w": shrink_weight(tau2, se),
         "_w_drift": shrink_weight(tau2, float(np.sqrt(se * se + drift2))),
         "_w_ws": (shrink_weight(tau2, float(np.sqrt(se * se + drift2)))
                   if tau2 > 0.0 else COLD_START_W),
         "_cold": bool(tau2 <= 0.0),
+        "_t2_target": t2_target, "_w_mag": w_mag, "_w_pool": w_pool,
+        "_w_magd": w_magd,
+        "_cold_pool": bool(not np.isfinite(t2_target)),
     }
 
 
@@ -198,7 +288,8 @@ def run_horizon(z, H: int, n_boot: int = N_BOOT, verbose: bool = True) -> dict:
         se = beta_se(rv_c, sig_c, H, n_rep=n_boot, seed=H * 1000 + y)
         tau2 = tau2_from_past(past_b, past_se)
         drift2 = drift2_from_past(past_b, past_bt)
-        f = fit_arms(rv_c, sig_c, tau2, se, drift2)
+        t2_target = tau2_target_from_past(past_b, past_se)
+        f = fit_arms(rv_c, sig_c, tau2, se, drift2, t2_target)
         if not f:
             continue
         for a in ARMS:
@@ -215,7 +306,12 @@ def run_horizon(z, H: int, n_boot: int = N_BOOT, verbose: bool = True) -> dict:
                      "beta_shrunk": f["shrunk"][1],
                      "beta_drift": f["drift"][1],
                      "w_ws": f["_w_ws"], "cold": f["_cold"],
-                     "beta_drift_ws": f["drift_ws"][1]})
+                     "beta_drift_ws": f["drift_ws"][1],
+                     "t2_target": f["_t2_target"], "w_mag": f["_w_mag"],
+                     "w_pool": f["_w_pool"], "w_magd": f["_w_magd"],
+                     "beta_mag": f["mag"][1], "beta_mag_pool": f["mag_pool"][1],
+                     "beta_mag_drift": f["mag_drift"][1],
+                     "cold_pool": f["_cold_pool"]})
         past_b.append(f["_beta_hat"]); past_se.append(se)
         past_bt.append(float("nan") if p_t is None else float(p_t[1]))
         if verbose:
@@ -223,6 +319,10 @@ def run_horizon(z, H: int, n_boot: int = N_BOOT, verbose: bool = True) -> dict:
                   f"tau {np.sqrt(tau2):5.3f}  drift {np.sqrt(drift2):5.3f}  |  "
                   f"w {f['_w']:5.3f} -> {f['shrunk'][1]:+6.3f}   "
                   f"w_d {f['_w_drift']:5.3f} -> {f['drift'][1]:+6.3f}")
+            print(f"              fixed-target  w_mag {f['_w_mag']:5.3f} -> "
+                  f"{f['mag'][1]:+6.3f}   w_pool {f['_w_pool']:5.3f} -> "
+                  f"{f['mag_pool'][1]:+6.3f}   w_magd {f['_w_magd']:5.3f} -> "
+                  f"{f['mag_drift'][1]:+6.3f}")
     if not rows:
         return {}
     out = {"H": H, "folds": rows, "arms": {}}
@@ -248,9 +348,10 @@ def main(argv=None) -> int:
         return selftest()
 
     z, _ = load_oof(a.oof)
-    # Family fixed BEFORE any result is read: 4 horizons x 3 contrasts
-    # (shrunk vs c, vs mzq, vs half).
-    n_family = len(HORIZONS) * 9      # {shrunk, drift, drift_ws} x {c, mzq, half}
+    # Family fixed BEFORE any result is read, and WIDENED when arms were added
+    # rather than letting the earlier arms keep their narrower intervals
+    # (P3-shrunk-slope-v2, following the same choice in P3-warm-start).
+    n_family = len(HORIZONS) * len(CANDIDATES) * len(REFERENCES)
     alpha = 0.05 / n_family
     print(f"P3-shrunk-slope   family {n_family} -> {100*(1-alpha):.4f}% intervals")
     print(f"teacher {TEACHER}, {a.boot} bootstrap reps per fold slope\n")
@@ -272,8 +373,8 @@ def main(argv=None) -> int:
                   f"{100*np.nanmean(qm-qa)/np.nanmean(qm):+10.2f}")
         L = max(int(round(len(qc) ** (1/3))), 2 * H)
         ci = {}
-        for cand in ("shrunk", "drift", "drift_ws"):
-            for other in ("c", "mzq", "half"):
+        for cand in CANDIDATES:
+            for other in REFERENCES:
                 d = r["_q"][other] - r["_q"][cand]        # >0 favours candidate
                 g = np.isfinite(d)
                 c95 = mean_ci(d[g], alpha=alpha, block_len=L)["ci95"]
@@ -375,6 +476,67 @@ def selftest() -> int:
     ok.append(("cold fold: drift_ws uses the constant, drift uses none",
                abs(cold["drift"][1] - 1.0) < 1e-12
                and abs(cold["drift_ws"][1] - cold["half"][1]) < 1e-12))
+
+    # 15-17. THE CORRECTION ITSELF. The target form and the variance form must
+    #     DISAGREE on the input that exposed the bug: six folds whose slope is
+    #     consistently 1.3, each known to within 0.02. The departure is huge
+    #     and perfectly stable, so the variance form sees nothing to keep and
+    #     the target form sees almost everything. A fixture on which both agree
+    #     would not be testing the fix.
+    same = [1.3] * 6
+    ses6 = [0.02] * 6
+    ok.append(("variance form discards a CONSISTENT departure",
+               tau2_from_past(same, ses6) == 0.0))
+    ok.append(("target form keeps it",
+               abs(tau2_target_from_past(same, ses6) - (0.09 - 0.0004)) < 1e-9))
+    ok.append(("target form is NaN with no past, not zero",
+               not np.isfinite(tau2_target_from_past([], []))))
+
+    # 18-19. The pooled estimator subtracts one estimation variance, and floors.
+    ok.append(("target form nets out estimation error",
+               tau2_target_from_past([1.0, 1.0], [0.3, 0.3]) == 0.0))
+    ok.append(("target form needs only ONE past fold",
+               abs(tau2_target_from_past([1.5], [0.1]) - (0.25 - 0.01)) < 1e-12))
+
+    # 20-23. The three new arms at their endpoints.
+    f_prec = fit_arms(rv, sig, tau2=0.0, se=1e-9, t2_target=float("nan"))
+    f_vague = fit_arms(rv, sig, tau2=0.0, se=1e3, t2_target=float("nan"))
+    ok.append(("mag with a precise slope reproduces mzq",
+               abs(f_prec["mag"][1] - f_prec["mzq"][1]) < 1e-6))
+    # NOT an exact equality, and the first draft asserted one. `shrunk` hits
+    # c EXACTLY when tau^2 <= 0, because that path returns a hard zero; the
+    # fixed-target form has no such path -- w = d^2/(d^2 + SE^2) only
+    # APPROACHES zero as SE grows, so the level, which is re-optimised at a
+    # slope of 1 + 6e-8, lands 3e-7 away rather than at 1e-9. The tolerance
+    # has to describe the limit that actually exists.
+    ok.append(("mag with a hopeless slope reproduces c, level included",
+               abs(f_vague["mag"][1] - 1.0) < 1e-6
+               and abs(f_vague["mag"][0] - f_vague["c"][0]) < 1e-5))
+    ok.append(("a non-finite SE is the one hard zero the fixed form has",
+               fixed_target_weight(0.4, float("inf")) == 0.0
+               and fixed_target_weight(0.4, float("nan")) == 0.0))
+    # mag must not move when a past-fold quantity moves; that is what "no cold
+    # start" means operationally, and asserting it stops a later edit from
+    # quietly threading a past-fold estimate into the arm that claims not to
+    # use one.
+    ok.append(("mag has NO cold start: it ignores t2_target entirely",
+               abs(fit_arms(rv, sig, tau2=9.9, se=0.05, t2_target=0.5)["mag"][1]
+                   - fit_arms(rv, sig, tau2=0.0, se=0.05,
+                              t2_target=float("nan"))["mag"][1]) < 1e-12))
+    # drift can only ADD to the denominator, so mag_drift can only shrink more
+    f_d = fit_arms(rv, sig, tau2=0.0, se=0.05, drift2=0.4,
+                   t2_target=float("nan"))
+    ok.append(("mag_drift shrinks at least as hard as mag",
+               abs(f_d["mag_drift"][1] - 1.0) <= abs(f_d["mag"][1] - 1.0) + 1e-12))
+
+    # 24-25. mag_pool's cold-start policy is the CONTROL's constant, and it is
+    #     used only when the estimate cannot be formed -- not when it is zero.
+    f_cold = fit_arms(rv, sig, tau2=0.0, se=0.05, t2_target=float("nan"))
+    f_zero = fit_arms(rv, sig, tau2=0.0, se=0.05, t2_target=0.0)
+    ok.append(("mag_pool cold start uses the control's constant",
+               abs(f_cold["mag_pool"][1] - f_cold["half"][1]) < 1e-12))
+    ok.append(("a FORMED zero is not a cold start: w = 0, not 0.5",
+               abs(f_zero["mag_pool"][1] - 1.0) < 1e-12))
 
     for name, good in ok:
         print(f"  [{'ok' if good else 'FAIL'}] {name}")
