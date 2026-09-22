@@ -763,6 +763,33 @@ MEANS — a flag's polarity, a unit, a timezone, a sign convention — that
 assumption is unfalsifiable against data you generated yourself.
 *(`P3-frvp-double-touch`, `eval/frvp.py`)*
 
+**R82. When a fixed constant matches a rule that measures its own parameters,
+the MEASUREMENT is the part to drop — and the third instance is a pattern, not
+a coincidence.**
+Three times in this project a trivial control has matched or beaten a
+carefully-measured method:
+- a **permuted copy** of an existing column outscored every explicit
+  regulariser at H=24, by seventy-five times (`P3-regularisation-result`);
+- a **width-matched band centred where the volume profile did not point**
+  matched or beat the real flag at all twelve parameter settings
+  (`P3-frvp-sensitivity`);
+- a **fixed w = 0.5** matched an empirical-Bayes slope shrinkage — per-fold
+  bootstrap standard errors, a between-fold variance from past folds, a
+  measured calib-to-test drift — at all four horizons, with intervals as tight
+  as `[-0.00016, +0.00061]` (`P3-warm-start-result`).
+The measured rule was not wrong in any of these: it *derived* roughly the
+constant where the constant was right. It simply bought nothing for the
+derivation. So the rule is not "prefer simple methods" — it is that **a control
+this cheap belongs in the family from the start**, because it is the only thing
+that can tell a method that works from a method whose machinery works. Register
+it as a family member, not as a footnote, and be willing to ship it when it
+wins.
+The corollary is uncomfortable and applies here: once the control has won, it
+has been *looked at* on that data, and promoting it to a candidate on the same
+evidence is family expansion after the fact (R77). Its confirmation costs a
+holdout.
+*(`P3-warm-start-result`, `P3-regularisation-result`, `P3-frvp-sensitivity`)*
+
 ## Rules about interpretation
 
 **R20. Correcting a number in the humbler direction does not make the
