@@ -1593,8 +1593,10 @@ non-overlapping 17:00 episodes.
 
 Spike episodes are flagged causally — a trailing 180-day 95th percentile of
 production RV using strictly prior days. **On the 7.7 % of nights that carry a
-quarter of the loss, the model under-forecasts volatility by 45 %.** For an
-option seller that is the expensive direction: the strike breaks.
+quarter of the loss, the model under-forecasts volatility by 45 %** *(the
+45 % is VOID since 2026-09-22 — see the amendment two paragraphs down; the
+direction stands and the magnitude does not)*. For an option seller that is
+the expensive direction: the strike breaks.
 
 `RV/σ` is a ratio, so this does not depend on the scoring rule. That matters,
 because a second reported finding does:
