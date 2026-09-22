@@ -60,8 +60,23 @@ closed strictly before the anchor being corrected, so an episode can never
 contribute to its own correction. Calib episodes are eligible: they precede the
 test slice by a 192-hour embargo in every fold.
 
+HOW IT CAME OUT, SO THE ARGUMENT ABOVE IS NOT READ AS THE CONCLUSION
+(`P3-rolling-level-audited`). `c_roll` REJECT: it never separates from
+`c_roll_old` at any horizon, only 3/2/2/2 of eight teachers prefer updating to
+freezing, and at H=168 it helps 3/8 against `c`'s 6/8. So the case made above
+-- that a level which moves needs an estimator that moves -- is not what the
+data supports. What the data supports is narrower: a RECENT window beats the
+whole calib slice, and UPDATING that window buys nothing measurable.
+
+The correlation this module reports under `--vs-drift` was published without a
+control and is largely confounded: the gain is measured against `c`, and a
+teacher whose level drifts has a bad `c` by construction, so the FROZEN arm
+shows the same correlation. Four contrasts are printed for that reason. Read
+`roll vs old`, not `roll vs c`.
+
     python -m model.eval.rolling_level --selftest
     python -m model.eval.rolling_level
+    python -m model.eval.rolling_level --vs-drift
 """
 from __future__ import annotations
 
