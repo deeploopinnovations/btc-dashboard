@@ -124,7 +124,8 @@ class NumpyNoctua:
         return beta[0] + d["Xb"] @ beta[1:]
 
     # ---- full predictive object -------------------------------------------
-    def predict(self, d: dict, n_atoms: int = 32) -> dict:
+    def predict(self, d: dict, n_atoms: int = 32,
+                disp_lambda: float = 1.0) -> dict:
         from noctua import infer as I  # pure NumPy; same code the eval used
 
         qa = self.stage_a(d["Xa"], d["Xb"])
@@ -134,6 +135,21 @@ class NumpyNoctua:
 
         atom_levels = (np.arange(n_atoms) + 0.5) / n_atoms
         atoms_y = np.stack([np.interp(atom_levels, self.levels, row) for row in qa])
+        # DISPERSION HOOK, mirroring `infer.predict`. The research path grew
+        # this first and serving did not have it, which meant a lambda could
+        # clear the barrier battery and still have nowhere to go -- the reason
+        # P3-dispersion-barriers-result is ADVANCE rather than ADOPT.
+        #
+        # `disp_lambda == 1.0` takes `scale_atoms`'s identity branch and
+        # returns the SAME ARRAY, so the shipped path is bit-identical by
+        # construction. The centre is the median of the ALREADY-BLENDED `qa`,
+        # which is the median this object serves, so `sigma_med` below cannot
+        # move whatever lambda is; `sigma_mean` and every barrier curve are
+        # built from the atoms and therefore can. That asymmetry is the
+        # intended one: this scales WIDTH, and a hook that moved the level
+        # would be the intervention class P2-mean-level already rejected.
+        atoms_y = I.scale_atoms(atoms_y, qa[:, self.median_idx][:, None],
+                                disp_lambda)
         H = d["H"]
         sigma_atoms = np.exp(atoms_y) * np.sqrt(H)[:, None]
 
@@ -236,14 +252,22 @@ class NoctuaV2(NumpyNoctua):
         pre = f"m{s}."
         return {k[len(pre):]: v for k, v in src.items() if k.startswith(pre)}
 
-    def predict(self, d: dict, n_atoms: int = 32) -> dict:
-        """Average the seed ensemble's predictive objects."""
+    def predict(self, d: dict, n_atoms: int = 32,
+                disp_lambda: float = 1.0) -> dict:
+        """Average the seed ensemble's predictive objects.
+
+        `disp_lambda` is threaded rather than defaulted here. An ensemble that
+        silently dropped it would make the knob a no-op on the only class
+        serving actually instantiates, while every unit test on the single-seed
+        class passed -- a guard that holds on a path nothing runs.
+        """
         outs = []
         full = self.w
         try:
             for s in range(self.n_seeds):
                 self.w = {**self._seed_scope(full, s), "har_beta": full["har_beta"]}
-                outs.append(NumpyNoctua.predict(self, d, n_atoms=n_atoms))
+                outs.append(NumpyNoctua.predict(self, d, n_atoms=n_atoms,
+                                                disp_lambda=disp_lambda))
         finally:
             self.w = full
         avg = dict(outs[0])

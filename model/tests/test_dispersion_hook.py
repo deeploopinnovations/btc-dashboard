@@ -97,9 +97,107 @@ def tier1() -> None:
                          np.broadcast_to(centre, atoms.shape)))
 
 
+class _StubNoctua:
+    """A NumpyNoctua with its three learned stages replaced by fixed maps.
+
+    Subclassing and overriding the stages, rather than building a synthetic
+    weights archive, keeps the test about the ONE thing it is for: that
+    `predict` applies the hook about the blended median and threads it. Every
+    line of `predict` between the stages -- the blend, the atom interpolation,
+    the hook, sigma_atoms, sigma_med, sigma_mean -- is the real one.
+    """
+
+    def __init__(self, n: int = 16, k: int = 9, blend_w: float = 0.25):
+        from serve.runtime import NumpyNoctua
+        self.cls = NumpyNoctua
+        self.levels = np.linspace(0.05, 0.95, k)
+        self.median_idx = int(np.argmin(np.abs(self.levels - 0.5)))
+        self.blend_w = blend_w
+        rng = np.random.default_rng(3)
+        base = rng.normal(-4.0, 0.2, size=(n, 1))
+        # a monotone quantile curve per episode, which is what stage A emits
+        self._qa = base + np.linspace(-0.8, 0.8, k)[None, :]
+        self._har = rng.normal(-4.0, 0.2, size=n)
+        self.w = {}
+
+    # the three learned stages, stubbed
+    def stage_a(self, Xa, Xb):
+        return self._qa
+
+    def har_logvol(self, d):
+        return self._har
+
+    def has_mx(self):
+        return False
+
+    def stage_b(self, Xs, log_sigma):
+        z = np.repeat(log_sigma, 5, axis=1)
+        return z, np.abs(z), np.abs(z) + 1.0, None
+
+    def predict(self, d, **kw):
+        return self.cls.predict(self, d, **kw)
+
+
+def tier1b() -> None:
+    """The SERVING path, pure NumPy, so it runs in the torch-free CI job too.
+
+    `infer.predict` had this hook and `serve.runtime` did not, which meant a
+    lambda could clear the barrier battery and still have nowhere to go. These
+    checks are what stop that from silently reverting.
+    """
+    m = _StubNoctua()
+    n = m._qa.shape[0]
+    d = {"Xa": np.zeros((n, 1)), "Xb": np.zeros((n, 1)), "Xs": np.zeros((n, 2)),
+         "H": np.full(n, 19.0)}
+
+    base = m.predict(d, n_atoms=16)
+    same = m.predict(d, n_atoms=16, disp_lambda=1.0)
+    keys = [k for k, v in base.items() if isinstance(v, np.ndarray)]
+    bad = [k for k in keys if not np.array_equal(base[k], same[k], equal_nan=True)]
+    check("serving: disp_lambda=1.0 is bit-identical on every array",
+          not bad, "differs: " + ", ".join(bad) if bad else "all equal")
+
+    narrow = m.predict(d, n_atoms=16, disp_lambda=0.5)
+    check("serving: sigma_med is untouched, to the bit",
+          np.array_equal(base["sigma_med"], narrow["sigma_med"]))
+    sb = np.std(np.log(base["sigma_atoms"]), axis=1)
+    sn = np.std(np.log(narrow["sigma_atoms"]), axis=1)
+    check("serving: lambda<1 halves the atom spread",
+          abs(float(np.mean(sn / sb)) - 0.5) < 1e-9,
+          f"ratio {float(np.mean(sn / sb)):.6f}")
+    check("serving: sigma_mean falls toward sigma_med",
+          bool(np.all(narrow["sigma_mean"] <= base["sigma_mean"] + 1e-12))
+          and float(np.mean(narrow["sigma_mean"] / base["sigma_mean"])) < 1.0)
+    # The centre must be the BLENDED median, not stage A's. With blend_w < 1
+    # those differ, and centring on the wrong one would move sigma_med.
+    check("serving: the hook centres on the median it actually serves",
+          np.array_equal(m.predict(d, n_atoms=16, disp_lambda=0.1)["sigma_med"],
+                         base["sigma_med"]))
+
+    # THE ENSEMBLE MUST THREAD IT. A default here rather than a pass-through
+    # would leave the knob a no-op on the only class serving instantiates
+    # while every check above still passed. Asserted on the parse tree because
+    # exercising it needs a seed-scoped weights archive, and an assertion that
+    # needs an artifact is one that stops running when the artifact moves.
+    import ast as _ast
+    import inspect as _inspect
+    from serve import runtime as _rt
+    tree = _ast.parse(_inspect.getsource(_rt))
+    fn = next(x for x in _ast.walk(tree)
+              if isinstance(x, _ast.ClassDef) and x.name == "NoctuaV2")
+    calls = [c for c in _ast.walk(fn) if isinstance(c, _ast.Call)
+             and getattr(c.func, "attr", "") == "predict"]
+    check("serving: NoctuaV2 forwards disp_lambda to every seed",
+          bool(calls) and all(any(k.arg == "disp_lambda" for k in c.keywords)
+                              for c in calls),
+          f"{len(calls)} inner predict call(s)")
+
+
 def main() -> int:
     print("dispersion hook -- tier 1 (pure NumPy, runs everywhere)")
     tier1()
+    print("\ndispersion hook -- tier 1b (serving path, pure NumPy)")
+    tier1b()
     if not HAVE_TORCH:
         print("\n  torch is NOT installed here, so the full forward-pass "
               "bit-identity\n  checks did NOT run. That is expected in the "
