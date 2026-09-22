@@ -49,6 +49,28 @@ under the feasible arm and are labelled `_oracle` everywhere so that a later
 reader cannot mistake one for a candidate. Nothing here is registered for
 adoption and nothing here produces a served quantity.
 
+HOW IT CAME OUT, AND THE PART THAT IS NOT A MEASUREMENT
+(`P3-transfer-anatomy-audited`). The module's first version reported
+`rho(drift/signal, transfer) = -0.564` with a permutation `p < 0.0001` and
+called it one quantity explaining the whole family. For the LEVEL that is an
+IDENTITY, not a finding: QLIKE is locally quadratic in `log c`, so
+`transfer = 1 - (drift/signal)^2` by construction, and measured against that
+prediction the level lands within a median absolute error of 0.020. A
+permutation null breaks a pairing the definitions fix, so it tested the
+identity.
+
+For the SLOPE the identity FAILS -- rho +(-0.168), median error 0.751 -- and
+that failure is the finding. Applying `sigma^beta` moves each forecast by an
+amount proportional to that episode's `log sigma`, so the loss is not a
+quadratic in `(beta - 1)` alone. `quadratic_transfer` computes the prediction
+and `main` prints it directly under the correlation it deflates, so the
+number cannot be read again without it.
+
+What survives unchanged: the measured drifts and signals themselves, and the
+production arm's level correction anti-transferring at every horizon with a
+positive oracle ceiling. The identity says how measured quantities combine; it
+does not manufacture them.
+
     python -m model.eval.transfer_anatomy --selftest
     python -m model.eval.transfer_anatomy
 """
