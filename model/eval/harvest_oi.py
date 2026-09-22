@@ -35,6 +35,21 @@ endpoints and their own instrument-naming conventions; the schema here carries
 a `venue` column from day one so a second source can be appended rather than
 retrofitted.
 
+WHAT TWO SNAPSHOTS ALREADY SUGGEST ABOUT HOW THE TEST MUST BE BUILT
+
+n = 2, so this is an observation and not evidence, but it bears on the design
+and is cheaper to write down now than to rediscover. Between 2026-09-20 and
+2026-09-22 the max-OI strike is STABLE on every large expiry -- 70,000 on the
+25-Sep monthly (189,015 -> 186,264 OI), 80,000 on 25-Dec (115,864 -> 118,417),
+50,000 and 40,000 on the two far-dated ones -- and MOVES on nearly every thin
+one, including 79,500 -> 84,500 on an expiry carrying 170 contracts.
+
+So "the max-OI strike" is not one object. On an expiry with a few hundred
+contracts it is whichever strike two traders happened to touch, and a test
+pooling it with the monthlies would be averaging a level with a coin flip. The
+eventual test needs an open-interest floor per expiry, or size weighting, fixed
+before it runs rather than after the first null.
+
 THE EXPIRY ROLL IS FREE HERE
 
 The thesis's roll rule -- when a venue's expiry settles, its next expiry takes
