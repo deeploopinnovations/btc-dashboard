@@ -79,6 +79,18 @@ jobs:
       - name: Level-reporting separation gate
         run: python model/tests/test_level_report.py
 
+      # The MIRROR of the gate above, for the correction that does the
+      # opposite. The functional choice provably cannot reach the curves;
+      # the dispersion correction moves them BY DESIGN, so "safe by
+      # construction" is unavailable and the substitute is a written
+      # contract asserted field by field: the barrier price GRID, the
+      # safe-level confidences and sigma_med may not move, everything that
+      # does move must be on the documented list, and the farthest rung on
+      # each side must see its probability FALL -- a hook that widened while
+      # claiming to narrow passes every equality check and fails that one.
+      - name: Dispersion serving contract gate
+        run: python model/tests/test_dispersion_report.py
+
       # Gates the online-adaptation guard: ACI's coverage guarantee, Ville's
       # bound on the e-processes, and the promotion/veto asymmetry. A
       # regression in any of these is SILENT -- the system keeps forecasting

@@ -67,6 +67,25 @@ def _next_anchor(now_ts: int) -> int:
 # assert that the choice reaches the reported number and nothing else.
 REPORT_FUNCTIONAL = "mean"
 
+# How much of the predictive distribution's WIDTH to keep, about its own
+# median. 1.0 is a bit-identical no-op (`infer.scale_atoms` returns the same
+# array) and is the shipped default: nothing here is adopted.
+#
+# This exists so the dispersion correction has a serving switch and so
+# `tests/test_dispersion_report.py` can be a gate that CAN FAIL. R2 -- a guard
+# whose failing branch has never been exercised is not a guard, and five have
+# already been found in this project printing reassuring output while unable to
+# return the other answer.
+#
+# UNLIKE `REPORT_FUNCTIONAL`, THIS ONE MOVES THE PRODUCT. The functional choice
+# reaches the reported scalar and provably nothing else (P3-barrier-channel);
+# this writes `sigma_atoms`, which every barrier curve and safe level is built
+# from. "Safe by construction" is therefore not available and the gate asserts
+# field by field what moves. Measured at lambda = 0.87 on the production slice
+# it improves four of six barrier metrics while its mirror degrades the same
+# four (P3-dispersion-barriers-result) -- ADVANCE, not ADOPT.
+DISP_LAMBDA = 1.0
+
 
 def forecast(model, hours: pd.DataFrame, H: int = PROD_H,
              anchor_ts: int | None = None, source: str = "unknown") -> dict:
@@ -93,7 +112,7 @@ def forecast(model, hours: pd.DataFrame, H: int = PROD_H,
     })
     X = build_features(hours, ep)
     d = model.prepare(X, np.array([float(H)]))
-    pred = model.predict(d)
+    pred = model.predict(d, disp_lambda=DISP_LAMBDA)
 
     # Causal volatility-level recalibration. Measured out of sample on
     # 2024-07 onward, the raw forecast runs high -- realized vol lands below
@@ -232,9 +251,24 @@ def forecast(model, hours: pd.DataFrame, H: int = PROD_H,
                    "sigma_mean is that mean, from the same forward pass. See "
                    "P3-functional-parity.",
             "applies_to": "sigma_window_pct and sigma_annualized_pct only; "
-                          "barrier_curves, safe_levels, p_up and p_vol_amplify "
-                          "are built from pred['sigma_atoms'] and cannot see "
-                          "this choice (P3-barrier-channel)",
+                          "barrier_curves, safe_levels and p_up are built from "
+                          "pred['sigma_atoms'] and p_vol_amplify from "
+                          "pred['qa'], so none of them can see this choice "
+                          "(P3-barrier-channel)",
+        },
+        "dispersion": {
+            "lambda": round(float(DISP_LAMBDA), 4),
+            "applied": bool(DISP_LAMBDA != 1.0),
+            "note": "scales the predictive distribution's WIDTH about its own "
+                    "median. 1.0 is a bit-identical no-op and is the shipped "
+                    "default. See P3-dispersion-barriers-result (ADVANCE).",
+            "applies_to": "sigma_atoms, and therefore sigma_window_pct and "
+                          "sigma_annualized_pct (the mean functional), "
+                          "barrier_curves' touch probabilities, safe_levels "
+                          "and p_up. NOT sigma_med, NOT the barrier price "
+                          "grid, and NOT p_vol_amplify, which reads pred['qa'] "
+                          "rather than the atoms. Asserted field by field in "
+                          "tests/test_dispersion_report.py.",
         },
         "sigma_scale": {
             "scale": round(float(qs["scale"]), 4),
