@@ -790,6 +790,27 @@ evidence is family expansion after the fact (R77). Its confirmation costs a
 holdout.
 *(`P3-warm-start-result`, `P3-regularisation-result`, `P3-frvp-sensitivity`)*
 
+**R83. When two errors are found to OFFSET, neither is independently
+correctable — "fix the one you understand" makes it worse.**
+`P3-dispersion` decomposed the mean functional's calibration and found the good
+ratios were a dispersion error and a level error cancelling: at H=24,
+`0.8719 × 1.1371 = 0.9915`. The obvious next move was to correct the
+dispersion, which is the better-understood of the two. Measured, it degrades
+QLIKE by **−3.15% / −2.56% / −5.53%** at H = 1 / 6 / 24 — the worst loss at
+exactly the horizon whose cancellation was strongest — because removing one
+term leaves the other standing alone. The only horizon it helps is H=168, the
+one where the two errors compound instead of cancelling.
+The arithmetic that establishes a cancellation also establishes this, so the
+failure was not in the measurement but in not reading it: writing the
+decomposition down is not the same as thinking through what it implies. Either
+correct both terms together, or correct neither.
+The exception is real and worth naming: a cancellation is only load-bearing for
+the quantity in which it cancels. The same correction may still be right for a
+DIFFERENT product with a different loss — here, the barrier curves, which ask
+that the distribution be right rather than that σ² equal E[RV²]. So a negative
+screen on one loss closes that loss and no other.
+*(`P3-dispersion-screen`)*
+
 ## Rules about interpretation
 
 **R20. Correcting a number in the humbler direction does not make the
