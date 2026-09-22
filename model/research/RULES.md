@@ -811,6 +811,26 @@ that the distribution be right rather than that σ² equal E[RV²]. So a negativ
 screen on one loss closes that loss and no other.
 *(`P3-dispersion-screen`)*
 
+**R84. A non-inferiority claim needs a MARGIN, or it passes whatever the
+interval is too wide to reject.**
+`P3-shrunk-slope-v2` asked that a candidate be "not significantly worse than the
+best of {c, mzq, half} at every horizon" and named no margin. At H=168 the block
+length is 336 and the corrected interval spans nearly nine points of QLIKE, so
+`mag_drift` at **−10.14%** against `c` and `drift_ws` at **−0.56%** return the
+same verdict: both pass. The claim did not measure non-inferiority there; it
+measured the width of the interval.
+R5 already requires a power calculation before an experiment runs, and two
+registrations of this design went out without one — the omission is not a new
+principle but a rule not applied to a claim shaped differently from the ones it
+was written for. A non-inferiority rule therefore has to carry one of two
+things, fixed in advance: a margin in the units of the metric, or a
+minimum-detectable-effect at each horizon with the horizons that cannot resolve
+it declared NON-MEASUREMENTS before they run.
+The same registration also carried a falsifier naming a contrast that was not in
+the family, so it could not be evaluated with the intervals the design produces.
+Check that a rule's decisive comparison is one the design will actually compute.
+*(`P3-shrunk-slope-v2-result`)*
+
 ## Rules about interpretation
 
 **R20. Correcting a number in the humbler direction does not make the

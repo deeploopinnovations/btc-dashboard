@@ -62,12 +62,24 @@ from noctua.train import load_all                                      # noqa: E
 
 PROD_H = 19
 ARMS = ("M1", "M2", "M3")
+# P3-dispersion-deployable. M2's constant is the median over ALL SIX folds, so
+# scoring 2021 uses a value computed from 2024-2026: fine for a control whose
+# job is to show the per-fold fit adds nothing, disqualifying for a rule that
+# could ship. M4 is the causal version -- the median of PAST folds' lambda
+# only -- and M5 is its mirror, so the deployable arm carries its own placebo
+# rather than borrowing M3's. The first fold has no past and runs at lambda =
+# 1.0, which is not a handicap here the way `drift`'s w = 0 was: 1.0 is the
+# SHIPPED behaviour, so a cold fold scores the incumbent rather than nothing.
+ARMS_DEPLOY = ("M1", "M4", "M5")
 METRICS = ("DSC", "MCB", "brier", "crps", "logs", "pinball")
 # DSC is a discrimination score: higher is better. Every other metric here is
 # a loss. Getting this backwards would report every result inverted for one
 # column, so the direction lives in one place.
 HIGHER_BETTER = {"DSC"}
-N_FAMILY = len(ARMS) * len(METRICS)
+# NO MODULE-LEVEL FAMILY SIZE. It used to be len(ARMS) * len(METRICS), which
+# was right while there was one arm set; with two it would silently be the
+# default one's size in both modes, i.e. an under-correction for whichever
+# set the run actually used. The family is computed from the SELECTED arms.
 
 
 def fit_lambda(rv_cal, sig_cal, sig_mean_cal) -> float:
@@ -90,6 +102,25 @@ def fit_lambda(rv_cal, sig_cal, sig_mean_cal) -> float:
     if not (s_imp > 0):
         return float("nan")
     return s_real / s_imp
+
+
+def expanding_median(lams: list, cold: float = 1.0) -> list:
+    """One lambda per fold, each the median of the folds BEFORE it.
+
+    The causal counterpart of M2's sample median. `lams` must be in
+    walk-forward order; entry k sees exactly lams[:k], so no fold is corrected
+    with a number computed from its own future. The first fold has no past and
+    gets `cold`, which is 1.0 -- the SHIPPED behaviour, so a cold fold scores
+    the incumbent rather than scoring nothing at all.
+
+    Factored out of `main` so it can be asserted. Inline, its only test would
+    have been a four-hour run of the thing it decides.
+    """
+    out = []
+    for k in range(len(lams)):
+        past = [float(x) for x in lams[:k] if np.isfinite(x)]
+        out.append(float(np.median(past)) if past else float(cold))
+    return out
 
 
 def better(metric: str, arm_val: float, ref_val: float) -> bool:
@@ -125,6 +156,22 @@ def selftest() -> int:
 
     # 7-8. Metric direction, which is the one thing that silently inverts a
     #      whole column if wrong.
+    # 6-10. The causal constant. Order matters and the first fold has no past,
+    #     which is exactly where an off-by-one would hide.
+    seq = [0.66, 0.88, 0.82, 0.98, 0.87, 0.89]
+    em = expanding_median(seq)
+    ok.append(("the first fold has no past and ships unchanged", em[0] == 1.0))
+    ok.append(("the second fold sees exactly one past fold",
+               abs(em[1] - 0.66) < 1e-12))
+    ok.append(("the third sees two", abs(em[2] - 0.77) < 1e-12))
+    ok.append(("the last sees all but itself",
+               abs(em[5] - float(np.median(seq[:5]))) < 1e-12))
+    # A fold must never see its own value, which a median makes easy to miss:
+    # replacing the LAST entry cannot change any earlier output.
+    alt = seq[:5] + [0.10]
+    ok.append(("changing a fold cannot change an earlier fold's lambda",
+               expanding_median(alt)[:5] == em[:5]))
+
     ok.append(("DSC higher is better", better("DSC", 0.9, 0.8)))
     ok.append(("brier lower is better", better("brier", 0.1, 0.2)))
 
@@ -140,19 +187,29 @@ def main(argv=None) -> int:
     ap.add_argument("--artifacts", type=Path, default=Path("model/artifacts"))
     ap.add_argument("--hidden", type=int, default=32)
     ap.add_argument("--seeds", type=int, default=3)
-    ap.add_argument("--out", type=Path,
-                    default=Path("model/artifacts/dispersion_barriers.json"))
+    ap.add_argument("--out", type=Path, default=None,
+                    help="defaults to dispersion_barriers.json, or "
+                         "dispersion_deployable.json under --deployable, so "
+                         "the two modes cannot overwrite each other")
     ap.add_argument("--selftest", action="store_true")
+    ap.add_argument("--deployable", action="store_true",
+                    help="score M1 against the CAUSAL expanding-median lambda "
+                         "(M4) and its mirror (M5) instead of M2/M3")
     a = ap.parse_args(argv)
     if a.selftest:
         return selftest()
 
+    arms = ARMS_DEPLOY if a.deployable else ARMS
+    n_family = len(arms) * len(METRICS)
+    if a.out is None:
+        a.out = Path("model/artifacts/dispersion_"
+                     + ("deployable" if a.deployable else "barriers") + ".json")
     ep, X = load_all(a.artifacts)
     folds = S.walk_forward_folds(ep)
-    alpha = 0.05 / N_FAMILY
-    print(f"P3-dispersion-barriers-v2   production slice H={PROD_H}  "
-          f"seeds={a.seeds}")
-    print(f"family {N_FAMILY} ({len(ARMS)} arms x {len(METRICS)} metrics) -> "
+    alpha = 0.05 / n_family
+    print(f"{'P3-dispersion-deployable' if a.deployable else 'P3-dispersion-barriers-v2'}"
+          f"   production slice H={PROD_H}  seeds={a.seeds}")
+    print(f"family {n_family} ({len(arms)} arms x {len(METRICS)} metrics) -> "
           f"{100*(1-alpha):.3f}% intervals\n")
 
     # PASS ONE: the reference, which also supplies each fold's calib slice and
@@ -174,7 +231,15 @@ def main(argv=None) -> int:
     if not acc:
         print("no usable folds"); return 1
     k_const = float(np.median(lams))
-    print(f"\nconstant arm uses the sample-median lambda = {k_const:.4f}\n")
+    print(f"\nconstant arm uses the sample-median lambda = {k_const:.4f}")
+    # EXPANDING MEDIAN, one per fold, from PAST folds only. `acc` is in
+    # walk-forward order, so the k-th entry's past is exactly acc[:k].
+    k_expand = dict(zip([r["year"] for r in acc],
+                        expanding_median([r["lam"] for r in acc])))
+    if a.deployable:
+        print("expanding-median lambda, past folds only: "
+              + ", ".join(f"{y}:{v:.4f}" for y, v in k_expand.items()))
+    print()
 
     # PASS TWO
     rows = []
@@ -185,9 +250,12 @@ def main(argv=None) -> int:
         row = {"year": rec["year"], "lam": lam,
                "q_M0": qlike_vec(pe0["rv"], pe0["sigma_mean"]),
                "bar_M0": barrier_cols(r0["rows"])}
-        lam_of = {"M1": lam, "M2": k_const, "M3": 2.0 - lam}
+        ke = k_expand[rec["year"]]
+        lam_of = {"M1": lam, "M2": k_const, "M3": 2.0 - lam,
+                  "M4": ke, "M5": 2.0 - ke}
+        row["lam_expand"] = ke
         okf = True
-        for arm in ARMS:
+        for arm in arms:
             r1 = run_fold(ep, X, f, a.hidden, a.seeds,
                           disp_lambda=lam_of[arm])
             if r1 is None:
@@ -213,18 +281,18 @@ def main(argv=None) -> int:
     if not rows:
         print("no complete folds"); return 1
 
-    print(f"\n{'metric':>9} {'M0':>10} " + " ".join(f"{m:>10}" for m in ARMS))
+    print(f"\n{'metric':>9} {'M0':>10} " + " ".join(f"{m:>10}" for m in arms))
     bar, per_fold, bar_ci = {}, {}, {}
     for met in METRICS:
         vals, series = {}, {}
-        for arm in ("M0",) + ARMS:
+        for arm in ("M0",) + arms:
             v = [r[f"bar_{arm}"].get(met) for r in rows
                  if met in r.get(f"bar_{arm}", {})]
             series[arm] = [float(x) for x in v]
             vals[arm] = float(np.mean(v)) if v else float("nan")
         bar[met] = vals
         per_fold[met] = series
-        print(f"{met:>9} " + " ".join(f"{vals[k]:10.6f}" for k in ("M0",) + ARMS))
+        print(f"{met:>9} " + " ".join(f"{vals[k]:10.6f}" for k in ("M0",) + arms))
 
     # PAIRED INTERVALS, which the registration demands and a first version of
     # this runner did not produce -- it printed bare inequalities, the exact
@@ -238,7 +306,7 @@ def main(argv=None) -> int:
           f"{'95% CI (corrected)':>28} {'folds better':>13}")
     for met in METRICS:
         sgn = 1.0 if met in HIGHER_BETTER else -1.0
-        for arm in ARMS:
+        for arm in arms:
             a_s = np.asarray(per_fold[met][arm], np.float64)
             b_s = np.asarray(per_fold[met]["M0"], np.float64)
             if len(a_s) != len(b_s) or len(a_s) < 2:
@@ -257,7 +325,7 @@ def main(argv=None) -> int:
     L = block_len_for(PROD_H, sum(len(r["q_M0"]) for r in rows))
     q0 = np.concatenate([r["q_M0"] for r in rows])
     qci = {}
-    for arm in ARMS:
+    for arm in arms:
         qa = np.concatenate([r[f"q_{arm}"] for r in rows])
         d = q0 - qa
         g = np.isfinite(d)
@@ -268,7 +336,7 @@ def main(argv=None) -> int:
 
     print(f"\n--- pre-registered rule ---")
     verdicts = {}
-    for arm in ARMS:
+    for arm in arms:
         wins = [m for m in METRICS
                 if np.isfinite(bar[m][arm]) and better(m, bar[m][arm], bar[m]["M0"])]
         clears = [m for m in METRICS
@@ -300,7 +368,9 @@ def main(argv=None) -> int:
 
     a.out.parent.mkdir(parents=True, exist_ok=True)
     a.out.write_text(json.dumps(
-        {"n_family": N_FAMILY, "alpha": alpha, "prod_H": PROD_H,
+        {"n_family": n_family, "alpha": alpha, "prod_H": PROD_H,
+         "arms": list(arms), "deployable": bool(a.deployable),
+         "lambda_expand": k_expand,
          "k_const": k_const, "lambdas": {str(r["year"]): r["lam"] for r in rows},
          "barriers": bar, "barriers_per_fold": per_fold, "barrier_ci": bar_ci,
          "qlike_ci": qci, "verdicts": verdicts}, indent=2,
