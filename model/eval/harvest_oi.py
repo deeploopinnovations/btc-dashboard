@@ -35,6 +35,21 @@ endpoints and their own instrument-naming conventions; the schema here carries
 a `venue` column from day one so a second source can be appended rather than
 retrofitted.
 
+THE TRAP IN POOLING VENUES, WRITTEN DOWN BEFORE ANYONE WALKS INTO IT. Open
+interest is reported in CONTRACTS, and a contract is not the same size at every
+venue: one Deribit BTC option is 1 BTC, while OKX quotes a `ctVal` that is a
+fraction of a coin. Summing raw contract counts across venues would therefore
+weight one venue by two orders of magnitude over another, and the resulting
+"max-OI strike" would simply be whichever strike the larger-contract venue
+favours -- a defect that looks completely normal in the output and that no
+fixture built from a guessed schema would catch (R81). Any second venue must
+bring a `contract_size` column and the pooled level must be computed in COIN
+terms, not in contracts. This file stays single-venue until that can be
+verified against a real response: the egress policy here blocks okx.com and
+api.bybit.com the same way it blocks deribit.com, so a parser written against
+their documented shapes could not be tested, and an unverifiable parser that
+silently collects nothing is worse than no parser.
+
 WHAT TWO SNAPSHOTS ALREADY SUGGEST ABOUT HOW THE TEST MUST BE BUILT
 
 n = 2, so this is an observation and not evidence, but it bears on the design
