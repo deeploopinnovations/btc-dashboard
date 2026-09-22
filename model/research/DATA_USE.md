@@ -111,4 +111,43 @@ the right primary for the holdout — but it measures sampling error, not the
 between-regime variation that §26 showed dominates. Both will be reported, and
 the fold-level one will be labelled underpowered until it is not.
 
+## The freeze is CANDIDATE-SPECIFIC, and a second candidate does not inherit it
+
+Added 2026-09-22, because the question came up while the dispersion correction
+was being prepared for adoption and the answer is not the one a reader would
+assume.
+
+Condition 1 above names the frozen candidate: **E2c's five features, no
+intercept, `SIGMA_B = 0.10`, coefficients fitted to the freeze**. "Frozen means
+frozen: no refits, no feature changes." That is a statement about one specific
+model, not a reservation of the forward window for whatever candidate happens
+to be ready when enough data accumulates.
+
+So `P3-dispersion-barriers-result`'s ADVANCE **cannot be confirmed on this
+holdout**. Scoring a different candidate against it would either violate
+condition 1 or silently redefine what was frozen, and relabelling after the
+fact is what R26 exists to prevent. The same applies to any other candidate
+that arrives later.
+
+What a second candidate would need, stated so nobody has to invent it at the
+moment of adoption:
+
+1. **Its own freeze date**, which cannot be earlier than the day the candidate
+   was fixed — for the dispersion λ that is no earlier than 2026-09-22.
+2. **Its own accumulation period before scoring.** The arithmetic in the
+   section above does not improve for being applied twice: at roughly one
+   independent regime-observation per year, resolving an effect of this size on
+   fold-level inference takes years. A per-episode paired test on forward data
+   is far better powered and would be the primary, labelled for what it
+   measures.
+3. **No borrowing.** Two candidates frozen on two dates are two holdouts, and
+   the second one's window starts later and is therefore shorter.
+
+The consequence is uncomfortable and is the point of writing it down: **there is
+no untouched data on which the dispersion correction can be confirmed today.**
+Adoption, if it happens, would rest on walk-forward evidence plus the serving
+contract in `tests/test_dispersion_report.py`, with that limitation stated
+rather than papered over — and ADVANCE remains the honest verdict until a
+forward window of its own exists and has been scored once.
+
 *Educational research only. Not financial advice.*
