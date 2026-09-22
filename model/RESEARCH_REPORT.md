@@ -33,8 +33,15 @@ Three things found by guards rather than by looking:
    it.
 2. **QLIKE is the loss.** It is asymmetric: at a factor-2 error, under-forecast
    is penalised 1.60× more than over-forecast, and it is minimised by the
-   conditional **mean** of variance, not the median. The shipped model reports
-   a median, which is a known and unresolved mismatch (`E-scale`, still open).
+   conditional **mean** of variance, not the median. This item used to end
+   "the shipped model reports a median, which is a known and unresolved
+   mismatch (`E-scale`, still open)". **That was resolved and this line did not
+   follow.** `P3-functional-adopt` changed serving to publish `sigma_mean` of
+   the same forward pass; the reported level rose 27.7% on the current anchor
+   and `tests/test_level_report.py` gates the separation. What remains open is
+   not the functional but the **width**: the predictive distribution is
+   over-dispersed by 11–28% and correcting it is ADVANCE, not adopted
+   (`P3-dispersion-barriers-result`).
 3. **Walk-forward folds with an H-derived embargo** are the evaluation.
    Consecutive episodes overlap by construction, so all intervals are
    moving-block bootstraps and the block is at least twice the forward window.
@@ -363,7 +370,7 @@ timeline
 
 ## The experiment register
 
-178 pre-registered experiments. **ADOPT** 22 · **ADVANCE** 37 · **DIAGNOSTIC** 1 · **NULL** 23 · **OPEN** 6 · **OPEN (answered by a later entry)** 46 · **REJECT** 41 · **WITHDRAWN** 2
+182 pre-registered experiments. **ADOPT** 22 · **ADVANCE** 37 · **DIAGNOSTIC** 1 · **NULL** 23 · **OPEN** 6 · **OPEN (answered by a later entry)** 47 · **REJECT** 44 · **WITHDRAWN** 2
 
 The register is append-only, so a pre-registration keeps its OPEN verdict and its result arrives as a separate entry that supersedes it. **6** questions are genuinely unresolved; the rest of the OPEN rows have been answered.
 
@@ -544,11 +551,15 @@ Every row was registered with its decision rule **before** it ran. Failures are 
 | `P3-shrunk-level-v2` ⤳ | phase3 | OPEN | With the weight corrected to w = (log c)^2 / ((log c)^2 + SE^2) -- magnitude against error, which is the right |
 | `P3-shrunk-level-v2-result` | phase3 | NULL | Closing P3-shrunk-level-v2. With the weight corrected to the fixed-target form, does precision-weighted level  |
 | `P3-shrunk-slope-v2` ⤳ | phase3 | OPEN | P3-shrunk-level-result found the shrinkage weight w = tau^2/(tau^2+SE^2) with tau^2 the BETWEEN-FOLD VARIANCE  |
-| `P3-transfer-anatomy` | phase3 | DIAGNOSTIC | Both shrinkage modules now shrink toward a FIXED target using the magnitude of the estimate against its own st |
+| `P3-transfer-anatomy` ⤳ | phase3 | DIAGNOSTIC | Both shrinkage modules now shrink toward a FIXED target using the magnitude of the estimate against its own st |
 | `P3-rolling-level` ⤳ | phase3 | OPEN | P3-transfer-anatomy measured the production arm's fold-fitted level correction as ANTI-transferring at every h |
-| `P3-rolling-level-result` | phase3 | REJECT | Closing P3-rolling-level. Does the trailing-window level estimator the system actually ships beat the once-per |
+| `P3-rolling-level-result` ⤳ | phase3 | REJECT | Closing P3-rolling-level. Does the trailing-window level estimator the system actually ships beat the once-per |
 | `P3-dispersion-deployable` | phase3 | OPEN | P3-dispersion-barriers-result is ADVANCE and not ADOPT for three named reasons. Two are now closed: serve/runt |
 | `P3-shrunk-slope-v2-result` | phase3 | NULL | Closing P3-shrunk-slope-v2. Does the fixed-target weight -- magnitude of the departure against its own error,  |
+| `P3-dispersion-conditional` ⤳ | phase3 | OPEN | The dispersion correction narrows the predictive distribution by about 13% and improves four of six barrier me |
+| `P3-dispersion-conditional-result` | phase3 | REJECT | Closing P3-dispersion-conditional. Does the dispersion correction that improves the average make the known wor |
+| `P3-rolling-level-audited` | phase3 | REJECT | P3-rolling-level-result's surviving finding was that a teacher's measured level DRIFT ranks which teachers a r |
+| `P3-transfer-anatomy-audited` | phase3 | REJECT | P3-transfer-anatomy reported that one measured quantity -- drift against signal -- explains which calibration  |
 
 ⤳ = superseded by a later entry; the original is kept rather than edited.
 
@@ -602,11 +613,27 @@ python -m model.eval.direction_bench
 # 5. the economic overlay                (~15 min)
 python -m model.eval.econ_voltarget
 
-# 6. the guards, which must all still be capable of failing
+# 6. calibration: what transfers, and what a shrinkage weight can see
+#    (minutes each -- post-hoc maps over teacher_oof.npz, no retraining)
+python -m model.eval.transfer_anatomy     # the identity check is printed under
+                                          # the correlation it deflates
+python -m model.eval.rolling_level
+python -m model.eval.rolling_level --vs-drift   # four contrasts, not one
+python -m model.eval.shrunk_level
+python -m model.eval.shrunk_slope --out model/artifacts/shrunk_slope_v2.json
+
+# 6b. the dispersion correction against the product   (~2h each, retrains)
+python -m model.eval.dispersion_barriers              # M1 / M2 / M3
+python -m model.eval.dispersion_barriers --deployable # M1 / M4 / M5, causal
+#    --conditional REFUSES on this slice by design: the production anchor is
+#    one per day, so the top 5% of a test year is 18 episodes and a fold-level
+#    interval over 18 points resolves nothing (P3-dispersion-conditional-result).
+
+# 7. the guards, which must all still be capable of failing
 python -m model.research.pitfalls --self-test
 python -m model.research.ledger --validate
 
-# 7. regenerate this report from the artifacts
+# 8. regenerate this report from the artifacts
 python -m model.research.report
 ```
 

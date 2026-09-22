@@ -626,11 +626,27 @@ python -m model.eval.direction_bench
 # 5. the economic overlay                (~15 min)
 python -m model.eval.econ_voltarget
 
-# 6. the guards, which must all still be capable of failing
+# 6. calibration: what transfers, and what a shrinkage weight can see
+#    (minutes each -- post-hoc maps over teacher_oof.npz, no retraining)
+python -m model.eval.transfer_anatomy     # the identity check is printed under
+                                          # the correlation it deflates
+python -m model.eval.rolling_level
+python -m model.eval.rolling_level --vs-drift   # four contrasts, not one
+python -m model.eval.shrunk_level
+python -m model.eval.shrunk_slope --out model/artifacts/shrunk_slope_v2.json
+
+# 6b. the dispersion correction against the product   (~2h each, retrains)
+python -m model.eval.dispersion_barriers              # M1 / M2 / M3
+python -m model.eval.dispersion_barriers --deployable # M1 / M4 / M5, causal
+#    --conditional REFUSES on this slice by design: the production anchor is
+#    one per day, so the top 5% of a test year is 18 episodes and a fold-level
+#    interval over 18 points resolves nothing (P3-dispersion-conditional-result).
+
+# 7. the guards, which must all still be capable of failing
 python -m model.research.pitfalls --self-test
 python -m model.research.ledger --validate
 
-# 7. regenerate this report from the artifacts
+# 8. regenerate this report from the artifacts
 python -m model.research.report
 ```
 
@@ -646,8 +662,15 @@ ASSUMPTIONS = """1. **Realized volatility from 5-minute returns is the target**,
    it.
 2. **QLIKE is the loss.** It is asymmetric: at a factor-2 error, under-forecast
    is penalised 1.60× more than over-forecast, and it is minimised by the
-   conditional **mean** of variance, not the median. The shipped model reports
-   a median, which is a known and unresolved mismatch (`E-scale`, still open).
+   conditional **mean** of variance, not the median. This item used to end
+   "the shipped model reports a median, which is a known and unresolved
+   mismatch (`E-scale`, still open)". **That was resolved and this line did not
+   follow.** `P3-functional-adopt` changed serving to publish `sigma_mean` of
+   the same forward pass; the reported level rose 27.7% on the current anchor
+   and `tests/test_level_report.py` gates the separation. What remains open is
+   not the functional but the **width**: the predictive distribution is
+   over-dispersed by 11–28% and correcting it is ADVANCE, not adopted
+   (`P3-dispersion-barriers-result`).
 3. **Walk-forward folds with an H-derived embargo** are the evaluation.
    Consecutive episodes overlap by construction, so all intervals are
    moving-block bootstraps and the block is at least twice the forward window.
