@@ -74,6 +74,17 @@ ARMS_DEPLOY = ("M1", "M4", "M5")
 # P3-dispersion-conditional. ONE arm, because the registration fixed the family
 # at 6 metrics x 2 subsets = 12 and scoring three arms conditionally would be
 # 36 -- a family widened after the rule was written.
+# EACH ARM SET HAS THE SAME THREE ROLES AND THE VERDICT BLOCK READS THEM BY
+# ROLE. It used to name M1, M2 and M3 literally, which was correct while there
+# was one arm set and became a KeyError the moment there were two -- after a
+# multi-hour run had already printed every number it computed. The roles are:
+#   candidate  the arm the registration is about
+#   mirror     its placebo, the same magnitude of change in the other direction
+#   rival      the arm it must not be significantly worse than
+ROLES = {
+    ("M1", "M2", "M3"): {"candidate": "M1", "mirror": "M3", "rival": "M2"},
+    ("M1", "M4", "M5"): {"candidate": "M4", "mirror": "M5", "rival": "M1"},
+}
 ARMS_COND = ("M1",)
 SPIKE_Q = 0.95
 # The floor `run_fold` already applies to a conditional subset, restated here
@@ -275,7 +286,13 @@ def main(argv=None) -> int:
         return 1
     arms = (ARMS_COND if a.conditional else
             ARMS_DEPLOY if a.deployable else ARMS)
-    n_family = len(arms) * len(METRICS) * (2 if a.conditional else 1)
+    # FAMILY. len(arms) x 6 metrics against M0, PLUS the 6 candidate-vs-rival
+    # contrasts the registration's third condition needs and the first version
+    # of this runner did not count. Counting them widens every interval, which
+    # can only make a clearing arm harder to clear -- the conservative
+    # direction, and the only one available once the omission is known.
+    n_family = (len(arms) * len(METRICS) * (2 if a.conditional else 1)
+                + (0 if a.conditional else len(METRICS)))
     if a.out is None:
         a.out = Path("model/artifacts/dispersion_"
                      + ("conditional" if a.conditional else
@@ -501,7 +518,7 @@ def main(argv=None) -> int:
               f"CI [{ci[0]:+.5f}, {ci[1]:+.5f}]")
 
     print(f"\n--- pre-registered rule ---")
-    verdicts = {}
+    verdicts, rival_ci = {}, {}
     for arm in arms:
         wins = [m for m in METRICS
                 if np.isfinite(bar[m][arm]) and better(m, bar[m][arm], bar[m]["M0"])]
@@ -512,25 +529,54 @@ def main(argv=None) -> int:
         print(f"   {arm}: {len(wins)}/6 better by point estimate {wins}")
         print(f"        {len(clears)}/6 with an interval EXCLUDING ZERO {clears}"
               f"   <- this is what the rule asks for")
-    m1, m3 = verdicts["M1"]["n_better"], verdicts["M3"]["n_better"]
-    print(f"\n   M1 majority-better: {m1 >= 4}   "
-          f"MIRROR M3 majority-better: {m3 >= 4}")
-    n_clear_m1 = verdicts["M1"]["n_clearing"]
+    role = ROLES[tuple(arms)]
+    cand, mirr, rival = role["candidate"], role["mirror"], role["rival"]
+    nc, nm = verdicts[cand]["n_better"], verdicts[mirr]["n_better"]
+    print(f"\n   {cand} majority-better: {nc >= 4}   "
+          f"MIRROR {mirr} majority-better: {nm >= 4}")
+    n_clear = verdicts[cand]["n_clearing"]
     print(f"\n   ADOPTION per the registration needs a MAJORITY of six with "
-          f"intervals\n   excluding zero: M1 has {n_clear_m1}/6 -> "
-          f"{'MET' if n_clear_m1 >= 4 else 'NOT MET'}")
-    if m1 >= 4 and m3 >= 4:
+          f"intervals\n   excluding zero: {cand} has {n_clear}/6 -> "
+          f"{'MET' if n_clear >= 4 else 'NOT MET'}")
+    if nc >= 4 and nm >= 4:
         print("   -> BOTH DIRECTIONS HELP: the gain is perturbing the atoms at "
               "all,\n      not correcting the dispersion. Same shape as "
               "P2-mean-level's level result.")
-    elif m1 >= 4 and m3 < 4:
+    elif nc >= 4 and nm < 4:
         print("   -> the correction's DIRECTION matters; width is a different "
-              "intervention\n      class from level. Candidate, pending the "
-              "M1-vs-M2 separation below.")
+              f"intervention\n      class from level. Candidate, pending the "
+              f"{cand}-vs-{rival} separation below.")
     else:
         print("   -> the dispersion correction does not improve the battery.")
-    print(f"   M1 vs M2 (is the per-fold fit worth anything over a constant?): "
-          f"{verdicts['M1']['n_better']} vs {verdicts['M2']['n_better']} metrics better")
+
+    # CANDIDATE AGAINST ITS RIVAL, PAIRED PER METRIC. The registration's third
+    # condition -- the candidate must not be significantly WORSE than its rival
+    # on any metric it clears -- names a comparison the first version of this
+    # runner never computed, so the rule could not be evaluated with the
+    # intervals the design produced. That is the second half of R84, and the
+    # fix is to compute the contrast and to COUNT it in the family rather than
+    # to reinterpret the rule.
+    print(f"\n   {cand} vs {rival}, paired per metric "
+          f"(the registration's third condition):")
+    for met in METRICS:
+        sgn = 1.0 if met in HIGHER_BETTER else -1.0
+        a_s = np.asarray(per_fold[met][cand], np.float64)
+        r_s = np.asarray(per_fold[met][rival], np.float64)
+        if len(a_s) != len(r_s) or len(a_s) < 2:
+            continue
+        d = sgn * (a_s - r_s)
+        lo, hi = mean_ci(d, alpha=alpha)["ci95"]
+        rival_ci[met] = {"delta": float(np.mean(d)),
+                         "ci95": [float(lo), float(hi)],
+                         "worse": bool(hi < 0), "better": bool(lo > 0),
+                         "n_folds_better": int(np.sum(d > 0))}
+        tag = "WORSE" if hi < 0 else "better" if lo > 0 else "not separated"
+        print(f"      {met:>9} {np.mean(d):+11.6f} "
+              f"[{lo:+11.6f}, {hi:+11.6f}] {tag}")
+    hurt = [m for m in verdicts[cand]["metrics_clearing"]
+            if rival_ci.get(m, {}).get("worse")]
+    print(f"   -> third condition: "
+          f"{'FAILS on ' + ', '.join(hurt) if hurt else 'MET -- not significantly worse than ' + rival + ' on anything it clears'}")
 
     a.out.parent.mkdir(parents=True, exist_ok=True)
     a.out.write_text(json.dumps(
@@ -540,7 +586,8 @@ def main(argv=None) -> int:
          "lambda_expand": k_expand,
          "k_const": k_const, "lambdas": {str(r["year"]): r["lam"] for r in rows},
          "barriers": bar, "barriers_per_fold": per_fold, "barrier_ci": bar_ci,
-         "qlike_ci": qci, "verdicts": verdicts}, indent=2,
+         "qlike_ci": qci, "verdicts": verdicts,
+         "vs_rival": rival_ci, "roles": ROLES[tuple(arms)]}, indent=2,
         default=float) + "\n")
     print(f"\nwrote {a.out}")
     return 0
