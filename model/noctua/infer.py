@@ -86,6 +86,25 @@ def quantiles_at(q: np.ndarray, levels: np.ndarray) -> np.ndarray:
 BLEND_W = 0.25
 
 
+def scale_atoms(atoms_y, centre, lam: float = 1.0):
+    """Scale the atom grid's SPREAD about `centre`, leaving the centre put.
+
+    Pure NumPy and deliberately separate from `predict`, which needs PyTorch:
+    the serving CI job installs the torch-free serving runtime, so a gate that
+    imports torch cannot run there. This is the part whose correctness matters
+    -- that lam == 1.0 is an exact identity -- and it is testable without a
+    model. A first version put this inline and gated it in CI anyway, which
+    failed on ModuleNotFoundError.
+
+    lam == 1.0 returns the input UNCHANGED (not a copy, not a recomputation),
+    so the shipped path is bit-identical by construction rather than by
+    floating-point luck.
+    """
+    if lam == 1.0:
+        return atoms_y
+    return centre + float(lam) * (atoms_y - centre)
+
+
 def predict(model, d: dict, n_atoms: int = N_ATOMS,
             har_logvol: np.ndarray | None = None, blend_w: float = BLEND_W,
             disp_lambda: float = 1.0) -> dict:
@@ -133,9 +152,7 @@ def predict(model, d: dict, n_atoms: int = N_ATOMS,
         # QLIKE screen says correcting it costs the point forecast
         # (P3-dispersion-screen), so the barrier battery is the only thing that
         # can decide it.
-        if disp_lambda != 1.0:
-            _m = qa[:, MEDIAN_IDX][:, None]
-            atoms_y = _m + float(disp_lambda) * (atoms_y - _m)
+        atoms_y = scale_atoms(atoms_y, qa[:, MEDIAN_IDX][:, None], disp_lambda)
         sigma_atoms = np.exp(atoms_y) * np.sqrt(H)[:, None]  # (n, A) window vol
 
         qr, qu, qd, qm = [], [], [], []

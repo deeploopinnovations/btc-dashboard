@@ -23,9 +23,27 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-import torch                                                    # noqa: E402
 from noctua import infer as I                                   # noqa: E402
-from noctua.model import Noctua                                 # noqa: E402
+
+# TWO TIERS, because the serving CI job installs the torch-free serving
+# runtime and a gate that imports torch cannot run there. The first version of
+# this file imported torch at module scope and failed CI with
+# ModuleNotFoundError on two commits.
+#
+# Tier 1 (ALWAYS) exercises `infer.scale_atoms`, pure NumPy, which is where the
+# property that matters lives: lam == 1.0 must be an exact identity.
+# Tier 2 (only where torch exists) exercises the whole forward pass for
+# bit-identity on every returned array.
+#
+# The absence of torch is REPORTED, not silently skipped -- a suite that
+# quietly runs fewer checks and still prints PASS is the kind of guard this
+# project keeps having to repair.
+try:
+    import torch                                               # noqa: E402
+    from noctua.model import Noctua                            # noqa: E402
+    HAVE_TORCH = True
+except ModuleNotFoundError:
+    HAVE_TORCH = False
 
 FAIL = []
 
@@ -52,8 +70,45 @@ def make_batch(seed: int = 0, n: int = 64):
     return m, d
 
 
+def tier1() -> None:
+    """Pure-NumPy checks on the helper. These run everywhere."""
+    rng = np.random.default_rng(1)
+    atoms = np.sort(rng.normal(-4.0, 0.4, size=(50, 32)), axis=1)
+    centre = atoms[:, 16][:, None]
+
+    same = I.scale_atoms(atoms, centre, 1.0)
+    check("lam=1.0 returns the SAME OBJECT (identity, not recomputation)",
+          same is atoms)
+    check("lam=1.0 is bit-identical", np.array_equal(same, atoms))
+
+    narrow = I.scale_atoms(atoms, centre, 0.5)
+    wide = I.scale_atoms(atoms, centre, 1.5)
+    sd = lambda a: float(np.mean(np.std(a, axis=1)))            # noqa: E731
+    check("lam<1 narrows the spread", sd(narrow) < 0.55 * sd(atoms),
+          f"{sd(narrow)/sd(atoms):.3f}")
+    check("lam>1 widens the spread", sd(wide) > 1.45 * sd(atoms),
+          f"{sd(wide)/sd(atoms):.3f}")
+    check("the centre is preserved exactly at every lam",
+          np.array_equal(narrow[:, 16][:, None], centre)
+          and np.array_equal(wide[:, 16][:, None], centre))
+    # A scaling that collapsed to the centre would pass "narrows" trivially.
+    check("lam=0 collapses to the centre exactly",
+          np.array_equal(I.scale_atoms(atoms, centre, 0.0),
+                         np.broadcast_to(centre, atoms.shape)))
+
+
 def main() -> int:
-    print("dispersion hook")
+    print("dispersion hook -- tier 1 (pure NumPy, runs everywhere)")
+    tier1()
+    if not HAVE_TORCH:
+        print("\n  torch is NOT installed here, so the full forward-pass "
+              "bit-identity\n  checks did NOT run. That is expected in the "
+              "serving CI job, which\n  installs the torch-free runtime; "
+              "precommit runs both tiers.")
+        print(f"\n{'PASS (tier 1 only)' if not FAIL else 'FAIL: ' + ', '.join(FAIL)}")
+        return 1 if FAIL else 0
+
+    print("\ndispersion hook -- tier 2 (full forward pass)")
     m, d = make_batch()
 
     base = I.predict(m, d)
