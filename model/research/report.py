@@ -494,12 +494,27 @@ def sec_experiments() -> str:
     if not p.exists():
         return missing("research/ledger.json", "The experiment register")
     es = json.loads(p.read_text())["experiments"]
+    # OPEN MEANS TWO DIFFERENT THINGS AND THE COUNT WAS REPORTING ONE NUMBER
+    # FOR BOTH. A pre-registration keeps verdict OPEN forever -- it is
+    # append-only, so the result arrives as a SEPARATE entry that supersedes
+    # it. Summing those together with the questions nobody has answered told a
+    # reader there were 52 loose ends when there were 6, which is the kind of
+    # number that gets quoted. Superseded pre-registrations are counted
+    # separately and named as what they are.
     counts: dict[str, int] = {}
     for e in es:
-        counts[e["verdict"]] = counts.get(e["verdict"], 0) + 1
+        v = e["verdict"]
+        if v == "OPEN" and e.get("superseded_by"):
+            v = "OPEN (answered by a later entry)"
+        counts[v] = counts.get(v, 0) + 1
+    unresolved = counts.get("OPEN", 0)
     out = [f"{len(es)} pre-registered experiments. "
            + " · ".join(f"**{k}** {v}" for k, v in sorted(counts.items()))
-           + "\n\nEvery row was registered with its decision rule **before** it "
+           + f"\n\nThe register is append-only, so a pre-registration keeps "
+           f"its OPEN verdict and its result arrives as a separate entry that "
+           f"supersedes it. **{unresolved}** questions are genuinely "
+           f"unresolved; the rest of the OPEN rows have been answered.\n\n"
+           "Every row was registered with its decision rule **before** it "
            "ran. Failures are not deleted; they stay in the family and count "
            "against the multiple-testing correction.\n",
            "\n| id | topic | verdict | question |\n|---|---|---|---|\n"]

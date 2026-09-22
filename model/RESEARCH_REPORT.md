@@ -363,7 +363,9 @@ timeline
 
 ## The experiment register
 
-156 pre-registered experiments. **ADOPT** 22 · **ADVANCE** 35 · **NULL** 19 · **OPEN** 43 · **REJECT** 35 · **WITHDRAWN** 2
+178 pre-registered experiments. **ADOPT** 22 · **ADVANCE** 37 · **DIAGNOSTIC** 1 · **NULL** 23 · **OPEN** 6 · **OPEN (answered by a later entry)** 46 · **REJECT** 41 · **WITHDRAWN** 2
+
+The register is append-only, so a pre-registration keeps its OPEN verdict and its result arrives as a separate entry that supersedes it. **6** questions are genuinely unresolved; the rest of the OPEN rows have been answered.
 
 Every row was registered with its decision rule **before** it ran. Failures are not deleted; they stay in the family and count against the multiple-testing correction.
 
@@ -525,6 +527,28 @@ Every row was registered with its decision rule **before** it ran. Failures are 
 | `P3-regularisation-long` | phase3 | REJECT | P3-regularisation-result left H=24 and H=168 unconcluded because the same-sample col-shuf bar had never been m |
 | `P3-functional-adopt-scope` | phase3 | ADVANCE | P3-functional-adopt switched the served scalar to sigma_mean on teacher-zoo evidence, where noctua_v1 is the R |
 | `P3-spike-ratio-result` | phase3 | NULL | Closing P3-spike-ratio-refresh. What are MODEL_CARD 5.3's spike and calm RV/sigma ratios under the adopted fun |
+| `P3-shrunk-slope` ⤳ | phase3 | OPEN | The MZ slope is worth +2.77% / +2.38% / -1.35% / -19.55% against a level-only rescale at H = 1 / 6 / 24 / 168, |
+| `P3-shrunk-slope-result` | phase3 | ADVANCE | Closing P3-shrunk-slope. Can one rule, with no horizon-specific tuning, match the better of {level-only, full- |
+| `P3-warm-start` ⤳ | phase3 | OPEN | P3-shrunk-slope-result diagnosed the drift rule's entire deficit against the fixed constant as a COLD START -- |
+| `P3-warm-start-result` | phase3 | NULL | Closing P3-warm-start. Does falling back to the fixed constant on cold-start folds close drift's gap against i |
+| `P3-dispersion` | phase3 | REJECT | P3-functional-audited read calibration ratios of 0.963 / 0.988 / 0.992 / 0.899 as the mean functional being ne |
+| `P3-dispersion-screen` | phase3 | REJECT | P3-dispersion found the model over-dispersed by 11-28% at H=6/24/168. Does correcting the dispersion -- scalin |
+| `P3-dispersion-barriers` ⤳ | phase3 | OPEN | The model is over-dispersed by 11-28% at H = 6/24/168, and the committee builds every barrier curve from sigma |
+| `P3-dispersion-barriers-v2` ⤳ | phase3 | OPEN | Unchanged: does correcting the atom dispersion improve the barrier battery, and is moving the atoms' WIDTH a d |
+| `P3-dispersion-barriers-result` | phase3 | ADVANCE | Closing P3-dispersion-barriers-v2. Does correcting the atom dispersion improve the barrier battery, and is mov |
+| `P3-dispersion-qlike-mechanism` ⤳ | phase3 | REJECT | P3-dispersion-barriers-result explained the QLIKE sign flip -- the correction costs 3-5% on the raw teacher ta |
+| `P3-dispersion-orthogonality` | phase3 | REJECT | P3-dispersion-qlike-mechanism concluded the dispersion correction's QLIKE gain is 'largely an induced LEVEL co |
+| `P3-symmetric-correction-cost` | phase3 | NULL | P3-dispersion-orthogonality found the level rescale HURTS the mean functional at all four horizons. The scorec |
+| `P3-shrunk-level` ⤳ | phase3 | OPEN | The symmetric level rescale costs the already-calibrated arm 1.3-4.5% of QLIKE while handing badly-calibrated  |
+| `P3-shrunk-level-result` | phase3 | REJECT | Closing P3-shrunk-level as specified. Does shrinking c toward 1 by tau^2/(tau^2+SE^2), with tau^2 the between- |
+| `P3-shrunk-level-v2` ⤳ | phase3 | OPEN | With the weight corrected to w = (log c)^2 / ((log c)^2 + SE^2) -- magnitude against error, which is the right |
+| `P3-shrunk-level-v2-result` | phase3 | NULL | Closing P3-shrunk-level-v2. With the weight corrected to the fixed-target form, does precision-weighted level  |
+| `P3-shrunk-slope-v2` ⤳ | phase3 | OPEN | P3-shrunk-level-result found the shrinkage weight w = tau^2/(tau^2+SE^2) with tau^2 the BETWEEN-FOLD VARIANCE  |
+| `P3-transfer-anatomy` | phase3 | DIAGNOSTIC | Both shrinkage modules now shrink toward a FIXED target using the magnitude of the estimate against its own st |
+| `P3-rolling-level` ⤳ | phase3 | OPEN | P3-transfer-anatomy measured the production arm's fold-fitted level correction as ANTI-transferring at every h |
+| `P3-rolling-level-result` | phase3 | REJECT | Closing P3-rolling-level. Does the trailing-window level estimator the system actually ships beat the once-per |
+| `P3-dispersion-deployable` | phase3 | OPEN | P3-dispersion-barriers-result is ADVANCE and not ADOPT for three named reasons. Two are now closed: serve/runt |
+| `P3-shrunk-slope-v2-result` | phase3 | NULL | Closing P3-shrunk-slope-v2. Does the fixed-target weight -- magnitude of the departure against its own error,  |
 
 ⤳ = superseded by a later entry; the original is kept rather than edited.
 
