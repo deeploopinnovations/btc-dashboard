@@ -831,6 +831,33 @@ the family, so it could not be evaluated with the intervals the design produces.
 Check that a rule's decisive comparison is one the design will actually compute.
 *(`P3-shrunk-slope-v2-result`)*
 
+**R85. A correlation between two DERIVED quantities needs the null the
+definitions force, not a permutation null — derive it before you run one.**
+Two headline correlations were published in one day and both were substantially
+artifacts of how their terms were defined.
+- `P3-rolling-level` reported that measured level drift ranks which teachers a
+  rolling correction helps, `ρ = +0.976 / +0.929 / +0.905 / +0.929`. The gain
+  was measured **against the fold constant**, and a teacher whose level drifts
+  has a bad fold constant by construction — so any alternative beats it. The
+  **frozen** control, an alternative with no updating in it at all, reproduces
+  the correlation at three of four horizons and beats it at H=1 (`+1.000`).
+- `P3-transfer-anatomy` reported `ρ(drift/signal, transfer) = −0.564`,
+  permutation `p < 0.0001`. QLIKE is locally quadratic in `log c`, so
+  `transfer = 1 − (drift/signal)²` **identically**; measured against that
+  prediction the level lands within a median `0.020`. The permutation null
+  breaks a pairing the definitions fix, so it tests the identity.
+A permutation test asks "could this association arise by chance?" — the wrong
+question when the association is forced by arithmetic, where it arises with
+probability one. Write down what the definitions predict, subtract it, and
+report the **residual**. Where the identity holds the correlation is
+bookkeeping; **where it breaks, the departure is the finding** — the slope's
+violation of the same identity (`ρ = −0.168`, median error `0.751`) is worth
+more than the level's conformity to it.
+This is R82's argument moved from an arm to a statistic: the cheap control
+belongs in the family from the start, and for a derived correlation the cheap
+control is the definition.
+*(`P3-rolling-level-audited`, `P3-transfer-anatomy-audited`)*
+
 ## Rules about interpretation
 
 **R20. Correcting a number in the humbler direction does not make the
