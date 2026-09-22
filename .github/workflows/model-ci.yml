@@ -52,6 +52,9 @@ jobs:
           pip install --quiet ruff
           ruff check --no-cache --select F821 model/ scripts/
 
+      - name: Dispersion hook is a bit-identical no-op
+        run: python model/tests/test_dispersion_hook.py
+
       - name: Model self-test
         run: python model/tests/test_serving.py
 

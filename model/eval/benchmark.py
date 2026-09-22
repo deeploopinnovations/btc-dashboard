@@ -339,7 +339,8 @@ class ScaledClimatology(Forecaster):
 def run_fold(ep, X, fold, hidden=32, seeds=3, verbose=False, shape_cols=None,
              sigma_ref_all=None, sigma_ref_fn=None, extra_w=None,
              train_filter=None, min_train=5000, prod_override=None,
-             lam_r=1.0, post_shift_fn=None, residual_anchor=None):
+             lam_r=1.0, post_shift_fn=None, residual_anchor=None,
+             disp_lambda=1.0):
     # Validated FIRST, before any data is touched, so a caller that passes a
     # malformed anchor is told so instead of failing later somewhere that reads
     # like a data problem.
@@ -456,7 +457,12 @@ def run_fold(ep, X, fold, hidden=32, seeds=3, verbose=False, shape_cols=None,
                 raise ValueError(
                     f"post_shift_fn returned {want.shape}, expected {lp.shape}")
             lp = lp + want / (1.0 - I.BLEND_W)
-        preds = [I.predict(m, d, har_logvol=lp) for m in models]
+        # disp_lambda defaults to 1.0, a bit-identical no-op asserted on bytes
+        # by tests/test_dispersion_hook.py, so this pass-through cannot move a
+        # committed number. It scales the atom SPREAD about the median, which
+        # is a different intervention class from post_shift_fn's level write.
+        preds = [I.predict(m, d, har_logvol=lp, disp_lambda=disp_lambda)
+                 for m in models]
         out = dict(preds[0])
         # `sigma_mean` joins the seed-averaged keys because P2-mean-level needs
         # the ENSEMBLE's median-to-mean ratio, not seed 0's. Until this line it

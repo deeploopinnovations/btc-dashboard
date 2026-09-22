@@ -87,7 +87,8 @@ BLEND_W = 0.25
 
 
 def predict(model, d: dict, n_atoms: int = N_ATOMS,
-            har_logvol: np.ndarray | None = None, blend_w: float = BLEND_W) -> dict:
+            har_logvol: np.ndarray | None = None, blend_w: float = BLEND_W,
+            disp_lambda: float = 1.0) -> dict:
     """Full predictive object for a batch of episodes (PyTorch model).
 
     Serving does not go through here -- `serve.runtime.NumpyNoctua.predict`
@@ -115,6 +116,26 @@ def predict(model, d: dict, n_atoms: int = N_ATOMS,
             qa = qa + shift[:, None]
         atom_levels = (np.arange(n_atoms) + 0.5) / n_atoms
         atoms_y = quantiles_at(qa, atom_levels)              # (n, A)
+        # DISPERSION HOOK, default a bit-identical no-op (`disp_lambda == 1.0`
+        # takes this branch and leaves atoms_y untouched, so the shipped
+        # artifact cannot move). Scales the atom spread about the predicted
+        # MEDIAN, which leaves `sigma_med` exactly unchanged and moves only the
+        # width of the predictive distribution -- and therefore every barrier
+        # curve, since the committee builds them from `sigma_atoms`.
+        #
+        # This is deliberately a DIFFERENT intervention class from
+        # `post_shift_fn`, which writes the level. P2-mean-level showed a level
+        # shift degrades all six barrier metrics by ~20% even under a shuffled
+        # control, i.e. the damage belongs to moving the level at all. Whether
+        # moving the WIDTH behaves the same way is the open question
+        # (P3-dispersion-barriers); the measured over-dispersion of 11-28% at
+        # H = 6/24/168 (P3-dispersion) says the width is wrong, and the
+        # QLIKE screen says correcting it costs the point forecast
+        # (P3-dispersion-screen), so the barrier battery is the only thing that
+        # can decide it.
+        if disp_lambda != 1.0:
+            _m = qa[:, MEDIAN_IDX][:, None]
+            atoms_y = _m + float(disp_lambda) * (atoms_y - _m)
         sigma_atoms = np.exp(atoms_y) * np.sqrt(H)[:, None]  # (n, A) window vol
 
         qr, qu, qd, qm = [], [], [], []

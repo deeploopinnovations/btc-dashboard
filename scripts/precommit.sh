@@ -53,6 +53,9 @@ run "test_adaptive"          python model/tests/test_adaptive.py
 run "test_features"          python model/tests/test_features.py
 run "test_selfimprove"       python model/tests/test_selfimprove.py
 run "test_level_report"      python model/tests/test_level_report.py
+# The dispersion hook writes the object every barrier curve is built from, so
+# its no-op default is asserted on BYTES rather than on downstream behaviour.
+run "test_dispersion_hook"   python model/tests/test_dispersion_hook.py
 # These two were in CI and NOT here, so the header's claim to run "the same
 # ones CI runs" was aspirational. Both check FILES written by scripts rather
 # than a write path, which is the version of the check that binds.
