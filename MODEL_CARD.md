@@ -105,9 +105,11 @@ This residual sd puts "within 10%" at roughly **40–45% of nights for an oracle
 
 Source: `model/ROADMAP.md` §4, citing the in-sample regression fit of RV on the base feature set.
 
-### 5.3 Volatility Spikes Are Under-Forecast by 45%
+### 5.3 Volatility Spikes Are Under-Forecast — the Direction Holds, the 45% Does Not
 
-On spike nights (volatility jumps >1σ), the model's median RV/sigma ratio is **1.453** vs **0.964** on normal nights — a **45% underforecast** of realized move relative to sigma.
+On spike nights (volatility jumps >1σ) the model under-forecasts the realized move relative to sigma, by a factor near **1.7** against calm nights, under either reported functional. That ratio-of-ratios is what is settled.
+
+The **45%** this heading used to assert is not. It came from a median RV/sigma of **1.453** on spike nights against **0.964** on calm ones, measured in 2026-09-13 against the scalar served then; the re-measurement below missed both by 5.7% and 8.0% and is VOID by its own pre-registered rule, so the original figures are kept as the record of what was measured and are not quoted as current.
 
 > **RE-MEASURED 2026-09-21, AND THE REFRESH IS VOID BY ITS OWN RULE.**
 > `P3-spike-ratio-result` re-ran both ratios on the production slice under both

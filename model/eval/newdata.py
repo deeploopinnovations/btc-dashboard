@@ -17,8 +17,12 @@ spike flag (303 spike days: 177 onset, 126 continuation):
 
 Persistence does almost all of the work of the 0.78-0.81 headline. Genuine
 anticipation of a cluster's FIRST day sits at 0.733, and that is where §7a's
-measured cost lives: 45% under-forecasting on spike nights carrying 25.8% of
-total loss. Every feature in the current set is a trailing statistic on BTC's
+measured cost lives: under-forecasting on spike nights carrying 25.8% of total
+loss. The "45%" this file used to quote is the figure MODEL_CARD §5.3 no longer
+stands behind -- `P3-spike-ratio-result` failed to reproduce it and is VOID by
+its own rule. What survives is the direction and the ratio-of-ratios, near 1.7
+against calm nights under either reported functional, which is what the
+argument below needs; the magnitude is not settled and is not quoted here. Every feature in the current set is a trailing statistic on BTC's
 own past price -- onset, by definition, is the day that trailing statistic has
 not yet moved. So the candidates below are restricted to information classes
 that are NOT derived from BTC's own price history.
