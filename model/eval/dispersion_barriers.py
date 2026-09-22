@@ -71,6 +71,14 @@ ARMS = ("M1", "M2", "M3")
 # 1.0, which is not a handicap here the way `drift`'s w = 0 was: 1.0 is the
 # SHIPPED behaviour, so a cold fold scores the incumbent rather than nothing.
 ARMS_DEPLOY = ("M1", "M4", "M5")
+# P3-dispersion-conditional. ONE arm, because the registration fixed the family
+# at 6 metrics x 2 subsets = 12 and scoring three arms conditionally would be
+# 36 -- a family widened after the rule was written.
+ARMS_COND = ("M1",)
+SPIKE_Q = 0.95
+# The floor `run_fold` already applies to a conditional subset, restated here
+# so the refusal above and the silent skip down there cannot drift apart.
+MIN_COND_EPISODES = 30
 METRICS = ("DSC", "MCB", "brier", "crps", "logs", "pinball")
 # DSC is a discrimination score: higher is better. Every other metric here is
 # a loss. Getting this backwards would report every result inverted for one
@@ -102,6 +110,51 @@ def fit_lambda(rv_cal, sig_cal, sig_mean_cal) -> float:
     if not (s_imp > 0):
         return float("nan")
     return s_real / s_imp
+
+
+def spike_calm_masks(ep, fold, q: float = SPIKE_Q) -> dict:
+    """SPIKE = realised vol in the top 5% of THIS fold's test slice, CALM its
+    complement, both as masks over every episode in the table.
+
+    DEFINED ON THE OUTCOME, deliberately and with the same wording
+    eval/vol_matrix.spike_mask already carries: that makes it a conditioning
+    variable for REPORTING and explicitly not something any arm may use. No
+    forecast in this file sees it, and both arms are scored on identical
+    episodes within each subset, so the contrast stays paired.
+
+    The threshold is taken on the fold's own PRODUCTION test slice rather than
+    on the whole table, because a fixed global threshold would put most of 2021
+    in one bucket and most of 2025 in the other, and the question is about
+    violent nights relative to their own era.
+    """
+    rv = ep["RV"].to_numpy(np.float64)
+    te = np.asarray(fold["test"], bool) & S.production_mask(ep)
+    sel = rv[te & np.isfinite(rv)]
+    if len(sel) < 100:
+        return {}
+    thr = float(np.quantile(sel, q))
+    spike = np.isfinite(rv) & (rv >= thr)
+    return {"spike": spike, "calm": np.isfinite(rv) & ~spike}
+
+
+def cond_barrier_cols(rows, cname: str, model: str = "noctua_v2") -> dict:
+    """`barrier_cols` restricted to one conditional subset.
+
+    Reads the nested dict `run_fold` writes under `rec["cond"]`, which is where
+    it lives precisely so the aggregator that builds the pooled metric cannot
+    see it (asserted in this module's selftest).
+    """
+    r = next((x for x in rows if x["model"] == model), None)
+    if r is None or cname not in r.get("cond", {}):
+        return {}
+    slot = r["cond"][cname]
+    out = {}
+    for pat in ("pinball_", "crps_", "brier_", "DSC_", "MCB_", "logs_"):
+        vals = [v for k, v in slot.items() if k.startswith(pat)
+                and isinstance(v, (int, float))]
+        if vals:
+            out[pat.rstrip("_")] = float(np.mean(vals))
+    return out
 
 
 def expanding_median(lams: list, cold: float = 1.0) -> list:
@@ -204,6 +257,10 @@ def main(argv=None) -> int:
                          "dispersion_deployable.json under --deployable, so "
                          "the two modes cannot overwrite each other")
     ap.add_argument("--selftest", action="store_true")
+    ap.add_argument("--conditional", action="store_true",
+                    help="split the battery into SPIKE and CALM subsets and "
+                         "score M1 alone against M0 on each "
+                         "(P3-dispersion-conditional)")
     ap.add_argument("--deployable", action="store_true",
                     help="score M1 against the CAUSAL expanding-median lambda "
                          "(M4) and its mirror (M5) instead of M2/M3")
@@ -211,11 +268,18 @@ def main(argv=None) -> int:
     if a.selftest:
         return selftest()
 
-    arms = ARMS_DEPLOY if a.deployable else ARMS
-    n_family = len(arms) * len(METRICS)
+    if a.conditional and a.deployable:
+        print("REFUSING: --conditional fixes the arm set at M1 and --deployable "
+              "at M1/M4/M5. Running both would score a family neither "
+              "registration specified.")
+        return 1
+    arms = (ARMS_COND if a.conditional else
+            ARMS_DEPLOY if a.deployable else ARMS)
+    n_family = len(arms) * len(METRICS) * (2 if a.conditional else 1)
     if a.out is None:
         a.out = Path("model/artifacts/dispersion_"
-                     + ("deployable" if a.deployable else "barriers") + ".json")
+                     + ("conditional" if a.conditional else
+                        "deployable" if a.deployable else "barriers") + ".json")
     ep, X = load_all(a.artifacts)
     folds = S.walk_forward_folds(ep)
     alpha = 0.05 / n_family
@@ -227,16 +291,48 @@ def main(argv=None) -> int:
     # PASS ONE: the reference, which also supplies each fold's calib slice and
     # therefore its lambda. lambda cannot be known before the model runs, so
     # two passes is exact rather than approximate.
+    # R5 BEFORE THE COMPUTE, NOT AFTER IT. The production slice is ONE anchor
+    # per day, so a test year holds ~365 episodes and its top 5% is ~18. A
+    # six-fold interval whose per-fold metric is estimated from 18 points -- and
+    # whose Brier decomposition needs an isotonic fit on those 18 -- is a
+    # NON-MEASUREMENT, and discovering that from a wide interval after a
+    # multi-hour run is exactly the failure R84 names. The check is here so the
+    # run refuses rather than produces a table nobody should read.
+    if a.conditional:
+        thin = []
+        for f in folds:
+            m = spike_calm_masks(ep, f)
+            if not m:
+                continue
+            n = int((m["spike"] & np.asarray(f["test"], bool)
+                     & S.production_mask(ep)).sum())
+            if n < MIN_COND_EPISODES:
+                thin.append((f["year"], n))
+        if thin:
+            print("REFUSING: the SPIKE subset is too small to decompose on this "
+                  "slice.\n  " + ", ".join(f"{y}: {n} episodes" for y, n in thin)
+                  + f"\n  (floor is {MIN_COND_EPISODES}). Widening to every H=19 "
+                  "anchor does NOT fix it: 24 hourly\n  anchors cover one night, "
+                  "so ~438 wide spike episodes per fold are the same\n  ~18 "
+                  "nights seen 24 times. The unit that carries independent "
+                  "information is\n  the spike DAY, and there are ~107 of them "
+                  "across all six folds pooled -- which\n  is a per-episode "
+                  "design over the pooled set, not a per-fold one. See "
+                  "P3-dispersion-conditional-result.")
+            return 1
+
     acc, lams = [], []
     for f in folds:
-        r0 = run_fold(ep, X, f, a.hidden, a.seeds)
+        cmask = spike_calm_masks(ep, f) if a.conditional else None
+        r0 = run_fold(ep, X, f, a.hidden, a.seeds, cond_masks=cmask)
         if r0 is None:
             continue
         pe0 = r0["per_episode"]
         lam = fit_lambda(pe0["rv_cal"], pe0["sigma_cal"], pe0["sigma_mean_cal"])
         if not np.isfinite(lam):
             print(f"  fold {f['year']}: no lambda, skipped"); continue
-        acc.append({"year": f["year"], "lam": float(lam), "r0": r0})
+        acc.append({"year": f["year"], "lam": float(lam), "r0": r0,
+                    "cmask": cmask})
         lams.append(float(lam))
         print(f"  fold {f['year']}  lambda {lam:.4f}  "
               f"(implied spread scaled to {100*lam:.1f}% of itself)")
@@ -262,6 +358,9 @@ def main(argv=None) -> int:
         row = {"year": rec["year"], "lam": lam,
                "q_M0": qlike_vec(pe0["rv"], pe0["sigma_mean"]),
                "bar_M0": barrier_cols(r0["rows"])}
+        if a.conditional:
+            for cn in ("spike", "calm"):
+                row[f"bar_M0__{cn}"] = cond_barrier_cols(r0["rows"], cn)
         ke = k_expand[rec["year"]]
         lam_of = {"M1": lam, "M2": k_const, "M3": 2.0 - lam,
                   "M4": ke, "M5": 2.0 - ke}
@@ -269,7 +368,7 @@ def main(argv=None) -> int:
         okf = True
         for arm in arms:
             r1 = run_fold(ep, X, f, a.hidden, a.seeds,
-                          disp_lambda=lam_of[arm])
+                          disp_lambda=lam_of[arm], cond_masks=rec["cmask"])
             if r1 is None:
                 okf = False; break
             pe1 = r1["per_episode"]
@@ -286,6 +385,9 @@ def main(argv=None) -> int:
                     f"by {d:.3e}. disp_lambda must scale width only.")
             row[f"q_{arm}"] = qlike_vec(pe1["rv"], pe1["sigma_mean"])
             row[f"bar_{arm}"] = barrier_cols(r1["rows"])
+            if a.conditional:
+                for cn in ("spike", "calm"):
+                    row[f"bar_{arm}__{cn}"] = cond_barrier_cols(r1["rows"], cn)
         if okf:
             rows.append(row)
             print(f"  fold {rec['year']}: all arms scored")
@@ -332,6 +434,58 @@ def main(argv=None) -> int:
                 "clears": bool(lo > 0)}
             print(f"{met:>9} {arm:>4} {np.mean(d):+13.6f} "
                   f"[{lo:+12.6f}, {hi:+12.6f}] {int(np.sum(d>0)):>6}/{len(d)}")
+
+    # ---- P3-dispersion-conditional --------------------------------------
+    cond_out = {}
+    if a.conditional:
+        print("\nCONDITIONAL READOUT. SPIKE is the top 5% of each fold's own "
+              "test-slice\nrealised vol, defined on the OUTCOME and used for "
+              "reporting only -- no arm\nsees it. PRIMARY is a SAFETY claim: "
+              "M1 must not be significantly WORSE\nthan M0 on the SPIKE "
+              "subset. Calm gains cannot adopt anything.")
+        for cn in ("spike", "calm"):
+            print(f"\n--- {cn.upper()}")
+            print(f"{'metric':>9} {'M0':>11} {'M1':>11} {'delta':>12} "
+                  f"{'CI (corrected)':>28} {'folds':>8}")
+            for met in METRICS:
+                sgn = 1.0 if met in HIGHER_BETTER else -1.0
+                b = [r[f"bar_M0__{cn}"].get(met) for r in rows
+                     if met in r.get(f"bar_M0__{cn}", {})]
+                for arm in arms:
+                    aa = [r[f"bar_{arm}__{cn}"].get(met) for r in rows
+                          if met in r.get(f"bar_{arm}__{cn}", {})]
+                    if len(aa) != len(b) or len(aa) < 2:
+                        print(f"{met:>9} {'':>11} {'':>11} "
+                              f"{'NON-MEASUREMENT: fewer than 2 paired folds':>50}")
+                        continue
+                    a_s = np.asarray(aa, np.float64)
+                    b_s = np.asarray(b, np.float64)
+                    d = sgn * (a_s - b_s)
+                    ci = mean_ci(d, alpha=alpha)
+                    lo, hi = ci["ci95"]
+                    cond_out[f"{met}_{arm}_{cn}"] = {
+                        "M0": float(np.mean(b_s)), arm: float(np.mean(a_s)),
+                        "delta": float(np.mean(d)),
+                        "ci95": [float(lo), float(hi)],
+                        "n_folds_better": int(np.sum(d > 0)),
+                        "n_folds": int(len(d)),
+                        "worse": bool(hi < 0), "better": bool(lo > 0)}
+                    tag = ("WORSE" if hi < 0 else "better" if lo > 0 else "-")
+                    print(f"{met:>9} {np.mean(b_s):11.6f} {np.mean(a_s):11.6f} "
+                          f"{np.mean(d):+12.6f} [{lo:+12.6f}, {hi:+12.6f}] "
+                          f"{int(np.sum(d>0)):>3}/{len(d)} {tag}")
+        hurt = [k for k, v in cond_out.items()
+                if k.endswith("_spike") and v["worse"]]
+        # The pre-registered verdict, evaluated here rather than left to a
+        # reader. A null on the spike subset is weak evidence of safety and the
+        # registration said so in advance (R84), so the count of metrics whose
+        # interval spans zero is printed beside the verdict rather than folded
+        # into it.
+        undec = [k for k, v in cond_out.items()
+                 if k.endswith("_spike") and not v["worse"] and not v["better"]]
+        print(f"\nSPIKE-SUBSET VERDICT: "
+              f"{'REALLOCATION -- ' + ', '.join(hurt) if hurt else 'no metric significantly worse'}"
+              f"   ({len(undec)} of {len(METRICS)} intervals span zero)")
 
     print("\npaired per-episode QLIKE (reported, NOT a pass condition):")
     L = block_len_for(PROD_H, sum(len(r["q_M0"]) for r in rows))
@@ -382,6 +536,7 @@ def main(argv=None) -> int:
     a.out.write_text(json.dumps(
         {"n_family": n_family, "alpha": alpha, "prod_H": PROD_H,
          "arms": list(arms), "deployable": bool(a.deployable),
+         "conditional": bool(a.conditional), "cond": cond_out,
          "lambda_expand": k_expand,
          "k_const": k_const, "lambdas": {str(r["year"]): r["lam"] for r in rows},
          "barriers": bar, "barriers_per_fold": per_fold, "barrier_ci": bar_ci,
