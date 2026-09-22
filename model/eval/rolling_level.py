@@ -207,24 +207,40 @@ def vs_drift(roll_path: Path, xfer_path: Path) -> dict:
     X = json.loads(Path(xfer_path).read_text())
     print("does a teacher's MEASURED level drift rank the gain from rolling?")
     print("  (n = 8 teachers per horizon; |rho| >= 0.738 clears p = 0.05)\n")
-    print(f"{'H':>6} {'rho(drift_c, roll gain)':>25} {'teachers':>10}")
+    # FOUR CONTRASTS, NOT ONE, AND THE FIRST DRAFT PUBLISHED ONLY THE FIRST.
+    # `roll vs c` is confounded by construction: a teacher whose level drifts
+    # has a bad fold constant, so ANY alternative beats it and the correlation
+    # measures how bad `c` is rather than anything about rolling. The frozen
+    # control is the test -- it is an alternative to `c` with no updating at
+    # all, so if it shows the SAME correlation, the first column is the trivial
+    # mechanism. `roll vs old` isolates recency; `roll vs raw` asks whether
+    # rolling beats not correcting at all.
+    CONTRASTS_ = (("roll vs c", "c", "c_roll"),
+                  ("roll vs old", "c_roll_old", "c_roll"),
+                  ("roll vs raw", "raw", "c_roll"),
+                  ("old vs c", "c", "c_roll_old"))
+    print(f"{'H':>6} " + " ".join(f"{n:>13}" for n, _, _ in CONTRASTS_)
+          + f" {'teachers':>9}")
     out, cells = {}, []
     for H in HORIZONS:
         tt = R["horizons"].get(str(H), {}).get("teachers", {})
         xh = X["horizons"].get(str(H), {})
-        xs, gs = [], []
-        for t, v in tt.items():
-            if t not in xh:
-                continue
-            q = v["qlike"]
-            xs.append(xh[t]["drift_c"])
-            gs.append((q["c"] - q["c_roll"]) / q["c"])
+        xs = [xh[t]["drift_c"] for t in tt if t in xh]
         if len(xs) < 4:
             continue
-        r = spearman(xs, gs)
-        out[str(H)] = {"rho": r, "n": len(xs)}
-        cells.append((xs, gs))
-        print(f"{H:>6} {r:25.3f} {len(xs):10d}")
+        row, prim = {}, None
+        cols = []
+        for name, base, arm in CONTRASTS_:
+            gs = [(tt[t]["qlike"][base] - tt[t]["qlike"][arm])
+                  / tt[t]["qlike"][base] for t in tt if t in xh]
+            r = spearman(xs, gs)
+            row[name] = r
+            cols.append(f"{r:13.3f}")
+            if name == "roll vs c":
+                prim = gs
+        out[str(H)] = {"rho": row, "n": len(xs)}
+        cells.append((xs, prim))
+        print(f"{H:>6} " + " ".join(cols) + f" {len(xs):9d}")
     if cells:
         # The POOLED correlation is the weaker statement and is reported as
         # such: drift magnitudes are not comparable across horizons while
@@ -232,8 +248,12 @@ def vs_drift(roll_path: Path, xfer_path: Path) -> dict:
         # permutation p-value the per-horizon rows cannot.
         pr = permutation_p(cells)
         out["pooled"] = pr
-        print(f"\npooled rho = {pr['rho']:+.3f} over {pr['n_pairs']} pairs, "
-              f"within-cell permutation p = {pr['p']:.4f}")
+        print(f"\npooled rho (roll vs c) = {pr['rho']:+.3f} over "
+              f"{pr['n_pairs']} pairs, within-cell permutation p = "
+              f"{pr['p']:.4f}")
+        print("read the columns together: where `old vs c` matches `roll vs c`,"
+              "\nthe first column is drift predicting how bad the fold constant"
+              " is, not\nanything about updating it.")
     for H in HORIZONS:
         tt = R["horizons"].get(str(H), {}).get("teachers", {})
         pref = [t for t, v in tt.items()
