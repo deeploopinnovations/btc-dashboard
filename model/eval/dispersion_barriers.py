@@ -172,6 +172,18 @@ def selftest() -> int:
     ok.append(("changing a fold cannot change an earlier fold's lambda",
                expanding_median(alt)[:5] == em[:5]))
 
+    # 11. THE FOOTGUN THE CONDITIONAL READOUT COULD HAVE BEEN. `barrier_cols`
+    #     averages every NUMERIC key matching a metric prefix, so a conditional
+    #     key such as `brier_up_2.0__spike` would be folded silently into the
+    #     unconditional Brier -- a readout corrupting the number it exists to
+    #     explain. run_fold puts the split in a NESTED dict instead, and this
+    #     asserts that such a dict is invisible to the aggregator rather than
+    #     trusting the isinstance check to stay in place.
+    row = {"model": "noctua_v2", "brier_up_1.0": 0.2, "brier_dn_1.0": 0.4,
+           "cond": {"spike": {"brier_up_1.0": 99.0, "brier_dn_1.0": 99.0}}}
+    ok.append(("a conditional split cannot pollute the pooled metric",
+               abs(barrier_cols([row])["brier"] - 0.3) < 1e-12))
+
     ok.append(("DSC higher is better", better("DSC", 0.9, 0.8)))
     ok.append(("brier lower is better", better("brier", 0.1, 0.2)))
 

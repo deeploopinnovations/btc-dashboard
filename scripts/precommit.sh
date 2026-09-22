@@ -63,6 +63,9 @@ run "test_dispersion_hook"   python model/tests/test_dispersion_hook.py
 # These two were in CI and NOT here, so the header's claim to run "the same
 # ones CI runs" was aspirational. Both check FILES written by scripts rather
 # than a write path, which is the version of the check that binds.
+# Offline, and it guards run_fold's conditional readout against the aggregator
+# that would have silently averaged it into the pooled metric.
+run "dispersion_barriers"    python -m model.eval.dispersion_barriers --selftest
 run "pitfalls --self-test"   python -m model.research.pitfalls --self-test
 run "teacher_ledger"         python -m model.research.teacher_ledger --validate
 

@@ -340,7 +340,7 @@ def run_fold(ep, X, fold, hidden=32, seeds=3, verbose=False, shape_cols=None,
              sigma_ref_all=None, sigma_ref_fn=None, extra_w=None,
              train_filter=None, min_train=5000, prod_override=None,
              lam_r=1.0, post_shift_fn=None, residual_anchor=None,
-             disp_lambda=1.0):
+             disp_lambda=1.0, cond_masks=None):
     # Validated FIRST, before any data is touched, so a caller that passes a
     # malformed anchor is told so instead of failing later somewhere that reads
     # like a data problem.
@@ -575,6 +575,38 @@ def run_fold(ep, X, fold, hidden=32, seeds=3, verbose=False, shape_cols=None,
                 rec[f"MCB_{side}_{pct}"] = d["MCB"]
                 rec[f"UNC_{side}_{pct}"] = d["UNC"]
                 rec[f"logs_{side}_{pct}"] = log_score(P[:, k], out)
+            # CONDITIONAL READOUT, additive and off by default. Each entry of
+            # `cond_masks` is a boolean over ALL episodes; the same barrier
+            # decomposition is recomputed on that subset of the test slice, in
+            # the SAME pass, so a spike/calm split costs no extra model run.
+            #
+            # It lands in a NESTED dict rather than in more `rec` keys on
+            # purpose. `scale_adopt.barrier_cols` averages every numeric key
+            # matching a prefix, so a conditional `brier_up_2.0__spike` would
+            # be silently folded into the unconditional Brier -- a readout that
+            # corrupted the number it was added to explain. `barrier_cols`
+            # skips non-numeric values, so a dict is invisible to it.
+            if cond_masks:
+                cd = rec.setdefault("cond", {})
+                for cname, cmask in cond_masks.items():
+                    sel = np.asarray(cmask, bool)[m_te]
+                    slot = cd.setdefault(cname, {"n": int(sel.sum())})
+                    if sel.sum() < 30:
+                        continue          # too few to decompose; left absent
+                    slot[f"pinball_{side}"] = pinball_curve(Q[sel], y[sel])
+                    slot[f"crps_{side}"] = crps_from_curve(Q[sel], y[sel])
+                    for k, pct in enumerate(BARRIER_PCT):
+                        o = (y[sel] >= BARRIER_U[k]).astype(float)
+                        if o.max() == o.min():
+                            continue      # a constant outcome has no Brier
+                                          # decomposition; skipping beats
+                                          # publishing a degenerate one
+                        dd = corp_decomposition(P[sel, k], o)
+                        slot[f"brier_{side}_{pct}"] = dd["brier"]
+                        slot[f"DSC_{side}_{pct}"] = dd["DSC"]
+                        slot[f"MCB_{side}_{pct}"] = dd["MCB"]
+                        slot[f"logs_{side}_{pct}"] = log_score(P[sel, k], o)
+
             # marginal coverage error -- the CHEATABLE metric, kept for contrast
             cov = []
             for a in (0.01, 0.02, 0.05, 0.10):
