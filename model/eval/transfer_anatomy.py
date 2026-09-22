@@ -112,6 +112,35 @@ def transfer_fraction(q_raw: float, q_feas: float, q_orac: float) -> float:
     return float((q_raw - q_feas) / ceiling)
 
 
+def quadratic_transfer(drift: float, signal: float) -> float:
+    """What `transfer` MUST be if the loss is locally quadratic in the
+    parameter around its optimum.
+
+    THE CONTROL THIS MODULE SHIPPED WITHOUT, AND IT DEFLATES THE MODULE'S OWN
+    HEADLINE. QLIKE as a function of log c is locally quadratic about the
+    QLIKE-optimal level, so with k the curvature,
+
+        q_raw  - q_oracle ~= k * signal^2      (the fitted departure)
+        q_feas - q_oracle ~= k * drift^2       (the calib-to-test movement)
+        transfer = (q_raw - q_feas)/(q_raw - q_oracle) = 1 - (drift/signal)^2
+
+    That is ARITHMETIC. A correlation between drift/signal and transfer is
+    therefore expected by construction for any parameter whose loss surface is
+    locally quadratic, and a permutation test against a null that breaks the
+    pairing is testing the identity rather than the data.
+
+    It is still worth computing, because it is a PREDICTION that can fail --
+    and for the SLOPE it does. Applying sigma^beta moves each forecast by an
+    amount proportional to that episode's log sigma, so the loss is not a
+    quadratic in (beta - 1) alone and the dispersion of log sigma enters. Where
+    the identity holds, the correlation is bookkeeping; where it breaks, the
+    departure is the finding.
+    """
+    if not (np.isfinite(drift) and np.isfinite(signal)) or signal <= 0:
+        return float("nan")
+    return float(1.0 - (drift / signal) ** 2)
+
+
 def spearman(x, y) -> float:
     """Rank correlation on the pairs where both are finite.
 
@@ -279,6 +308,32 @@ def main(argv=None) -> int:
         print(f"\npooled rho(drift/signal, transfer) = {pr['rho']:+.3f} over "
               f"{pr['n_pairs']} pairs\n  within-cell permutation p = "
               f"{pr['p']:.4f} ({pr['n_perm']} permutations)")
+
+    # THE IDENTITY CHECK, printed under the correlation it deflates.
+    print("\nis that correlation arithmetic?  transfer = 1 - (drift/signal)^2 "
+          "holds exactly\nfor a loss that is locally quadratic in its "
+          "parameter, so where the prediction\nlands on the measurement the "
+          "correlation above is bookkeeping, not evidence.")
+    ident = {}
+    for key, sk, dk, xk in (("level", "signal_c", "drift_c", "transfer_c"),
+                            ("slope", "signal_b", "drift_b", "transfer_b")):
+        pred, obs = [], []
+        for hh in out["horizons"].values():
+            for v in hh.values():
+                q = quadratic_transfer(v[dk], v[sk])
+                if np.isfinite(q) and np.isfinite(v[xk]):
+                    pred.append(q); obs.append(v[xk])
+        if len(pred) < 4:
+            continue
+        r = spearman(pred, obs)
+        err = float(np.median(np.abs(np.array(pred) - np.array(obs))))
+        ident[key] = {"rho": r, "median_abs_error": err, "n": len(pred)}
+        verdict = ("IDENTITY HOLDS -- the correlation is bookkeeping"
+                   if err < 0.10 else
+                   "IDENTITY BREAKS -- the departure is the finding")
+        print(f"  {key:>6}: rho(predicted, observed) {r:+.3f}   "
+              f"median |error| {err:.3f}   n {len(pred)}   {verdict}")
+    summ["quadratic_identity"] = ident
     out["summary"] = summ
 
     a.out.parent.mkdir(parents=True, exist_ok=True)
@@ -367,6 +422,17 @@ def selftest() -> int:
                permutation_p(planted, n_perm=2000, seed=1)["p"] < 0.01))
     ok.append(("permutation does not fire on noise",
                permutation_p(null, n_perm=2000, seed=1)["p"] > 0.05))
+
+    # 13-15. The identity, and that it is a PREDICTION rather than a tautology
+    #     about whatever numbers are handed to it.
+    ok.append(("no drift means the estimate transfers fully",
+               quadratic_transfer(0.0, 0.2) == 1.0))
+    ok.append(("drift equal to signal means it buys nothing",
+               abs(quadratic_transfer(0.2, 0.2)) < 1e-12))
+    ok.append(("drift larger than signal anti-transfers",
+               quadratic_transfer(0.4, 0.2) < -2.9))
+    ok.append(("a zero signal has no ceiling, so no prediction",
+               not np.isfinite(quadratic_transfer(0.1, 0.0))))
 
     for name, good in ok:
         print(f"  [{'ok' if good else 'FAIL'}] {name}")
