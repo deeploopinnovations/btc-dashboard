@@ -137,6 +137,40 @@ def run_horizon(z, H: int, anchor: str) -> dict:
     return {"pooled": pooled, "folds": folds}
 
 
+ZOO = ("garch_normal", "garch_t", "har_short", "log_har", "log_har_cal",
+       "noctua_v1", "noctua_v1_mean", "persistence")
+
+
+def zoo_betas(z) -> dict:
+    """The MZ slope of every teacher on the pooled TEST slices.
+
+    THE QUESTION THE SWEEP RAISED. beta(0) -- pure Log-HAR -- came out at 1.026
+    and 1.019 at H = 1 and 6, which is above 1. If the ANCHOR under-reacts too,
+    then under-reaction may not be NOCTUA's defect at all, and pull request
+    #13's claim that NOCTUA is "the only teacher in the zoo doing so at three
+    of four horizons" is checkable in one pass over the same artifact.
+    """
+    out = {}
+    for t in ZOO:
+        row = {}
+        for H in HORIZONS:
+            rv, sg = [], []
+            for y in YEARS:
+                with FoldScopedFit(year=y) as sc:
+                    k = f"{y}/{H}/test"
+                    if f"{k}/sigma/{t}" not in z:
+                        continue
+                    sg.append(np.asarray(sc.test(z, H, t), np.float64))
+                    rv.append(np.asarray(z[f"{k}/rv"], np.float64))
+            if not rv:
+                continue
+            p = fit_mz(np.concatenate(rv), np.concatenate(sg))
+            if p is not None:
+                row[str(H)] = float(p[1])
+        out[t] = row
+    return out
+
+
 def summarise(pooled: dict) -> dict:
     """Where the curve peaks, and whether the peak is interior."""
     if not pooled:
@@ -185,6 +219,22 @@ def main(argv=None) -> int:
                   + ("  INTERIOR" if s["peak_above_both"] else ""))
         out["anchors"][anchor] = hh
         print()
+
+    # ---- is under-reaction NOCTUA's, or the family's? --------------------
+    zb = zoo_betas(z)
+    out["zoo_beta"] = zb
+    print("MZ slope of every teacher, pooled test slices. beta > 1 is "
+          "under-reaction.\n")
+    print(f"{'teacher':>16} " + " ".join(f"{'H='+str(h):>8}" for h in HORIZONS))
+    for t, row in zb.items():
+        print(f"{t:>16} " + " ".join(
+            f"{row.get(str(h), float('nan')):8.3f}" for h in HORIZONS))
+    print()
+    for H in HORIZONS:
+        over = [t for t, r in zb.items() if r.get(str(H), 0.0) > 1.0]
+        print(f"  H={H:>4}: {len(over)}/{len(zb)} teachers under-react"
+              + (f"  -> {', '.join(over)}" if over else ""))
+    print()
 
     print("the prediction was: beta(w) exceeds BOTH endpoints somewhere in the "
           "interior,\nand the shipped w = 0.25 sits nearer that peak than the "
@@ -259,6 +309,13 @@ def selftest() -> int:
     s2 = summarise({0.0: 1.0, 0.5: 1.1, 1.0: 1.4})
     ok.append(("a monotone curve is not",
                not s2["peak_above_both"] and s2["w_peak"] == 1.0))
+
+    # 8. The zoo sweep names the arms it will report, so a teacher silently
+    #    dropped from the artifact shows up as a missing row rather than as a
+    #    quietly shorter table.
+    ok.append(("the zoo list is explicit and includes both NOCTUA arms",
+               "noctua_v1" in ZOO and "noctua_v1_mean" in ZOO
+               and len(ZOO) == 8))
 
     for name, good in ok:
         print(f"  [{'ok' if good else 'FAIL'}] {name}")
