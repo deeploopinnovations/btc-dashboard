@@ -193,6 +193,8 @@ A Mincer–Zarnowitz slope β below 1 means the forecast over-reacts to its own 
 
 It is neither, uniformly. Fitting the correction on each fold's calibration slice, applying it to that fold's test slice, and **re-measuring** the slope on rows the correction never saw (re-fitting on test would report 1.000 by construction, and would confirm itself whatever the data said):
 
+**Every β in this section is measured on the RAW network, and the served product BLENDS it with Log-HAR at `blend_w = 0.25`.** The blend is affine in log space, so β as a function of the weight is computable without retraining, and it is monotone *decreasing* in the neural share: pooled, at H = 1 / 6 / 24 the raw network sits at 1.214 / 1.148 / 1.032 and the shipped weight at **1.077 / 1.058 / 1.010**; at H = 168 the raw network over-reacts at 0.835 and the blend raises it to 0.959. The blend moves β toward 1 at every horizon, so the served pipeline's slope is better than every number in the table below. The defect is in the neural stage — which is what the table is about — and the blend is already treating roughly a third of it (`P3-blend-beta-result`).
+
 | H | independent calibration windows per fold | β raw | β after MZq | reading |
 |---:|---:|---:|---:|---|
 | 1 | 4,247 | 1.303 | 1.006 | AFFINE (correction transfers) |
@@ -370,9 +372,9 @@ timeline
 
 ## The experiment register
 
-183 pre-registered experiments. **ADOPT** 22 · **ADVANCE** 38 · **DIAGNOSTIC** 1 · **NULL** 23 · **OPEN** 5 · **OPEN (answered by a later entry)** 48 · **REJECT** 44 · **WITHDRAWN** 2
+187 pre-registered experiments. **ADOPT** 22 · **ADVANCE** 38 · **DIAGNOSTIC** 2 · **NULL** 23 · **OPEN** 6 · **OPEN (answered by a later entry)** 50 · **REJECT** 44 · **WITHDRAWN** 2
 
-The register is append-only, so a pre-registration keeps its OPEN verdict and its result arrives as a separate entry that supersedes it. **5** questions are genuinely unresolved; the rest of the OPEN rows have been answered.
+The register is append-only, so a pre-registration keeps its OPEN verdict and its result arrives as a separate entry that supersedes it. **6** questions are genuinely unresolved; the rest of the OPEN rows have been answered.
 
 Every row was registered with its decision rule **before** it ran. Failures are not deleted; they stay in the family and count against the multiple-testing correction.
 
@@ -561,6 +563,10 @@ Every row was registered with its decision rule **before** it ran. Failures are 
 | `P3-rolling-level-audited` | phase3 | REJECT | P3-rolling-level-result's surviving finding was that a teacher's measured level DRIFT ranks which teachers a r |
 | `P3-transfer-anatomy-audited` | phase3 | REJECT | P3-transfer-anatomy reported that one measured quantity -- drift against signal -- explains which calibration  |
 | `P3-dispersion-deployable-result` | phase3 | ADVANCE | Closing P3-dispersion-deployable. Does the CAUSAL constant -- the median of PAST folds' lambda only -- retain  |
+| `P3-oi-max-strike` ⤳ | phase3 | OPEN | A practitioner thesis, given to this project directly: aggregate option open interest concentrates at strikes  |
+| `P3-oi-max-strike-v2` | phase3 | OPEN | Unchanged: does price touch the max-OI strike LESS often than the model's own barrier curve says it should? AM |
+| `P3-blend-beta` ⤳ | phase3 | OPEN | Pull request #13 calls beta > 1 'the principal open defect' and locates it 'in training rather than in data or |
+| `P3-blend-beta-result` | phase3 | DIAGNOSTIC | Closing P3-blend-beta. Does the Log-HAR blend CAUSE the under-reaction that pull request #13 calls the princip |
 
 ⤳ = superseded by a later entry; the original is kept rather than edited.
 
