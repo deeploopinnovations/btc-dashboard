@@ -370,9 +370,9 @@ timeline
 
 ## The experiment register
 
-182 pre-registered experiments. **ADOPT** 22 · **ADVANCE** 37 · **DIAGNOSTIC** 1 · **NULL** 23 · **OPEN** 6 · **OPEN (answered by a later entry)** 47 · **REJECT** 44 · **WITHDRAWN** 2
+183 pre-registered experiments. **ADOPT** 22 · **ADVANCE** 38 · **DIAGNOSTIC** 1 · **NULL** 23 · **OPEN** 5 · **OPEN (answered by a later entry)** 48 · **REJECT** 44 · **WITHDRAWN** 2
 
-The register is append-only, so a pre-registration keeps its OPEN verdict and its result arrives as a separate entry that supersedes it. **6** questions are genuinely unresolved; the rest of the OPEN rows have been answered.
+The register is append-only, so a pre-registration keeps its OPEN verdict and its result arrives as a separate entry that supersedes it. **5** questions are genuinely unresolved; the rest of the OPEN rows have been answered.
 
 Every row was registered with its decision rule **before** it ran. Failures are not deleted; they stay in the family and count against the multiple-testing correction.
 
@@ -554,12 +554,13 @@ Every row was registered with its decision rule **before** it ran. Failures are 
 | `P3-transfer-anatomy` ⤳ | phase3 | DIAGNOSTIC | Both shrinkage modules now shrink toward a FIXED target using the magnitude of the estimate against its own st |
 | `P3-rolling-level` ⤳ | phase3 | OPEN | P3-transfer-anatomy measured the production arm's fold-fitted level correction as ANTI-transferring at every h |
 | `P3-rolling-level-result` ⤳ | phase3 | REJECT | Closing P3-rolling-level. Does the trailing-window level estimator the system actually ships beat the once-per |
-| `P3-dispersion-deployable` | phase3 | OPEN | P3-dispersion-barriers-result is ADVANCE and not ADOPT for three named reasons. Two are now closed: serve/runt |
+| `P3-dispersion-deployable` ⤳ | phase3 | OPEN | P3-dispersion-barriers-result is ADVANCE and not ADOPT for three named reasons. Two are now closed: serve/runt |
 | `P3-shrunk-slope-v2-result` | phase3 | NULL | Closing P3-shrunk-slope-v2. Does the fixed-target weight -- magnitude of the departure against its own error,  |
 | `P3-dispersion-conditional` ⤳ | phase3 | OPEN | The dispersion correction narrows the predictive distribution by about 13% and improves four of six barrier me |
 | `P3-dispersion-conditional-result` | phase3 | REJECT | Closing P3-dispersion-conditional. Does the dispersion correction that improves the average make the known wor |
 | `P3-rolling-level-audited` | phase3 | REJECT | P3-rolling-level-result's surviving finding was that a teacher's measured level DRIFT ranks which teachers a r |
 | `P3-transfer-anatomy-audited` | phase3 | REJECT | P3-transfer-anatomy reported that one measured quantity -- drift against signal -- explains which calibration  |
+| `P3-dispersion-deployable-result` | phase3 | ADVANCE | Closing P3-dispersion-deployable. Does the CAUSAL constant -- the median of PAST folds' lambda only -- retain  |
 
 ⤳ = superseded by a later entry; the original is kept rather than edited.
 
