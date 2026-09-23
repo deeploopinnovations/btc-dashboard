@@ -372,7 +372,7 @@ timeline
 
 ## The experiment register
 
-187 pre-registered experiments. **ADOPT** 22 · **ADVANCE** 38 · **DIAGNOSTIC** 2 · **NULL** 23 · **OPEN** 6 · **OPEN (answered by a later entry)** 50 · **REJECT** 44 · **WITHDRAWN** 2
+188 pre-registered experiments. **ADOPT** 22 · **ADVANCE** 38 · **DIAGNOSTIC** 3 · **NULL** 23 · **OPEN** 6 · **OPEN (answered by a later entry)** 50 · **REJECT** 44 · **WITHDRAWN** 2
 
 The register is append-only, so a pre-registration keeps its OPEN verdict and its result arrives as a separate entry that supersedes it. **6** questions are genuinely unresolved; the rest of the OPEN rows have been answered.
 
@@ -567,6 +567,7 @@ Every row was registered with its decision rule **before** it ran. Failures are 
 | `P3-oi-max-strike-v2` | phase3 | OPEN | Unchanged: does price touch the max-OI strike LESS often than the model's own barrier curve says it should? AM |
 | `P3-blend-beta` ⤳ | phase3 | OPEN | Pull request #13 calls beta > 1 'the principal open defect' and locates it 'in training rather than in data or |
 | `P3-blend-beta-result` | phase3 | DIAGNOSTIC | Closing P3-blend-beta. Does the Log-HAR blend CAUSE the under-reaction that pull request #13 calls the princip |
+| `P3-beta-is-not-noctuas` | phase3 | DIAGNOSTIC | P3-blend-beta-result found that pure Log-HAR -- the ANCHOR -- has an MZ slope of 1.026 and 1.019 at H = 1 and  |
 
 ⤳ = superseded by a later entry; the original is kept rather than edited.
 
