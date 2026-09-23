@@ -881,6 +881,26 @@ a heading, a bold sentence, an assumption list. A correction fifteen lines below
 the claim is a correction a scanner misses.
 *(`P3-spike-ratio-result`, `P3-functional-adopt`)*
 
+**R87. "The constant matches the fitted rule" is a claim about a PAIRED
+contrast, and R82's instances were not all tested that way.**
+`P3-dispersion-barriers-result` recorded "M1 does not separate from M2 — fourth
+instance of R82" because both arms cleared the same four metrics *against the
+reference* with similar fold counts. That is not a separation test: it compares
+each arm to `M0` and never to each other, and two arms can clear the same
+metrics while differing significantly on one of them.
+Computed properly in `P3-dispersion-deployable-result`, the causal constant is
+significantly **worse** than the per-fold fit on **DSC** — `−0.000103`,
+CI `[−0.000237, −0.000005]` — the quantity `eval/benchmark.py` calls decisive
+precisely because it "cannot be faked, cannot be tuned". The constant takes the
+calibration-side gains and gives up the only discrimination gain in the family.
+So: before recording that a control matched a measured rule, compute the
+**candidate-against-control** interval, not two candidate-against-reference
+intervals. And when a non-inferiority condition is restricted to "metrics the
+candidate clears", check what it excludes — here it excluded the one metric on
+which the two arms actually differ, so the rule passed while the project's own
+decisive quantity moved the wrong way.
+*(`P3-dispersion-deployable-result`, re-reading `P3-dispersion-barriers-result`)*
+
 ## Rules about interpretation
 
 **R20. Correcting a number in the humbler direction does not make the
