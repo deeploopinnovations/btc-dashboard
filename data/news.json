@@ -1,6 +1,62 @@
 {
   "items": [
     {
+      "headline": "Why did crypto surge ? ",
+      "url": "https://investinglive.com/education/why-did-crypto-surge/",
+      "src": "investinglive.com",
+      "date": "20260925T084500Z",
+      "sent": "pos"
+    },
+    {
+      "headline": "Live updates : Bitcoin steadies near $84 , 000 as the bond selloff pauses",
+      "url": "https://www.coindesk.com/markets/2026/09/25/live-updates-bitcoin-steadies-near-usd84-000-as-the-bond-selloff-pauses",
+      "src": "coindesk.com",
+      "date": "20260925T081500Z",
+      "sent": "neg"
+    },
+    {
+      "headline": "Coinsilium Group Limited : Unaudited Consolidated Interim Financial Statements For The Six - Month Period Ended 30 June 2026",
+      "url": "https://www.finanznachrichten.de/nachrichten-2026-09/69674430-coinsilium-group-limited-unaudited-consolidated-interim-financial-statements-for-the-six-month-period-ended-30-june-2026-015.htm",
+      "src": "finanznachrichten.de",
+      "date": "20260925T070000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "25 Eylül 2026 Piyasa Bülteni : Döviz , Altın ve Kripto - Kıbrıs Gazetesi - Kıbrıs Haber , KKTC Son Dakika ve Gündem Haberleri",
+      "url": "https://kibrisgazetesi.com/25-eylul-2026-piyasa-bulteni-doviz-altin-ve-kripto/",
+      "src": "kibrisgazetesi.com",
+      "date": "20260925T053000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "AI Predicts XRP Price Action After Another Brutal $1 . 60 Rejection",
+      "url": "https://www.coinspeaker.com/ai-predicts-xrp-price-action-after-another-brutal-1-60-rejection/",
+      "src": "coinspeaker.com",
+      "date": "20260925T021500Z",
+      "sent": "neg"
+    },
+    {
+      "headline": "US Treasury Yields Hit Multi - Decade High as BTC Steadies and ONDO Rallies",
+      "url": "https://cointelegraph.com/markets/bitcoin-steadies-ondo-rallies-us-treasury-yields-hit-2007-highs",
+      "src": "cointelegraph.com",
+      "date": "20260925T003000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Asia Dominates Crypto Adoption Index , BitGet $356M Hack : Asia Express",
+      "url": "https://cointelegraph.com/magazine/asia-dominates-crypto-adoption-index-bitgets-356m-hack-asia-express",
+      "src": "cointelegraph.com",
+      "date": "20260925T003000Z",
+      "sent": "pos"
+    },
+    {
+      "headline": "Applied Digital vs . IREN : Which Technology Stock Is a Better Buy in 2026 ? ",
+      "url": "https://www.fool.com/coverage/better-buy/2026/09/24/applied-digital-vs-iren-which-technology-stock-is-a-better-buy-in-2026/?source=iedfolrf0000001",
+      "src": "fool.com",
+      "date": "20260924T214500Z",
+      "sent": "pos"
+    },
+    {
       "headline": "Strategy Bought 950 Bitcoin at $79 , 670 Last Week . Will Michael Saylor Keep Buying at $84 , 000 ? ",
       "url": "https://www.aol.com/articles/strategy-bought-950-bitcoin-79-201827000.html",
       "src": "aol.com",
@@ -41,58 +97,9 @@
       "src": "cointelegraph.com",
       "date": "20260924T194500Z",
       "sent": "neg"
-    },
-    {
-      "headline": "Zhibao Technology Inc . Announces Proposed Strategic Partnership with DeSyn Protocol to Build Institutional - Grade BTCfi Infrastructure and Yield Ecosystem",
-      "url": "https://www.intelligencer.ca/press-releases/newsfile/zhibao-technology-inc-announces-proposed-strategic-partnership-with-desyn-protocol-to-build-institutional-grade-btcfi-infrastructure-and-yield-ecosystem/",
-      "src": "intelligencer.ca",
-      "date": "20260924T194500Z",
-      "sent": "pos"
-    },
-    {
-      "headline": "Bitcoin BTC USD price drop today : Bitcoin is down 55 % from its peak - here why Tom Lee predicts crypto bull run as $15 . 6 billion options expiry looms",
-      "url": "https://economictimes.indiatimes.com/news/international/us/bitcoin-is-down-55-from-its-peak-heres-why-tom-lee-predicts-crypto-bull-run-as-15-6-billion-options-expiry-looms/articleshow/134465817.cms",
-      "src": "economictimes.indiatimes.com",
-      "date": "20260924T173000Z",
-      "sent": "neg"
-    },
-    {
-      "headline": "How Much Will One Bitcoin Be Worth in 2031 ? ",
-      "url": "https://www.aol.com/articles/much-one-bitcoin-worth-2031-151435000.html",
-      "src": "aol.com",
-      "date": "20260924T154500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Baystreet . ca - Crypto Pulled Lower As Treasury Yields Spike",
-      "url": "http://baystreet.ca/cryptonews/1395/Crypto-Pulled-Lower-As-Treasury-Yields-Spike",
-      "src": "baystreet.ca",
-      "date": "20260924T151500Z",
-      "sent": "pos"
-    },
-    {
-      "headline": "Bitget partners with Sygnum for off - exchange custody - Asset Servicing Times",
-      "url": "https://www.assetservicingtimes.com/assetservicesnews/custodyarticle.php?article_id=18367",
-      "src": "assetservicingtimes.com",
-      "date": "20260924T143000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Bitcoin Plunges With Big Bond Selloff",
-      "url": "https://www.rttnews.com/3693668/bitcoin-plunges-with-big-bond-selloff.aspx",
-      "src": "rttnews.com",
-      "date": "20260924T143000Z",
-      "sent": "neg"
-    },
-    {
-      "headline": "Quantum threat to Bitcoin could materialize before commercial viability , EU regulators warn",
-      "url": "https://www.coindesk.com/tech/2026/09/24/eu-financial-watchdogs-warn-quantum-computing-poses-imminent-threat-to-blockchain-encryption",
-      "src": "coindesk.com",
-      "date": "20260924T131500Z",
-      "sent": "neu"
     }
   ],
-  "ts": 1790286055747,
+  "ts": 1790349909729,
   "source": "GDELT",
-  "_updatedMs": 1790286055747
+  "_updatedMs": 1790349909729
 }
