@@ -40,7 +40,8 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from noctua.features import build_features                    # noqa: E402
-from serve.adaptive import apply_correction, volatility_correction  # noqa: E402
+from serve.adaptive import (apply_correction, qlike_scale,  # noqa: E501
+                            volatility_correction)  # noqa: E402
 from serve.fetch import fetch_bars                            # noqa: E402
 from serve.history import get_hours, load_bundle              # noqa: E402
 from serve.runtime import load_model                          # noqa: E402
@@ -58,6 +59,32 @@ def _next_anchor(now_ts: int) -> int:
     dt = datetime.fromtimestamp(now_ts, timezone.utc)
     anchor = dt.replace(hour=PROD_ANCHOR_UTC, minute=0, second=0, microsecond=0)
     return int(anchor.timestamp())
+
+
+# Which functional of the predictive distribution the REPORTED sigma is.
+# "mean" is the QLIKE-optimal choice and the adopted default; "median" is the
+# historical behaviour, kept so `tests/test_level_report.py` can run both and
+# assert that the choice reaches the reported number and nothing else.
+REPORT_FUNCTIONAL = "mean"
+
+# How much of the predictive distribution's WIDTH to keep, about its own
+# median. 1.0 is a bit-identical no-op (`infer.scale_atoms` returns the same
+# array) and is the shipped default: nothing here is adopted.
+#
+# This exists so the dispersion correction has a serving switch and so
+# `tests/test_dispersion_report.py` can be a gate that CAN FAIL. R2 -- a guard
+# whose failing branch has never been exercised is not a guard, and five have
+# already been found in this project printing reassuring output while unable to
+# return the other answer.
+#
+# UNLIKE `REPORT_FUNCTIONAL`, THIS ONE MOVES THE PRODUCT. The functional choice
+# reaches the reported scalar and provably nothing else (P3-barrier-channel);
+# this writes `sigma_atoms`, which every barrier curve and safe level is built
+# from. "Safe by construction" is therefore not available and the gate asserts
+# field by field what moves. Measured at lambda = 0.87 on the production slice
+# it improves four of six barrier metrics while its mirror degrades the same
+# four (P3-dispersion-barriers-result) -- ADVANCE, not ADOPT.
+DISP_LAMBDA = 1.0
 
 
 def forecast(model, hours: pd.DataFrame, H: int = PROD_H,
@@ -85,7 +112,7 @@ def forecast(model, hours: pd.DataFrame, H: int = PROD_H,
     })
     X = build_features(hours, ep)
     d = model.prepare(X, np.array([float(H)]))
-    pred = model.predict(d)
+    pred = model.predict(d, disp_lambda=DISP_LAMBDA)
 
     # Causal volatility-level recalibration. Measured out of sample on
     # 2024-07 onward, the raw forecast runs high -- realized vol lands below
@@ -96,8 +123,77 @@ def forecast(model, hours: pd.DataFrame, H: int = PROD_H,
     if cal["applied"]:
         pred = apply_correction(pred, cal["factor"])
 
+    # THE REPORTED VOLATILITY AND THE BARRIER CURVE ARE TWO PRODUCTS WITH TWO
+    # LOSSES, and this is the line where they part company.
+    #
+    # QLIKE -- and any squared-error loss on variance -- is minimised by the
+    # conditional MEAN of variance. `sigma_med` is a median. On the production
+    # slice the gap is a factor of 1.1250 and the published number was 12.5%
+    # low against the loss it is scored under.
+    #
+    # The correction is applied HERE, to the reported scalar, and NOT to
+    # `pred`. That is not a shortcut, it is the finding: `P2-scale-v2` put the
+    # same constant inside the predictive object and lost all six barrier
+    # metrics, and `P2-mean-level`'s SHUFFLED control lost them by the same
+    # amount -- so the damage comes from moving the level at all, not from how
+    # the shift is obtained. Left here, there is nothing downstream of it.
+    #
+    # `tests/test_level_report.py` asserts the separation by running this
+    # function twice and requiring every touch probability, safe level, p_up
+    # and p_vol_amplify to be bit-identical. That test fails the moment this
+    # scalar reaches `pred`.
+    # ADOPTED 2026-09-13 (P3-functional-parity, P3-functional-scorecard):
+    # report the model's OWN conditional mean, not its median times a fitted
+    # trailing estimate of the gap between them.
+    #
+    # `sigma_mean` is sqrt(mean(exp(2*atoms_y)) * H) -- the conditional mean of
+    # variance, computed in the same forward pass in runtime.py and never used.
+    # `qlike_scale` was a WINDOWED EMPIRICAL ESTIMATE of the same median-to-mean
+    # ratio, with a clip rail and a settled-episode lag. Replacing an estimate of
+    # a quantity with the quantity removes the window, the lag, the rail, and the
+    # requirement that enough episodes have settled; and it is conditional per
+    # episode where the trailing scalar was an average.
+    #
+    # MEASURED, on the research side: reading sigma_mean instead of sigma_med
+    # improves raw pooled QLIKE by 13.3% / 20.7% / 26.0% / 11.9% at
+    # H=1/6/24/168, and the resulting forecast beats every teacher in the zoo at
+    # H=1, H=6 and H=24 under a symmetric two-parameter affine correction, tying
+    # the HAR family at H=168. A FURTHER fitted level correction on top of it
+    # makes it WORSE at all four horizons (0.54119 -> 0.54815 at H=1), which is
+    # why the trailing scalar is dropped rather than kept on top.
+    #
+    # SCOPE CORRECTION, 2026-09-21 (P3-functional-adopt-scope). THE NUMBERS
+    # ABOVE ARE THE RAW NETWORK'S, AND THIS PATH IS BLENDED. The teacher zoo
+    # scores `noctua_v1` unblended; the serving runtime applies blend_w = 0.25
+    # inside NumpyNoctua.predict, and a uniform log-shift cannot change the
+    # mean/median RATIO but does change the level that ratio multiplies. Raw
+    # sits at a calibration ratio of 1.43, so a factor near 1.2 lands close to
+    # 1.0 -- that is the zoo result quoted above. The BLENDED path already sits
+    # at 1.12, and the same factor overshoots to 0.82. Measured on the
+    # production slice: median ratio 1.1231, mean ratio 0.8181, so the MEDIAN
+    # is the closer of the two to 1 here and the "calibrated to within 1-4%"
+    # claim does NOT hold on this pipeline.
+    #
+    # WHY THE MEAN IS NEVERTHELESS STILL REPORTED: the paired contrast on the
+    # served slice is NOT SEPARATED -- median 0.25619 against mean 0.26039,
+    # delta -1.64% favouring the median, CI [-0.03105, +0.01798] with 2 of 6
+    # folds favouring the mean. n is 2,046 episodes here against 49,000 in the
+    # zoo, because the production configuration is one episode per day, so a
+    # 1.6% difference cannot resolve. Flipping a level decision on a point
+    # estimate is how phase2/level-scale oscillated three times (R80), so this
+    # stays put until a properly powered contrast on THIS slice says otherwise.
+    #
+    # SAFE BY CONSTRUCTION, not merely by test (P3-barrier-channel): the
+    # committee builds every barrier curve from `pred["sigma_atoms"]` and never
+    # reads the reported scalar -- a 13% change in it moves the curves by
+    # 0.000e+00 while the same change to sigma_atoms moves them by 8.9e-03. So
+    # this cannot repeat P2-scale-v2, whose damage came from post_shift_fn
+    # rewriting the log-vol that FEEDS the quantiles.
+    qs = qlike_scale(model, hours, row, H)          # reported for continuity
     spot = float(hours["close"].to_numpy()[row - 1])
-    sigma = float(pred["sigma_med"][0])
+    sig_med = float(pred["sigma_med"][0])
+    sig_mean = float(pred["sigma_mean"][0])
+    sigma = sig_mean if REPORT_FUNCTIONAL == "mean" else sig_med
 
     # trailing realized vol over the same window length, for volAmp
     rv5 = hours["rv5"].to_numpy(np.float64)
@@ -140,6 +236,48 @@ def forecast(model, hours: pd.DataFrame, H: int = PROD_H,
         "safe_levels": safe,
         "barrier_curves": curves,
         "model": model.meta.get("version", "NOCTUA-v1"),
+        # The reported sigma carries this; the predictive object does not.
+        # The reported sigma is now a FUNCTIONAL CHOICE, not a correction. The
+        # trailing scalar is still computed and published so the two can be
+        # compared in the field -- it is an empirical estimate of the same
+        # median-to-mean ratio this now takes exactly -- but it no longer
+        # multiplies anything.
+        "sigma_functional": {
+            "reported": REPORT_FUNCTIONAL,
+            "sigma_med_pct": round(100 * sig_med, 3),
+            "sigma_mean_pct": round(100 * sig_mean, 3),
+            "mean_over_median": round(sig_mean / max(sig_med, 1e-12), 4),
+            "why": "QLIKE is minimised by the conditional MEAN of variance; "
+                   "sigma_mean is that mean, from the same forward pass. See "
+                   "P3-functional-parity.",
+            "applies_to": "sigma_window_pct and sigma_annualized_pct only; "
+                          "barrier_curves, safe_levels and p_up are built from "
+                          "pred['sigma_atoms'] and p_vol_amplify from "
+                          "pred['qa'], so none of them can see this choice "
+                          "(P3-barrier-channel)",
+        },
+        "dispersion": {
+            "lambda": round(float(DISP_LAMBDA), 4),
+            "applied": bool(DISP_LAMBDA != 1.0),
+            "note": "scales the predictive distribution's WIDTH about its own "
+                    "median. 1.0 is a bit-identical no-op and is the shipped "
+                    "default. See P3-dispersion-barriers-result (ADVANCE).",
+            "applies_to": "sigma_atoms, and therefore sigma_window_pct and "
+                          "sigma_annualized_pct (the mean functional), "
+                          "barrier_curves' touch probabilities, safe_levels "
+                          "and p_up. NOT sigma_med, NOT the barrier price "
+                          "grid, and NOT p_vol_amplify, which reads pred['qa'] "
+                          "rather than the atoms. Asserted field by field in "
+                          "tests/test_dispersion_report.py.",
+        },
+        "sigma_scale": {
+            "scale": round(float(qs["scale"]), 4),
+            "applied": False,
+            "n_settled_episodes": int(qs["n_episodes"]),
+            "note": "NO LONGER APPLIED. Superseded by the exact conditional "
+                    "mean; reported for comparison only. " + str(qs["reason"]),
+            "applies_to": "nothing -- retained as a field for continuity",
+        },
         "vol_calibration": {
             "factor": round(float(cal["factor"]), 4),
             "applied": bool(cal["applied"]),

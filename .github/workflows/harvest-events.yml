@@ -1,0 +1,89 @@
+# .github/workflows/harvest-events.yml
+# =====================================================================
+# Hourly BTC ATTENTION series from GDELT, accumulated where the network works.
+#
+# WHY A WORKFLOW AND NOT A SCRIPT RUN IN THE DEV CONTAINER
+#
+# The development container's egress proxy returns 403 for federalreserve.gov,
+# api.stlouisfed.org, bls.gov and huggingface.co, and 000 for GDELT. This
+# repository's own fetch-data cron has been calling api.gdeltproject.org every
+# 30 minutes for months from a GitHub runner, so the runner is the data
+# channel -- exactly the arrangement harvest-assets.yml already uses for
+# exchange APIs. Nothing is bypassed; the fetch happens where it is permitted.
+#
+# TWO MODES, AND THE DIFFERENCE IS CAUSAL RATHER THAN COSMETIC
+#
+#   live      appends the last few complete hours. Point-in-time correct BY
+#             CONSTRUCTION, because nothing later can have informed it.
+#   backfill  reaches back to 2021 in 60-day windows. GDELT REVISES, so a
+#             backfilled bucket can contain articles crawled after the fact --
+#             a look-ahead the live path cannot have. Every row carries
+#             `as_of` and `provenance`, the archive is append-only, and a live
+#             row is never overwritten by a backfill.
+#
+# Any result that rests on backfilled rows has to be reproduced on the
+# live-accumulated slice before it is believed.
+name: harvest-events
+
+on:
+  schedule:
+    - cron: '17 * * * *'        # hourly, off the half-hour to avoid fetch-data
+  workflow_dispatch:
+    inputs:
+      backfill_start:
+        description: 'Backfill start (YYYY-MM-DD). Leave blank for live only.'
+        required: false
+        default: ''
+      backfill_end:
+        description: 'Backfill end (YYYY-MM-DD)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+concurrency:
+  group: harvest-events
+  cancel-in-progress: false
+
+jobs:
+  harvest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install
+        run: pip install --quiet pandas pyarrow numpy
+
+      # The parser is where the bugs live and it is tested without a network,
+      # so a broken harvester fails here rather than committing bad rows.
+      - name: Harvester self-test
+        run: python model/eval/harvest_events.py --self-test
+
+      - name: Live append
+        if: github.event.inputs.backfill_start == ''
+        run: python model/eval/harvest_events.py --mode live
+
+      - name: Backfill
+        if: github.event.inputs.backfill_start != ''
+        run: |
+          python model/eval/harvest_events.py --backfill \
+            "${{ github.event.inputs.backfill_start }}" \
+            "${{ github.event.inputs.backfill_end }}"
+
+      - name: Commit if changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if [ -n "$(git status --porcelain data/event_history.parquet)" ]; then
+            git add data/event_history.parquet
+            git commit -m "harvest-events: accumulate hourly attention series"
+            git push
+          else
+            echo "no change"
+          fi

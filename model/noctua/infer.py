@@ -86,8 +86,28 @@ def quantiles_at(q: np.ndarray, levels: np.ndarray) -> np.ndarray:
 BLEND_W = 0.25
 
 
+def scale_atoms(atoms_y, centre, lam: float = 1.0):
+    """Scale the atom grid's SPREAD about `centre`, leaving the centre put.
+
+    Pure NumPy and deliberately separate from `predict`, which needs PyTorch:
+    the serving CI job installs the torch-free serving runtime, so a gate that
+    imports torch cannot run there. This is the part whose correctness matters
+    -- that lam == 1.0 is an exact identity -- and it is testable without a
+    model. A first version put this inline and gated it in CI anyway, which
+    failed on ModuleNotFoundError.
+
+    lam == 1.0 returns the input UNCHANGED (not a copy, not a recomputation),
+    so the shipped path is bit-identical by construction rather than by
+    floating-point luck.
+    """
+    if lam == 1.0:
+        return atoms_y
+    return centre + float(lam) * (atoms_y - centre)
+
+
 def predict(model, d: dict, n_atoms: int = N_ATOMS,
-            har_logvol: np.ndarray | None = None, blend_w: float = BLEND_W) -> dict:
+            har_logvol: np.ndarray | None = None, blend_w: float = BLEND_W,
+            disp_lambda: float = 1.0) -> dict:
     """Full predictive object for a batch of episodes (PyTorch model).
 
     Serving does not go through here -- `serve.runtime.NumpyNoctua.predict`
@@ -115,23 +135,52 @@ def predict(model, d: dict, n_atoms: int = N_ATOMS,
             qa = qa + shift[:, None]
         atom_levels = (np.arange(n_atoms) + 0.5) / n_atoms
         atoms_y = quantiles_at(qa, atom_levels)              # (n, A)
+        # DISPERSION HOOK, default a bit-identical no-op (`disp_lambda == 1.0`
+        # takes this branch and leaves atoms_y untouched, so the shipped
+        # artifact cannot move). Scales the atom spread about the predicted
+        # MEDIAN, which leaves `sigma_med` exactly unchanged and moves only the
+        # width of the predictive distribution -- and therefore every barrier
+        # curve, since the committee builds them from `sigma_atoms`.
+        #
+        # This is deliberately a DIFFERENT intervention class from
+        # `post_shift_fn`, which writes the level. P2-mean-level showed a level
+        # shift degrades all six barrier metrics by ~20% even under a shuffled
+        # control, i.e. the damage belongs to moving the level at all. Whether
+        # moving the WIDTH behaves the same way is the open question
+        # (P3-dispersion-barriers); the measured over-dispersion of 11-28% at
+        # H = 6/24/168 (P3-dispersion) says the width is wrong, and the
+        # QLIKE screen says correcting it costs the point forecast
+        # (P3-dispersion-screen), so the barrier battery is the only thing that
+        # can decide it.
+        atoms_y = scale_atoms(atoms_y, qa[:, MEDIAN_IDX][:, None], disp_lambda)
         sigma_atoms = np.exp(atoms_y) * np.sqrt(H)[:, None]  # (n, A) window vol
 
-        qr, qu, qd = [], [], []
+        qr, qu, qd, qm = [], [], [], []
         for i in range(n_atoms):
             ls = torch.tensor(
                 np.log(np.maximum(sigma_atoms[:, i], EPS)).astype(np.float32)
             )[:, None]
-            a_, b_, c_ = model.b(Xs, ls)
-            qr.append(a_.numpy()); qu.append(b_.numpy()); qd.append(c_.numpy())
+            a_, b_, c_, d_ = model.b(Xs, ls)
+            qr.append(a_.numpy()); qu.append(b_.numpy())
+            qd.append(c_.numpy()); qm.append(d_.numpy())
 
     # Point forecasts. These are NOT interchangeable, and using the wrong one
     # is a real trap: QLIKE (and any squared-error loss on variance) is
     # minimised by the conditional MEAN of the variance, not its median. For a
     # roughly lognormal volatility with residual sd s, the median understates
-    # the mean variance by exp(2 s^2) -- about 28% at s = 0.35. Measured here,
-    # though, the mean OVER-forecasts (ratio 1.205) and scores worse, so the
-    # median is what the evaluation reports; both are returned.
+    # the mean variance by exp(2 s^2) -- about 28% at s = 0.35.
+    #
+    # THIS COMMENT USED TO END: "Measured here, though, the mean OVER-forecasts
+    # (ratio 1.205) and scores worse, so the median is what the evaluation
+    # reports." That was wrong, it was never accompanied by a run, and it cost
+    # this project months. The mean does not score worse -- it improves raw
+    # pooled QLIKE by 13.3% / 20.7% / 26.0% / 11.9% at H = 1 / 6 / 24 / 168
+    # (P3-functional-parity), and its calibration ratio against E[RV^2] is
+    # 0.963 / 0.988 / 0.992 / 0.899 where the median's is 1.43-1.46
+    # (P3-functional-audited). The 1.205 figure is the mean/median RATIO, which
+    # is a fact about the two functionals and says nothing about which one the
+    # loss wants. serve/predict.py now reports the mean (P3-functional-adopt).
+    # R34: a comment saying a thing was checked is not a check.
     var_mean = np.mean(np.exp(2.0 * atoms_y), axis=1) * H
     return {
         "qa": qa,
@@ -141,6 +190,9 @@ def predict(model, d: dict, n_atoms: int = N_ATOMS,
         "q_r": np.stack(qr, 1).astype(np.float64),       # (n, A, K)
         "q_up": np.stack(qu, 1).astype(np.float64),
         "q_dn": np.stack(qd, 1).astype(np.float64),
+        # standardized MAX of the two excursions -- the strangle seller's
+        # quantity, estimated rather than reconstructed from the marginals
+        "q_mx": np.stack(qm, 1).astype(np.float64),
         "H": H,
     }
 
@@ -151,6 +203,28 @@ def touch_prob(pred: dict, u: np.ndarray, up: bool = True) -> np.ndarray:
     `u` > 0 is a log-distance: 0.02 means a strike 2.02% above (or below) spot.
     """
     q = pred["q_up"] if up else pred["q_dn"]
+    sig = pred["sigma_atoms"]
+    u = np.abs(np.asarray(u, dtype=np.float64))
+    if u.ndim == 0:
+        u = np.full(q.shape[0], float(u))
+    acc = np.zeros(q.shape[0])
+    for a in range(q.shape[1]):
+        acc += survival_from_quantiles(q[:, a, :], u / np.maximum(sig[:, a], EPS))
+    return np.clip(acc / q.shape[1], 0.0, 1.0)
+
+
+def touch_prob_either(pred: dict, u: np.ndarray) -> np.ndarray:
+    """P(EITHER barrier at +/- u is touched before settlement).
+
+    Read off the dedicated `q_mx` head rather than combined from the two
+    marginals. Combining them as `1 - (1-p_up)(1-p_dn)` assumes independence,
+    and the sides are strongly negatively dependent (Spearman -0.687 measured,
+    -0.812 under a Brownian control) because a fixed variance budget cannot be
+    spent in both directions. That assumption UNDERSTATES the probability --
+    0.8368 against a realized 0.8922 at a 1% barrier -- which is the dangerous
+    direction for someone short both wings.
+    """
+    q = pred["q_mx"]
     sig = pred["sigma_atoms"]
     u = np.abs(np.asarray(u, dtype=np.float64))
     if u.ndim == 0:

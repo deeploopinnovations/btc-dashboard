@@ -3,6 +3,10 @@ node_modules/
 *.log
 .env
 src/config.js
-model/artifacts/
+model/artifacts/*
+# small RESULT summaries are state, not build output, and the 2026-09-12
+# loss happened because this directory swallowed them (R55, DATA_LOSS doc)
+!model/artifacts/*_result.json
+!model/artifacts/tail_clustering.json
 __pycache__/
 *.pyc

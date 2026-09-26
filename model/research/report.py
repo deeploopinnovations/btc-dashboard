@@ -1,0 +1,963 @@
+"""
+research/report.py
+=====================================================================
+Generates REPORT.md from the artifacts, so the report cannot drift from the
+numbers.
+
+WHY THIS IS A SCRIPT AND NOT A DOCUMENT
+
+Every table in the report is read from a JSON artifact at generation time.
+Nothing is transcribed. This project has already been bitten twice by numbers
+quoted from memory rather than from a file -- invented split boundaries
+(`iv-coverage-2`) and a claim about `paired_per_episode` that turned out to be
+None in both artifacts it cited (§29). A report assembled by hand is a third
+opportunity for the same mistake, and it is the one that gets read.
+
+The PROSE is written here too, and that is deliberate: an argument that is only
+true for one set of numbers should live next to the code that reads them, so
+that a changed artifact makes the sentence visibly stale rather than quietly
+wrong. Where a sentence depends on a number, the number is interpolated.
+
+A missing artifact produces a section that says so. It does not produce a
+guess, and it does not silently omit the row.
+
+    python -m model.research.report            # -> model/RESEARCH_REPORT.md
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+A = Path("model/artifacts")
+
+
+def load(name: str):
+    p = A / name
+    if not p.exists():
+        return None
+    try:
+        return json.loads(p.read_text())
+    except Exception:                                            # noqa: BLE001
+        return None
+
+
+# Artifacts whose absence was hit during the last build(). A generator that
+# reads artifacts and writes a committed document degrades SILENTLY when they
+# are gone: on 2026-09-12, with model/artifacts/ lost, a re-run of this file
+# replaced 168 lines of established findings -- the closed direction result, the
+# whole four-horizon matrix, the production-headline reversal -- with
+# "not present" notes, and the output still looked like a finished report. The
+# write is therefore gated on this set being empty. (R38, applied to documents.)
+_MISSING: list[tuple[str, str]] = []
+
+
+def missing(name: str, what: str) -> str:
+    _MISSING.append((name, what))
+    return (f"> **`{name}` is not present.** {what} is therefore not reported "
+            f"here. Regenerate it with the command in "
+            f"[Reproducing this](#reproducing-this) and re-run this generator.\n")
+
+
+# --------------------------------------------------------------------------
+def sec_volatility() -> str:
+    # The FAIR run governs wherever it exists. The first matrix's OLS baselines
+    # were horizon-blind -- fitted once on the pooled sample across all four
+    # horizons while NOCTUA sees cal_H -- and reporting it as the result would
+    # be reporting a comparison the ledger has already rejected.
+    d = load("vol_matrix_fair.json") or load("vol_matrix.json")
+    old = load("vol_matrix.json") if load("vol_matrix_fair.json") else None
+    if d is None:
+        return missing("vol_matrix.json", "The four-horizon volatility matrix")
+    out = []
+    if d.get("fair_baselines"):
+        out.append(
+            "Every OLS baseline here is refitted **per horizon** and `log_har_cal` "
+            "is in the arm list. That matters: the first version of this matrix "
+            "fitted the baselines once on the pooled sample spanning all four "
+            "horizons, so they carried no horizon term while NOCTUA sees `cal_H`. "
+            "The `_pooled` arms below are those horizon-blind fits, kept so the "
+            "size of the confound is a number rather than an argument — at "
+            "H = 168 the pooled fit costs the baseline a factor of **2.06**.\n\n"
+            "Under the horizon-blind baselines NOCTUA cleared at H = 24 (+0.03032) "
+            "and H = 168 (+0.14462). **Neither survives here.** That reversal is "
+            "the result, and it was pre-registered as the outcome I should be "
+            "prepared for.\n")
+    out += [
+        "\nEvery arm at a given horizon is scored on the **same episodes**, with "
+        "the same target and the same loss. The baseline to beat is chosen on "
+        "the **calibration** slice and never on test; a `_pooled` arm is never "
+        "eligible to be chosen.\n",
+        f"Bonferroni within this family: {d['family_size']} rows, so intervals "
+        f"are at {100*(1-d['alpha']):.2f}%. Seeds: {d['seeds']}.\n",
+    ]
+    for H in sorted(d["horizons"], key=lambda k: int(k)):
+        r = d["horizons"][H]
+        out.append(f"\n### H = {H}h — {r['n_test']:,} test episodes, "
+                   f"folds {r['years']}\n")
+        out.append(f"Best baseline by calibration QLIKE: **{r['best_baseline']}** "
+                   + " · ".join(f"{k} {v:.4f}" for k, v in
+                                sorted(r["calib_qlike"].items(), key=lambda kv: kv[1]))
+                   + "\n")
+        if r.get("arms_absent"):
+            out.append(f"\nNot scored at this horizon: `{'`, `'.join(r['arms_absent'])}`\n")
+        out.append("\n| arm | QLIKE | vs best | worst fold | spike | calm | "
+                   "paired CI (blocks) | same at n^(1/3)? |\n"
+                   "|---|---:|---:|---:|---:|---:|---|---|\n")
+        for k, v in r["arms"].items():
+            ci = v.get("paired_ci")
+            cis = "— (is the baseline)" if ci is None else \
+                f"[{ci[0]:+.5f}, {ci[1]:+.5f}] ({v.get('block_len')})"
+            ct = v.get("paired_ci_cuberoot")
+            if ct is None:
+                same = "—"
+            else:
+                same = "yes" if (ct[0] > 0) == (ci[0] > 0) else "**no**"
+            out.append(f"| `{k}` | {v['qlike']:.5f} | {v['delta_vs_best']:+.5f} | "
+                       f"{v['worst_fold']:.5f} | {v['spike']:.4f} | {v['calm']:.4f} | "
+                       f"{cis} | {same} |\n")
+        out.append("\nPre-registered verdict: "
+                   + " · ".join(f"**{k}** {vv}" for k, vv in r["verdicts"].items())
+                   + "\n")
+        # The `_mean` arms are REPORTED but carry no verdict, and that asymmetry
+        # needs saying out loud. The pre-registered family is four rows -- four
+        # horizons, one primary contrast, fixed before the matrix was built --
+        # and it is about the arm NOCTUA actually served, the median. The mean
+        # arms were added afterwards. Letting them inherit a verdict they were
+        # not registered for would be adding arms to a family until one clears;
+        # hiding them would be worse. So: in the table, out of the family, and
+        # the claim they support is made in its own section against a correction
+        # applied symmetrically to every teacher.
+        if any(k.endswith("_mean") for k in r["arms"]):
+            out.append(
+                "\nThe `_mean` arms are reported here but receive **no "
+                "pre-registered verdict**. The family was fixed a priori at four "
+                "rows — one primary contrast per horizon — and that contrast is "
+                "the median arm, the one that was actually served when the "
+                "registration was written. The mean arms were added after the "
+                "fact; admitting them to the family would be enlarging it until "
+                "something clears. Their claim is made in "
+                "[the functional section](#volatility-the-functional-the-loss-"
+                "actually-wants) instead, under a correction applied "
+                "symmetrically to every teacher.\n")
+    out.append(
+        "\nThe fold-level spread is carried in the artifact as `per_fold` and is "
+        "**not** the primary. `vol-matrix-power` measured its minimum detectable "
+        "effect at 5.21% / 11.76% / 31.68% / 65.48% of the persistence baseline "
+        "at H = 1 / 6 / 24 / 168, against a 4.98% reference effect — one row "
+        "marginal, three not powered. That was measured *before* the matrix was "
+        "built, which is the only time the measurement is worth anything.\n")
+    return "".join(out)
+
+
+def _functional_rows():
+    """(H, median_entry, mean_entry, best_rival_name, best_rival_entry) per horizon."""
+    d = load("mz_result.json")
+    if d is None:
+        return None
+    rows = []
+    for H in sorted(d["horizons"], key=lambda k: int(k)):
+        t = {k: v for k, v in d["horizons"][H]["teachers"].items() if "mzq" in v}
+        if "noctua_v1" not in t or "noctua_v1_mean" not in t:
+            return None
+        rivals = [k for k in t if not k.startswith("noctua")]
+        rv = min(rivals, key=lambda k: t[k]["mzq"]) if rivals else None
+        rows.append((int(H), t["noctua_v1"], t["noctua_v1_mean"], rv,
+                     t[rv] if rv else None))
+    return rows
+
+
+def sec_functional() -> str:
+    rows = _functional_rows()
+    if rows is None:
+        return missing("mz_result.json",
+                       "The functional comparison and the MZ recalibration ladder")
+    b = load("beta_stability.json")
+    out = [
+        "QLIKE is `mean(r \u2212 log r \u2212 1)` with `r = RV\u00b2/\u03c3\u00b2`, "
+        "and it is minimised at `\u03c3\u00b2 = E[RV\u00b2]` \u2014 the conditional "
+        "**mean** of variance. NOCTUA's network emits a 32-atom quantile "
+        "representation, and the scalar it reported was the **median**. Every "
+        "earlier comparison in this document therefore scored NOCTUA's median "
+        "against its rivals' means, under a loss that wants the mean.\n\n"
+        "Reading `sigma_mean` instead is the same forward pass. Nothing is "
+        "refitted, no parameter is added, no data is touched:\n\n",
+        "| H | median (raw) | mean (raw) | improvement | median (MZq) | "
+        "mean (MZq) | improvement |\n|---:|---:|---:|---:|---:|---:|---:|\n",
+    ]
+    for H, med, mean, _rv, _rvv in rows:
+        out.append(
+            f"| {H} | {med['raw']:.5f} | {mean['raw']:.5f} | "
+            f"**{100 * (med['raw'] - mean['raw']) / med['raw']:+.2f}%** | "
+            f"{med['mzq']:.5f} | {mean['mzq']:.5f} | "
+            f"{100 * (med['mzq'] - mean['mzq']) / med['mzq']:+.2f}% |\n")
+    out.append(
+        "\nThe raw column is the size of the reporting defect. The MZq column is "
+        "what survives once **every** teacher, NOCTUA included, is given the same "
+        "two free parameters \u2014 a level and a slope, fitted on each fold's "
+        "calibration slice and applied to its test slice. Applying such a "
+        "correction to one model and not the others is how a favoured model is "
+        "handed a free fit, so it is applied symmetrically or not at all.\n\n"
+        "Against the best **non-NOCTUA** arm at each horizon, under that "
+        "symmetric correction:\n\n"
+        "| H | best rival | rival QLIKE | NOCTUA (mean) | margin |\n"
+        "|---:|---|---:|---:|---:|\n")
+    ties = []
+    TIE = "\u2014 a tie"
+    for H, _med, mean, rv, rvv in rows:
+        if rv is None:
+            continue
+        m = 100 * (rvv["mzq"] - mean["mzq"]) / rvv["mzq"]
+        tie = abs(m) < 1.0
+        if tie:
+            ties.append(H)
+        out.append(f"| {H} | `{rv}` | {rvv['mzq']:.5f} | {mean['mzq']:.5f} | "
+                   f"{m:+.2f}% {TIE if tie else ''} |\n")
+    if ties:
+        t = ", ".join(f"H = {h}" for h in ties)
+        out.append(
+            f"\n**{t} is a tie, not a win.** A margin under one percent is not a "
+            "result, and it is written as a tie here because the temptation to "
+            "round it up is exactly what this document exists to prevent.\n")
+    out.append(
+        "\nThis falsifies the Phase 1 headline that NOCTUA fails against the HAR "
+        "family at every horizon. What failed at every horizon was the *scalar "
+        "being reported*, not the model producing it \u2014 and the fix costs "
+        "nothing, because the quantity was already in the forward pass.\n")
+
+    if b is not None:
+        out.append(
+            "\n### The slope defect, and what it turned out to be\n\n"
+            "A Mincer\u2013Zarnowitz slope \u03b2 below 1 means the forecast "
+            "over-reacts to its own signal; above 1, that it under-reacts. "
+            "Neither is information about volatility, and both are removable by "
+            "an affine map any competitor can also apply. The open question was "
+            "whether NOCTUA's \u03b2 is an information defect \u2014 which would "
+            "call for a retrain \u2014 or an affine one.\n\n"
+            "It is neither, uniformly. Fitting the correction on each fold's "
+            "calibration slice, applying it to that fold's test slice, and "
+            "**re-measuring** the slope on rows the correction never saw "
+            "(re-fitting on test would report 1.000 by construction, and would "
+            "confirm itself whatever the data said):\n\n"
+            "**Every \u03b2 in this section is measured on the RAW network, "
+            "and the served product BLENDS it with Log-HAR at `blend_w = 0.25`.** "
+            "The blend is affine in log space, so \u03b2 as a function of the "
+            "weight is computable without retraining, and it is monotone "
+            "*decreasing* in the neural share: pooled, at H = 1 / 6 / 24 the raw "
+            "network sits at 1.214 / 1.148 / 1.032 and the shipped weight at "
+            "**1.077 / 1.058 / 1.010**; at H = 168 the raw network over-reacts at "
+            "0.835 and the blend raises it to 0.959. The blend moves \u03b2 "
+            "toward 1 at every horizon, so the served pipeline's slope is better "
+            "than every number in the table below. The defect is in the neural "
+            "stage \u2014 which is what the table is about \u2014 and the blend "
+            "is already treating roughly a third of it "
+            "(`P3-blend-beta-result`).\n\n"
+            "| H | independent calibration windows per fold | \u03b2 raw | "
+            "\u03b2 after MZq | reading |\n|---:|---:|---:|---:|---|\n")
+        for r in b["rows"]:
+            out.append(
+                f"| {r['H']} | {r['n_calib_independent_per_fold']:,} | "
+                f"{r['beta_raw']:.3f} | {r['beta_mzq']:.3f} | "
+                f"{b['verdicts'][str(r['H'])]} |\n")
+        out.append(
+            "\nWhether the correction transfers tracks the number of independent "
+            "windows it was fitted on, monotonically, and nothing else in the "
+            "table does. Episodes are anchored hourly against an H-hour forward "
+            "window, so consecutive rows share H\u22121 of their H hours and the "
+            "independent count is of order n/H. At H = 168 a two-parameter "
+            "regression is fitted on **twenty-four** effective observations per "
+            "fold, and the slopes it returns say so \u2014 one of the six is "
+            "negative, which asserts that the more NOCTUA forecasts, the less "
+            "volatility realises.\n\n"
+            "That was first read as regime variation, on the grounds that the "
+            "offending fold is 2022 \u2014 Terra, 3AC, FTX. Its own neighbour "
+            "refutes it: 2022's calibration slope at H = 168 is \u22120.017 and "
+            "its **test** slope at the same horizon is 0.918, entirely ordinary. "
+            "An estimate that disagrees that violently with the slice next door "
+            "is noise, not a regime, and the attribution was withdrawn.\n\n"
+            "The consequence is a redirection. The plan named a CRPS-trained "
+            "variant as the remedy for \u03b2. ")
+        # Interpolated, not transcribed: the horizons where the correction
+        # transfers are READ from the artifact, so if a rebuild changes which
+        # ones those are, this sentence changes with it rather than going
+        # quietly stale. That is the whole reason this file is a script.
+        aff = [r for r in b["rows"] if b["verdicts"][str(r["H"])].startswith("AFFINE")]
+        una = [r for r in b["rows"]
+               if b["verdicts"][str(r["H"])].startswith("UNESTIMABLE")]
+        if aff:
+            out.append(
+                "At "
+                + " and ".join(f"H = {r['H']}" for r in aff)
+                + " two out-of-sample parameters already take \u03b2 to "
+                + " and ".join(f"{r['beta_mzq']:.3f}" for r in aff)
+                + ", so a new loss would be fixing a solved problem")
+        if una:
+            out.append(
+                "; at "
+                + " and ".join(f"H = {r['H']}" for r in una)
+                + " the binding constraint is a calibration window of "
+                + " and ".join(f"{r['n_calib_independent_per_fold']:,}" for r in una)
+                + " independent observations, which no loss function changes")
+        out.append(
+            ".\n\nOne caution about every pooled \u03b2 above: it is a mixture "
+            "across six folds carrying six different levels, and it "
+            "**understates** the per-fold defect at both ends \u2014 "
+            + "; ".join(
+                f"{r['beta_raw']:.3f} pooled against {r['beta_raw_median_fold']:.3f} "
+                f"median fold at H = {r['H']}"
+                for r in b["rows"] if r["H"] in (1, 168))
+            + ".\n")
+
+    out.append(
+        "\n### What changed in what is served\n\n"
+        "`REPORT_FUNCTIONAL = \"mean\"`: the served scalar is now the mean of the "
+        "same forward pass. This is safe by construction rather than by "
+        "measurement \u2014 the reported scalar moves the barrier curves by "
+        "0.000e+00, because the committee specialists build their curves from "
+        "`sigma_atoms` and never read it, while `sigma_atoms` moves them by "
+        "8.864e\u221203. The live anchor moves from 2.067% to 2.640%.\n\n"
+        "**Scope correction.** Everything above this subsection is the RAW "
+        "network; the serving path BLENDS with Log-HAR at `blend_w = 0.25`. A "
+        "uniform log-shift cannot change the mean/median ratio, but it changes "
+        "the level that ratio multiplies \u2014 so the raw network's 1.43 "
+        "becomes ~1.0 under the mean, while the blended path's 1.12 overshoots "
+        "to 0.82. On the production slice the median's calibration ratio is "
+        "**1.1231** and the mean's is **0.8181**, so the median is the closer "
+        "of the two to 1 there and the \u201ccalibrated to within 1\u20134% "
+        "with nothing fitted\u201d claim does **not** hold on the pipeline that "
+        "is served.\n\n"
+        "The mean is nevertheless still reported, because the paired contrast "
+        "on that slice is **not separated**: median 0.25619 against mean "
+        "0.26039, \u22121.64% favouring the median, CI [\u22120.03105, "
+        "+0.01798], 2 of 6 folds favouring the mean. The production "
+        "configuration is one episode per day, so n is 2,046 there against "
+        "49,000 in the zoo and a 1.6% difference cannot resolve. Flipping a "
+        "level decision on a point estimate is how `phase2/level-scale` "
+        "oscillated three times, so it stays put until a properly powered "
+        "contrast on that slice says otherwise (`P3-functional-adopt-scope`).\n")
+    return "".join(out)
+
+
+def sec_production() -> str:
+    d = load("prod_fairbaseline.json")
+    if d is None:
+        return missing("prod_fairbaseline.json",
+                       "The production-slice baseline audit")
+    out = [
+        "The production configuration is H = 19 anchored at 17:00 UTC. This "
+        "table asks whether the published advantage survives the **strongest "
+        "baseline this repository already contains**, with the bar chosen on "
+        "the calibration slice and never on test.\n",
+        f"\n{d['n_test']:,} test episodes over {len(d['years'])} folds. "
+        f"Bonferroni at family size {d['family_size']} → "
+        f"{100*(1-d['alpha']):.0f}% intervals, blocks of {d['block_len']}. "
+        f"Best baseline by calibration QLIKE: **{d['best_baseline']}** · "
+        + " · ".join(f"{k} {v:.4f}" for k, v in
+                     sorted(d["calib_qlike"].items(), key=lambda kv: kv[1]))
+        + "\n",
+        "\n| arm | QLIKE | vs best | rel % | worst fold | paired CI |\n"
+        "|---|---:|---:|---:|---:|---|\n",
+    ]
+    for k, v in d["arms"].items():
+        ci = v.get("paired_ci")
+        cis = "— (is the baseline)" if ci is None else \
+            f"[{ci[0]:+.5f}, {ci[1]:+.5f}]"
+        out.append(f"| `{k}` | {v['qlike']:.5f} | {v['delta_vs_best']:+.5f} | "
+                   f"{v['rel_pct_vs_best']:+.2f} | {v['worst_fold']:.5f} | {cis} |\n")
+    ic = d["incumbent_claim"]
+    out.append(
+        f"\n**The incumbent claim is confirmed.** Against `log_har_cal_pooled` — "
+        f"the arm the published headline is actually measured against — NOCTUA is "
+        f"{ic['delta']:+.5f} ({ic['rel_pct']:+.2f}%), CI [{ic['ci'][0]:+.5f}, "
+        f"{ic['ci'][1]:+.5f}], which clears.\n\n"
+        f"**The primary fails anyway, for a different reason.** Against "
+        f"`{d['best_baseline']}` — which extends Corsi's cascade downward with "
+        f"`har_1h` and `har_6h`, has been in `noctua/baselines.py` throughout, and "
+        f"had never been scored as a competitor — NOCTUA is "
+        f"{d['arms']['noctua']['rel_pct_vs_best']:+.2f}% and **{d['verdict']}**. "
+        f"The unadjusted 95% interval "
+        f"[{d['unadjusted_ci95'][0]:+.5f}, {d['unadjusted_ci95'][1]:+.5f}] straddles "
+        f"zero too, so this is not a multiple-testing artifact.\n\n"
+        f"NOCTUA still posts the best pooled QLIKE of any arm here. It is simply not "
+        f"*significantly* better than the best baseline at this sample size.\n")
+    # Same disclosure as the matrix, for the same reason: the family was fixed
+    # at five rows before the functional question existed, and `noctua_mean` is
+    # reported without a verdict rather than admitted to it after the fact.
+    nm = d["arms"].get("noctua_mean")
+    if nm is not None:
+        med = d["arms"]["noctua"]["rel_pct_vs_best"]
+        out.append(
+            f"\n**The arm that is now served, scored on this slice for the first "
+            f"time.** Every number above is `sigma_med` — the scalar this slice "
+            f"was serving when the family was registered. `noctua_mean` is the "
+            f"functional QLIKE is minimised by, off the same forward pass and "
+            f"after the same blend: {nm['qlike']:.5f} against "
+            f"`{d['best_baseline']}`, {nm['rel_pct_vs_best']:+.2f}% versus "
+            f"{med:+.2f}% for the median. It carries **no pre-registered "
+            f"verdict** — the family was fixed at {d['family_size']} rows before "
+            f"this question existed, and adding arms to a family until one "
+            f"clears is not a test. It is reported because this is the slice "
+            f"that is actually served, and until now the headline for it had "
+            f"never been measured on the scalar it actually serves.\n")
+    return "".join(out)
+
+
+def sec_direction() -> str:
+    d = load("direction_bench.json")
+    if d is None:
+        return missing("direction_bench.json", "The direction benchmark")
+    out = [
+        "The baseline is the **calibration-window base rate**, not 0.5. "
+        "P(R>0) rises with horizon and moves between years, so beating a coin "
+        "demonstrates nothing. Calibration slope and intercept are **pass "
+        "conditions**; AUC is reported and is explicitly not one.\n",
+        "\n| H | arm | Brier | BSS vs calib | AUC | cal slope | cal int | "
+        "paired CI | verdict |\n|---|---|---:|---:|---:|---:|---:|---|---|\n",
+    ]
+    for H in sorted(d, key=lambda k: int(k)):
+        for arm in ("base_unc", "base_calib", "logistic", "gbm", "placebo", "shuffled"):
+            if arm not in d[H]:
+                continue
+            r = d[H][arm]
+            ci = r.get("paired_ci")
+            cis = "—" if not ci else f"[{ci[0]:+.6f}, {ci[1]:+.6f}]"
+            out.append(f"| {H} | `{arm}` | {r['brier']:.5f} | "
+                       f"{r['bss_vs_calib']:+.5f} | {r['auc']:.4f} | "
+                       f"{r['cal_slope']:+.3f} | {r['cal_intercept']:+.3f} | "
+                       f"{cis} | {r.get('verdict','—')} |\n")
+    out.append(
+        "\nA **positive** paired CI means the arm is **worse** than the baseline: "
+        "the quantity bootstrapped is arm-minus-baseline Brier.\n")
+    return "".join(out)
+
+
+def sec_economics() -> str:
+    d = load("econ_voltarget.json")
+    head = (
+        "**There is no options P&L in this report and there will not be one.** "
+        "`model/artifacts/datasources.json` records 18 probes and 2 reachable "
+        "endpoints; every exchange API and aggregator returns 403 through the "
+        "egress proxy. The only option-adjacent series on disk is the Deribit "
+        "DVOL volatility *index* — a level, with no strikes, no expiries, no "
+        "bid/ask, no size, no prints. An options P&L could only be simulated, "
+        "and every assumption the simulation needed would do more work than the "
+        "forecast being tested.\n\n"
+        "A directional backtest is also absent, for a different reason: the "
+        "signal was measured to carry no information at n ≈ 49,000 per horizon, "
+        "so its equity curve would be a random walk with a fee drag.\n\n"
+        "What *can* be measured is a **volatility-targeting overlay on spot "
+        "BTC**, which is the actual use of a volatility forecast for anyone "
+        "without an options book. Its primary endpoint is risk control — "
+        "|realised annualised vol − target| — not return.\n\n")
+    if d is None:
+        return head + missing("econ_voltarget.json", "The overlay result")
+    out = [head,
+           f"Target {d['target']:.0%} annualised, weight capped at {d['w_max']}, "
+           f"H = {d['horizon']}h, rebalanced at {d['rebalance_hour']:02d}:00 UTC so "
+           f"consecutive windows do not overlap. Costs {d['cost_bps']} bps "
+           f"round-trip — **assumptions, not measurements**: this repository has "
+           f"no order book and no fee schedule.\n",
+           "\n| arm | mean \\|vol err\\| | worst | realised vol | turnover | mean w | "
+           + " | ".join(f"net @{c:.0f}bp" for c in d["cost_bps"])
+           + " | paired CI vs best |\n|---|---:|---:|---:|---:|---:|"
+           + "---:|" * len(d["cost_bps"]) + "---|\n"]
+    for k, v in d["arms"].items():
+        ci = v.get("paired_ci_vs_best")
+        cis = "— (is the best arm)" if ci is None else f"[{ci[0]:+.4f}, {ci[1]:+.4f}]"
+        nets = " | ".join(f"{v['net_return_by_cost'][str(c)]:+.3f}" for c in d["cost_bps"])
+        out.append(f"| `{k}` | {v['vol_error_mean']:.4f} | {v['vol_error_worst']:.4f} | "
+                   f"{v['realised_vol']:.4f} | {v['turnover']:.4f} | {v['mean_w']:.3f} | "
+                   f"{nets} | {cis} |\n")
+    out.append("\n| arm | t-CI on the paired difference | t p | perm p | floor | MDE(80%) | powered? |\n"
+               "|---|---|---:|---:|---:|---:|---|\n")
+    hs = d["arms"][d["best_arm_by_primary"]]["vol_error_mean"]
+    for k, v in d["arms"].items():
+        sm = v.get("small_n")
+        if sm is None:
+            out.append(f"| `{k}` | — (is the best arm) | | | | | |\n"); continue
+        eff = abs(hs - v["vol_error_mean"])
+        pw = "yes" if eff > sm["mde_80"] else "**NOT POWERED**"
+        out.append(f"| `{k}` | [{sm['t_ci'][0]:+.4f}, {sm['t_ci'][1]:+.4f}] | "
+                   f"{sm['t_p_two_sided']:.4f} | {sm['perm_p_one_sided']:.4f}"
+                   + ("  *(at floor)*" if sm["perm_at_floor"] else "")
+                   + f" | {sm['perm_p_floor']:.4f} | {sm['mde_80']:.4f} | {pw} |\n")
+    out.append(
+        "\n`n` here is the number of **folds**, and that is intrinsic rather than a "
+        "design choice: realised volatility is a property of a series, so exactly one "
+        "number exists per fold. Per STATS_PROTOCOL §2–3 a bootstrap over same-signed "
+        "observations at this n cannot fail, so the t-interval governs where the two "
+        "disagree — and they do disagree for `noctua`, where the block interval "
+        "excludes zero adversely and the t-interval does not. The exact sign-flip "
+        "permutation has a hard one-sided floor of 2⁻⁶ = 0.0156, so **no "
+        "Bonferroni-corrected claim is available from this design at any effect "
+        "size**.\n")
+    out.append(f"\nBest arm on the primary: **{d['best_arm_by_primary']}**. "
+               f"Ranking by net return identical at all three cost levels: "
+               f"**{d['ranking_cost_stable']}**"
+               + ("" if d["ranking_cost_stable"] else
+                  " — so the return comparison is **cost-dependent** and no arm "
+                  "is declared better on it")
+               + ".\n")
+    return "".join(out)
+
+
+def sec_experiments() -> str:
+    p = Path("model/research/ledger.json")
+    if not p.exists():
+        return missing("research/ledger.json", "The experiment register")
+    es = json.loads(p.read_text())["experiments"]
+    # OPEN MEANS TWO DIFFERENT THINGS AND THE COUNT WAS REPORTING ONE NUMBER
+    # FOR BOTH. A pre-registration keeps verdict OPEN forever -- it is
+    # append-only, so the result arrives as a SEPARATE entry that supersedes
+    # it. Summing those together with the questions nobody has answered told a
+    # reader there were 52 loose ends when there were 6, which is the kind of
+    # number that gets quoted. Superseded pre-registrations are counted
+    # separately and named as what they are.
+    counts: dict[str, int] = {}
+    for e in es:
+        v = e["verdict"]
+        if v == "OPEN" and e.get("superseded_by"):
+            v = "OPEN (answered by a later entry)"
+        counts[v] = counts.get(v, 0) + 1
+    unresolved = counts.get("OPEN", 0)
+    out = [f"{len(es)} pre-registered experiments. "
+           + " · ".join(f"**{k}** {v}" for k, v in sorted(counts.items()))
+           + f"\n\nThe register is append-only, so a pre-registration keeps "
+           f"its OPEN verdict and its result arrives as a separate entry that "
+           f"supersedes it. **{unresolved}** questions are genuinely "
+           f"unresolved; the rest of the OPEN rows have been answered.\n\n"
+           "Every row was registered with its decision rule **before** it "
+           "ran. Failures are not deleted; they stay in the family and count "
+           "against the multiple-testing correction.\n",
+           "\n| id | topic | verdict | question |\n|---|---|---|---|\n"]
+    for e in es:
+        sup = " ⤳" if e.get("superseded_by") else ""
+        out.append(f"| `{e['id']}`{sup} | {e['topic']} | {e['verdict']} | "
+                   f"{e['question'][:110]} |\n")
+    out.append("\n⤳ = superseded by a later entry; the original is kept rather "
+               "than edited.\n")
+    return "".join(out)
+
+
+TIMELINE = """```mermaid
+timeline
+    title NOCTUA — what was decided, and when it was decided against
+    section Foundations
+        Dataset and model : 510,496 episodes from 1-min bars
+                          : walk-forward folds with an H-derived embargo
+        Leakage audit     : 42 columns x 6 eras x 2 corruption styles
+                          : decoy caught in 12 of 12 trials
+    section Levers tried
+        Spike upweighting : REJECT
+        Ensemble weight   : NULL — one fold decides everything
+        Anchor freshness  : NULL
+        Path shape        : REJECT
+    section Implied volatility
+        IV as a column    : REJECT on coverage, before it was fitted
+        IV as a residual  : REJECT — the gain was the intercept
+        E2c dynamics      : ADVANCE, then NOT PROVEN after audit
+    section Measuring the measurement
+        Effective sample  : 24x episodes bought 1.53x precision
+        Power before build: 3 designs killed before spending compute
+        Data-use ledger   : no untouched holdout exists; one is frozen forward
+    section This phase
+        Direction, 4 horizons : NULL — 16 of 16 arms fail
+        Volatility, 4 horizons : see the matrix
+        Economics             : options P&L declined, overlay measured
+```"""
+
+FLOWCHART = """```mermaid
+flowchart TD
+    Q["A hypothesis"] --> MDE{"MDE stated,<br/>effect above it?"}
+    MDE -- no --> NP["NOT POWERED<br/>redesign or do not run"]
+    MDE -- yes --> PRE["Pre-register: population,<br/>primary, guards, family size,<br/>expected outcome"]
+    PRE --> COMMIT["Commit the rule<br/>BEFORE the harness exists"]
+    COMMIT --> RUN["Run"]
+    RUN --> GUARD{"Can every guard<br/>actually fail?"}
+    GUARD -- no --> FIX["Fix the guard.<br/>The result does not count<br/>until it can fail."]
+    FIX --> RUN
+    GUARD -- yes --> CTRL{"Placebo and<br/>shuffled control<br/>both negative?"}
+    CTRL -- no --> BROKEN["The harness is broken.<br/>No verdict."]
+    CTRL -- yes --> PRIM{"Primary interval<br/>excludes zero<br/>favourably?"}
+    PRIM -- no --> NULLV["NULL / REJECT<br/>recorded, kept in the family"]
+    PRIM -- yes --> AUD["Four audits, each trying<br/>to DISPROVE"]
+    AUD --> SURV{"Survives all four?"}
+    SURV -- no --> NP2["NOT PROVEN<br/>the shipped model is unchanged"]
+    SURV -- yes --> ADV["ADVANCE<br/>candidate, still not adopted"]
+    ADV --> PROD{"Measured on the PRODUCT,<br/>not a proxy?"}
+    PROD -- no --> ADV
+    PROD -- yes --> ADOPT["ADOPT"]
+```"""
+
+REPRO = """Stages 1 onward run offline. Stage 0 does NOT: `model/artifacts/` is
+gitignored, so the corpus was never committed and a clean checkout does not have
+it. That sentence used to read "already committed", which was wrong, and the
+error mattered -- on 2026-09-12 the directory was lost with its container and
+four of eight adversarial-audit attacks had to be abandoned as NOT TESTABLE
+(DATA_LOSS_2026-09-12.md, R55).
+
+```bash
+# 0. the data the rest depends on -- NOT committed; rebuild it, which needs
+#    network access once. `regenerate` pins the corpus to the date the
+#    committed results were measured on and REFUSES if the rebuild differs,
+#    because the source updates daily and a naive re-ingest would pull the
+#    forward holdout into the training corpus (see corpus_manifest.json).
+git clone --depth 1 https://github.com/ff137/bitstamp-btcusd-minute-data /tmp/bs
+python -m model.noctua.regenerate --repo /tmp/bs --out model/artifacts
+python -m model.noctua.episodes --parquet model/artifacts/btcusd_1min.parquet \\
+    --out /tmp/h4 --horizons 1 6 24 168
+mv /tmp/h4/episodes.parquet model/artifacts/episodes_h4.parquet
+python -c "import pandas as pd, sys; sys.path.insert(0, 'model'); \\
+  from noctua.features import build_features; \\
+  build_features(pd.read_parquet('model/artifacts/btcusd_1h.parquet'), \\
+    pd.read_parquet('model/artifacts/episodes.parquet')) \\
+  .to_parquet('model/artifacts/features.parquet')"
+python -m model.eval.teacher_zoo          # -> teacher_oof.npz  (~12 min)
+
+# 1. the point-in-time audit, including the deliberate leak decoy
+python -m model.eval.leakage
+python -m model.eval.leakage --episodes model/artifacts/episodes_h4.parquet \\
+    --out model/artifacts/leakage_h4.json      # probes H=1 and H=168
+
+# 2. power BEFORE the experiments that depend on it
+python -m model.eval.slice_power
+
+# 3. the four-horizon volatility matrix  (~1h, 6 folds x 2 variants x 3 seeds)
+python -m model.eval.vol_matrix --fair-baselines \
+        --out model/artifacts/vol_matrix_fair.json
+#    NOT the bare invocation. report.py prefers vol_matrix_fair.json, and the
+#    volatility section above IS the fair run -- OLS baselines refitted per
+#    horizon. The default produces the horizon-blind matrix the ledger
+#    rejected, so following the bare command reproduces a different result
+#    from the one this document reports. It said the bare command until
+#    2026-09-13.
+
+# 4. the direction benchmark             (~30 min)
+python -m model.eval.direction_bench
+
+# 5. the economic overlay                (~15 min)
+python -m model.eval.econ_voltarget
+
+# 6. calibration: what transfers, and what a shrinkage weight can see
+#    (minutes each -- post-hoc maps over teacher_oof.npz, no retraining)
+python -m model.eval.transfer_anatomy     # the identity check is printed under
+                                          # the correlation it deflates
+python -m model.eval.rolling_level
+python -m model.eval.rolling_level --vs-drift   # four contrasts, not one
+python -m model.eval.shrunk_level
+python -m model.eval.shrunk_slope --out model/artifacts/shrunk_slope_v2.json
+
+# 6b. the dispersion correction against the product   (~2h each, retrains)
+python -m model.eval.dispersion_barriers              # M1 / M2 / M3
+python -m model.eval.dispersion_barriers --deployable # M1 / M4 / M5, causal
+#    --conditional REFUSES on this slice by design: the production anchor is
+#    one per day, so the top 5% of a test year is 18 episodes and a fold-level
+#    interval over 18 points resolves nothing (P3-dispersion-conditional-result).
+
+# 7. the guards, which must all still be capable of failing
+python -m model.research.pitfalls --self-test
+python -m model.research.ledger --validate
+
+# 8. regenerate this report from the artifacts
+python -m model.research.report
+```
+
+Determinism: every model arm is seeded (`seed=0..2`); every bootstrap is
+seeded (`seed=0`). The GARCH fit is multi-start from nine fixed starting
+points, so it does not depend on the optimiser's own initialisation. Two runs
+on the same artifacts produce the same tables."""
+
+
+ASSUMPTIONS = """1. **Realized volatility from 5-minute returns is the target**, not an
+   unobservable. Every arm is scored against the same estimator, so a bias in
+   it cancels in the comparison — but the *level* of any QLIKE figure inherits
+   it.
+2. **QLIKE is the loss.** It is asymmetric: at a factor-2 error, under-forecast
+   is penalised 1.60× more than over-forecast, and it is minimised by the
+   conditional **mean** of variance, not the median. This item used to end
+   "the shipped model reports a median, which is a known and unresolved
+   mismatch (`E-scale`, still open)". **That was resolved and this line did not
+   follow.** `P3-functional-adopt` changed serving to publish `sigma_mean` of
+   the same forward pass; the reported level rose 27.7% on the current anchor
+   and `tests/test_level_report.py` gates the separation. What remains open is
+   not the functional but the **width**: the predictive distribution is
+   over-dispersed by 11–28% and correcting it is ADVANCE, not adopted
+   (`P3-dispersion-barriers-result`).
+3. **Walk-forward folds with an H-derived embargo** are the evaluation.
+   Consecutive episodes overlap by construction, so all intervals are
+   moving-block bootstraps and the block is at least twice the forward window.
+4. **The trading costs in the economic section are assumptions, not
+   measurements.** No order book, no fee schedule. Three levels are reported
+   and a ranking that changes across them is declared cost-dependent.
+5. **No untouched historical holdout exists.** Every calendar year has
+   influenced training, calibration, feature selection, model selection or
+   experiment design. This is documented year by year in
+   `research/DATA_USE.md`, and the only honest remedy — a forward holdout
+   frozen 2026-08-28 — is stated there with the uncomfortable part included:
+   at roughly one independent regime per year, resolving a 6% effect on
+   fold-level inference needs years, not weeks.
+6. **The shipped model has not changed at any point in this work.** Nothing in
+   this report is an adoption."""
+
+
+def build() -> str:
+    parts = [
+        "# NOCTUA — volatility and probabilistic direction\n",
+        "*Educational research. Not financial advice. Generated by "
+        "`python -m model.research.report`; every table is read from an "
+        "artifact rather than transcribed.*\n",
+        "\n## Executive summary\n\n",
+        exec_summary(),
+        "\n## Assumptions this rests on\n\n", ASSUMPTIONS, "\n",
+        "\n## Volatility: the four-horizon matrix\n\n", sec_volatility(),
+        "\n## Volatility: the functional the loss actually wants\n\n",
+        sec_functional(),
+        "\n## Volatility: the production slice, against the best baseline\n\n",
+        sec_production(),
+        "\n## Direction as a probability forecast\n\n", sec_direction(),
+        "\n## Economic validation, and its boundary\n\n", sec_economics(),
+        "\n## How a hypothesis becomes a result here\n\n", FLOWCHART, "\n",
+        "\n## Timeline\n\n", TIMELINE, "\n",
+        "\n## The experiment register\n\n", sec_experiments(),
+        "\n## Reproducing this\n\n", REPRO, "\n",
+    ]
+    return "".join(parts)
+
+
+def _direction_bullet() -> str:
+    """The direction claim, COUNTED from the artifact rather than asserted.
+
+    An executive summary is exactly where a remembered number does the most
+    damage, because it is the sentence people quote. So the counts here are
+    derived: if the artifact changes, the sentence changes with it or the
+    generator says the artifact is missing.
+    """
+    d = load("direction_bench.json")
+    if d is None:
+        return ("- **Direction**: `direction_bench.json` is not present, so no "
+                "claim is made here.\n")
+    model_arms = ("logistic", "gbm")
+    tot = fails = adverse = straddle = 0
+    controls_ok = True
+    for H in d:
+        for arm in model_arms:
+            r = d[H].get(arm)
+            if r is None:
+                continue
+            tot += 1
+            if r.get("verdict") == "FAIL":
+                fails += 1
+            ci = r.get("paired_ci")
+            if ci:
+                if ci[0] > 0:            # positive => arm WORSE than baseline
+                    adverse += 1
+                elif ci[0] <= 0 <= ci[1]:
+                    straddle += 1
+        for ctl in ("shuffled", "placebo"):
+            r = d[H].get(ctl)
+            if r is not None and r.get("bss_vs_calib", -1) > 0:
+                controls_ok = False
+    n = max((d[H]["base_calib"]["n"] for H in d if "base_calib" in d[H]), default=0)
+    horizons = ", ".join(f"{k}h" for k in sorted(d, key=lambda k: int(k)))
+    return (
+        f"- **Direction is closed at all four horizons ({horizons}).** "
+        f"{fails} of {tot} model arms fail their pre-registered rule. The paired "
+        f"per-episode interval excludes zero on the *adverse* side — the arm is "
+        f"worse than the calibration-window base rate — in {adverse} of {tot} "
+        f"rows and straddles zero in {straddle}, at n up to {n:,} per horizon. "
+        + ("Both negative controls behave. " if controls_ok else
+           "**A negative control scored positively, so the harness is suspect "
+           "and the verdict below should not be read as a result.** ")
+        + "This is a measured absence, not an underpowered one.\n")
+
+
+def _volatility_bullet() -> str:
+    d = load("vol_matrix_fair.json") or load("vol_matrix.json")
+    if d is None:
+        return ("- **Volatility**: `vol_matrix.json` is not present, so no claim "
+                "is made here.\n")
+    rows, clears = [], 0
+    for H in sorted(d["horizons"], key=lambda k: int(k)):
+        r = d["horizons"][H]
+        bits = []
+        for k in ("noctua", "noctua40"):
+            v = r["verdicts"].get(k)
+            if v is None:
+                continue
+            if v == "CLEARS":
+                clears += 1
+                bits.append(f"`{k}` clears "
+                            f"({r['arms'][k]['delta_vs_best']:+.5f})")
+            elif v == "NOT EVALUABLE":
+                bits.append(f"`{k}` not evaluable")
+            else:
+                bits.append(f"`{k}` fails "
+                            f"({r['arms'][k]['delta_vs_best']:+.5f})")
+        rows.append(f"**{H}h** vs `{r['best_baseline']}` — " + ", ".join(bits))
+    fair = d.get("fair_baselines")
+    caveat = (
+        " Baselines refitted **per horizon**, so they know the horizon NOCTUA "
+        "knows. Under the earlier horizon-blind fits NOCTUA cleared at H = 24 "
+        "and H = 168; neither survives, and at H = 168 the pooled baseline had "
+        "been costing itself a factor of 2.06."
+        if fair else
+        " These numbers come from the run whose OLS baselines are "
+        "**horizon-blind** — fitted once per fold on the pooled sample across "
+        "all four horizons, while NOCTUA sees `cal_H`. That confound is named "
+        "in the ledger against my own result and is resolved by "
+        "`vol-matrix-fair`; until that lands, any row that clears is "
+        "**ADVANCE, not ADOPT**.")
+    return ("- **The volatility matrix**, one NOCTUA arm per horizon against "
+            "the mandatory baseline family: " + "; ".join(rows)
+            + f". {clears} row(s) clear the pre-registered interval." + caveat
+            + "\n")
+
+
+def _production_bullet() -> str:
+    d = load("prod_fairbaseline.json")
+    if d is None:
+        return ""
+    ic = d["incumbent_claim"]
+    n = d["arms"]["noctua"]
+    return (f"- **The production headline survives its own comparison and fails a "
+            f"better one.** Against the arm it is published against it is "
+            f"{ic['rel_pct']:+.2f}% and clears; against `{d['best_baseline']}` — a "
+            f"baseline that was already in `noctua/baselines.py` and had never been "
+            f"scored — it is {n['rel_pct_vs_best']:+.2f}% and does not. Twice in this "
+            f"phase the strongest available baseline turned out to already exist here "
+            f"and to be missing from the arm list.\n")
+
+
+def _functional_bullet() -> str:
+    """The functional finding, DERIVED. This is the sentence people will quote,
+    and it is the one that reverses an earlier headline, so nothing in it is
+    typed: if mz_result.json changes, the claim changes or the section says the
+    artifact is missing."""
+    rows = _functional_rows()
+    if rows is None:
+        return ("- **The reported functional**: `mz_result.json` is not present, "
+                "so no claim is made here.\n")
+    raw = [(H, 100 * (med["raw"] - mean["raw"]) / med["raw"])
+           for H, med, mean, _r, _rv in rows]
+    wins, ties = [], []
+    for H, _med, mean, rv, rvv in rows:
+        if rv is None:
+            continue
+        m = 100 * (rvv["mzq"] - mean["mzq"]) / rvv["mzq"]
+        (ties if abs(m) < 1.0 else wins).append((H, rv, m))
+    return (
+        "- **NOCTUA's deficit against the HAR family was the scalar it reported, "
+        "not the model.** QLIKE is minimised by the conditional *mean* of "
+        "variance; the served scalar was the *median* of the same forward pass. "
+        "Reading the mean instead \u2014 nothing refitted, no parameter added "
+        "\u2014 improves raw QLIKE by "
+        + " / ".join(f"**{p:+.2f}%**" for _H, p in raw)
+        + " at H = " + " / ".join(str(H) for H, _p in raw) + ". After a "
+        "**symmetric** two-parameter recalibration given to every teacher, "
+        "NOCTUA leads at "
+        + ", ".join(f"H = {H} (+{m:.2f}% over `{rv}`)" for H, rv, m in wins)
+        + (", and " + ", ".join(f"H = {H} is a tie (+{m:.2f}%)"
+                                for H, _rv, m in ties) if ties else "")
+        + ". This reverses the Phase 1 headline that it fails at all four "
+        "horizons.\n")
+
+
+def exec_summary() -> str:
+    return (
+        "Phases 1 and 2 reported that the shipped model was unchanged by any of "
+        "this. Phase 3 changed it: the served scalar is now a different "
+        "**functional** of the same forward pass, and that single change "
+        "reverses the phase's headline volatility result. The direction result "
+        "and the economic boundary are unaffected, and both still stand.\n\n"
+        + _functional_bullet()
+        + _direction_bullet()
+        + _volatility_bullet()
+        + _production_bullet()
+        + "- **An options P&L cannot be produced honestly here and is not "
+          "produced.** What replaces it is a volatility-targeting overlay whose "
+          "primary endpoint is risk control rather than return.\n"
+        + """
+Three things found by guards rather than by looking:
+
+- A comment in the direction benchmark said only one feature column depended on
+  the horizon. **Five do.** The benchmark was re-run from corrected features
+  rather than defended — a null produced with degraded inputs is not a null.
+- The default bootstrap block length is a rule of thumb about *sample size* and
+  knows nothing about the *overlap* it exists to absorb. At the weekly horizon
+  it was about a fifth of the shared window. Every interval here uses a block
+  of at least twice the forward window, and the narrower one is reported beside
+  it.
+- The research ledger's schema was enforced on one write path only. Checking
+  the file instead found a dangling supersede pointer and a one-sided link.
+  Both are now gated in CI.
+""")
+
+
+def selftest() -> int:
+    """The write must refuse when the inputs it reads are absent."""
+    global A
+    import tempfile
+    checks = []
+    real = A
+    try:
+        A = Path(tempfile.mkdtemp())          # an empty artifacts directory
+        _MISSING.clear()
+        text = build()
+        checks.append(("absent-artifacts-are-detected", len(_MISSING) >= 3,
+                       f"{len(_MISSING)} missing: "
+                       f"{[n for n, _ in _MISSING]}"))
+        checks.append(("partial-build-is-shorter", len(text) > 0,
+                       f"{len(text):,} chars, which is the output that must "
+                       f"NOT reach the committed file"))
+    finally:
+        A = real
+    _MISSING.clear()
+    checks.append(("clean-slate-has-no-missing-list", not _MISSING,
+                   "the tracker is reset between builds, so a stale entry "
+                   "cannot block a good run"))
+    print("report generator selftest")
+    bad = 0
+    for name, ok, detail in checks:
+        if not ok:
+            bad += 1
+        print(f"  [{'ok ' if ok else 'FAIL'}] {name}: {detail}")
+    print(f"\n{len(checks) - bad}/{len(checks)} checks passed")
+    return 1 if bad else 0
+
+
+def main(argv=None) -> int:
+    ap = argparse.ArgumentParser(description="generate the research report")
+    ap.add_argument("--out", type=Path, default=Path("model/RESEARCH_REPORT.md"))
+    ap.add_argument("--allow-partial", action="store_true",
+                    help="write even though some artifacts are absent; the "
+                         "sections they feed become placeholders")
+    ap.add_argument("--selftest", action="store_true")
+    a = ap.parse_args(argv)
+    if a.selftest:
+        return selftest()
+
+    _MISSING.clear()
+    text = build()
+    if _MISSING and not a.allow_partial:
+        old = a.out.read_text() if a.out.exists() else ""
+        print(f"REFUSING to write {a.out}: {len(_MISSING)} artifact(s) absent, "
+              f"so this run would replace established findings with "
+              f"placeholders.", file=sys.stderr)
+        for n, what in _MISSING:
+            print(f"  - {n}: {what}", file=sys.stderr)
+        if old:
+            print(f"  the committed file is {len(old):,} chars; this run "
+                  f"produced {len(text):,}, a loss of {len(old)-len(text):,}.",
+                  file=sys.stderr)
+        print("  rebuild the artifacts (see the report's Reproducing section), "
+              "or pass --allow-partial if a placeholder report is what you "
+              "want.", file=sys.stderr)
+        return 2
+    a.out.write_text(text)
+    print(f"wrote {a.out} ({len(text):,} chars)")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

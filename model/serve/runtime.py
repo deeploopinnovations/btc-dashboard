@@ -71,11 +71,35 @@ class NumpyNoctua:
     def stage_a(self, Xa: np.ndarray, Xb: np.ndarray) -> np.ndarray:
         return self._lin("a.base", Xb) + self._qhead("a.head", self._body("a.body", Xa), False)
 
+    def has_mx(self) -> bool:
+        """Whether this artifact carries the max-excursion head.
+
+        Artifacts exported before `q_mx` existed do not, and serving must keep
+        working against them rather than dying on a missing key -- the whole
+        point of versioned metadata is that an old artifact stays loadable.
+
+        The first version of this checked `b.q_mx.weight`, which **cannot exist
+        for any artifact**. `q_mx` is a `MonotoneQuantileHead`, so its
+        `state_dict` keys are `b.q_mx.median.weight`, `b.q_mx.up.weight` and
+        `b.q_mx.dn.weight` -- there is no bare `.weight` on the head itself.
+        The guard therefore returned False unconditionally, which made it not a
+        guard but a constant, and silently dropped the head from serving on any
+        artifact that actually carried it. Caught by exporting a refreshed
+        artifact with 6,939 params/seed and watching `has_mx()` still say False.
+
+        Harmless so far only by luck: the deployed artifact genuinely lacks the
+        head, and nothing in `serve/predict.py` consumes `q_mx`. It would have
+        stopped being harmless the moment a re-export shipped the head.
+        """
+        return any(f"{p}b.q_mx.median.weight" in self.w for p in ("", "m0."))
+
     def stage_b(self, Xs: np.ndarray, log_sigma: np.ndarray):
         h = self._body("b.body", np.concatenate([Xs, log_sigma], axis=1))
-        return (self._qhead("b.q_r", h, False),
-                self._qhead("b.q_up", h, True),
-                self._qhead("b.q_dn", h, True))
+        out = [self._qhead("b.q_r", h, False),
+               self._qhead("b.q_up", h, True),
+               self._qhead("b.q_dn", h, True)]
+        out.append(self._qhead("b.q_mx", h, True) if self.has_mx() else None)
+        return tuple(out)
 
     # ---- standardization / feature assembly -------------------------------
     def _std(self, name: str, A: np.ndarray) -> np.ndarray:
@@ -100,7 +124,8 @@ class NumpyNoctua:
         return beta[0] + d["Xb"] @ beta[1:]
 
     # ---- full predictive object -------------------------------------------
-    def predict(self, d: dict, n_atoms: int = 32) -> dict:
+    def predict(self, d: dict, n_atoms: int = 32,
+                disp_lambda: float = 1.0) -> dict:
         from noctua import infer as I  # pure NumPy; same code the eval used
 
         qa = self.stage_a(d["Xa"], d["Xb"])
@@ -110,16 +135,33 @@ class NumpyNoctua:
 
         atom_levels = (np.arange(n_atoms) + 0.5) / n_atoms
         atoms_y = np.stack([np.interp(atom_levels, self.levels, row) for row in qa])
+        # DISPERSION HOOK, mirroring `infer.predict`. The research path grew
+        # this first and serving did not have it, which meant a lambda could
+        # clear the barrier battery and still have nowhere to go -- the reason
+        # P3-dispersion-barriers-result is ADVANCE rather than ADOPT.
+        #
+        # `disp_lambda == 1.0` takes `scale_atoms`'s identity branch and
+        # returns the SAME ARRAY, so the shipped path is bit-identical by
+        # construction. The centre is the median of the ALREADY-BLENDED `qa`,
+        # which is the median this object serves, so `sigma_med` below cannot
+        # move whatever lambda is; `sigma_mean` and every barrier curve are
+        # built from the atoms and therefore can. That asymmetry is the
+        # intended one: this scales WIDTH, and a hook that moved the level
+        # would be the intervention class P2-mean-level already rejected.
+        atoms_y = I.scale_atoms(atoms_y, qa[:, self.median_idx][:, None],
+                                disp_lambda)
         H = d["H"]
         sigma_atoms = np.exp(atoms_y) * np.sqrt(H)[:, None]
 
-        qr, qu, qd = [], [], []
+        qr, qu, qd, qm = [], [], [], []
         for i in range(n_atoms):
             ls = np.log(np.maximum(sigma_atoms[:, i], 1e-12))[:, None]
-            r_, u_, d_ = self.stage_b(d["Xs"], ls)
+            r_, u_, d_, m_ = self.stage_b(d["Xs"], ls)
             qr.append(r_); qu.append(u_); qd.append(d_)
+            if m_ is not None:
+                qm.append(m_)
 
-        return {
+        out = {
             "qa": qa,
             "sigma_atoms": sigma_atoms,
             "sigma_med": np.exp(qa[:, self.median_idx]) * np.sqrt(H),
@@ -129,6 +171,9 @@ class NumpyNoctua:
             "q_dn": np.stack(qd, 1),
             "H": H,
         }
+        if qm:
+            out["q_mx"] = np.stack(qm, 1)
+        return out
 
     # ---- calibrated served quantities -------------------------------------
     def _cal_map(self, side: str) -> tuple[np.ndarray, np.ndarray] | None:
@@ -207,19 +252,32 @@ class NoctuaV2(NumpyNoctua):
         pre = f"m{s}."
         return {k[len(pre):]: v for k, v in src.items() if k.startswith(pre)}
 
-    def predict(self, d: dict, n_atoms: int = 32) -> dict:
-        """Average the seed ensemble's predictive objects."""
+    def predict(self, d: dict, n_atoms: int = 32,
+                disp_lambda: float = 1.0) -> dict:
+        """Average the seed ensemble's predictive objects.
+
+        `disp_lambda` is threaded rather than defaulted here. An ensemble that
+        silently dropped it would make the knob a no-op on the only class
+        serving actually instantiates, while every unit test on the single-seed
+        class passed -- a guard that holds on a path nothing runs.
+        """
         outs = []
         full = self.w
         try:
             for s in range(self.n_seeds):
                 self.w = {**self._seed_scope(full, s), "har_beta": full["har_beta"]}
-                outs.append(NumpyNoctua.predict(self, d, n_atoms=n_atoms))
+                outs.append(NumpyNoctua.predict(self, d, n_atoms=n_atoms,
+                                                disp_lambda=disp_lambda))
         finally:
             self.w = full
         avg = dict(outs[0])
-        for k in ("qa", "sigma_atoms", "sigma_med", "sigma_mean", "q_r", "q_up", "q_dn"):
-            avg[k] = np.mean([o[k] for o in outs], axis=0)
+        # `q_mx` is absent from artifacts exported before that head existed,
+        # so average only the keys every seed actually produced. Assuming a
+        # key is present is how a backward-compatible loader stops being one.
+        for k in ("qa", "sigma_atoms", "sigma_med", "sigma_mean",
+                  "q_r", "q_up", "q_dn", "q_mx"):
+            if all(k in o for o in outs):
+                avg[k] = np.mean([o[k] for o in outs], axis=0)
         return avg
 
     # ---- specialists -------------------------------------------------------
