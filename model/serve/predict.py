@@ -93,8 +93,11 @@ DISP_LAMBDA = 1.0
 # anchor gains one term: the expected seasonal variance of the forecast
 # window's own clock hours (noctua/season.py), with its coefficient from the
 # artifact's training split (noctua/add_hour_anchor.py). Measured against a
-# baseline carrying this file's own trailing factor: DSC, brier, crps, logs
-# better in 6/6 folds, pinball 5/6, QLIKE +3.75%; its mirror worse on all six.
+# baseline carrying this file's own trailing factor: QLIKE +3.75% (per-episode
+# interval excludes zero); Brier and CRPS better with fold t-intervals
+# excluding zero; DSC and log score better in 6/6 folds but NOT significant on
+# an estimator that can fail (R88); its mirror significantly worse on DSC,
+# Brier and CRPS. P4-hour-anchor-audit-result.
 #
 # OFF BY DEFAULT, and not for a statistical reason: turning it on changes the
 # live product while the forward freeze in research/DATA_USE.md names another
