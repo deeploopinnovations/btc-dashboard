@@ -84,6 +84,14 @@ REPORT_FUNCTIONAL = "mean"
 # field by field what moves. Measured at lambda = 0.87 on the production slice
 # it improves four of six barrier metrics while its mirror degrades the same
 # four (P3-dispersion-barriers-result) -- ADVANCE, not ADOPT.
+#
+# DO NOT SHIP A LAMBDA ON THAT EVIDENCE. It was measured against a baseline
+# with neither this file's trailing factor nor the clock-aware anchor, and
+# that baseline over-forecasts at the 17:00 product anchor. On the served,
+# clock-aware base (P4-served-dispersion-result) the gain does not survive:
+# Brier alone clears an estimator that can fail, log score and pinball turn
+# worse, QLIKE is not separated. Most of the earlier win was a width change
+# compensating a level defect; HOUR_ANCHOR below is the fix for that defect.
 DISP_LAMBDA = 1.0
 
 # The CLOCK-AWARE ANCHOR (P4-hour-anchor-result, ADVANCE). The served anchor
