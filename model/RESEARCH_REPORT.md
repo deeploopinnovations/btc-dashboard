@@ -372,7 +372,7 @@ timeline
 
 ## The experiment register
 
-195 pre-registered experiments. **ADOPT** 22 · **ADVANCE** 40 · **DIAGNOSTIC** 3 · **NULL** 23 · **OPEN** 8 · **OPEN (answered by a later entry)** 52 · **REJECT** 45 · **WITHDRAWN** 2
+203 pre-registered experiments. **ADOPT** 22 · **ADVANCE** 41 · **DIAGNOSTIC** 3 · **NULL** 23 · **OPEN** 8 · **OPEN (answered by a later entry)** 57 · **REJECT** 47 · **WITHDRAWN** 2
 
 The register is append-only, so a pre-registration keeps its OPEN verdict and its result arrives as a separate entry that supersedes it. **8** questions are genuinely unresolved; the rest of the OPEN rows have been answered.
 
@@ -572,9 +572,17 @@ Every row was registered with its decision rule **before** it ran. Failures are 
 | `P4-zoo-stack-result` | phase4 | REJECT | Closing P4-zoo-stack: does a QLIKE-optimal convex ensemble over the zoo beat NOCTUA as served? |
 | `P4-zoo-stack-v2` ⤳ | phase4 | OPEN | P4-zoo-stack failed because calib-fitted weights do not transfer from a thin or regime-shifted calibration sli |
 | `P4-zoo-stack-v2-result` | phase4 | ADVANCE | Closing P4-zoo-stack-v2: do expanding-window fitting and half-shrinkage toward NOCTUA make the zoo ensemble re |
-| `P4-stack-anchor` | phase4 | OPEN | P4-zoo-stack-v2-result is a QLIKE gain on sigma at the zoo's horizons. Does it survive into the PRODUCT -- the |
-| `P4-shock-dispersion` | phase4 | OPEN | The uniform dispersion correction narrows every night by the same lambda, including nights about to spike (7.7 |
+| `P4-stack-anchor` ⤳ | phase4 | OPEN | P4-zoo-stack-v2-result is a QLIKE gain on sigma at the zoo's horizons. Does it survive into the PRODUCT -- the |
+| `P4-shock-dispersion` ⤳ | phase4 | OPEN | The uniform dispersion correction narrows every night by the same lambda, including nights about to spike (7.7 |
 | `P3-zoo-is-blended` | phase3 | ADVANCE | Two entries rest on the premise that teacher_oof's noctua_v1 is the RAW network. Is it? |
+| `P4-online-stack` ⤳ | phase4 | OPEN | stack_half (P4-zoo-stack-v2-result) fits its weights once per year on the prior Jul-Dec and holds them for twe |
+| `P4-online-stack-result` | phase4 | REJECT | Closing P4-online-stack: does refreshing the stack weekly on a trailing 182-day window beat the once-a-year st |
+| `P4-trailing-dispersion` ⤳ | phase4 | OPEN | The per-fold dispersion lambda (M1) is the arm worth shipping -- it clears four barrier metrics and improves D |
+| `P4-stack-anchor-result` | phase4 | REJECT | Closing P4-stack-anchor: does replacing the served blend's Log-HAR anchor with a calib-fitted convex stack of  |
+| `P4-hour-anchor` ⤳ | phase4 | OPEN | The served anchor (log_har_cal, 75% of the blend) has no time-of-day input. On the fold calib slices its H=19  |
+| `P4-hour-anchor-result` | phase4 | ADVANCE | Closing P4-hour-anchor: does a clock-aware anchor improve the barrier product against a baseline that carries  |
+| `P4-hour-anchor-audit` | phase4 | OPEN | Can P4-hour-anchor-result be broken? An adversarial agent was given five attacks (leakage, served-factor fidel |
+| `P4-served-dispersion` | phase4 | OPEN | Does the dispersion correction still improve the product when scored on the object that would actually be serv |
 
 ⤳ = superseded by a later entry; the original is kept rather than edited.
 
