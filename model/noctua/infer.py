@@ -100,9 +100,20 @@ def scale_atoms(atoms_y, centre, lam: float = 1.0):
     so the shipped path is bit-identical by construction rather than by
     floating-point luck.
     """
-    if lam == 1.0:
-        return atoms_y
-    return centre + float(lam) * (atoms_y - centre)
+    # A SCALAR 1.0 is the shipped path and returns the input object itself.
+    # An ARRAY lam -- one value per episode -- is the conditional-dispersion
+    # form (P4-shock-dispersion): it cannot take the identity shortcut, since
+    # `lam == 1.0` on an array is ambiguous, so the scalar check is explicit
+    # and an all-ones array falls through to arithmetic that reproduces the
+    # input to within floating point rather than by identity.
+    if np.isscalar(lam):
+        if lam == 1.0:
+            return atoms_y
+        return centre + float(lam) * (atoms_y - centre)
+    lam = np.asarray(lam, dtype=np.float64)
+    if lam.ndim == 1:
+        lam = lam[:, None]
+    return centre + lam * (atoms_y - centre)
 
 
 def predict(model, d: dict, n_atoms: int = N_ATOMS,

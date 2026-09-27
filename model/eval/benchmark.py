@@ -461,7 +461,13 @@ def run_fold(ep, X, fold, hidden=32, seeds=3, verbose=False, shape_cols=None,
         # by tests/test_dispersion_hook.py, so this pass-through cannot move a
         # committed number. It scales the atom SPREAD about the median, which
         # is a different intervention class from post_shift_fn's level write.
-        preds = [I.predict(m, d, har_logvol=lp, disp_lambda=disp_lambda)
+        # disp_lambda may be a FULL-LENGTH array (one lambda per episode in
+        # the table), for the conditional-dispersion arm; it is sliced to this
+        # call's mask so calib, test and any other slice each get their own
+        # episodes' values. A scalar passes straight through unchanged.
+        lam = (disp_lambda if np.isscalar(disp_lambda)
+               else np.asarray(disp_lambda, np.float64)[mask])
+        preds = [I.predict(m, d, har_logvol=lp, disp_lambda=lam)
                  for m in models]
         out = dict(preds[0])
         # `sigma_mean` joins the seed-averaged keys because P2-mean-level needs

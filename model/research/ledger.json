@@ -2462,6 +2462,17 @@
       "verdict": "OPEN",
       "result": "pre-registered. FEASIBILITY SCREEN, labelled as such and not evidence: in the zoo data the same anchor swap improved H=1 +5.18% and H=6 +2.24% in 6 of 6 folds each, H=24 +0.23% (5/6), H=168 +0.40% (6/6). H=19 sits between H=6 and H=24, and the calib-fitted shifts are small (sd 1.3-3.0% in log sigma). PREDICTION: QLIKE improves by roughly 0.5-1.5% and may or may not clear; the barrier gain, if any, shows up in DSC, because the shift carries information about WHICH nights are riskier and DSC is the only metric that measures that; the mirror worsens DSC. I expect the 4-of-6 bar NOT to be met -- a shift this small moves calibration-side metrics little. Falsifier for the whole integration: A1 and MIRROR moving the battery the same way, which would put the effect on perturbation rather than information.",
       "notes": "GARCH is excluded because run_fold does not fit it; the screen found the no-GARCH pool better at H=24/168 anyway. If this clears, the serving change is small and contained: the anchor term in serve/runtime.NumpyNoctua.har_logvol becomes the stacked anchor, which needs har_short's coefficients exported alongside har_beta."
+    },
+    {
+      "id": "P4-shock-dispersion",
+      "topic": "phase4",
+      "mechanism": "dispersion",
+      "date": "2026-09-27",
+      "question": "The uniform dispersion correction narrows every night by the same lambda, including nights about to spike (7.7% of nights carry 25.8% of loss; a causal classifier reaches AUC 0.78). Does conditioning lambda on a causal shock score -- har_6h - har_22d, fitted per calib tercile -- improve the barrier product beyond the uniform correction?",
+      "rule": "PRE-REGISTERED BEFORE THE RUN. Per fold, on CALIB only: tercile cut points of the shock score and one fit_lambda per tercile (a tercile too thin to fit inherits the uniform lambda). Arms: M0 shipped, M1 uniform per-fold lambda, MS shock-conditioned lambda, MR REVERSAL control (the same three lambdas assigned to the opposite terciles). The width hook must leave sigma_med untouched (the script refuses otherwise). Production slice H=19 at 17:00, six-metric battery, paired fold-level intervals, contrasts MS-M0, M1-M0, MS-M1, MR-M1, family 24, Bonferroni 99.792%. ADOPTION CONDITION: MS beats M1 on >= 2 metrics, is significantly worse than M1 on none, AND MR beats M1 on none of the metrics MS wins (otherwise the gain is three knobs versus one, not information).",
+      "verdict": "OPEN",
+      "result": "pre-registered. PREDICTION: the fitted lambdas order calm < mid < shock (calm nights the most over-dispersed), with the shock tercile close to 1. The MS-vs-M1 gain is concentrated in MCB and logs (width-sensitive), and MR is worse than M1 on those. I expect the 2-metric bar at 99.8% on six folds to be HARD: most likely outcome is positive point estimates without clearance -> NULL. Falsifier: fitted lambdas not ordered, or MR moving the battery the same way as MS.",
+      "notes": "Built on the per-episode lambda support added to infer.scale_atoms and benchmark.run_fold (array lambdas sliced by the same mask as the episodes). Runs after P4-stack-anchor to avoid CPU contention; nothing in this design depends on that result."
     }
   ]
 }
