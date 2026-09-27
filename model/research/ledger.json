@@ -2467,7 +2467,10 @@
       "rule": "PRE-REGISTERED BEFORE THE RUN. Anchor_new = 0.5 * S + 0.5 * log_har_cal, S a convex combination of {log_har, log_har_cal, har_short, persistence} fitted by QLIKE on each fold's CALIB H=19 episodes; NOCTUA's own 0.25 unchanged. Applied through run_fold(post_shift_fn), so Stage B, the committee and every barrier curve inherit it. The shift is DEMEANED on calib -- level-neutral, the cross-sectional re-weighting only. Arms: M0 shipped, A1 the stacked anchor, MIRROR the same shift negated (the control). Production slice (H=19, 17:00), six-metric battery with paired fold-level intervals, family 12, Bonferroni 99.583%; per-episode QLIKE reported with its interval. ADOPTION CONDITION, the same shape the dispersion correction met: A1 clears >= 4 of 6 metrics, MIRROR clears < 4, A1's QLIKE interval excludes zero favourably, and A1 is significantly worse on no metric.",
       "verdict": "OPEN",
       "result": "pre-registered. FEASIBILITY SCREEN, labelled as such and not evidence: in the zoo data the same anchor swap improved H=1 +5.18% and H=6 +2.24% in 6 of 6 folds each, H=24 +0.23% (5/6), H=168 +0.40% (6/6). H=19 sits between H=6 and H=24, and the calib-fitted shifts are small (sd 1.3-3.0% in log sigma). PREDICTION: QLIKE improves by roughly 0.5-1.5% and may or may not clear; the barrier gain, if any, shows up in DSC, because the shift carries information about WHICH nights are riskier and DSC is the only metric that measures that; the mirror worsens DSC. I expect the 4-of-6 bar NOT to be met -- a shift this small moves calibration-side metrics little. Falsifier for the whole integration: A1 and MIRROR moving the battery the same way, which would put the effect on perturbation rather than information.",
-      "notes": "GARCH is excluded because run_fold does not fit it; the screen found the no-GARCH pool better at H=24/168 anyway. If this clears, the serving change is small and contained: the anchor term in serve/runtime.NumpyNoctua.har_logvol becomes the stacked anchor, which needs har_short's coefficients exported alongside har_beta."
+      "notes": "GARCH is excluded because run_fold does not fit it; the screen found the no-GARCH pool better at H=24/168 anyway. If this clears, the serving change is small and contained: the anchor term in serve/runtime.NumpyNoctua.har_logvol becomes the stacked anchor, which needs har_short's coefficients exported alongside har_beta.",
+      "superseded_by": [
+        "P4-stack-anchor-result"
+      ]
     },
     {
       "id": "P4-shock-dispersion",
@@ -2533,6 +2536,20 @@
       "verdict": "OPEN",
       "result": "pre-registered. Selftest 5/5 (tracks a planted regime switch, 182-row window, label used only after its window closes, fallback counted). PREDICTION: trailing lambda averages near the M1 values (0.66-0.87 by fold) and moves within each year by roughly +/-0.1; MT clears the same four calibration-side metrics M1 does; DSC point estimate positive, because a lambda that moves with the regime is more conditional than one that does not; MTm fails. Probability the rule is met: about 0.6. Falsifier: MT's DSC below M0's, which would say that per-night re-estimation from ~182 daily rows is too noisy to carry the discrimination M1 carries.",
       "notes": "Why this and not more M1 evidence: M1 cannot run in serving as fitted. If MT meets its rule it is the deployable dispersion correction and the serving change is a trailing fit_lambda beside serve/adaptive.py's trailing level. Adoption would still need the forward-freeze question settled (research/DATA_USE.md: the 2026-08-28 freeze names E2c) -- that is a governance decision for the owner, not something a rule here can clear."
+    },
+    {
+      "id": "P4-stack-anchor-result",
+      "topic": "phase4",
+      "mechanism": "architecture",
+      "date": "2026-09-27",
+      "supersedes": [
+        "P4-stack-anchor"
+      ],
+      "question": "Closing P4-stack-anchor: does replacing the served blend's Log-HAR anchor with a calib-fitted convex stack of {log_har, log_har_cal, har_short, persistence} improve the barrier product at H=19?",
+      "rule": "As registered: A1 clears >= 4 of 6 metrics, MIRROR < 4, A1's QLIKE interval excludes zero favourably, A1 significantly worse on none. Family 12, 99.583%.",
+      "verdict": "REJECT",
+      "result": "NOT MET, AND INVERTED. A1 clears 0 of 6 and is significantly WORSE on five -- MCB -0.000188 [-0.000365, -0.000092], brier -0.000353, crps -0.000018, logs -0.000859, pinball -0.000008, each 0/6 folds better; DSC -0.000165, not separated, 2/6. Per-episode QLIKE -1.26% CI [-0.00584, -0.00030]: WORSE. The MIRROR (the same shift negated) clears FOUR -- MCB +0.000244 [+0.000219, +0.000357], brier +0.000254, crps +0.000011, logs +0.000559, each 6/6 folds -- and is worse on nothing; its QLIKE +0.51% is not separated. The calib-fitted weights put 0.35-0.90 on har_short every fold, and the direction they point is consistently WRONG on the 17:00 production slice. PREDICTION SCORING: I said the 4-of-6 bar would not be met (correct) and that DSC would carry any gain with the mirror worsening DSC (wrong on both counts -- the effect is on the calibration side and has the opposite sign). My registered falsifier was 'A1 and MIRROR moving the battery the same way'; they move it in OPPOSITE directions, so the shift carries real information -- with the wrong sign for this slice.",
+      "notes": "THE MIRROR'S WIN IS NOT A CANDIDATE: a sign chosen after seeing the data is not evidence (R-rules on post-hoc selection), and it is recorded as a diagnostic signal only. LEADING HYPOTHESIS, STATED BEFORE TESTING IT: the stack is fitted on H=19 calib episodes at ALL 24 anchor hours; the product anchors at 17:00 UTC. har_short reads har_1h / har_6h, and at 17:00 the trailing six hours are the active US session while the next nineteen are mostly the Asian night. A short-window regressor with no hour-of-day term will over-forecast at exactly this anchor, and a weight fitted on the all-hours average will push the served anchor the wrong way there. This also explains why P4-zoo-stack-v2's gain lives at H=1 (the pooled all-hours slice it was fitted and scored on) and does not reach the product. Testable without training anything: refit the same convex weights on calib restricted to 17:00 anchors and see whether the har_short weight collapses."
     }
   ]
 }
