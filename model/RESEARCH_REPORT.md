@@ -372,7 +372,7 @@ timeline
 
 ## The experiment register
 
-206 pre-registered experiments. **ADOPT** 22 · **ADVANCE** 42 · **DIAGNOSTIC** 4 · **NULL** 23 · **OPEN** 6 · **OPEN (answered by a later entry)** 59 · **REJECT** 48 · **WITHDRAWN** 2
+208 pre-registered experiments. **ADOPT** 22 · **ADVANCE** 43 · **DIAGNOSTIC** 4 · **NULL** 23 · **OPEN** 6 · **OPEN (answered by a later entry)** 60 · **REJECT** 48 · **WITHDRAWN** 2
 
 The register is append-only, so a pre-registration keeps its OPEN verdict and its result arrives as a separate entry that supersedes it. **6** questions are genuinely unresolved; the rest of the OPEN rows have been answered.
 
@@ -586,6 +586,8 @@ Every row was registered with its decision rule **before** it ran. Failures are 
 | `P4-hour-anchor-audit-result` | phase4 | ADVANCE | Closing P4-hour-anchor-audit: does the result reproduce, and which of its barrier clearances survive estimator |
 | `P4-weekend-residual` | phase4 | DIAGNOSTIC | The clock-aware anchor removes about half of the 17:00 over-forecast. Where is the rest, and does a richer sea |
 | `P4-served-dispersion-result` | phase4 | REJECT | Closing P4-served-dispersion: does the dispersion correction improve the product on the object that would be s |
+| `P4-simple-vs-noctua` ⤳ | phase4 | OPEN | Does the neural network earn its place in the barrier PRODUCT once the no-network alternative is given the sam |
+| `P4-simple-vs-noctua-result` | phase4 | ADVANCE | Closing P4-simple-vs-noctua: does the network earn its place in the barrier product against a no-network model |
 
 ⤳ = superseded by a later entry; the original is kept rather than edited.
 
