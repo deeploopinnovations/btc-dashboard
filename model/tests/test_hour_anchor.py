@@ -178,10 +178,19 @@ def main() -> int:
     check("on-without-arrays-raises", raised, "no silent clock-blind fallback")
 
     # ---- one implementation, and the hour inversion ------------------------
-    from eval import hour_anchor as EH
+    # Checked on the SOURCE, not by importing eval/hour_anchor: that module
+    # pulls in the benchmark (sklearn), which the serving CI job does not
+    # install -- and a serving gate must run on serving's dependencies.
+    import ast
+    src = (Path(__file__).resolve().parents[1] / "eval" / "hour_anchor.py").read_text()
+    tree = ast.parse(src)
+    imported = {a.name for n in ast.walk(tree) if isinstance(n, ast.ImportFrom)
+                and n.module == "noctua.season" for a in n.names}
+    local = {n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)}
     check("eval-and-runtime-share-the-math",
-          EH.season_fwd is SE.season_fwd and EH.hour_profile is SE.hour_profile,
-          "eval/hour_anchor imports noctua/season")
+          {"season_fwd", "hour_profile"} <= imported
+          and not ({"season_fwd", "hour_profile"} & local),
+          "eval/hour_anchor imports both from noctua/season and defines neither")
     hh = np.arange(24)
     back = SE.anchor_hour_from_cal(np.sin(2 * np.pi * hh / 24),
                                    np.cos(2 * np.pi * hh / 24))
