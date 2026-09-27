@@ -150,4 +150,43 @@ contract in `tests/test_dispersion_report.py`, with that limitation stated
 rather than papered over — and ADVANCE remains the honest verdict until a
 forward window of its own exists and has been scored once.
 
+## Second candidate: the clock-aware anchor, frozen 2026-09-27
+
+Added 2026-09-27 under the three conditions above, on the day the candidate
+was fixed (`P4-hour-anchor-result`, ADVANCE).
+
+    FREEZE DATE: 2026-09-27 (UTC)
+    Holdout = production nights (17:00 UTC anchor, H = 19) with anchor
+    timestamp strictly after the freeze.
+
+**What is frozen** -- the two arrays in `model/serve/noctua_v2.npz`, written
+by `noctua/add_hour_anchor.py` and never refitted:
+
+    season_profile   sha256(bytes) 836813fb13ec4769...   (24 values)
+    har_beta_season  sha256(bytes) 27daa2be75a28cb6...   season coef +1.24151
+
+together with the arithmetic in `noctua/season.py` and the rest of the
+artifact unchanged. No refits, no profile updates, no coefficient changes.
+
+**The comparison is paired and needs no second deployment.** The clock-blind
+anchor is the same artifact with `HOUR_ANCHOR` off, which
+`tests/test_hour_anchor.py` asserts is bit-identical to the pre-candidate
+payload. So every forward night can be forecast both ways from one file,
+whichever setting is live, and the two are scored on the same realised
+outcome.
+
+**Primary, stated before any forward night exists:** the per-episode paired
+QLIKE difference (candidate minus clock-blind, both through serving's own
+trailing factor) over holdout nights, block bootstrap, one evaluation. It
+measures sampling error, not between-regime variation, and will be labelled
+so. **Secondary:** the sign of the median log(RV / sigma_med) at 17:00 under
+each, since the mechanism claim is that the candidate moves it toward zero.
+The barrier battery is reported and labelled underpowered at any horizon
+under a year.
+
+**What this freeze does NOT do:** it does not decide whether the flag is on.
+Adoption, if it happens before the holdout is scored, rests on the
+walk-forward evidence and the serving gate, with that limitation stated -- the
+same position the dispersion correction is in.
+
 *Educational research only. Not financial advice.*
