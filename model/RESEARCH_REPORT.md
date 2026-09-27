@@ -193,7 +193,7 @@ A Mincer–Zarnowitz slope β below 1 means the forecast over-reacts to its own 
 
 It is neither, uniformly. Fitting the correction on each fold's calibration slice, applying it to that fold's test slice, and **re-measuring** the slope on rows the correction never saw (re-fitting on test would report 1.000 by construction, and would confirm itself whatever the data said):
 
-**Every β in this section is measured on the RAW network, and the served product BLENDS it with Log-HAR at `blend_w = 0.25`.** The blend is affine in log space, so β as a function of the weight is computable without retraining, and it is monotone *decreasing* in the neural share: pooled, at H = 1 / 6 / 24 the raw network sits at 1.214 / 1.148 / 1.032 and the shipped weight at **1.077 / 1.058 / 1.010**; at H = 168 the raw network over-reacts at 0.835 and the blend raises it to 0.959. The blend moves β toward 1 at every horizon, so the served pipeline's slope is better than every number in the table below. The defect is in the neural stage — which is what the table is about — and the blend is already treating roughly a third of it (`P3-blend-beta-result`).
+**Every β in this section is the SERVED blend's.** The teacher zoo emits NOCTUA through `infer.predict` with the default `blend_w = 0.25` against its own `log_har_cal`, so `noctua_v1` is the shipped pipeline, not the raw network (`P3-zoo-is-blended`, which corrects an earlier version of this note that said the opposite and concluded the served slope was better than the table — it is the table). Blending further toward Log-HAR does flatten β — pooled 1.214 / 1.148 / 1.032 at H = 1 / 6 / 24 fall to 1.077 / 1.058 / 1.010 at a further w = 0.25 (`P3-blend-beta-result`) — but that is a dilution nothing serves.
 
 | H | independent calibration windows per fold | β raw | β after MZq | reading |
 |---:|---:|---:|---:|---|
@@ -214,7 +214,7 @@ One caution about every pooled β above: it is a mixture across six folds carryi
 
 `REPORT_FUNCTIONAL = "mean"`: the served scalar is now the mean of the same forward pass. This is safe by construction rather than by measurement — the reported scalar moves the barrier curves by 0.000e+00, because the committee specialists build their curves from `sigma_atoms` and never read it, while `sigma_atoms` moves them by 8.864e−03. The live anchor moves from 2.067% to 2.640%.
 
-**Scope correction.** Everything above this subsection is the RAW network; the serving path BLENDS with Log-HAR at `blend_w = 0.25`. A uniform log-shift cannot change the mean/median ratio, but it changes the level that ratio multiplies — so the raw network's 1.43 becomes ~1.0 under the mean, while the blended path's 1.12 overshoots to 0.82. On the production slice the median's calibration ratio is **1.1231** and the mean's is **0.8181**, so the median is the closer of the two to 1 there and the “calibrated to within 1–4% with nothing fitted” claim does **not** hold on the pipeline that is served.
+**Scope correction.** The numbers above come from the teacher zoo (every anchor hour, horizons 1/6/24/168); the served product is scored on 17:00 anchors at H = 19. Both are the blended pipeline (`P3-zoo-is-blended` withdrew an earlier reading that called the zoo raw), so the gap between the zoo's 1.43 and the production slice's 1.12 is a SLICE difference, not a blend effect. On the production slice the median's calibration ratio is **1.1231** and the mean's is **0.8181**, so the median is the closer of the two to 1 there and the “calibrated to within 1–4% with nothing fitted” claim does **not** hold on the pipeline that is served.
 
 The mean is nevertheless still reported, because the paired contrast on that slice is **not separated**: median 0.25619 against mean 0.26039, −1.64% favouring the median, CI [−0.03105, +0.01798], 2 of 6 folds favouring the mean. The production configuration is one episode per day, so n is 2,046 there against 49,000 in the zoo and a 1.6% difference cannot resolve. Flipping a level decision on a point estimate is how `phase2/level-scale` oscillated three times, so it stays put until a properly powered contrast on that slice says otherwise (`P3-functional-adopt-scope`).
 
@@ -372,9 +372,9 @@ timeline
 
 ## The experiment register
 
-188 pre-registered experiments. **ADOPT** 22 · **ADVANCE** 38 · **DIAGNOSTIC** 3 · **NULL** 23 · **OPEN** 6 · **OPEN (answered by a later entry)** 50 · **REJECT** 44 · **WITHDRAWN** 2
+195 pre-registered experiments. **ADOPT** 22 · **ADVANCE** 40 · **DIAGNOSTIC** 3 · **NULL** 23 · **OPEN** 8 · **OPEN (answered by a later entry)** 52 · **REJECT** 45 · **WITHDRAWN** 2
 
-The register is append-only, so a pre-registration keeps its OPEN verdict and its result arrives as a separate entry that supersedes it. **6** questions are genuinely unresolved; the rest of the OPEN rows have been answered.
+The register is append-only, so a pre-registration keeps its OPEN verdict and its result arrives as a separate entry that supersedes it. **8** questions are genuinely unresolved; the rest of the OPEN rows have been answered.
 
 Every row was registered with its decision rule **before** it ran. Failures are not deleted; they stay in the family and count against the multiple-testing correction.
 
@@ -534,7 +534,7 @@ Every row was registered with its decision rule **before** it ran. Failures are 
 | `P3-seed-dispersion-result` | phase3 | REJECT | Closing P3-seed-dispersion. Is NOCTUA's under-reaction (MZ slope beta > 1) caused by AVERAGING THREE SEEDS, or |
 | `P3-beta-regime-correction` | phase3 | REJECT | P3-beta-sample-size claimed the H=168 cross-fold scatter in the MZ slope is 'noise, not a regime'. Does a movi |
 | `P3-regularisation-long` | phase3 | REJECT | P3-regularisation-result left H=24 and H=168 unconcluded because the same-sample col-shuf bar had never been m |
-| `P3-functional-adopt-scope` | phase3 | ADVANCE | P3-functional-adopt switched the served scalar to sigma_mean on teacher-zoo evidence, where noctua_v1 is the R |
+| `P3-functional-adopt-scope` ⤳ | phase3 | ADVANCE | P3-functional-adopt switched the served scalar to sigma_mean on teacher-zoo evidence, where noctua_v1 is the R |
 | `P3-spike-ratio-result` | phase3 | NULL | Closing P3-spike-ratio-refresh. What are MODEL_CARD 5.3's spike and calm RV/sigma ratios under the adopted fun |
 | `P3-shrunk-slope` ⤳ | phase3 | OPEN | The MZ slope is worth +2.77% / +2.38% / -1.35% / -19.55% against a level-only rescale at H = 1 / 6 / 24 / 168, |
 | `P3-shrunk-slope-result` | phase3 | ADVANCE | Closing P3-shrunk-slope. Can one rule, with no horizon-specific tuning, match the better of {level-only, full- |
@@ -566,8 +566,15 @@ Every row was registered with its decision rule **before** it ran. Failures are 
 | `P3-oi-max-strike` ⤳ | phase3 | OPEN | A practitioner thesis, given to this project directly: aggregate option open interest concentrates at strikes  |
 | `P3-oi-max-strike-v2` | phase3 | OPEN | Unchanged: does price touch the max-OI strike LESS often than the model's own barrier curve says it should? AM |
 | `P3-blend-beta` ⤳ | phase3 | OPEN | Pull request #13 calls beta > 1 'the principal open defect' and locates it 'in training rather than in data or |
-| `P3-blend-beta-result` | phase3 | DIAGNOSTIC | Closing P3-blend-beta. Does the Log-HAR blend CAUSE the under-reaction that pull request #13 calls the princip |
+| `P3-blend-beta-result` ⤳ | phase3 | DIAGNOSTIC | Closing P3-blend-beta. Does the Log-HAR blend CAUSE the under-reaction that pull request #13 calls the princip |
 | `P3-beta-is-not-noctuas` | phase3 | DIAGNOSTIC | P3-blend-beta-result found that pure Log-HAR -- the ANCHOR -- has an MZ slope of 1.026 and 1.019 at H = 1 and  |
+| `P4-zoo-stack` ⤳ | phase4 | OPEN | The eight-model teacher zoo has only ever been a SCOREBOARD. Its members make opposite errors -- persistence o |
+| `P4-zoo-stack-result` | phase4 | REJECT | Closing P4-zoo-stack: does a QLIKE-optimal convex ensemble over the zoo beat NOCTUA as served? |
+| `P4-zoo-stack-v2` ⤳ | phase4 | OPEN | P4-zoo-stack failed because calib-fitted weights do not transfer from a thin or regime-shifted calibration sli |
+| `P4-zoo-stack-v2-result` | phase4 | ADVANCE | Closing P4-zoo-stack-v2: do expanding-window fitting and half-shrinkage toward NOCTUA make the zoo ensemble re |
+| `P4-stack-anchor` | phase4 | OPEN | P4-zoo-stack-v2-result is a QLIKE gain on sigma at the zoo's horizons. Does it survive into the PRODUCT -- the |
+| `P4-shock-dispersion` | phase4 | OPEN | The uniform dispersion correction narrows every night by the same lambda, including nights about to spike (7.7 |
+| `P3-zoo-is-blended` | phase3 | ADVANCE | Two entries rest on the premise that teacher_oof's noctua_v1 is the RAW network. Is it? |
 
 ⤳ = superseded by a later entry; the original is kept rather than edited.
 
