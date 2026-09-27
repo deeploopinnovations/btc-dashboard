@@ -86,6 +86,24 @@ REPORT_FUNCTIONAL = "mean"
 # four (P3-dispersion-barriers-result) -- ADVANCE, not ADOPT.
 DISP_LAMBDA = 1.0
 
+# The CLOCK-AWARE ANCHOR (P4-hour-anchor-result, ADVANCE). The served anchor
+# -- Log-HAR, 75% of the blend -- has no time-of-day input, and at the 17:00
+# UTC product anchor it over-forecasts; serving's trailing factor below is read
+# at 22/04/10/16 UTC and leaves most of that in place. With this on, the
+# anchor gains one term: the expected seasonal variance of the forecast
+# window's own clock hours (noctua/season.py), with its coefficient from the
+# artifact's training split (noctua/add_hour_anchor.py). Measured against a
+# baseline carrying this file's own trailing factor: DSC, brier, crps, logs
+# better in 6/6 folds, pinball 5/6, QLIKE +3.75%; its mirror worse on all six.
+#
+# OFF BY DEFAULT, and not for a statistical reason: turning it on changes the
+# live product while the forward freeze in research/DATA_USE.md names another
+# candidate, and that is the owner's call. Like DISP_LAMBDA it MOVES THE
+# PRODUCT -- the anchor sets the level every atom, barrier curve and safe
+# level is built from -- so tests/test_hour_anchor.py asserts both that off
+# is bit-identical and that on moves exactly what the algebra says.
+HOUR_ANCHOR = False
+
 
 def forecast(model, hours: pd.DataFrame, H: int = PROD_H,
              anchor_ts: int | None = None, source: str = "unknown") -> dict:
@@ -111,6 +129,10 @@ def forecast(model, hours: pd.DataFrame, H: int = PROD_H,
         "dt": [dt], "anchor_hour": [dt.hour], "dow": [dt.dayofweek],
     })
     X = build_features(hours, ep)
+    # set BEFORE the forecast and before volatility_correction, which calls
+    # model.prepare/predict on settled anchors: the trailing factor must be
+    # computed from the same anchor it corrects (P4-hour-anchor scored it so)
+    model.hour_anchor = bool(HOUR_ANCHOR)
     d = model.prepare(X, np.array([float(H)]))
     pred = model.predict(d, disp_lambda=DISP_LAMBDA)
 
@@ -269,6 +291,23 @@ def forecast(model, hours: pd.DataFrame, H: int = PROD_H,
                           "grid, and NOT p_vol_amplify, which reads pred['qa'] "
                           "rather than the atoms. Asserted field by field in "
                           "tests/test_dispersion_report.py.",
+        },
+        "hour_anchor": {
+            "enabled": bool(HOUR_ANCHOR),
+            "available": bool(getattr(model, "has_hour_anchor", False)),
+            "season_fwd": (round(float(d["season_fwd"][0]), 5)
+                           if "season_fwd" in d else None),
+            "season_coef": (round(float(model.w["har_beta_season"][-1]), 5)
+                            if getattr(model, "has_hour_anchor", False) else None),
+            "note": "adds the forecast window's expected intraday seasonal "
+                    "variance to the Log-HAR anchor. Off is bit-identical to "
+                    "the clock-blind anchor. See P4-hour-anchor-result "
+                    "(ADVANCE).",
+            "applies_to": "the anchor, hence sigma_med, sigma_mean, "
+                          "sigma_atoms, every barrier curve, safe level and "
+                          "p_up, and the trailing vol_calibration factor "
+                          "(computed from the same anchor). Asserted in "
+                          "tests/test_hour_anchor.py.",
         },
         "sigma_scale": {
             "scale": round(float(qs["scale"]), 4),

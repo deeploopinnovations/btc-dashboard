@@ -91,6 +91,13 @@ jobs:
       - name: Dispersion serving contract gate
         run: python model/tests/test_dispersion_report.py
 
+      # Gates the clock-aware anchor (P4-hour-anchor-result): off must publish
+      # the clock-blind payload bit for bit, on must move the served median by
+      # exactly the anchor algebra through the seed ensemble and never move
+      # the barrier grid, and on without the artifact arrays must raise.
+      - name: Hour-anchor serving gate
+        run: python model/tests/test_hour_anchor.py
+
       # Gates the online-adaptation guard: ACI's coverage guarantee, Ville's
       # bound on the e-processes, and the promotion/veto asymmetry. A
       # regression in any of these is SILENT -- the system keeps forecasting

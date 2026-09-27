@@ -57,6 +57,7 @@ run "test_level_report"      python model/tests/test_level_report.py
 # a written contract rather than an invariance claim: what may move, what may
 # not, and in which direction.
 run "test_dispersion_report" python model/tests/test_dispersion_report.py
+run "test_hour_anchor"       python model/tests/test_hour_anchor.py
 # The dispersion hook writes the object every barrier curve is built from, so
 # its no-op default is asserted on BYTES rather than on downstream behaviour.
 run "test_dispersion_hook"   python model/tests/test_dispersion_hook.py

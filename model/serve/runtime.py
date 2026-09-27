@@ -50,6 +50,7 @@ class NumpyNoctua:
         self.shape_cols = self.meta["shape_cols"]
         self.blend_w = self.meta["blend_w"]
         self.cal_shrink = self.meta["cal_shrink"]
+        self.hour_anchor = False         # serve/predict.HOUR_ANCHOR sets this
 
     # ---- primitives -------------------------------------------------------
     def _lin(self, prefix: str, x: np.ndarray) -> np.ndarray:
@@ -106,20 +107,48 @@ class NumpyNoctua:
         mu, sd = self.w[f"{name}_mu"], self.w[f"{name}_sd"]
         return np.nan_to_num((A - mu) / sd, nan=0.0, posinf=0.0, neginf=0.0)
 
+    @property
+    def has_hour_anchor(self) -> bool:
+        """Does the artifact carry the clock-aware anchor (add_hour_anchor)?"""
+        return "season_profile" in self.w and "har_beta_season" in self.w
+
     def prepare(self, features: "object", H: np.ndarray) -> dict:
         """`features` is a pandas DataFrame with at least `self.feat_cols`."""
         Xa = features[self.feat_cols].to_numpy(np.float64)
         Xb = features[self.base_cols].to_numpy(np.float64)
         Xs = features[self.shape_cols].to_numpy(np.float64)
-        return {
+        d = {
             "Xa": self._std("std_all", Xa),
             "Xb": self._std("std_base", Xb),
             "Xs": self._std("std_shape", Xs),
             "H": np.asarray(H, dtype=np.float64),
         }
+        # HOUR-AWARE ANCHOR (P4-hour-anchor-result), off unless switched on.
+        # Switched on against an artifact that lacks the arrays is an ERROR,
+        # not a fallback: silently serving the clock-blind anchor while the
+        # payload says the clock is in use is the metadata-disagrees-with-
+        # weights failure this runtime has already been taken down by once.
+        if self.hour_anchor:
+            if not self.has_hour_anchor:
+                raise RuntimeError(
+                    "hour_anchor is on but the artifact has no season_profile/"
+                    "har_beta_season; run `python -m model.noctua."
+                    "add_hour_anchor --write` or switch HOUR_ANCHOR off")
+            from noctua.season import anchor_hour_from_cal, season_fwd
+            hr = anchor_hour_from_cal(features["cal_hour_sin"].to_numpy(),
+                                      features["cal_hour_cos"].to_numpy())
+            d["season_fwd"] = season_fwd(self.w["season_profile"], hr, d["H"])
+        return d
 
     def har_logvol(self, d: dict) -> np.ndarray:
-        """The Log-HAR ensemble partner, from the stored OLS coefficients."""
+        """The Log-HAR ensemble partner, from the stored OLS coefficients.
+
+        With `season_fwd` in `d` (hour_anchor on), the clock-aware anchor:
+        har_beta_season = [intercept, BASE_COLS..., season coefficient].
+        """
+        if "season_fwd" in d:
+            b = self.w["har_beta_season"]
+            return b[0] + d["Xb"] @ b[1:-1] + b[-1] * d["season_fwd"]
         beta = self.w["har_beta"]
         return beta[0] + d["Xb"] @ beta[1:]
 
@@ -240,6 +269,7 @@ class NoctuaV2(NumpyNoctua):
         self.blend_w = self.meta["blend_w"]
         self.n_seeds = self.meta["seeds"]
         self.cal_shrink = 0.0            # v2 pools instead of PIT-recalibrating
+        self.hour_anchor = False         # serve/predict.HOUR_ANCHOR sets this
 
     # ---- per-seed weight access ------------------------------------------
     def _seed_scope(self, src: dict, s: int) -> dict:
@@ -265,7 +295,11 @@ class NoctuaV2(NumpyNoctua):
         full = self.w
         try:
             for s in range(self.n_seeds):
-                self.w = {**self._seed_scope(full, s), "har_beta": full["har_beta"]}
+                # the anchor is shared by every seed; the clock-aware one too,
+                # or har_logvol would KeyError on the second path it has
+                self.w = {**self._seed_scope(full, s), "har_beta": full["har_beta"],
+                          **{k: full[k] for k in ("har_beta_season",
+                                                  "season_profile") if k in full}}
                 outs.append(NumpyNoctua.predict(self, d, n_atoms=n_atoms,
                                                 disp_lambda=disp_lambda))
         finally:

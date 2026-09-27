@@ -74,11 +74,11 @@ from eval.vol_matrix import block_len_for, qlike_vec                   # noqa: E
 from noctua import baselines as B                                      # noqa: E402
 from noctua import infer as I                                          # noqa: E402
 from noctua import splits as S                                         # noqa: E402
+from noctua.season import hour_profile, season_fwd                     # noqa: E402
 from noctua.train import load_all                                      # noqa: E402
 
 HOUR = 3600
 PROD_H, PROD_A = 19, 17
-FLOOR_LOG = np.log(1e-5)          # above the 1e-6 missing-hour floor
 # serve/adaptive.py, restated so a drift there is a visible diff here
 FAC_WINDOW_D, FAC_STRIDE_H, FAC_MIN = 60, 6, 20
 FAC_LO, FAC_HI = 0.70, 1.40
@@ -89,19 +89,7 @@ CONTRASTS = (("As", "M0s"), ("Ps", "M0s"), ("Ams", "M0s"), ("M0s", "M0"))
 
 
 # ---------------------------------------------------------------- season ----
-def hour_profile(har_1h: np.ndarray, anchor_hour: np.ndarray) -> np.ndarray:
-    """log-vol seasonal offset s(h) for each CLOCK hour h, centred to mean 0.
-
-    har_1h at an anchor of hour a is the vol of the hour ENDING at a, i.e.
-    clock hour a - 1.
-    """
-    # log(1e-6) is the encoding of a MISSING hour (P2-floor-defect), not a
-    # quiet one; averaging it in would drag every affected clock hour down
-    ok = np.isfinite(har_1h) & (np.asarray(har_1h, np.float64) > FLOOR_LOG)
-    clock = (np.asarray(anchor_hour)[ok] - 1) % 24
-    v = np.asarray(har_1h, np.float64)[ok]
-    s = np.array([v[clock == h].mean() for h in range(24)])
-    return s - s.mean()
+# hour_profile / season_fwd live in noctua/season.py, shared with serving.
 
 
 def placebo_profile(profile: np.ndarray, n_try: int = 2000, seed: int = 0):
@@ -114,19 +102,6 @@ def placebo_profile(profile: np.ndarray, n_try: int = 2000, seed: int = 0):
         if c < best_c:
             best, best_c = pp, c
     return best
-
-
-def season_fwd(profile: np.ndarray, anchor_hour: np.ndarray, H: np.ndarray):
-    """0.5 log of the mean seasonal variance factor over [a, a + H), centred."""
-    var = np.exp(2.0 * np.asarray(profile, np.float64))
-    var = var / var.mean()
-    a = np.asarray(anchor_hour, np.int64) % 24
-    Hh = np.asarray(H, np.int64)
-    # cumulative sum over enough periodic copies for the longest window
-    reps = int(np.ceil((Hh.max() + 24) / 24)) + 1
-    c = np.concatenate([[0.0], np.cumsum(np.tile(var, reps))])
-    tot = c[a + Hh] - c[a]
-    return 0.5 * np.log(tot / Hh)
 
 
 # ------------------------------------------------------- served factor ------
@@ -187,6 +162,30 @@ def fold_anchors(ep, X, fold):
 
 def better(met, a, b):
     return a > b if met in HIGHER_BETTER else a < b
+
+
+def fold_tests(d: np.ndarray, alpha: float) -> dict:
+    """Two estimators on fold-level deltas that CAN fail.
+
+    The paired bootstrap interval cannot: with every fold delta of one sign,
+    every resample mean has that sign, so it excludes zero at ANY alpha
+    (E2-audit-downgrade, finding 1). Reported beside it here:
+      t      the Student-t interval at the family alpha, n - 1 df;
+      p_flip the exact two-sided sign-flip permutation p over all 2^n sign
+             patterns -- at n = 6 its floor is 2/64 = 0.031, so it CANNOT
+             clear a Bonferroni family of 24, and saying so is the point.
+    """
+    from itertools import product
+    from scipy import stats
+    d = np.asarray(d, np.float64)
+    n = len(d)
+    m, se = float(d.mean()), float(d.std(ddof=1) / np.sqrt(n))
+    q = float(stats.t.ppf(1 - alpha / 2, n - 1))
+    obs = abs(m)
+    flips = [abs(float(np.mean(d * np.array(sg))))
+             for sg in product((1, -1), repeat=n)]
+    p = float(np.mean([f >= obs - 1e-15 for f in flips]))
+    return {"t_ci": [m - q * se, m + q * se], "p_flip": p}
 
 
 def main(argv=None) -> int:
@@ -285,12 +284,16 @@ def main(argv=None) -> int:
             ci_out[f"{m}_{c}_vs_{o}"] = {"delta": float(d.mean()),
                                          "ci95": [float(lo), float(hi)],
                                          "n_better": int((d > 0).sum())}
+            ft = fold_tests(d, alpha)
+            ci_out[f"{m}_{c}_vs_{o}"].update(ft)
             if lo > 0:
                 res[(c, o)]["better"].append(m)
             if hi < 0:
                 res[(c, o)]["worse"].append(m)
             print(f"{m:>9} {c+'-'+o:>9} {d.mean():+12.6f} "
-                  f"[{lo:+12.6f}, {hi:+12.6f}] {int((d>0).sum()):>3}/{len(d)}")
+                  f"[{lo:+12.6f}, {hi:+12.6f}] {int((d>0).sum()):>3}/{len(d)}"
+                  f"   t [{ft['t_ci'][0]:+.6f}, {ft['t_ci'][1]:+.6f}]"
+                  f"  p_flip {ft['p_flip']:.3f}")
 
     L = block_len_for(PROD_H, sum(len(r["q_M0"]) for r in rows))
     print("\nper-episode QLIKE (sigma_mean):")
@@ -320,7 +323,10 @@ def main(argv=None) -> int:
     a.out.parent.mkdir(parents=True, exist_ok=True)
     a.out.write_text(json.dumps({
         "n_family": n_family, "alpha": alpha,
-        "folds": [{k: v for k, v in r.items() if not k.startswith(("q_", "bar_"))}
+        "folds": [{**{k: v for k, v in r.items() if not k.startswith(("q_", "bar_"))},
+                   "bar": {k[4:]: v for k, v in r.items() if k.startswith("bar_")},
+                   "qlike": {k[2:]: float(np.nanmean(v)) for k, v in r.items()
+                             if k.startswith("q_")}}
                   for r in rows],
         "barriers": {m: {k: float(np.mean(v)) for k, v in d.items()}
                      for m, d in per_fold.items()},
