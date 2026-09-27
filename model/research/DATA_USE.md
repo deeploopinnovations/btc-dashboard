@@ -184,6 +184,15 @@ each, since the mechanism claim is that the candidate moves it toward zero.
 The barrier battery is reported and labelled underpowered at any horizon
 under a year.
 
+**How and when it is scored:** `python -m model.eval.forward_hour_anchor`.
+It forecasts each post-freeze 17:00 night both ways through
+`serve/predict.forecast` itself and labels it with `episodes.build_episodes`.
+**N_MIN = 300 nights**, fixed before any forward night exists: at the
+walk-forward noise level a 95 % interval narrows below the walk-forward effect
+at about 290. Below N_MIN the script prints the count and nothing else; at
+N_MIN it scores once and writes `research/forward_hour_anchor_result.json`,
+after which it refuses to rescore. That is roughly ten months of nights.
+
 **What this freeze does NOT do:** it does not decide whether the flag is on.
 Adoption, if it happens before the holdout is scored, rests on the
 walk-forward evidence and the serving gate, with that limitation stated -- the

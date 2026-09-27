@@ -117,7 +117,8 @@ HOUR_ANCHOR = False
 
 
 def forecast(model, hours: pd.DataFrame, H: int = PROD_H,
-             anchor_ts: int | None = None, source: str = "unknown") -> dict:
+             anchor_ts: int | None = None, source: str = "unknown",
+             raw: dict | None = None) -> dict:
     """Run one forecast anchored at `anchor_ts` (default: the latest full hour).
 
     `hours` is the merged hourly history from `serve.history.get_hours` --
@@ -155,6 +156,13 @@ def forecast(model, hours: pd.DataFrame, H: int = PROD_H,
     cal = volatility_correction(model, hours, row, H)
     if cal["applied"]:
         pred = apply_correction(pred, cal["factor"])
+    # The payload below is ROUNDED for publication. A caller that scores the
+    # served object (eval/forward_hour_anchor.py) needs it unrounded, and
+    # re-implementing this function to get it is how two "identical" pipelines
+    # drift apart (R18). So it can ask for the object itself. Default None:
+    # nothing served changes.
+    if raw is not None:
+        raw.update(pred=pred, cal=cal, anchor_row=row)
 
     # THE REPORTED VOLATILITY AND THE BARRIER CURVE ARE TWO PRODUCTS WITH TWO
     # LOSSES, and this is the line where they part company.
