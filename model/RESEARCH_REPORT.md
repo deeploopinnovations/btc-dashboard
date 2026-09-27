@@ -372,9 +372,9 @@ timeline
 
 ## The experiment register
 
-203 pre-registered experiments. **ADOPT** 22 · **ADVANCE** 41 · **DIAGNOSTIC** 3 · **NULL** 23 · **OPEN** 8 · **OPEN (answered by a later entry)** 57 · **REJECT** 47 · **WITHDRAWN** 2
+204 pre-registered experiments. **ADOPT** 22 · **ADVANCE** 42 · **DIAGNOSTIC** 3 · **NULL** 23 · **OPEN** 7 · **OPEN (answered by a later entry)** 58 · **REJECT** 47 · **WITHDRAWN** 2
 
-The register is append-only, so a pre-registration keeps its OPEN verdict and its result arrives as a separate entry that supersedes it. **8** questions are genuinely unresolved; the rest of the OPEN rows have been answered.
+The register is append-only, so a pre-registration keeps its OPEN verdict and its result arrives as a separate entry that supersedes it. **7** questions are genuinely unresolved; the rest of the OPEN rows have been answered.
 
 Every row was registered with its decision rule **before** it ran. Failures are not deleted; they stay in the family and count against the multiple-testing correction.
 
@@ -581,8 +581,9 @@ Every row was registered with its decision rule **before** it ran. Failures are 
 | `P4-stack-anchor-result` | phase4 | REJECT | Closing P4-stack-anchor: does replacing the served blend's Log-HAR anchor with a calib-fitted convex stack of  |
 | `P4-hour-anchor` ⤳ | phase4 | OPEN | The served anchor (log_har_cal, 75% of the blend) has no time-of-day input. On the fold calib slices its H=19  |
 | `P4-hour-anchor-result` | phase4 | ADVANCE | Closing P4-hour-anchor: does a clock-aware anchor improve the barrier product against a baseline that carries  |
-| `P4-hour-anchor-audit` | phase4 | OPEN | Can P4-hour-anchor-result be broken? An adversarial agent was given five attacks (leakage, served-factor fidel |
+| `P4-hour-anchor-audit` ⤳ | phase4 | OPEN | Can P4-hour-anchor-result be broken? An adversarial agent was given five attacks (leakage, served-factor fidel |
 | `P4-served-dispersion` | phase4 | OPEN | Does the dispersion correction still improve the product when scored on the object that would actually be serv |
+| `P4-hour-anchor-audit-result` | phase4 | ADVANCE | Closing P4-hour-anchor-audit: does the result reproduce, and which of its barrier clearances survive estimator |
 
 ⤳ = superseded by a later entry; the original is kept rather than edited.
 

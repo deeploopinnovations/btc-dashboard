@@ -901,6 +901,21 @@ which the two arms actually differ, so the rule passed while the project's own
 decisive quantity moved the wrong way.
 *(`P3-dispersion-deployable-result`, re-reading `P3-dispersion-barriers-result`)*
 
+**R88. A fold bootstrap over n folds that all share a sign cannot fail. Print
+the estimators that can, and claim only what they clear.**
+With every fold delta of one sign, every bootstrap resample mean has that sign,
+so the interval excludes zero at ANY alpha (`E2-audit-downgrade` found it once;
+it was read as evidence twice more on 2026-09-27). `P4-hour-anchor-result`
+recorded five barrier clearances and called DSC its headline; on a Student-t
+interval at the family alpha only Brier and CRPS clear, DSC does not, and the
+exact sign-flip p is 2/64 = 0.031 on every 6/6 metric -- the floor at n = 6,
+which cannot clear a family of 24 however strong the effect. So: every product
+test prints the fold t-interval and sign-flip p beside the bootstrap
+(`eval/hour_anchor.fold_tests`); a claim rests on the estimators that could
+have failed and on per-episode intervals where the loss is per-episode; and a
+6/6 fold count is reported as consistency, not significance.
+*(`P4-hour-anchor-audit-result`)*
+
 ## Rules about interpretation
 
 **R20. Correcting a number in the humbler direction does not make the
