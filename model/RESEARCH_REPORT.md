@@ -372,7 +372,7 @@ timeline
 
 ## The experiment register
 
-208 pre-registered experiments. **ADOPT** 22 · **ADVANCE** 43 · **DIAGNOSTIC** 4 · **NULL** 23 · **OPEN** 6 · **OPEN (answered by a later entry)** 60 · **REJECT** 48 · **WITHDRAWN** 2
+210 pre-registered experiments. **ADOPT** 22 · **ADVANCE** 44 · **DIAGNOSTIC** 4 · **NULL** 23 · **OPEN** 6 · **OPEN (answered by a later entry)** 61 · **REJECT** 48 · **WITHDRAWN** 2
 
 The register is append-only, so a pre-registration keeps its OPEN verdict and its result arrives as a separate entry that supersedes it. **6** questions are genuinely unresolved; the rest of the OPEN rows have been answered.
 
@@ -588,6 +588,8 @@ Every row was registered with its decision rule **before** it ran. Failures are 
 | `P4-served-dispersion-result` | phase4 | REJECT | Closing P4-served-dispersion: does the dispersion correction improve the product on the object that would be s |
 | `P4-simple-vs-noctua` ⤳ | phase4 | OPEN | Does the neural network earn its place in the barrier PRODUCT once the no-network alternative is given the sam |
 | `P4-simple-vs-noctua-result` | phase4 | ADVANCE | Closing P4-simple-vs-noctua: does the network earn its place in the barrier product against a no-network model |
+| `P4-hour-anchor-pe` ⤳ | phase4 | OPEN | Re-scored PER EPISODE -- the estimator with power that R88 asks for -- does the clock-aware anchor's barrier g |
+| `P4-hour-anchor-pe-result` | phase4 | ADVANCE | Closing P4-hour-anchor-pe: on the per-episode estimator, does the clock-aware anchor's barrier gain hold and t |
 
 ⤳ = superseded by a later entry; the original is kept rather than edited.
 

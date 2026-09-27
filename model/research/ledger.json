@@ -2693,7 +2693,24 @@
       "rule": "PRE-REGISTERED BEFORE THE RUN. Same arms and construction as P4-hour-anchor (M0s, As, mirror Ams, each with serving's trailing factor from its own forecasts), scored from run_fold's saved curves by eval/product_score, refusing unless the offline battery matches run_fold's to 1e-10. Moving-block bootstrap over pooled production nights, contrasts As-M0s and Ams-M0s on 4 metrics, family 8, 99.375%. READING: CONFIRMED if As is better on >= 2 of the 4 and worse on none, and Ams is better on none. SAME DATA as P4-hour-anchor-result: a better estimator, not new evidence -- it cannot address the forking-path caveat.",
       "verdict": "OPEN",
       "result": "pre-registered. PREDICTION: CONFIRMED -- As better on brier, crps and logs (the fold t-interval already cleared brier and crps; logs missed by 0.000016 at n=6 and should clear with ~2,000 nights), pinball borderline; the mirror worse on all four.",
-      "notes": "If CONFIRMED, the evidence for switching HOUR_ANCHOR on is: per-episode QLIKE, per-episode Brier/CRPS/log score, a mirror that fails on the same estimator, and the same gain reappearing in a no-network model (P4-simple-vs-noctua-result). What remains is the forking-path caveat, which the forward holdout addresses."
+      "notes": "If CONFIRMED, the evidence for switching HOUR_ANCHOR on is: per-episode QLIKE, per-episode Brier/CRPS/log score, a mirror that fails on the same estimator, and the same gain reappearing in a no-network model (P4-simple-vs-noctua-result). What remains is the forking-path caveat, which the forward holdout addresses.",
+      "superseded_by": [
+        "P4-hour-anchor-pe-result"
+      ]
+    },
+    {
+      "id": "P4-hour-anchor-pe-result",
+      "topic": "phase4",
+      "mechanism": "calibration",
+      "date": "2026-09-27",
+      "supersedes": [
+        "P4-hour-anchor-pe"
+      ],
+      "question": "Closing P4-hour-anchor-pe: on the per-episode estimator, does the clock-aware anchor's barrier gain hold and the mirror fail?",
+      "rule": "As registered: CONFIRMED if As beats M0s on >= 2 of {brier, logs, pinball, crps} per-episode (block bootstrap, family 8, 99.375%), worse on none, and the mirror is better on none.",
+      "verdict": "ADVANCE",
+      "result": "CONFIRMED ON ALL FOUR. 2,046 production nights, block length 38, offline battery matched run_fold to 1e-10 in every fold and arm. As against M0s: brier +0.000698 [+0.000537, +0.000862] (+0.40%); log score +0.001462 [+0.000938, +0.001957] (+0.28%); pinball +0.000014 [+0.000006, +0.000023] (+0.40%); crps +0.000037 [+0.000029, +0.000046] (+0.72%). The mirror is WORSE on all four: brier -0.53%, logs -0.43%, pinball -0.74%, crps -1.02%, every interval excluding zero. PREDICTION SCORING: brier, crps, logs clear -- right; pinball 'borderline' -- it clears; mirror worse on all four -- right.",
+      "notes": "THE EVIDENCE FOR SWITCHING HOUR_ANCHOR ON, IN FULL: per-episode QLIKE +3.75%; per-episode Brier, log score, pinball and CRPS all better with intervals excluding zero; the mirror significantly worse on every one of them; the placebo inert; the Brier/CRPS gain reappearing in a no-network model (P4-simple-vs-noctua-result); bit-identical reproduction. THE SIZE, SO NOBODY OVERSELLS IT: 0.3-0.7% on the barrier losses. It is a real, consistent, small improvement to the product, not a transformation. THE CAVEAT THAT REMAINS: all of this is the same walk-forward data on which the direction was suggested (P4-stack-anchor-result's mirror); the forward holdout frozen 2026-09-27 is the only thing that answers that. DSC remains not established."
     }
   ]
 }

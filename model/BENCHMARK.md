@@ -4173,7 +4173,15 @@ rejected before any run because OLS's free sign recovered the clock) and a
 | pinball, MCB | do not clear | 5/6 |
 
 The mirror is significantly **worse** on DSC, Brier and CRPS by the same
-t-interval; the placebo moves nothing. The median bias at 17:00 moves toward
+t-interval; the placebo moves nothing.
+
+**Per episode** (`P4-hour-anchor-pe-result`; 2,046 production nights,
+moving-block bootstrap, the estimator R88 asks for): Brier **+0.40 %**, log
+score **+0.28 %**, pinball **+0.40 %**, CRPS **+0.72 %**, every interval
+excluding zero; the mirror is worse on all four (−0.43 % to −1.02 %). Small,
+consistent, real. The same Brier/CRPS gain appears when the clock is given to
+a model with **no network** (`P4-simple-vs-noctua-result`), so it belongs to
+the anchor, not to NOCTUA. The median bias at 17:00 moves toward
 zero in every fold (2026: −0.101 → −0.049) -- about half of it removed.
 
 **What is not clean, stated so nobody has to find it.** The direction ("lower
