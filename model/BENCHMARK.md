@@ -4120,4 +4120,80 @@ changes is what may be said about it: any statement of the form "NOCTUA beats
 Log-HAR by X %" must name *which* Log-HAR and must carry the `har_short`
 comparison beside it.
 
+---
+
+## 32. The anchor could not see the clock
+
+### What was wrong
+
+The served forecast is `0.25 × network + 0.75 × log_har_cal` in log space, and
+`log_har_cal` regresses on `har_1d`, `har_5d`, `har_22d`, the horizon and the
+weekend share -- **nothing that says what time of day the forecast window
+covers.** A 19-hour window opened at 17:00 UTC is mostly the Asian night; one
+opened at 05:00 is mostly the European and US day. They got the same anchor.
+On the fold calibration slices at H = 19 the anchor's median log(RV / σ) runs
+from **+0.04 at 09:00 to −0.108 at 17:00** -- the product's own anchor hour is
+where it over-forecasts most.
+
+Serving already corrects the level with a trailing factor (`serve/adaptive.py`),
+but that factor is read at a 6-hour stride counted back from `anchor − H`, which
+for a 17:00 anchor at H = 19 lands on **22:00, 04:00, 10:00 and 16:00 -- never
+17:00.** On calib it leaves −0.03 to −0.12 of the bias in place, largest in the
+most recent folds. And the benchmark's `M0` never had that factor at all, so
+every product test before this one scored against a baseline serving does not
+run.
+
+It was found by a failure: the stacked anchor (`P4-stack-anchor-result`) was
+significantly **worse** on five barrier metrics while its mirror was better on
+four -- because the stack pushed toward `har_short`, which reads the busy US
+session at 17:00 and over-forecasts the quiet night after it.
+
+### What was built
+
+One regressor: `season_fwd(a, H)`, the log of the mean seasonal variance factor
+over the forecast window's own clock hours (`noctua/season.py`), with the
+hourly profile estimated on each fold's **training** slice. The anchor is
+`log_har_cal`'s own OLS plus this column. Every arm carries serving's trailing
+factor computed the way serving computes it, from that arm's own forecasts; the
+baseline `M0s` is therefore the served object on level, a first for this
+document. Controls: a **placebo** (the same 24 profile values permuted to the
+least-correlated arrangement -- a first design rolling the profile 12 hours was
+rejected before any run because OLS's free sign recovered the clock) and a
+**mirror** (the shift negated).
+
+### Result (`P4-hour-anchor-result`, reproduced bit for bit)
+
+| against the served baseline | fold t-interval, family 24 | folds |
+|---|---|---|
+| per-episode **QLIKE** | **+3.75 %**, CI [+0.00464, +0.01409] (block bootstrap) | — |
+| **Brier** | **[+0.000168, +0.001252]** clears | 6/6 |
+| **CRPS** | **[+0.000004, +0.000071]** clears | 6/6 |
+| log score | [−0.000016, +0.003067] misses | 6/6 |
+| DSC | [−0.000077, +0.000771] does not clear | 6/6 |
+| pinball, MCB | do not clear | 5/6 |
+
+The mirror is significantly **worse** on DSC, Brier and CRPS by the same
+t-interval; the placebo moves nothing. The median bias at 17:00 moves toward
+zero in every fold (2026: −0.101 → −0.049) -- about half of it removed.
+
+**What is not clean, stated so nobody has to find it.** The direction ("lower
+17:00") was suggested by a test-slice result, the stacked anchor's mirror; the
+rule and controls were fixed before this run, but the hypothesis was not blind.
+The fold bootstrap cannot fail when all six folds share a sign (**R88**), so
+four of its five "clearances" are consistency, not significance; the claim
+rests on QLIKE, Brier and CRPS. DSC improves in 6/6 folds and is **not
+established**.
+
+### Status: ADVANCE, served behind a switch that is off
+
+`serve/predict.HOUR_ANCHOR = False`. The artifact carries the profile and an
+anchor increment fitted on its own training split without touching any
+existing array (the increment and a full joint refit agree: +1.2415 vs
++1.2437). `tests/test_hour_anchor.py` gates it in precommit and CI: off is the
+clock-blind payload bit for bit; on moves the served median by exactly the
+anchor algebra and never moves the barrier grid. The candidate is **frozen as of
+2026-09-27** with its own forward holdout (`research/DATA_USE.md`), scored
+paired against the clock-blind anchor from the same file. Switching it on is
+the owner's decision.
+
 *Educational research only. Not financial advice.*
