@@ -564,11 +564,19 @@ def run_fold(ep, X, fold, hidden=32, seeds=3, verbose=False, shape_cols=None,
 
     M = {"up": np.abs(e_te.M_up.to_numpy()), "dn": np.abs(e_te.M_dn.to_numpy())}
     rows = []
+    # Every barrier metric below is a function of (curve, outcome). Keeping the
+    # curves lets a caller rescore per EPISODE -- block-bootstrap intervals on
+    # Brier / log score / pinball / CRPS, which R88 asks for because the fold
+    # bootstrap cannot fail at 6/6 -- and score any other sigma through the
+    # same arithmetic without retraining (eval/product_score.py). Additive:
+    # nothing above or below reads it.
+    curves = {}
     for f in competitors:
         rec = {"model": f.name, "year": fold["year"], "n": ctx["n"]}
         for side in ("up", "dn"):
             up = side == "up"
             Q = f.curve(ctx, up)
+            curves.setdefault(f.name, {})[side] = np.asarray(Q, np.float64)
             y = M[side]
             rec[f"pinball_{side}"] = pinball_curve(Q, y)
             rec[f"crps_{side}"] = crps_from_curve(Q, y)
@@ -688,6 +696,9 @@ def run_fold(ep, X, fold, hidden=32, seeds=3, verbose=False, shape_cols=None,
                                 p_te["sigma_mean"], np.float64),
                             "sigma_mean_cal": np.asarray(
                                 p_cal["sigma_mean"], np.float64),
+                            "curves": curves,
+                            "M_abs": {k: np.asarray(v, np.float64)
+                                      for k, v in M.items()},
                             "cal_idx": np.flatnonzero(m_cal),
                             "sigma_cal": np.asarray(
                                 p_cal["sigma_med"], np.float64),
