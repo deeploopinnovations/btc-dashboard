@@ -269,4 +269,53 @@ days holds 15.9% of variance mass across 96 episodes and cannot clear a
 
 ---
 
+---
+
+# Audit round 2026-09-28: should HOUR_ANCHOR be switched on?
+
+*Written at dispatch, BEFORE any auditor reported. The owner delegated the
+switch decision on 2026-09-28 and asked for an adversarial swarm first. Edit
+below with corrections visible; do not rewrite this section after the fact.*
+
+## What is believed going in
+
+| claim | evidence | strength |
+|---|---|---|
+| the clock-aware anchor improves forecast QLIKE at 17:00/H=19 | per-episode +3.75%, block bootstrap | can fail, cleared |
+| it improves Brier / log score / pinball / CRPS of the barrier curves | per-episode +0.28..+0.72%, all intervals > 0 | can fail, cleared |
+| the opposite shift hurts on all of them | mirror per-episode, all < 0 | can fail, cleared |
+| the gain belongs to the anchor, not NOCTUA | same Brier/CRPS gain in a no-network model | cleared |
+| DSC (ranking nights) improves | 6/6 folds, t-interval does NOT clear | NOT established |
+| the direction was found blind | no -- suggested by a test-slice mirror result | known weakness |
+
+## What is being attacked, by whom
+
+| # | attacker | attack | would block the switch if |
+|---|---|---|---|
+| 1 | haiku agent | serving fidelity: served path vs evaluated path (standardisation, hour recovery, increment vs joint fit, factor computed with the flag) | a skew that could change sign or size |
+| 2 | haiku agent | leakage; forward-holdout integrity; **interaction with the E2c holdout** | leakage, or the switch contaminating E2c's frozen holdout with no fix |
+| 3 | haiku agent | session-wide forking paths; fold concentration; block length | the per-episode result fails a session-wide family, or rests on one fold |
+| 4 | haiku agent | "it is just a constant 17:00 cut" (no-network test) | not a blocker for shipping -- it changes WHAT is claimed, not whether the product improves |
+| 5 | me, `P4-hour-anchor-cond` | spike-night damage hidden by the average | **pre-registered ship-blocker**: significantly worse on spike nights on any per-episode metric |
+
+## Supervisor state at dispatch
+
+`python -m model.research.supervisor`: 105 alerts -- 85 STALE (superseded
+pre-registrations, housekeeping), 17 REPETITION, 1 UNCLOSED, 2 EXPLAINED; **no
+OSCILLATION and no UNRESOLVABLE in phase 4.** Phase-4 repetition flags:
+architecture (10 attempts, the stacking line -- closed: it does not reach the
+product), dispersion (4 -- closed: REJECT on the served base), calibration (7 --
+the hour anchor; confirmations with changing estimators, not flips). The
+redirection the supervisor implies for the hour anchor is taken: stop
+re-mining walk-forward folds; decide on adversarial audit + the one
+ship-blocking conditional test, and leave confirmation to the forward holdout.
+
+## Decision rule, fixed now
+
+Switch ON if and only if: no auditor CONFIRMS a defect that could change the
+sign or materially the size of the served effect, the E2c holdout is either
+unaffected or protected, and `P4-hour-anchor-cond` is not ship-blocked.
+Otherwise it stays off and the reason is recorded here.
+
+
 *Educational research only. Not financial advice.*
