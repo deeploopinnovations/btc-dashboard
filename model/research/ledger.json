@@ -2722,6 +2722,45 @@
       "verdict": "OPEN",
       "result": "pre-registered. PREDICTION: on spike nights As is WORSE in point estimate on the far-barrier Brier (tighter curves on the nights that break out) but NOT significantly, with ~100 spike nights; calm nights carry the gain; weekend and weekday both improve, weekend more (the over-forecast there is larger). If the spike damage is significant, the average gain is bought with tail risk and the switch stays off regardless of the average.",
       "notes": "Runs in parallel with a four-agent adversarial audit swarm (serving fidelity; leakage and forward-holdout integrity including the E2c holdout interaction; statistics and session-wide forking paths; 'is it just a constant 17:00 cut'). The switch decision waits for both."
+    },
+    {
+      "id": "P4-level-alternatives",
+      "topic": "phase4",
+      "mechanism": "calibration",
+      "date": "2026-09-28",
+      "question": "Audit 4's question, asked properly: on the product slice the clock term is a constant 17:00 level shift. Would a SIMPLER level fix do as well -- (C) a constant fitted on calib OUTCOMES at 17:00, or (F17) serving's own trailing factor read at the SAME hour it corrects (17:00 anchors, 60 days, one per day) instead of 22/04/10/16?",
+      "rule": "PRE-REGISTERED BEFORE THE RUN. DIAGNOSTIC -- it informs WHAT is shipped, not WHETHER the product improves; cannot adopt anything by itself. No network: all arms are the Gaussian first-passage law through eval/product_score (validated against run_fold in P4-simple-vs-noctua-result). Production test nights (17:00, H=19). Arms: G_M0s (clock-blind anchor + serving factor as served), G_As (clock-aware anchor + serving factor), G_C (clock-blind + a 17:00 constant = QLIKE-optimal log offset 0.5*log mean((RV/sigma)^2) of the fold's CALIB 17:00/H=19 episodes, + serving factor), G_F17 (clock-blind + trailing factor from settled 17:00/H=19 episodes over 60 days, median RV/sigma, clip [0.70,1.40], >= 20). Per-episode block bootstrap (block 38), contrasts G_C-G_As and G_F17-G_As on brier/logs/pinball/crps, family 8. READING: if G_F17 is not significantly worse than G_As on any metric, the hour-matched serving factor is a simpler alternative that must be reported beside the clock-aware anchor; if G_As is significantly better on >= 2 metrics, the clock is doing work a level fix does not.",
+      "verdict": "OPEN",
+      "result": "pre-registered. AUDIT 4's CONFIRMED-DEFECT IS REJECTED: it fitted its 'trivial constant' as the calib median of (clock-aware anchor minus clock-blind anchor), i.e. it copied the clock-aware shift and found the two identical -- circular by construction, not a test. PREDICTION: G_C over-corrects (the calib 17:00 offset, -0.07 to -0.15, is larger than the clock's -0.03 to -0.07, and the serving factor corrects part of it again), so G_As beats G_C on at least brier; G_F17 is close to G_As -- it is the same 17:00 correction learned from recent outcomes instead of from the intraday profile -- and I would not be surprised if it ties or wins, which would mean the simplest fix is a one-line serving change.",
+      "notes": "If G_F17 ties G_As, both remain candidates and the frozen one (the clock-aware anchor) is the one with a forward holdout; an hour-matched factor would need its own registration and freeze before it could replace it.",
+      "superseded_by": [
+        "P4-level-alternatives-result"
+      ]
+    },
+    {
+      "id": "P4-level-alternatives-result",
+      "topic": "phase4",
+      "mechanism": "calibration",
+      "date": "2026-09-28",
+      "supersedes": [
+        "P4-level-alternatives"
+      ],
+      "question": "Closing P4-level-alternatives: would a simpler level fix at 17:00 do what the clock-aware anchor does?",
+      "rule": "As registered, with ONE AMENDMENT recorded here: the registered G_C (a QLIKE-optimal constant applied at ALL hours) is degenerate -- serving's median factor absorbs any all-hours constant exactly, and the first run returned G_C bit-identical to G_M0s. The amended G_C applies, at 17:00 only and on top of the served factor, the calib differential the factor cannot see: median log(RV/sigma) at 17:00 minus the same at the factor's hours (04/10/16/22). The amendment changes the ARM, not the reading rule, and G_C's comparison had not been seen when it was made (only its degeneracy).",
+      "verdict": "DIAGNOSTIC",
+      "result": "NO -- THE CLOCK DOES WORK A LEVEL FIX DOES NOT, on the tail metrics. No-network Gaussian arms, 2,046 production nights, per-episode block bootstrap, family 8. G_C (calib 17:00 differential, -0.030 to -0.119 by fold) against G_As: brier tie, crps tie, log score WORSE -0.000850 [-0.001446, -0.000341], pinball WORSE -0.000015 [-0.000022, -0.000007]. G_F17 (serving's factor read at 17:00 itself, mean -0.035 to -0.186) against G_As: brier tie, crps tie, log score WORSE -0.001758 [-0.002991, -0.000799], pinball WORSE -0.000024 [-0.000038, -0.000010]. Both simpler fixes cut 17:00 by MORE than the clock-aware anchor (-0.033 to -0.066) and pay for it in the tails; their DSC points are slightly higher (0.008847, 0.008950 vs 0.008793), not tested at fold level. PREDICTION SCORING: G_C over-corrects -- right on magnitude, but it ties rather than loses on brier; G_F17 'close, may tie or win' -- it ties on brier/crps and loses on the tail metrics.",
+      "notes": "AUDIT 4's CONFIRMED-DEFECT is rejected as circular (its constant was the calib median of the clock-aware shift itself). This entry is the test it was asked to run. For the product the practical reading is: the clock-aware anchor is the better of the three level fixes, because it lowers 17:00 by the amount the intraday profile implies rather than by the full recent residual, which over-tightens the tails."
+    },
+    {
+      "id": "P4-switch-audit",
+      "topic": "phase4",
+      "mechanism": "calibration",
+      "date": "2026-09-28",
+      "question": "The owner delegated the HOUR_ANCHOR switch on 2026-09-28 and asked for an adversarial swarm first. What did the four audit agents find, checked here claim by claim?",
+      "rule": "Decision rule fixed in research/AUDIT_STATE.md before any agent reported: switch ON iff no auditor CONFIRMS a defect that could change the sign or materially the size of the served effect, the E2c holdout is unaffected or protected, and P4-hour-anchor-cond is not ship-blocked.",
+      "verdict": "DIAGNOSTIC",
+      "result": "AUDIT 1, serving fidelity: NO DEFECT -- standardisation identical in fit and serve; anchor hour recovered exactly at all 24 hours; served 17:00/H=19 anchor shift -0.044 lies inside the evaluated per-fold range -0.033..-0.066; the trailing factor is computed with the flag on in every caller (predict.py, app.py, adaptive.py). AUDIT 2, leakage and holdouts: NO DEFECT -- profile and coefficient fitted on train only; forward evaluator strictly after the freeze, count-only below N_MIN, locked after one scoring; the E2c holdout is scored from cached fold results (eval/iv_correction.py never imports serve or reads HOUR_ANCHOR), so switching cannot contaminate it. AUDIT 3, statistics: survives a Bonferroni over all 21 phase-4 experiments of 2026-09-27; block length 38 adequate; the Brier gain is about 3x the seed variance measured in P2-seed-variance; FOLD HETEROGENEITY on QLIKE -- 2021 goes the wrong way (As worse by 0.00383), 5 of 6 better; Brier 6 of 6. Recorded as heterogeneity, not a defect in the evidence: the per-episode QLIKE interval already pools it. AUDIT 4, 'just a constant': its CONFIRMED-DEFECT is REJECTED as circular; the test it was asked for is P4-level-alternatives-result, which finds the clock-aware anchor better than both simpler level fixes on log score and pinball.",
+      "notes": "No auditor confirmed a sign- or size-changing defect; the E2c holdout is unaffected. The switch now waits only on the pre-registered spike-night test (P4-hour-anchor-cond). Every agent claim above was checked against code or numbers before being recorded; one (audit 4) failed that check."
     }
   ]
 }

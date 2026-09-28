@@ -317,5 +317,20 @@ sign or materially the size of the served effect, the E2c holdout is either
 unaffected or protected, and `P4-hour-anchor-cond` is not ship-blocked.
 Otherwise it stays off and the reason is recorded here.
 
+## Returns, scored against the beliefs above (added as they arrived)
+
+| # | verdict returned | checked here | effect on the switch |
+|---|---|---|---|
+| 1 | no train/serve skew; served shift -0.044 inside evaluated -0.033..-0.066 | consistent with add_hour_anchor dry run (-0.0440) and the gate's algebra check | none |
+| 2 | no leakage; forward holdout intact; E2c scored from cached folds, never from serve | E2c code path does not import serve (grep) | none -- E2c unaffected |
+| 3 | survives session-wide Bonferroni (21 tests); QLIKE 2021 fold goes the wrong way | pooled per-episode interval already includes 2021 | none; heterogeneity recorded |
+| 4 | "CONFIRMED-DEFECT: a constant does the same" | **REJECTED: circular** -- its constant was the calib median of the clock-aware shift itself | replaced by `P4-level-alternatives-result`: the clock-aware anchor beats both simpler level fixes on log score and pinball |
+| 5 | spike-night ship-blocker (`P4-hour-anchor-cond`) | pending | **the only remaining gate** |
+
+A mistake of mine in this round, recorded: the first `level_alternatives` run
+applied its constant at every hour, where serving's median factor absorbs it
+exactly -- the arm came back bit-identical to the baseline. Fixed before its
+comparison was read; amendment recorded in the ledger.
+
 
 *Educational research only. Not financial advice.*
