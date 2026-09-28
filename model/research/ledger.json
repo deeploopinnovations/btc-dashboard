@@ -2711,6 +2711,17 @@
       "verdict": "ADVANCE",
       "result": "CONFIRMED ON ALL FOUR. 2,046 production nights, block length 38, offline battery matched run_fold to 1e-10 in every fold and arm. As against M0s: brier +0.000698 [+0.000537, +0.000862] (+0.40%); log score +0.001462 [+0.000938, +0.001957] (+0.28%); pinball +0.000014 [+0.000006, +0.000023] (+0.40%); crps +0.000037 [+0.000029, +0.000046] (+0.72%). The mirror is WORSE on all four: brier -0.53%, logs -0.43%, pinball -0.74%, crps -1.02%, every interval excluding zero. PREDICTION SCORING: brier, crps, logs clear -- right; pinball 'borderline' -- it clears; mirror worse on all four -- right.",
       "notes": "THE EVIDENCE FOR SWITCHING HOUR_ANCHOR ON, IN FULL: per-episode QLIKE +3.75%; per-episode Brier, log score, pinball and CRPS all better with intervals excluding zero; the mirror significantly worse on every one of them; the placebo inert; the Brier/CRPS gain reappearing in a no-network model (P4-simple-vs-noctua-result); bit-identical reproduction. THE SIZE, SO NOBODY OVERSELLS IT: 0.3-0.7% on the barrier losses. It is a real, consistent, small improvement to the product, not a transformation. THE CAVEAT THAT REMAINS: all of this is the same walk-forward data on which the direction was suggested (P4-stack-anchor-result's mirror); the forward holdout frozen 2026-09-27 is the only thing that answers that. DSC remains not established."
+    },
+    {
+      "id": "P4-hour-anchor-cond",
+      "topic": "phase4",
+      "mechanism": "calibration",
+      "date": "2026-09-28",
+      "question": "Before switching HOUR_ANCHOR on: does the clock-aware anchor's average gain hide damage on SPIKE nights -- where lowering sigma makes a breakout touch more likely than the curve says, which is the loss a barrier seller takes?",
+      "rule": "PRE-REGISTERED BEFORE THE RUN. Same arms as P4-hour-anchor-pe (M0s, As with serving's factor), per-episode scoring from saved curves (offline battery = run_fold's to 1e-10), plus a far-barrier Brier (the farthest rung on each side). Subsets defined on the OUTCOME for reporting only: SPIKE = top 5% realised vol in each fold's production test slice; CALM; WEEKEND (window touches the weekend); WEEKDAY; per year. Family = 5 metrics x 5 named subsets = 25. SHIP-BLOCKING RULE: if As is significantly worse than M0s on SPIKE nights on ANY per-episode metric, HOUR_ANCHOR stays off. Per-year rows are reported, not decisive. All per-episode arrays are saved (hour_anchor_cond.npz) for later attacks without retraining.",
+      "verdict": "OPEN",
+      "result": "pre-registered. PREDICTION: on spike nights As is WORSE in point estimate on the far-barrier Brier (tighter curves on the nights that break out) but NOT significantly, with ~100 spike nights; calm nights carry the gain; weekend and weekday both improve, weekend more (the over-forecast there is larger). If the spike damage is significant, the average gain is bought with tail risk and the switch stays off regardless of the average.",
+      "notes": "Runs in parallel with a four-agent adversarial audit swarm (serving fidelity; leakage and forward-holdout integrity including the E2c holdout interaction; statistics and session-wide forking paths; 'is it just a constant 17:00 cut'). The switch decision waits for both."
     }
   ]
 }
