@@ -2721,7 +2721,10 @@
       "rule": "PRE-REGISTERED BEFORE THE RUN. Same arms as P4-hour-anchor-pe (M0s, As with serving's factor), per-episode scoring from saved curves (offline battery = run_fold's to 1e-10), plus a far-barrier Brier (the farthest rung on each side). Subsets defined on the OUTCOME for reporting only: SPIKE = top 5% realised vol in each fold's production test slice; CALM; WEEKEND (window touches the weekend); WEEKDAY; per year. Family = 5 metrics x 5 named subsets = 25. SHIP-BLOCKING RULE: if As is significantly worse than M0s on SPIKE nights on ANY per-episode metric, HOUR_ANCHOR stays off. Per-year rows are reported, not decisive. All per-episode arrays are saved (hour_anchor_cond.npz) for later attacks without retraining.",
       "verdict": "OPEN",
       "result": "pre-registered. PREDICTION: on spike nights As is WORSE in point estimate on the far-barrier Brier (tighter curves on the nights that break out) but NOT significantly, with ~100 spike nights; calm nights carry the gain; weekend and weekday both improve, weekend more (the over-forecast there is larger). If the spike damage is significant, the average gain is bought with tail risk and the switch stays off regardless of the average.",
-      "notes": "Runs in parallel with a four-agent adversarial audit swarm (serving fidelity; leakage and forward-holdout integrity including the E2c holdout interaction; statistics and session-wide forking paths; 'is it just a constant 17:00 cut'). The switch decision waits for both."
+      "notes": "Runs in parallel with a four-agent adversarial audit swarm (serving fidelity; leakage and forward-holdout integrity including the E2c holdout interaction; statistics and session-wide forking paths; 'is it just a constant 17:00 cut'). The switch decision waits for both.",
+      "superseded_by": [
+        "P4-hour-anchor-cond-result"
+      ]
     },
     {
       "id": "P4-level-alternatives",
@@ -2761,6 +2764,48 @@
       "verdict": "DIAGNOSTIC",
       "result": "AUDIT 1, serving fidelity: NO DEFECT -- standardisation identical in fit and serve; anchor hour recovered exactly at all 24 hours; served 17:00/H=19 anchor shift -0.044 lies inside the evaluated per-fold range -0.033..-0.066; the trailing factor is computed with the flag on in every caller (predict.py, app.py, adaptive.py). AUDIT 2, leakage and holdouts: NO DEFECT -- profile and coefficient fitted on train only; forward evaluator strictly after the freeze, count-only below N_MIN, locked after one scoring; the E2c holdout is scored from cached fold results (eval/iv_correction.py never imports serve or reads HOUR_ANCHOR), so switching cannot contaminate it. AUDIT 3, statistics: survives a Bonferroni over all 21 phase-4 experiments of 2026-09-27; block length 38 adequate; the Brier gain is about 3x the seed variance measured in P2-seed-variance; FOLD HETEROGENEITY on QLIKE -- 2021 goes the wrong way (As worse by 0.00383), 5 of 6 better; Brier 6 of 6. Recorded as heterogeneity, not a defect in the evidence: the per-episode QLIKE interval already pools it. AUDIT 4, 'just a constant': its CONFIRMED-DEFECT is REJECTED as circular; the test it was asked for is P4-level-alternatives-result, which finds the clock-aware anchor better than both simpler level fixes on log score and pinball.",
       "notes": "No auditor confirmed a sign- or size-changing defect; the E2c holdout is unaffected. The switch now waits only on the pre-registered spike-night test (P4-hour-anchor-cond). Every agent claim above was checked against code or numbers before being recorded; one (audit 4) failed that check."
+    },
+    {
+      "id": "P4-hour-anchor-cond-result",
+      "topic": "phase4",
+      "mechanism": "calibration",
+      "date": "2026-09-28",
+      "supersedes": [
+        "P4-hour-anchor-cond"
+      ],
+      "question": "Closing P4-hour-anchor-cond: does the clock-aware anchor's average gain hide significant damage on spike nights?",
+      "rule": "As registered: SHIP-BLOCKING if As is significantly worse than M0s on SPIKE nights (top 5% realised vol per fold) on any per-episode metric; family 25, 99.80%.",
+      "verdict": "REJECT",
+      "result": "SHIP-BLOCKED ON ALL FIVE METRICS. Guards passed in every fold (offline battery = run_fold). SPIKE nights (n = 106): brier -0.79%, log score -1.22%, pinball -2.22%, crps -1.30%, far-barrier brier -1.32%, every interval excluding zero on the wrong side. CALM nights (n = 1,940): +0.41% to +1.16%, all better. ALL nights: brier +0.40%, logs +0.28%, pinball +0.40%, crps +0.72%, far-barrier brier +0.44%, all better. WEEKEND windows (n = 878) better on all five; WEEKDAY (n = 1,168) better on brier and crps, not separated on the rest. BY YEAR: brier and crps better in 2022-2026, 2021 not separated. PREDICTION SCORING: 'spike worse in point estimate, not significantly' -- WRONG, it is significant on every metric. The average gain is carried by calm nights; on the nights that break out, the tighter 17:00 curves lose. HOUR_ANCHOR STAYS OFF, per the rule fixed in research/AUDIT_STATE.md before this ran.",
+      "notes": "A CAVEAT RAISED AFTER SEEING THE RESULT, AND THEREFORE NOT ALLOWED TO REVERSE IT. Restricting a proper score to nights selected by their OUTCOME (top 5% realised vol) is the forecaster's dilemma (Lerch, Thorarinsdottir, Ravazzolo & Gneiting, Statistical Science 2017): on outcome-selected extremes any HIGHER forecast wins, right or wrong, and the restricted score is no longer proper. So this gate was structurally biased against every level-lowering change -- which is a flaw in my gate design, found after it fired. The decision stands anyway: a pre-registered ship-blocker that fires is not re-litigated because its author later finds it unfair (R26's spirit). What the flaw DOES license is a correctly designed tail test for FUTURE decisions: the all-night far-barrier Brier is proper and already favours the candidate (+0.44%); subsets defined EX ANTE (on information at the anchor) are the proper conditional check, registered next as P4-hour-anchor-exante."
+    },
+    {
+      "id": "P4-hour-anchor-exante",
+      "topic": "phase4",
+      "mechanism": "calibration",
+      "date": "2026-09-28",
+      "question": "The proper version of the tail check: on nights that look dangerous AT THE ANCHOR -- volatility running hot (shock score har_6h - har_22d) or a high vol level (har_1d) -- is the clock-aware anchor significantly worse?",
+      "rule": "PRE-REGISTERED BEFORE COMPUTING. DIAGNOSTIC: it cannot switch HOUR_ANCHOR on (P4-hour-anchor-cond-result blocked that decision and is not re-litigated); it informs the forward evaluation and any future decision. Data: the per-episode losses saved by eval/hour_anchor_cond.py (hour_anchor_cond.npz), no retraining. Subsets by EX-ANTE features at the anchor, thresholds per fold on that fold's test nights: HOT = top 10% of shock score (har_6h - har_22d); HIGH = top 10% of har_1d; and their complements. Metrics brier, logs, pinball, crps, far-barrier brier; per-episode bootstrap (block 1 for subsets under 600 nights, 38 otherwise); family 5 x 4 = 20. READING: TAIL DAMAGE CONFIRMED if As is significantly worse on HOT or HIGH nights on any metric; otherwise NOT CONFIRMED -- the spike-night loss is then consistent with the forecaster's-dilemma selection effect rather than with real ex-ante tail damage.",
+      "verdict": "OPEN",
+      "result": "pre-registered. PREDICTION: NOT CONFIRMED on HOT and HIGH nights -- point estimates small and mixed -- because the loss on outcome-selected spikes is largely the selection effect; but I hold this with low confidence, since a constant 17:00 cut genuinely does tighten every curve including on nights that later break out.",
+      "notes": "If TAIL DAMAGE is confirmed ex ante, the clock-aware anchor as built is not fit for a barrier SELLER's product even though it wins on average, and the forward holdout's decision rule must include a tail condition. If not confirmed, the forward holdout still decides; its secondary metrics gain the all-night far-barrier Brier and these ex-ante subsets, added before any forward night exists.",
+      "superseded_by": [
+        "P4-hour-anchor-exante-result"
+      ]
+    },
+    {
+      "id": "P4-hour-anchor-exante-result",
+      "topic": "phase4",
+      "mechanism": "calibration",
+      "date": "2026-09-28",
+      "supersedes": [
+        "P4-hour-anchor-exante"
+      ],
+      "question": "Closing P4-hour-anchor-exante: on nights that look dangerous at the anchor, is the clock-aware anchor significantly worse?",
+      "rule": "As registered: TAIL DAMAGE CONFIRMED if As is significantly worse on HOT (top 10% shock score) or HIGH (top 10% har_1d) nights on any of five per-episode metrics; family 20, 99.75%. DIAGNOSTIC; cannot switch HOUR_ANCHOR on.",
+      "verdict": "DIAGNOSTIC",
+      "result": "NOT CONFIRMED. HOT nights (n = 207): nothing separated -- brier +0.27%, logs +0.12%, pinball -0.40%, crps +0.07%, far-barrier brier +0.16%. HIGH nights (n = 207): As significantly BETTER on brier +0.50%, logs +0.44%, crps +1.04%, far-barrier brier +1.44%; pinball +0.81% not separated. Complements better on everything that separated. Only 48 of the 106 outcome-selected spike nights were HOT ex ante and 53 were HIGH. READING: the spike-night loss in P4-hour-anchor-cond-result is consistent with the forecaster's-dilemma selection effect (on outcome-selected extremes the higher forecast wins regardless of merit) and not with tail damage identifiable in advance. PREDICTION SCORING: NOT CONFIRMED with small mixed estimates on HOT -- right; HIGH nights significantly BETTER -- not predicted.",
+      "notes": "THIS DOES NOT REVERSE THE BLOCK. P4-hour-anchor-cond-result fired a pre-registered ship-blocker; the gate's flaw was identified after it fired; reversing on that basis is the post-hoc relitigation R26 exists to prevent. HOUR_ANCHOR stays OFF. The forward holdout is the path to switching on, and its secondary metrics are amended BEFORE ANY FORWARD NIGHT EXISTS to include the all-night far-barrier Brier (proper, tail-weighted) and these ex-ante HOT/HIGH subsets -- never an outcome-selected subset (R89)."
     }
   ]
 }

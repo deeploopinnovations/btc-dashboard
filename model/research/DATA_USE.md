@@ -193,6 +193,19 @@ at about 290. Below N_MIN the script prints the count and nothing else; at
 N_MIN it scores once and writes `research/forward_hour_anchor_result.json`,
 after which it refuses to rescore. That is roughly ten months of nights.
 
+**Secondary metrics amended 2026-09-28, before any forward night exists**
+(`P4-hour-anchor-exante-result`, R89): the all-night per-episode far-barrier
+Brier, and per-episode Brier / log score / far-barrier Brier on nights flagged
+EX ANTE as HOT (top decile of `har_6h - har_22d`) or HIGH (top decile of
+`har_1d`), thresholds from the holdout nights themselves. No outcome-selected
+subset is scored.
+
+**Switch status, 2026-09-28: OFF.** The owner delegated the decision; a
+pre-registered ship-blocker (`P4-hour-anchor-cond-result`) fired on
+outcome-selected spike nights. Its design was flawed (R89) and the proper
+checks favour the candidate, but a gate that fires is not relitigated. The
+switch is reconsidered when this holdout is scored.
+
 **What this freeze does NOT do:** it does not decide whether the flag is on.
 Adoption, if it happens before the holdout is scored, rests on the
 walk-forward evidence and the serving gate, with that limitation stated -- the

@@ -372,7 +372,7 @@ timeline
 
 ## The experiment register
 
-210 pre-registered experiments. **ADOPT** 22 · **ADVANCE** 44 · **DIAGNOSTIC** 4 · **NULL** 23 · **OPEN** 6 · **OPEN (answered by a later entry)** 61 · **REJECT** 48 · **WITHDRAWN** 2
+217 pre-registered experiments. **ADOPT** 22 · **ADVANCE** 44 · **DIAGNOSTIC** 7 · **NULL** 23 · **OPEN** 6 · **OPEN (answered by a later entry)** 64 · **REJECT** 49 · **WITHDRAWN** 2
 
 The register is append-only, so a pre-registration keeps its OPEN verdict and its result arrives as a separate entry that supersedes it. **6** questions are genuinely unresolved; the rest of the OPEN rows have been answered.
 
@@ -590,6 +590,13 @@ Every row was registered with its decision rule **before** it ran. Failures are 
 | `P4-simple-vs-noctua-result` | phase4 | ADVANCE | Closing P4-simple-vs-noctua: does the network earn its place in the barrier product against a no-network model |
 | `P4-hour-anchor-pe` ⤳ | phase4 | OPEN | Re-scored PER EPISODE -- the estimator with power that R88 asks for -- does the clock-aware anchor's barrier g |
 | `P4-hour-anchor-pe-result` | phase4 | ADVANCE | Closing P4-hour-anchor-pe: on the per-episode estimator, does the clock-aware anchor's barrier gain hold and t |
+| `P4-hour-anchor-cond` ⤳ | phase4 | OPEN | Before switching HOUR_ANCHOR on: does the clock-aware anchor's average gain hide damage on SPIKE nights -- whe |
+| `P4-level-alternatives` ⤳ | phase4 | OPEN | Audit 4's question, asked properly: on the product slice the clock term is a constant 17:00 level shift. Would |
+| `P4-level-alternatives-result` | phase4 | DIAGNOSTIC | Closing P4-level-alternatives: would a simpler level fix at 17:00 do what the clock-aware anchor does? |
+| `P4-switch-audit` | phase4 | DIAGNOSTIC | The owner delegated the HOUR_ANCHOR switch on 2026-09-28 and asked for an adversarial swarm first. What did th |
+| `P4-hour-anchor-cond-result` | phase4 | REJECT | Closing P4-hour-anchor-cond: does the clock-aware anchor's average gain hide significant damage on spike night |
+| `P4-hour-anchor-exante` ⤳ | phase4 | OPEN | The proper version of the tail check: on nights that look dangerous AT THE ANCHOR -- volatility running hot (s |
+| `P4-hour-anchor-exante-result` | phase4 | DIAGNOSTIC | Closing P4-hour-anchor-exante: on nights that look dangerous at the anchor, is the clock-aware anchor signific |
 
 ⤳ = superseded by a later entry; the original is kept rather than edited.
 

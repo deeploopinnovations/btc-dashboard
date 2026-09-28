@@ -107,9 +107,12 @@ DISP_LAMBDA = 1.0
 # an estimator that can fail (R88); its mirror significantly worse on DSC,
 # Brier and CRPS. P4-hour-anchor-audit-result.
 #
-# OFF BY DEFAULT, and not for a statistical reason: turning it on changes the
-# live product while the forward freeze in research/DATA_USE.md names another
-# candidate, and that is the owner's call. Like DISP_LAMBDA it MOVES THE
+# OFF, BY DECISION OF 2026-09-28. The owner delegated the switch; the
+# pre-registered ship-blocker P4-hour-anchor-cond fired (significantly worse
+# on outcome-selected spike nights). That gate was badly designed -- R89, the
+# forecaster's dilemma -- and the proper checks favour the candidate
+# (P4-hour-anchor-exante-result), but a gate that fires is not relitigated.
+# It is reconsidered when its forward holdout (research/DATA_USE.md) is scored. Like DISP_LAMBDA it MOVES THE
 # PRODUCT -- the anchor sets the level every atom, barrier curve and safe
 # level is built from -- so tests/test_hour_anchor.py asserts both that off
 # is bit-identical and that on moves exactly what the algebra says.

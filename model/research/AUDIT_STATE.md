@@ -325,12 +325,35 @@ Otherwise it stays off and the reason is recorded here.
 | 2 | no leakage; forward holdout intact; E2c scored from cached folds, never from serve | E2c code path does not import serve (grep) | none -- E2c unaffected |
 | 3 | survives session-wide Bonferroni (21 tests); QLIKE 2021 fold goes the wrong way | pooled per-episode interval already includes 2021 | none; heterogeneity recorded |
 | 4 | "CONFIRMED-DEFECT: a constant does the same" | **REJECTED: circular** -- its constant was the calib median of the clock-aware shift itself | replaced by `P4-level-alternatives-result`: the clock-aware anchor beats both simpler level fixes on log score and pinball |
-| 5 | spike-night ship-blocker (`P4-hour-anchor-cond`) | pending | **the only remaining gate** |
+| 5 | spike-night ship-blocker (`P4-hour-anchor-cond`) | **FIRED**: significantly worse on all five metrics on 106 outcome-selected spike nights | **BLOCKS the switch** |
 
 A mistake of mine in this round, recorded: the first `level_alternatives` run
 applied its constant at every hour, where serving's median factor absorbs it
 exactly -- the arm came back bit-identical to the baseline. Fixed before its
 comparison was read; amendment recorded in the ledger.
+
+## Decision, 2026-09-28: HOUR_ANCHOR stays OFF
+
+The rule fixed above required `P4-hour-anchor-cond` not to be ship-blocked. It
+was blocked. After it fired I found the gate's design flaw -- an
+outcome-selected subset rewards any higher forecast (the forecaster's dilemma,
+R89) -- and the proper checks disagree with it: all-night far-barrier Brier
++0.44% for the candidate, and on nights flagged dangerous EX ANTE it is level
+(HOT) or significantly better (HIGH, far-barrier Brier +1.44%)
+(`P4-hour-anchor-exante-result`). **The block stands regardless.** A gate that
+fires is not relitigated by the person who wrote it; that is the discipline the
+audit exists to protect, and it matters more than a 0.4% improvement.
+
+What changed instead: the forward holdout's secondary metrics were amended
+before any forward night exists to include the proper tail checks (DATA_USE.md),
+and `eval/forward_hour_anchor.py` computes them. The switch is reconsidered when
+that holdout is scored.
+
+What the round taught, for the next one: the swarm found no defect in the
+evidence (1-3), one agent's verdict was circular and had to be replaced (4), and
+the gate that decided the question was the one written by me -- and was the
+one with a design flaw. Next time the ship-blocker gets the same adversarial
+review as the evidence, BEFORE it runs.
 
 
 *Educational research only. Not financial advice.*

@@ -916,6 +916,22 @@ have failed and on per-episode intervals where the loss is per-episode; and a
 6/6 fold count is reported as consistency, not significance.
 *(`P4-hour-anchor-audit-result`)*
 
+**R89. Never gate on a subset chosen by the OUTCOME. Condition tail checks on
+what is known at the anchor, or use a proper tail-weighted score.**
+`P4-hour-anchor-cond` pre-registered "significantly worse on spike nights (top
+5% realised vol)" as a ship-blocker, and it fired on all five metrics. On a
+subset selected by the outcome, any HIGHER forecast wins whether or not it is
+right -- the forecaster's dilemma (Lerch, Thorarinsdottir, Ravazzolo &
+Gneiting, *Statistical Science* 2017) -- so the gate was biased against every
+level-lowering change by construction. The proper checks disagreed with it:
+the all-night far-barrier Brier favoured the candidate (+0.44%), and on nights
+flagged dangerous EX ANTE it was level (hot vol) or significantly better (high
+vol) (`P4-hour-anchor-exante-result`). The block stood anyway, because a
+pre-registered gate that fires is not relitigated by its author. The lesson is
+for the next gate: tail conditions are written on ex-ante subsets or
+threshold-weighted proper scores, never on outcome-selected nights.
+*(`P4-hour-anchor-cond-result`, `P4-hour-anchor-exante-result`)*
+
 ## Rules about interpretation
 
 **R20. Correcting a number in the humbler direction does not make the
