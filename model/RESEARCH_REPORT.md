@@ -372,7 +372,7 @@ timeline
 
 ## The experiment register
 
-217 pre-registered experiments. **ADOPT** 22 · **ADVANCE** 44 · **DIAGNOSTIC** 7 · **NULL** 23 · **OPEN** 6 · **OPEN (answered by a later entry)** 64 · **REJECT** 49 · **WITHDRAWN** 2
+219 pre-registered experiments. **ADOPT** 22 · **ADVANCE** 44 · **DIAGNOSTIC** 7 · **NULL** 23 · **OPEN** 6 · **OPEN (answered by a later entry)** 65 · **REJECT** 50 · **WITHDRAWN** 2
 
 The register is append-only, so a pre-registration keeps its OPEN verdict and its result arrives as a separate entry that supersedes it. **6** questions are genuinely unresolved; the rest of the OPEN rows have been answered.
 
@@ -597,6 +597,8 @@ Every row was registered with its decision rule **before** it ran. Failures are 
 | `P4-hour-anchor-cond-result` | phase4 | REJECT | Closing P4-hour-anchor-cond: does the clock-aware anchor's average gain hide significant damage on spike night |
 | `P4-hour-anchor-exante` ⤳ | phase4 | OPEN | The proper version of the tail check: on nights that look dangerous AT THE ANCHOR -- volatility running hot (s |
 | `P4-hour-anchor-exante-result` | phase4 | DIAGNOSTIC | Closing P4-hour-anchor-exante: on nights that look dangerous at the anchor, is the clock-aware anchor signific |
+| `P4-iv-served-pe` ⤳ | phase4 | OPEN | E2c -- the project's largest forecast effect, downgraded to NOT PROVEN because its fold-level interval could n |
+| `P4-iv-served-pe-result` | phase4 | REJECT | Closing P4-iv-served-pe: does E2c's implied-volatility correction improve the product per episode on the serve |
 
 ⤳ = superseded by a later entry; the original is kept rather than edited.
 

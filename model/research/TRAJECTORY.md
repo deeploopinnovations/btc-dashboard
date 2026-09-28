@@ -37,7 +37,7 @@ ADVANCE-not-ADOPT. Supervisor at start: REPETITION on the calibration mechanism
 | 14 | owner delegates the switch | swarm of 4 + a ship-blocker, rule fixed in AUDIT_STATE first | `hour_anchor_cond.py`, agents 1–4 | agents 1–3 no defect; agent 4 circular; **ship-blocker fired** | `P4-hour-anchor-cond-result` REJECT → switch OFF |
 | 15 | was the gate fair? | forecaster's dilemma | `hour_anchor_exante.py` (no retraining, saved arrays) | `P4-hour-anchor-exante-result`: no ex-ante tail damage | block stands anyway; **R89** + pitfall `subset-not-outcome-selected` |
 | 16 | my own bug | G_C absorbed by the median factor | fixed before reading the comparison | `P4-level-alternatives-result`: clock beats simpler level fixes on the tails | pitfall `arm-not-degenerate` |
-| 17 | E2c, per episode, served base | the project's largest effect was never tested with an estimator that can fail | `iv_served_pe.py` (inputs rebuilt from committed DVOL) | `P4-iv-served-pe` — running | **operational failure:** my waiter polled `pgrep -f "model.eval.blend_ceiling"`, which matches the waiter's OWN command line; the loop never exited and the test sat unstarted for ~85 min. Fixed by waiting on the PID with `kill -0`. Lesson: never wait on a process by a pattern that appears in the waiter's own command |
+| 17 | E2c, per episode, served base | the project's largest effect was never tested with an estimator that can fail | `iv_served_pe.py` (inputs rebuilt from committed DVOL) | `P4-iv-served-pe-result` REJECT: nothing separates on the served base (QLIKE +0.98% ns); large same-signed gains on HOT/HIGH nights, not significant | **operational failure:** my waiter polled `pgrep -f "model.eval.blend_ceiling"`, which matches the waiter's OWN command line; the loop never exited and the test sat unstarted for ~85 min. Fixed by waiting on the PID with `kill -0`. Lesson: never wait on a process by a pattern that appears in the waiter's own command |
 
 ## What the trajectory itself shows
 
@@ -54,3 +54,8 @@ ADVANCE-not-ADOPT. Supervisor at start: REPETITION on the calibration mechanism
   REPETITION flags on stacking (closed), dispersion (closed) and the hour anchor
   (confirmations, now handed to the forward holdout — no further walk-forward
   mining of it).
+- **The factor-free benchmark overstated a level-type effect three times in
+  two days** (dispersion, the stacked anchor's mirror, E2c). The single most
+  consequential methodological change of the period is that product tests now
+  score against the served base -- serving's trailing factor on every arm.
+

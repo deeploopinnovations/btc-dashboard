@@ -111,6 +111,15 @@ the right primary for the holdout — but it measures sampling error, not the
 between-regime variation that §26 showed dominates. Both will be reported, and
 the fold-level one will be labelled underpowered until it is not.
 
+**Reporting note added 2026-09-28 (does not change the frozen candidate or its
+primary).** `P4-iv-served-pe-result` found that, scored against a baseline
+that carries serving's trailing level factor, E2c's walk-forward effect is not
+distinguishable from zero on any metric: its headline was mostly a level
+effect the served system already has. When this holdout is scored, the
+comparison against the served baseline (serving's factor applied to both arms)
+must be reported beside the primary, so a forward "win" is not a re-measurement
+of that level effect.
+
 ## The freeze is CANDIDATE-SPECIFIC, and a second candidate does not inherit it
 
 Added 2026-09-22, because the question came up while the dispersion correction
