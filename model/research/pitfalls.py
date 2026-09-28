@@ -434,13 +434,106 @@ def check_bootstrap_can_fail(deltas, name: str = "") -> Verdict:
                    "E2-confirm's bootstrap CI was identical at alpha/4 and alpha/1000")
 
 
+def check_subset_not_outcome_selected(member, outcome, name: str = "",
+                                      auc_max: float = 0.95) -> Verdict:
+    """A gate's subset must not be (nearly) a function of the OUTCOME.
+
+    PROVENANCE: P4-hour-anchor-cond pre-registered a ship-blocker on "spike
+    nights" = the top 5% of REALISED vol. On a subset selected by the outcome,
+    any HIGHER forecast wins whether or not it is right (the forecaster's
+    dilemma, Lerch et al. 2017), so the gate was biased against every
+    level-lowering change by construction; it fired, and the block had to
+    stand. Membership that the outcome predicts with AUC near 1 is an
+    outcome-selected subset. Condition on what is known at the anchor instead
+    (R89).
+    """
+    m = np.asarray(member, bool)
+    y = np.asarray(outcome, np.float64)
+    ok_ = np.isfinite(y)
+    m, y = m[ok_], y[ok_]
+    tag = f"[{name}]" if name else ""
+    if m.all() or not m.any():
+        return Verdict(True, f"subset-not-outcome-selected{tag}",
+                       "subset is everything or nothing", "")
+    ranks = np.argsort(np.argsort(y)) + 1.0
+    n1, n0 = m.sum(), (~m).sum()
+    auc = (ranks[m].sum() - n1 * (n1 + 1) / 2) / (n1 * n0)
+    auc = max(auc, 1 - auc)
+    ok = auc < auc_max
+    return Verdict(ok, f"subset-not-outcome-selected{tag}",
+                   f"outcome separates members from non-members with AUC {auc:.3f}"
+                   + ("" if ok else " -- the subset is chosen BY the outcome; a "
+                      "proper score restricted to it is no longer proper"),
+                   "P4-hour-anchor-cond's spike gate (top 5% realised vol)")
+
+
+def check_arm_not_degenerate(arm, base, name: str = "", tol: float = 1e-12) -> Verdict:
+    """A candidate arm that reproduces its baseline is not a test of anything.
+
+    PROVENANCE: P4-level-alternatives' first G_C applied a constant at ALL
+    hours; serving's median factor absorbs any all-hours constant exactly, and
+    the arm came back bit-identical to G_M0s. Caught only because two rows of
+    a results table matched to six decimals.
+    """
+    a = np.asarray(arm, np.float64); b = np.asarray(base, np.float64)
+    tag = f"[{name}]" if name else ""
+    diff = float(np.nanmax(np.abs(a - b))) if a.size else 0.0
+    ok = diff > tol
+    return Verdict(ok, f"arm-not-degenerate{tag}",
+                   f"max |arm - base| = {diff:.3e}"
+                   + ("" if ok else " -- the intervention was absorbed or never applied"),
+                   "P4-level-alternatives' first G_C (absorbed by the median factor)")
+
+
+def check_placebo_not_sign_recoverable(true_signal, placebo_signal, name: str = "",
+                                       corr_max: float = 0.5) -> Verdict:
+    """A placebo a fitted coefficient can flip back into the truth is no placebo.
+
+    PROVENANCE: P4-hour-anchor's first placebo rolled the 24-hour profile by 12
+    hours. The profile is close to one sinusoid, so the roll is close to its
+    negation (corr ~ -1), and the OLS coefficient -- free in sign -- came back
+    at -0.8 to -1.2, recovering the clock. Rejected before any run; the
+    replacement is the least-correlated seeded permutation.
+    """
+    c = float(np.corrcoef(np.asarray(true_signal, float), np.asarray(placebo_signal, float))[0, 1])
+    tag = f"[{name}]" if name else ""
+    ok = abs(c) < corr_max
+    return Verdict(ok, f"placebo-not-sign-recoverable{tag}",
+                   f"corr(truth, placebo) = {c:+.3f}"
+                   + ("" if ok else " -- a free-sign coefficient recovers the truth"),
+                   "P4-hour-anchor's 12-hour-rolled profile")
+
+
+def check_serving_gate_imports(source: str, name: str = "") -> Verdict:
+    """A serving gate must run on serving's dependencies alone.
+
+    PROVENANCE: tests/test_hour_anchor.py imported eval/hour_anchor to check
+    the math was shared; that pulled in the benchmark's sklearn, which the
+    serving CI job does not install, and CI failed on three commits. Checked
+    on the source, as the fix does.
+    """
+    import ast
+    tree = ast.parse(source)
+    bad = sorted({(n.module or "") for n in ast.walk(tree)
+                  if isinstance(n, ast.ImportFrom) and (n.module or "").split(".")[0] == "eval"}
+                 | {a.name for n in ast.walk(tree) if isinstance(n, ast.Import)
+                    for a in n.names if a.name.split(".")[0] in ("eval", "sklearn")})
+    tag = f"[{name}]" if name else ""
+    ok = not bad
+    return Verdict(ok, f"serving-gate-imports{tag}",
+                   "imports serving code only" if ok else f"imports research modules {bad}",
+                   "tests/test_hour_anchor.py importing eval/ (CI had no sklearn)")
+
+
 ALL_CHECKS = [check_skill_sign, check_relevance_not_absolute,
               check_beats_base_rate, check_arms_matched,
               check_not_a_coin_flip, check_correction_verified,
               check_guard_is_reachable, check_measured_is_shipped,
               check_rule_satisfiable, check_eval_matches_trainer,
               check_ci_is_defined, check_corruption_bites,
-              check_bootstrap_can_fail]
+              check_bootstrap_can_fail, check_subset_not_outcome_selected,
+              check_arm_not_degenerate, check_placebo_not_sign_recoverable,
+              check_serving_gate_imports]
 
 
 def self_test() -> int:
@@ -491,8 +584,30 @@ def self_test() -> int:
     # the paired per-episode deltas, which take both signs
     r.add(check_bootstrap_can_fail([-0.4, 0.2, -0.1, 0.3, -0.9, 0.05],
                                    "paired per-episode, as replaced"))
+    # 2026-09-28: the four mistakes of the hour-anchor round
+    _rng = np.random.default_rng(0)
+    _rv = np.exp(_rng.normal(0, 0.5, 2000))
+    r.add(check_subset_not_outcome_selected(_rv >= np.quantile(_rv, 0.95), _rv,
+                                            "spike = top 5% realised vol (historical FAIL)"))
+    _ex = _rv * np.exp(_rng.normal(0, 0.6, 2000))          # an ex-ante proxy, noisy
+    r.add(check_subset_not_outcome_selected(_ex >= np.quantile(_ex, 0.90), _rv,
+                                            "ex-ante flag"))
+    _b = _rng.normal(0, 1, 50)
+    r.add(check_arm_not_degenerate(_b.copy(), _b, "G_C absorbed (historical FAIL)"))
+    r.add(check_arm_not_degenerate(_b - 0.05, _b, "G_C at 17:00 only"))
+    _h = np.arange(24)
+    _prof = 0.3 * np.sin(2 * np.pi * _h / 24)
+    r.add(check_placebo_not_sign_recoverable(_prof, np.roll(_prof, 12),
+                                             "12-hour roll (historical FAIL)"))
+    _perm = _prof[np.array([0, 13, 2, 15, 4, 17, 6, 19, 8, 21, 10, 23,
+                            12, 1, 14, 3, 16, 5, 18, 7, 20, 9, 22, 11])]
+    r.add(check_placebo_not_sign_recoverable(_prof, _perm, "a mixing permutation"))
+    r.add(check_serving_gate_imports("from eval import hour_anchor as EH\n",
+                                     "importing eval (historical FAIL)"))
+    r.add(check_serving_gate_imports("from noctua import season\nimport ast\n",
+                                     "serving imports only"))
     print(r.render())
-    expect_fail = 13  # the historical cases, which MUST still be caught
+    expect_fail = 17  # the historical cases, which MUST still be caught
     got = len(r.failures)
     print(f"\nself-test: {got} failures, expected {expect_fail} "
           f"(the historical errors these checks exist to catch)")
