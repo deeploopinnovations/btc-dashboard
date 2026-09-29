@@ -1,0 +1,17 @@
+{
+  "hours": 128031,
+  "hours_start_utc": "2012-01-01 00:00:00+00:00",
+  "hours_end_utc": "2026-08-09 14:00:00+00:00",
+  "episodes_total": 510485,
+  "episodes_by_H": {
+    "6": 127074,
+    "12": 127662,
+    "19": 127852,
+    "24": 127897
+  },
+  "episodes_H19_anchor17": 5325,
+  "violations_M_up_lt_max0R": 0,
+  "violations_M_dn_gt_min0R": 0,
+  "nonfinite_labels": 0,
+  "nonpositive_RV": 0
+}
