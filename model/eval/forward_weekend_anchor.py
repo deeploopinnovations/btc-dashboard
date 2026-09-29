@@ -63,7 +63,7 @@ def logs_night(curves: dict, e) -> float:
     return float(np.mean(errs))
 
 
-CAL_FLAGS = ("HOUR_ANCHOR", "WEEKEND_ANCHOR", "DOW_ANCHOR")
+CAL_FLAGS = ("HOUR_ANCHOR", "WEEKEND_ANCHOR", "DOW_ANCHOR", "IV_ANCHOR")
 
 # The arrays each candidate was FROZEN with (research/DATA_USE.md): first 16
 # hex of sha256 over the array bytes. A holdout scored against different
@@ -76,6 +76,7 @@ FROZEN_SHA16 = {
                        "har_beta_weekend_season": "4b59300962e77815"},
     "DOW_ANCHOR": {"har_beta_dow": "a10cfe4816204035",
                    "har_beta_dow_season": "e1053f4c9aff7f38"},
+    "IV_ANCHOR": {"har_beta_iv": "22ea1539900cff9b"},
 }
 
 

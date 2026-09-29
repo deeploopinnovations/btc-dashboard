@@ -242,7 +242,8 @@ def forecast(model, hours: pd.DataFrame, H: int = PROD_H,
     # drift apart (R18). So it can ask for the object itself. Default None:
     # nothing served changes.
     if raw is not None:
-        raw.update(pred=pred, cal=cal, anchor_row=row)
+        raw.update(pred=pred, cal=cal, anchor_row=row,
+                   anchor_logvol=float(np.asarray(model.har_logvol(d))[0]))
 
     # THE REPORTED VOLATILITY AND THE BARRIER CURVE ARE TWO PRODUCTS WITH TWO
     # LOSSES, and this is the line where they part company.
