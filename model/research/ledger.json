@@ -2983,7 +2983,35 @@
       "rule": "PRE-REGISTERED BEFORE ANY IV-vs-RV RELATIONSHIP WAS LOOKED AT (the harvest collects data only). Feature: iv = next-day expiry ATM IV (|log K/S| <= 0.03, amount-weighted median of trades in [16:00, 17:00) UTC; eval/harvest_iv1d.py); x = log(iv/100/sqrt(8760)) - lhc, the gap between the market's hourly vol and the fold's Log-HAR anchor. ARM Is: increment a + b*x at 17:00 H=19 nights WITH iv (train, calib and test), fitted by OLS of the anchor residual y - lhc on [1, x] over the fold's TRAIN 17:00 nights with iv, same weights; nights without iv keep the served anchor (as deployed). PLACEBO Ip: identical, but each night's iv replaced by the iv of a random other night in the same calendar year (seeded): same distribution, no night-specific information. NOCTUA through run_fold, every arm with serving's trailing factor from its own forecasts. FOLDS 2022-2026 (fold 2021 excluded now: its train slice would hold < 7 months of iv). Per-episode brier, logs, pinball, crps (block 38) and QLIKE on the production nights of those folds (all nights, with or without iv); DSC fold-level. Family {Is, Ip} vs M0s x 5 = 10, 99.5%. RULE: ADVANCE iff Is beats M0s on >= 2 of the 4 barrier metrics, is worse on none of the five, and Ip is better on none. Reported: coverage by year, the fitted (a, b) per fold, per-episode deltas on nights with iv only, and on ex-ante nights where |x| is in its top decile.",
       "verdict": "OPEN",
       "result": "pre-registered. PREDICTION: b between 0.2 and 0.6 (the market adds information but the anchor keeps weight); a < 0 (implied above realised); Is beats M0s on brier, logs and crps and on QLIKE (+3% to +6%), rule met with probability about 0.55; Ip nothing -- if Ip helps, the gain is a level effect, not the night's information.",
-      "notes": "What this measures that the exogenous line (P3-exogenous-dvol, E2c, P4-iv-served-pe) could not: a HORIZON-MATCHED implied vol (15 h to expiry vs a 19 h window) instead of the 30-day DVOL index, and a placebo that keeps the IV level but removes the night. Data became reachable only today (full network access): history.deribit.com serves historical option trades with IV. Forecast input only -- no options P&L (no historical tradable quotes/spreads/execution)."
+      "notes": "What this measures that the exogenous line (P3-exogenous-dvol, E2c, P4-iv-served-pe) could not: a HORIZON-MATCHED implied vol (15 h to expiry vs a 19 h window) instead of the 30-day DVOL index, and a placebo that keeps the IV level but removes the night. Data became reachable only today (full network access): history.deribit.com serves historical option trades with IV. Forecast input only -- no options P&L (no historical tradable quotes/spreads/execution).",
+      "superseded_by": [
+        "P4-iv1d-anchor-result"
+      ]
+    },
+    {
+      "id": "P4-iv1d-anchor-result",
+      "topic": "phase4",
+      "mechanism": "exogenous-iv-horizon",
+      "date": "2026-09-29",
+      "supersedes": [
+        "P4-iv1d-anchor"
+      ],
+      "question": "Closing P4-iv1d-anchor: does next-day ATM implied vol (pre-anchor trades) improve the served barrier product?",
+      "rule": "As registered: ADVANCE iff Is beats M0s on >= 2 of the 4 barrier metrics (per episode, block 38, family 10, 99.5%), is worse on none of the five, and the shuffled-IV placebo Ip is better on none.",
+      "verdict": "REJECT",
+      "result": "NOT MET -- THE PLACEBO ALSO HELPS, AND THE REASON IS A DESIGN FLAW IN MY RULE. 1,681 production nights 2022-2026, 100% with iv, guards passed. Is vs M0s: brier +1.082% [+0.001299, +0.002340], logs +1.078%, pinball +2.347%, crps +2.337%, QLIKE +11.95% [+0.018674, +0.043690], all separated; DSC +0.00171, 5/5 folds -- the largest effect in the project. Ip vs M0s: brier +0.448%, logs +0.339%, pinball +0.708%, crps +0.933%, QLIKE +3.76%, ALL separated -> rule not met. Fits (year, a_Is, b_Is, a_Ip, b_Ip): [(2022, -0.034, 0.326, -0.025, 0.036), (2023, -0.054, 0.336, -0.037, 0.051), (2024, -0.09, 0.346, -0.05, 0.028), (2025, -0.118, 0.473, -0.061, 0.035), (2026, -0.123, 0.56, -0.067, 0.047)]. READING: both arms carry an intercept on 17:00 nights; the intercept alone corrects the known 17:00 over-forecast (the clock-aware anchor's defect, P4-hour-anchor: Brier +0.40%), which is what the placebo captured (its IV weight b is 0.03-0.05). The rule required the placebo to move nothing; with an intercept in both arms, it could not. PREDICTION SCORING: b 0.2-0.6 -- right (0.33-0.56, growing); a < 0 -- right; Is beats M0s on brier/logs/crps and QLIKE +3-6% -- right in sign, QLIKE far larger (+11.9%); P(met) 0.55 -- not met; Ip nothing -- WRONG, for the reason above.",
+      "notes": "The verdict stands as registered. The placebo-controlled contrast that SHOULD have been primary (Is vs Ip: same freedom, night-specific information removed) is recorded separately as a post-hoc diagnostic (P4-iv1d-posthoc) and can support only a forward test, never an adoption."
+    },
+    {
+      "id": "P4-iv1d-posthoc",
+      "topic": "phase4",
+      "mechanism": "exogenous-iv-horizon",
+      "date": "2026-09-29",
+      "question": "POST HOC, NOT REGISTERED: does the real next-day IV beat its own shuffled placebo (same intercept freedom) -- i.e. is there night-specific information beyond the 17:00 level?",
+      "rule": "Diagnostic on the saved per-episode arrays of P4-iv1d-anchor (both arms real NOCTUA runs); computed AFTER seeing that run. It cannot adopt anything; it can only motivate a forward holdout.",
+      "verdict": "DIAGNOSTIC",
+      "result": "Is vs Ip per episode (99.5%): brier +0.638% [+0.000694, +0.001473], logs +0.742%, pinball +1.651%, crps +1.418%, QLIKE +8.51% [+0.011060, +0.032643], all separated; positive in EVERY year and growing (brier +0.13 / +0.46 / +0.69 / +1.00 / +1.28% for 2022-2026; QLIKE +0.9% -> +23.4%).",
+      "notes": "Most plausible alternative to rule out before any forward freeze: IV is a fast proxy of recent realised vol (the model's own har_1h / har_6h already carry that). Handed to the swarm and to my own control."
     }
   ]
 }
