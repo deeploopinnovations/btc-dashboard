@@ -143,17 +143,21 @@ def main(argv=None) -> int:
         d1 = (datetime.fromisoformat(a.end).replace(tzinfo=timezone.utc) if a.end
               else datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
               - timedelta(days=1))
-        frames, day, n = [have], d0, 0
+        from concurrent.futures import ThreadPoolExecutor
+        todo, day = [], d0
         while day <= d1:
-            key = day.strftime("%Y-%m-%d")
-            if key not in done:
-                frames.append(to_frame(day, fetch_hour(day)))
-                n += 1
-                if n % 100 == 0:
-                    pd.concat(frames, ignore_index=True).to_parquet(OUT_TRADES, index=False)
-                    print(f"  {key}: {n} days fetched", flush=True)
-                time.sleep(0.12)
+            if day.strftime("%Y-%m-%d") not in done:
+                todo.append(day)
             day += timedelta(days=1)
+        frames = [have]
+        # four days in flight (each paginates sequentially): ~10 requests/s at
+        # most, well inside Deribit's public limits
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            for i in range(0, len(todo), 100):
+                chunk = todo[i:i + 100]
+                frames.extend(pool.map(lambda dd: to_frame(dd, fetch_hour(dd)), chunk))
+                pd.concat(frames, ignore_index=True).to_parquet(OUT_TRADES, index=False)
+                print(f"  {chunk[-1]:%Y-%m-%d}: {i + len(chunk)}/{len(todo)} days fetched", flush=True)
         have = pd.concat(frames, ignore_index=True)
         have.to_parquet(OUT_TRADES, index=False)
     s = summarise(have)
