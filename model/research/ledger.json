@@ -2973,6 +2973,17 @@
       "verdict": "DIAGNOSTIC",
       "result": "NULL IN THE TRAINING ERA; NOT PURSUED. FOMC statement nights (scheduled meetings only, from federalreserve.gov, research/fomc_scheduled.json): n=26, median residual -0.072 vs same-weekday nights [-0.206, +0.142], mean RV ratio 0.92. Monthly-expiry Thursday nights: +0.057 [-0.086, +0.131]. Quarterly: +0.096 [-0.082, +0.353], n=14. Even a real post-2022 effect would touch ~2-4% of nights (about 48 FOMC nights in 2021-2026), bounding the product-level gain and leaving a per-episode test without power.",
       "notes": "SUPERVISOR REDIRECT applied at the inspect stage rather than after a costly build. The FOMC date file (87 scheduled statement days 2017-2027, sources recorded) is kept for forward monitoring."
+    },
+    {
+      "id": "P4-iv1d-anchor",
+      "topic": "phase4",
+      "mechanism": "exogenous-iv-horizon",
+      "date": "2026-09-29",
+      "question": "Does the market's own forecast for the product night -- the at-the-money implied vol of the Deribit option expiring 08:00 UTC next morning, from trades in the hour BEFORE the 17:00 anchor -- improve the served barrier product?",
+      "rule": "PRE-REGISTERED BEFORE ANY IV-vs-RV RELATIONSHIP WAS LOOKED AT (the harvest collects data only). Feature: iv = next-day expiry ATM IV (|log K/S| <= 0.03, amount-weighted median of trades in [16:00, 17:00) UTC; eval/harvest_iv1d.py); x = log(iv/100/sqrt(8760)) - lhc, the gap between the market's hourly vol and the fold's Log-HAR anchor. ARM Is: increment a + b*x at 17:00 H=19 nights WITH iv (train, calib and test), fitted by OLS of the anchor residual y - lhc on [1, x] over the fold's TRAIN 17:00 nights with iv, same weights; nights without iv keep the served anchor (as deployed). PLACEBO Ip: identical, but each night's iv replaced by the iv of a random other night in the same calendar year (seeded): same distribution, no night-specific information. NOCTUA through run_fold, every arm with serving's trailing factor from its own forecasts. FOLDS 2022-2026 (fold 2021 excluded now: its train slice would hold < 7 months of iv). Per-episode brier, logs, pinball, crps (block 38) and QLIKE on the production nights of those folds (all nights, with or without iv); DSC fold-level. Family {Is, Ip} vs M0s x 5 = 10, 99.5%. RULE: ADVANCE iff Is beats M0s on >= 2 of the 4 barrier metrics, is worse on none of the five, and Ip is better on none. Reported: coverage by year, the fitted (a, b) per fold, per-episode deltas on nights with iv only, and on ex-ante nights where |x| is in its top decile.",
+      "verdict": "OPEN",
+      "result": "pre-registered. PREDICTION: b between 0.2 and 0.6 (the market adds information but the anchor keeps weight); a < 0 (implied above realised); Is beats M0s on brier, logs and crps and on QLIKE (+3% to +6%), rule met with probability about 0.55; Ip nothing -- if Ip helps, the gain is a level effect, not the night's information.",
+      "notes": "What this measures that the exogenous line (P3-exogenous-dvol, E2c, P4-iv-served-pe) could not: a HORIZON-MATCHED implied vol (15 h to expiry vs a 19 h window) instead of the 30-day DVOL index, and a placebo that keeps the IV level but removes the night. Data became reachable only today (full network access): history.deribit.com serves historical option trades with IV. Forecast input only -- no options P&L (no historical tradable quotes/spreads/execution)."
     }
   ]
 }
