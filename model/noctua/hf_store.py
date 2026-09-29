@@ -34,6 +34,14 @@ from this container until it is allowed).
     python -m model.noctua.hf_store --check            # hash only, no network
     python -m model.noctua.hf_store --upload           # needs HF_TOKEN
     python -m model.noctua.hf_store --restore          # public, no token needed
+
+In a fresh container the corpus is not on disk (it is not in git); rebuild it
+from the source first -- regenerate.py refuses unless the published statistics
+reproduce, and the upload refuses unless the COMMITTED content hash matches:
+
+    git clone --depth 1 https://github.com/ff137/bitstamp-btcusd-minute-data /tmp/src
+    python -m model.noctua.regenerate --repo /tmp/src
+    python -m model.noctua.hf_store --upload && git add model/research/hf_store.json
 """
 from __future__ import annotations
 
@@ -80,6 +88,19 @@ with attribution. Educational research only; not financial advice.
 """
 
 
+def committed_manifest() -> dict:
+    """The manifest as COMMITTED (git HEAD), not as on disk: regenerate.py
+    rewrites the file it verifies against, so the disk copy cannot be the
+    reference for a rebuilt corpus."""
+    import subprocess
+    try:
+        txt = subprocess.run(["git", "show", f"HEAD:{MANIFEST_PATH.as_posix()}"],
+                             capture_output=True, text=True, check=True).stdout
+    except (OSError, subprocess.CalledProcessError):
+        raise SystemExit(f"REFUSING: cannot read the committed {MANIFEST_PATH} from git")
+    return json.loads(txt)
+
+
 def verify(path: Path, man: dict) -> str:
     d = pd.read_parquet(path)
     digest = content_sha256(d)
@@ -113,7 +134,7 @@ def main(argv=None) -> int:
     g.add_argument("--upload", action="store_true")
     g.add_argument("--restore", action="store_true")
     a = ap.parse_args(argv)
-    man = json.loads(MANIFEST_PATH.read_text())
+    man = committed_manifest()
 
     if a.restore:
         repo, rev, files = os.environ.get("HF_REPO"), None, (RESEARCH,)
@@ -149,7 +170,8 @@ def main(argv=None) -> int:
     readme = README.format(rows=man["corpus_rows"], end=man["corpus_end_utc"], sha=digest)
     api.upload_file(path_or_fileobj=readme.encode(), path_in_repo="README.md",
                     repo_id=repo, repo_type="dataset", commit_message="README")
-    api.upload_file(path_or_fileobj=str(MANIFEST_PATH), path_in_repo=MANIFEST,
+    api.upload_file(path_or_fileobj=(json.dumps(man, indent=1, default=float) + "\n").encode(),
+                    path_in_repo=MANIFEST,
                     repo_id=repo, repo_type="dataset", commit_message="corpus manifest")
     last = None
     for f in (RESEARCH, UNSEEN):
