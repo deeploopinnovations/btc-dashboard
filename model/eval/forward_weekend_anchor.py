@@ -65,6 +65,32 @@ def logs_night(curves: dict, e) -> float:
 
 CAL_FLAGS = ("HOUR_ANCHOR", "WEEKEND_ANCHOR", "DOW_ANCHOR")
 
+# The arrays each candidate was FROZEN with (research/DATA_USE.md): first 16
+# hex of sha256 over the array bytes. A holdout scored against different
+# arrays would test a different candidate under the frozen one's name, so
+# scoring REFUSES on any mismatch (counting does not need the check).
+FROZEN_SHA16 = {
+    "HOUR_ANCHOR": {"season_profile": "836813fb13ec4769",
+                    "har_beta_season": "27daa2be75a28cb6"},
+    "WEEKEND_ANCHOR": {"har_beta_weekend": "03ca1419345447ef",
+                       "har_beta_weekend_season": "4b59300962e77815"},
+    "DOW_ANCHOR": {"har_beta_dow": "a10cfe4816204035",
+                   "har_beta_dow_season": "e1053f4c9aff7f38"},
+}
+
+
+def check_frozen(model, flags) -> None:
+    import hashlib
+    flags = (flags,) if isinstance(flags, str) else tuple(flags)
+    w = getattr(model, "w", {})
+    for fl in flags:
+        for name, want in FROZEN_SHA16[fl].items():
+            got = (hashlib.sha256(np.asarray(w[name]).tobytes()).hexdigest()[:16]
+                   if name in w else "missing")
+            if got != want:
+                raise SystemExit(f"REFUSING to score: {name} is {got}, frozen as {want} "
+                                 f"(research/DATA_USE.md). This is not the frozen candidate.")
+
 
 def score(model, hours: pd.DataFrame, nights: pd.DataFrame, flag="WEEKEND_ANCHOR"):
     """Forecast each night with `flag` off and on, every OTHER anchor flag off
@@ -95,7 +121,7 @@ def score(model, hours: pd.DataFrame, nights: pd.DataFrame, flag="WEEKEND_ANCHOR
 
 
 def evaluate(rows) -> dict:
-    from eval.direction import mean_ci
+    from eval.ci import mean_ci
     L = max(2 * PROD_H // 24 + 1, int(round(len(rows) ** (1 / 3))))
 
     def diff(fn):
@@ -139,6 +165,7 @@ def run(hours, model, lock: Path = LOCK, n_min: int = N_MIN,
               f"the holdout is scored once at {n_min}. Nothing else is printed "
               f"before then.")
         return {"n_nights": n, "scored": False}
+    check_frozen(model, flag)
     res = evaluate(score(model, hours, nights, flag))
     res.update(scored=True, freeze=freeze, n_min=n_min,
                scored_on=pd.Timestamp.now(tz="UTC").strftime("%Y-%m-%d"))
@@ -197,6 +224,17 @@ def selftest() -> int:
         with contextlib.redirect_stdout(io.StringIO()):
             r2 = run(hours, model, lock=lock, n_min=3, freeze=fake)
         ok.append(("second run returns the locked result", r2 == json.loads(lock.read_text())))
+        import copy
+        bad = copy.copy(model)
+        bad.w = dict(model.w)
+        bad.w["har_beta_weekend"] = model.w["har_beta_weekend"] + 1e-9
+        refused = False
+        try:
+            check_frozen(bad, "WEEKEND_ANCHOR")
+        except SystemExit:
+            refused = True
+        ok.append(("scoring refuses a tampered frozen array", refused))
+        check_frozen(model, CAL_FLAGS)
         from serve import predict as P
         ok.append(("flags restored after scoring",
                    all(getattr(P, f) is False for f in CAL_FLAGS)))

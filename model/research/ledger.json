@@ -2962,6 +2962,17 @@
       "verdict": "DIAGNOSTIC",
       "result": "NO DISQUALIFIER. F: leave-one-fold-out 6/6 met; block 19-365 and families 30/60/120 all clear -- DOES NOT WEAKEN. Accepted from F: Thursday nights WORSE under Ds (QLIKE -1.88%, separated -- removing the bug's accidental Thursday cut costs where the 17:00 anchor over-forecasts); gains grow every year (QLIKE +0.3% in 2021 to +6.7% in 2026: the weekday pattern strengthened); vs Ws the DSC is 3/6 folds (no ranking claim over Ws). Rejected from F: 'bottom 95% negative' (the ordinary heavy-tailed shape of per-night Brier deltas; the rule survives trimming). G claimed 'freedom, not calendar' -- REJECTED ON ITS OWN DATA AND MINE: non-weekly fake cycles (periods 6 and 8, 5 columns) give -0.003% / -0.001% while every phase of the real week gives +0.23% to +0.57% (Gaussian law, 2,046 nights); a whole-day relabel (+48 h) is identical (+0.384%), as it must be; G's 'coefficients do not match realised vol' compared ANCHOR weekday with day-of-WINDOW. STALENESS (eval/dow_staleness.py): coefficients frozen on the artifact split keep 0.82 of a yearly refit's Brier gain over 2023-2026 (1.09 / 0.92 / 0.65 / 0.62), positive every year; a five-column INCREMENT loses most of 2026's gain (the residual regression lacks the Fri+Sat column), so the built increment uses Mon..Sat. NEW HYPOTHESIS, NOT ADOPTED: the day BOUNDARY matters -- shifting it by +6 h to +9 h (days starting ~15:00-18:00 UTC, nearer US market hours) gives +0.57% vs +0.38% at UTC midnight; chosen from a scan of 8 phases, so it is a forking path and is recorded only as a candidate for a future pre-registration.",
       "notes": "Built: noctua/add_dow_anchor.py (har_beta_dow, har_beta_dow_season; 121 arrays unchanged), runtime + DOW_ANCHOR = False, tests/test_dow_anchor.py 13/13, forward holdout eval/forward_dow_anchor.py frozen 2026-09-29 N_MIN 450 (DATA_USE.md fourth candidate). Agent tally this round: F useful and mostly right; G's headline wrong but its shifted-week attack surfaced the day-boundary effect."
+    },
+    {
+      "id": "P4-event-calendar-inspect",
+      "topic": "phase4",
+      "mechanism": "exogenous-calendar",
+      "date": "2026-09-29",
+      "question": "Do scheduled events inside the 17:00->12:00 window -- FOMC statements (18:00/19:00 UTC) and Deribit monthly/quarterly expiries (Fri 08:00 UTC) -- leave a residual the anchor misses? (First use of real event dates: P2-dataset-audit found no event labels; P2-event-window used ET clock columns only.)",
+      "rule": "INSPECT only, pre-2021 data (not the walk-forward test years): median Log-HAR residual on event nights vs same-weekday nights, bootstrap 95%. A product test would be registered only if the training era showed an effect large enough to matter on so few nights.",
+      "verdict": "DIAGNOSTIC",
+      "result": "NULL IN THE TRAINING ERA; NOT PURSUED. FOMC statement nights (scheduled meetings only, from federalreserve.gov, research/fomc_scheduled.json): n=26, median residual -0.072 vs same-weekday nights [-0.206, +0.142], mean RV ratio 0.92. Monthly-expiry Thursday nights: +0.057 [-0.086, +0.131]. Quarterly: +0.096 [-0.082, +0.353], n=14. Even a real post-2022 effect would touch ~2-4% of nights (about 48 FOMC nights in 2021-2026), bounding the product-level gain and leaving a per-episode test without power.",
+      "notes": "SUPERVISOR REDIRECT applied at the inspect stage rather than after a costly build. The FOMC date file (87 scheduled statement days 2017-2027, sources recorded) is kept for forward monitoring."
     }
   ]
 }

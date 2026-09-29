@@ -117,7 +117,7 @@ def exante_flags(hours, nights) -> dict:
 
 
 def evaluate(rows, exante: dict | None = None) -> dict:
-    from eval.direction import mean_ci
+    from eval.ci import mean_ci
     rv = np.array([e["RV"] for e, _ in rows])
     q = {f: qlike(rv, np.array([o[f]["mean"] for _, o in rows])) for f in (False, True)}
     d = q[False] - q[True]
@@ -170,6 +170,8 @@ def run(hours, model, lock: Path = LOCK, n_min: int = N_MIN,
               f"windows; the holdout is scored once at {n_min}. Nothing else "
               f"is printed before then.")
         return {"n_nights": n, "scored": False}
+    from eval.forward_weekend_anchor import check_frozen
+    check_frozen(model, "HOUR_ANCHOR")
     res = evaluate(score(model, hours, nights), exante_flags(hours, nights))
     res.update(scored=True, freeze=freeze, n_min=n_min,
                scored_on=pd.Timestamp.now(tz="UTC").strftime("%Y-%m-%d"))
