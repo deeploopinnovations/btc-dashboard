@@ -118,6 +118,24 @@ DISP_LAMBDA = 1.0
 # is bit-identical and that on moves exactly what the algebra says.
 HOUR_ANCHOR = False
 
+# The TRUE-WEEKEND ANCHOR (P4-weekend-fix-result, ADVANCE). The anchor's
+# weekend column counts FRIDAY and SATURDAY (P4-weekend-bug: an epoch-offset
+# slip in noctua/features.py) and stays that way because the network was
+# trained on it. With this on, the anchor gains an increment on the true
+# Sat+Sun fraction of the window (noctua/calendar.py), fitted on the artifact's
+# training split (noctua/add_weekend_anchor.py). Walk-forward, 2,046 nights,
+# every arm carrying this file's trailing factor: Brier +0.17%, log score
+# +0.17%, pinball +0.37%, CRPS +0.35% per episode at 99.5%, positive in every
+# fold, a Tue+Wed placebo flat. The gain is on weekend-touching nights;
+# Mon-Thu nights pay a little for it. The artifact's coefficient (-0.130) is
+# from training data through 2023, smaller than the recent folds' (-0.26 to
+# -0.29): the weekend effect has grown.
+#
+# OFF until the swarm audit clears and a forward holdout is frozen for it. It
+# MOVES THE PRODUCT like HOUR_ANCHOR; tests/test_weekend_anchor.py asserts off
+# is bit-identical and on moves exactly what the algebra says.
+WEEKEND_ANCHOR = False
+
 
 def forecast(model, hours: pd.DataFrame, H: int = PROD_H,
              anchor_ts: int | None = None, source: str = "unknown",
@@ -148,6 +166,7 @@ def forecast(model, hours: pd.DataFrame, H: int = PROD_H,
     # model.prepare/predict on settled anchors: the trailing factor must be
     # computed from the same anchor it corrects (P4-hour-anchor scored it so)
     model.hour_anchor = bool(HOUR_ANCHOR)
+    model.weekend_anchor = bool(WEEKEND_ANCHOR)
     d = model.prepare(X, np.array([float(H)]))
     pred = model.predict(d, disp_lambda=DISP_LAMBDA)
 
@@ -330,6 +349,22 @@ def forecast(model, hours: pd.DataFrame, H: int = PROD_H,
                           "p_up, and the trailing vol_calibration factor "
                           "(computed from the same anchor). Asserted in "
                           "tests/test_hour_anchor.py.",
+        },
+        "weekend_anchor": {
+            "enabled": bool(WEEKEND_ANCHOR),
+            "available": bool(getattr(model, "has_weekend_anchor", False)),
+            "weekend_frac": (round(float(d["weekend_frac"][0]), 5)
+                             if "weekend_frac" in d else None),
+            "weekend_coef": (round(float(model.w["har_beta_weekend"][1]), 5)
+                             if getattr(model, "has_weekend_anchor", False) else None),
+            "note": "adds the TRUE Sat+Sun fraction of the forecast window to the "
+                    "Log-HAR anchor (the model's own weekend column counts Fri+Sat). "
+                    "Off is bit-identical to the shipped anchor. See "
+                    "P4-weekend-fix-result (ADVANCE).",
+            "applies_to": "the anchor, hence sigma_med, sigma_mean, sigma_atoms, "
+                          "every barrier curve, safe level and p_up, and the "
+                          "trailing vol_calibration factor. Asserted in "
+                          "tests/test_weekend_anchor.py.",
         },
         "sigma_scale": {
             "scale": round(float(qs["scale"]), 4),

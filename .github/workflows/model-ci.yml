@@ -104,6 +104,14 @@ jobs:
       - name: Weekend-column pin
         run: python model/tests/test_weekend_column.py
 
+      # Gates the true-weekend anchor increment (P4-weekend-fix-result): off
+      # must publish the shipped payload bit for bit, on must move the served
+      # median by exactly the increment algebra (Saturday and Monday, alone and
+      # on top of the clock-aware anchor), read the TRUE calendar, and never
+      # move the barrier grid.
+      - name: Weekend-anchor serving gate
+        run: python model/tests/test_weekend_anchor.py
+
       # Gates the online-adaptation guard: ACI's coverage guarantee, Ville's
       # bound on the e-processes, and the promotion/veto asymmetry. A
       # regression in any of these is SILENT -- the system keeps forecasting
