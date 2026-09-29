@@ -66,9 +66,11 @@ def logs_night(curves: dict, e) -> float:
 CAL_FLAGS = ("HOUR_ANCHOR", "WEEKEND_ANCHOR", "DOW_ANCHOR")
 
 
-def score(model, hours: pd.DataFrame, nights: pd.DataFrame, flag: str = "WEEKEND_ANCHOR"):
+def score(model, hours: pd.DataFrame, nights: pd.DataFrame, flag="WEEKEND_ANCHOR"):
     """Forecast each night with `flag` off and on, every OTHER anchor flag off
-    (the served base at the freeze). Shared by forward_dow_anchor.py."""
+    (the served base at the freeze). `flag` may be a tuple of flags switched
+    together. Shared by forward_dow_anchor.py and forward_clock_dow_anchor.py."""
+    flags = (flag,) if isinstance(flag, str) else tuple(flag)
     from serve import predict as P
     rows = []
     saved = {f: getattr(P, f) for f in CAL_FLAGS}
@@ -78,7 +80,8 @@ def score(model, hours: pd.DataFrame, nights: pd.DataFrame, flag: str = "WEEKEND
         for _, e in nights.iterrows():
             out = {}
             for on in (False, True):
-                setattr(P, flag, on)
+                for fl in flags:
+                    setattr(P, fl, on)
                 raw: dict = {}
                 pay = P.forecast(model, hours, H=PROD_H,
                                  anchor_ts=int(e["anchor_ts"]), raw=raw)
@@ -122,7 +125,7 @@ def evaluate(rows) -> dict:
 
 
 def run(hours, model, lock: Path = LOCK, n_min: int = N_MIN,
-        freeze: str = FREEZE, flag: str = "WEEKEND_ANCHOR") -> dict:
+        freeze: str = FREEZE, flag="WEEKEND_ANCHOR") -> dict:
     if lock.exists():
         res = json.loads(lock.read_text())
         print(f"LOCKED: scored once on {res['scored_on']}; printing that result "

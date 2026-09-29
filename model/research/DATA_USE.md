@@ -299,4 +299,24 @@ the first evidence that did not shape it.
 **Switch status, 2026-09-29: OFF.** `DOW_ANCHOR` and `WEEKEND_ANCHOR` are
 alternatives (both on raises).
 
+## Fifth: the clock-aware + day-of-week combination, frozen 2026-09-29
+
+What would actually be served if both candidates were switched on:
+`HOUR_ANCHOR` and `DOW_ANCHOR` together (the day-of-week increment fitted on the
+clock-aware anchor's residual, `har_beta_dow_season`), against the shipped
+anchor with both off. Nothing new is frozen -- it is the same arrays as the
+second and fourth candidates. `eval/forward_clock_dow_anchor.py` (shared
+scorer), primary per-episode Brier, **N_MIN = 300**. Reason for a separate
+freeze: neither single-candidate holdout scores the combination, and the
+walk-forward evidence that they add is from the no-network law only.
+
+## Several holdouts on the same forward nights
+
+Five candidates are now frozen on overlapping forward nights (clock-aware,
+weekend, day-of-week, the combination; the dispersion candidate before them).
+Each is scored ONCE against the shipped anchor on its own primary. Reading
+them together is a family: when more than one is scored, the report states
+how many primaries were read and gives the Bonferroni-corrected interval
+beside the 95% one. No holdout's result may amend another's design.
+
 *Educational research only. Not financial advice.*
