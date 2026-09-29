@@ -3012,6 +3012,17 @@
       "verdict": "DIAGNOSTIC",
       "result": "Is vs Ip per episode (99.5%): brier +0.638% [+0.000694, +0.001473], logs +0.742%, pinball +1.651%, crps +1.418%, QLIKE +8.51% [+0.011060, +0.032643], all separated; positive in EVERY year and growing (brier +0.13 / +0.46 / +0.69 / +1.00 / +1.28% for 2022-2026; QLIKE +0.9% -> +23.4%).",
       "notes": "Most plausible alternative to rule out before any forward freeze: IV is a fast proxy of recent realised vol (the model's own har_1h / har_6h already carry that). Handed to the swarm and to my own control."
+    },
+    {
+      "id": "P4-iv1d-proxy-control",
+      "topic": "phase4",
+      "mechanism": "exogenous-iv-horizon",
+      "date": "2026-09-29",
+      "question": "Attack on P4-iv1d-posthoc: is next-day implied vol just a fast estimate of recent realised vol, which the model already has (har_1h covers the same 16:00-17:00 hour as the option trades; har_6h)?",
+      "rule": "Disproof attempt, run after the result (it can refute, not confirm): no-network Gaussian law, folds 2022-2026, every arm an increment on the fold's Log-HAR anchor at 17:00/H=19, OLS on train 17:00 nights, serving's factor from each arm's own forecasts. Refuted if the realised-vol increment (Grv) reaches the implied-vol increment (Giv), or if IV adds nothing on top of it (Gall vs Grv not separated). 99.5%, block 38.",
+      "verdict": "DIAGNOSTIC",
+      "result": "NOT REFUTED -- THE MARKET CARRIES WHAT THE PRICE HISTORY DOES NOT. Gain vs the Log-HAR anchor (1,681 nights): intercept only +0.257% brier / -0.084% logs; har_1h + har_6h +0.220% / -0.157%; implied vol +1.245% / +1.350%; all three +1.159% / +1.201%. Grv vs intercept: -0.038% brier [-0.000466, +0.000393] -- recent realised vol adds NOTHING beyond the 17:00 level. Giv vs Grv: brier +1.028% [+0.001047, +0.002364], logs +1.504% [+0.004504, +0.010622]; Gall vs Grv +0.942% brier, separated. IV weight with the RV terms present 0.29-0.51 (alone 0.33-0.56); har_6h's weight collapses to ~0 once IV is in.",
+      "notes": "Consistent with the NOCTUA post-hoc Is-vs-Ip gap. Two haiku agents attack the statistics (J) and the DVOL-proxy alternative (K). Confirmation can only come from a forward test registered before any forward night."
     }
   ]
 }
