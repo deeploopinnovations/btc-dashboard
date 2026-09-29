@@ -416,3 +416,32 @@ chosen to fit the outcome.*
 * Every agent claim is checked by running code before it is recorded; agent
   prose is an input, not a verdict (two of five agent audits in phase 4
   contained a fabricated or circular claim).
+
+## Returns (added as they arrived; every claim checked by running code)
+
+**Agent A — leakage / timing (haiku). 5 × NO DEFECT, 1 claimed defect REJECTED.**
+Clean: `day_frac` matches pandas on 1,000 dates; the OLS fits train rows only;
+calib ends before test with the embargo; the placebo is non-degenerate
+(std 0.371 = the true column's; corr −0.593 with it, since both partition the
+week — its fitted coefficient is +0.002..+0.004, so it absorbs nothing); no
+forward-looking column in X. CLAIMED LEAK: "the served factor uses TEST-period
+episodes at 04/10/16:00". **Rejected by computation**: over all 2,046 test
+nights, max(history window close − anchor) = **−6 h** — every factor input has
+SETTLED before the night it corrects. "Dated in the test year" is not "from
+the future"; live serving reads exactly this recent settled history. The
+agent printed the window closing at t − 19 h and did not check settlement.
+
+**Agent D — deployment fidelity (haiku).** Correct and useful: serving has no
+true-weekend computation (`build_features` builds only the buggy column), so a
+deployed increment must compute it itself in `runtime.prepare()` — a build
+requirement, like `season_fwd`. Correct, already handled by design: the shipped
+`har_beta` does not reproduce from today's features (1.13e-2), which is why the
+precedent fits an INCREMENT on the shipped anchor's residual — to be compared
+with the eval's joint coefficient when built. REJECTED: "the eval uses one
+factor per fold, serving a rolling one" — `served_log_factor` rebuilds the
+60-day window per night (`factor_anchor_ts(t)` inside the per-night loop).
+UNVERIFIED (to check before any joint build): corr(season_fwd, true weekend
+fraction) ≈ 0 on H = 19 anchors, i.e. the two increments would add.
+
+Tally so far: of 13 attack items, 1 useful build requirement, 0 confirmed
+defects, 2 claims rejected on evidence.
