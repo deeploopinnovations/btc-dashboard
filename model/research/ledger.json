@@ -3023,6 +3023,17 @@
       "verdict": "DIAGNOSTIC",
       "result": "NOT REFUTED -- THE MARKET CARRIES WHAT THE PRICE HISTORY DOES NOT. Gain vs the Log-HAR anchor (1,681 nights): intercept only +0.257% brier / -0.084% logs; har_1h + har_6h +0.220% / -0.157%; implied vol +1.245% / +1.350%; all three +1.159% / +1.201%. Grv vs intercept: -0.038% brier [-0.000466, +0.000393] -- recent realised vol adds NOTHING beyond the 17:00 level. Giv vs Grv: brier +1.028% [+0.001047, +0.002364], logs +1.504% [+0.004504, +0.010622]; Gall vs Grv +0.942% brier, separated. IV weight with the RV terms present 0.29-0.51 (alone 0.33-0.56); har_6h's weight collapses to ~0 once IV is in.",
       "notes": "Consistent with the NOCTUA post-hoc Is-vs-Ip gap. Two haiku agents attack the statistics (J) and the DVOL-proxy alternative (K). Confirmation can only come from a forward test registered before any forward night."
+    },
+    {
+      "id": "P4-iv1d-dvol-control",
+      "topic": "phase4",
+      "mechanism": "exogenous-iv-horizon",
+      "date": "2026-09-29",
+      "question": "Audit K's attack on P4-iv1d-posthoc, re-run by me: is next-day implied vol just the 30-day DVOL index in disguise (which failed on the served base, P4-iv-served-pe-result)?",
+      "rule": "Disproof attempt (refute-only): same method and script as P4-iv1d-proxy-control (eval/iv1d_proxy_control.py), DVOL at 16:00 UTC of the anchor day as log hourly vol. Refuted if DVOL matches IV or IV adds nothing on top of DVOL. 99.5%, block 38. The script's first version fitted every arm on nights where ALL signals existed; fixed to each arm's own signals before this run (earlier arms moved <= 0.1 pp).",
+      "verdict": "DIAGNOSTIC",
+      "result": "NOT REFUTED -- IT IS NOT DVOL. Gain vs the Log-HAR anchor (1,681 nights): DVOL +0.310% brier / +0.221% logs (about the 17:00 intercept's +0.255%); IV +1.245% / +1.350%. Giv vs Gdv: brier +0.938% [+0.001096, +0.002062], logs +1.132% [+0.003727, +0.007620]. IV on top of DVOL (Gdviv vs Gdv): brier +0.722% [+0.000773, +0.001714], logs +0.949%. Agent K (haiku) reported the same direction independently (Giv vs Gdv +1.22% brier; DVOL's weight turns negative once IV is in).",
+      "notes": "With P4-iv1d-proxy-control: next-day IV carries information neither the price history (har_1h, har_6h) nor the 30-day implied-vol index carries. Enough to FREEZE a forward test (DATA_USE sixth candidate); not enough to adopt -- the walk-forward evidence is post hoc."
     }
   ]
 }

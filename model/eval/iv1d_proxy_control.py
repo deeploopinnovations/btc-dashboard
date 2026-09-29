@@ -39,8 +39,9 @@ from noctua import splits as S                                         # noqa: E
 from noctua.train import load_all                                      # noqa: E402
 
 ARMS = {"G0": None, "Gint": [], "Grv": ["har_1h", "har_6h"], "Giv": ["iv"],
-        "Gall": ["har_1h", "har_6h", "iv"]}
-CONTRASTS = (("Giv", "Grv"), ("Gall", "Grv"), ("Grv", "Gint"), ("Giv", "Gint"))
+        "Gall": ["har_1h", "har_6h", "iv"], "Gdv": ["dvol"], "Gdviv": ["dvol", "iv"]}
+CONTRASTS = (("Giv", "Grv"), ("Gall", "Grv"), ("Grv", "Gint"), ("Giv", "Gint"),
+             ("Giv", "Gdv"), ("Gdviv", "Gdv"))
 
 
 def main(argv=None) -> int:
@@ -61,6 +62,15 @@ def main(argv=None) -> int:
     sig = {"iv": iv_per_episode(ep, pd.read_parquet(IV_PATH), prod),
            "har_1h": X["har_1h"].to_numpy(np.float64),
            "har_6h": X["har_6h"].to_numpy(np.float64)}
+    # the 30-day DVOL index at 16:00 UTC of the anchor day (audit K's attack):
+    # log hourly, like the IV. Nights without DVOL keep lhc in every arm.
+    dv = pd.read_parquet("data/newdata/dvol_btc.parquet")
+    dvt = pd.to_datetime(dv["ts"], unit="s", utc=True)
+    dlut = dict(zip(dvt[dvt.dt.hour == 16].dt.strftime("%Y-%m-%d"), dv["volatility"][dvt.dt.hour == 16]))
+    days = pd.to_datetime(ts, unit="s", utc=True).strftime("%Y-%m-%d")
+    dvv = np.array([dlut.get(d, np.nan) for d in days], np.float64)
+    sig["dvol"] = np.where(prod & np.isfinite(dvv) & (dvv > 0),
+                           np.log(np.maximum(dvv, 1e-9) / 100.0 / np.sqrt(8760.0)), np.nan)
     cols = B.VOL_BASELINES["log_har_cal"]
     loss = {k: {"brier": [], "logs": []} for k in ARMS}
     coefs = []
@@ -75,13 +85,16 @@ def main(argv=None) -> int:
         te = np.flatnonzero(np.asarray(f["test"], bool) & fin & prod & np.isfinite(rv) & (rv > 0))
         hist = np.flatnonzero(at19 & fin & np.isfinite(rv) & (rv > 0)
                               & (ts >= ts[np.asarray(f["calib"], bool)].min()) & (ts <= ts[te].max()))
-        ok_all = prod & np.isfinite(lhc) & np.all([np.isfinite(v) for v in sig.values()], axis=0)
-        fit_m = m_tr & ok_all
+        base_ok = prod & np.isfinite(lhc)
         M = {"up": M_up[te], "dn": M_dn[te]}
         row = {"year": f["year"]}
         for k, feats in ARMS.items():
             an = lhc.copy()
             if feats is not None:
+                # fit and apply only where every signal THIS arm uses exists
+                # (the first version required all signals, incl. DVOL, for all)
+                ok_all = base_ok & np.all([np.isfinite(sig[s]) for s in feats] or [base_ok], axis=0)
+                fit_m = m_tr & ok_all
                 Xi = pd.DataFrame({s: (sig[s] - lhc) for s in feats})
                 if feats:
                     beta = B.OLS(feats).fit(Xi[fit_m], (y - lhc)[fit_m], wfull[fit_m]).beta

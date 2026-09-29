@@ -566,3 +566,16 @@ used 99.5 %. REJECTED: "regime-specific spurious pattern" — the split is ex
 ante, both sides are positive, and "the market says tonight is quieter than
 your trailing history" is exactly the information a Log-HAR anchor lacks.
 What J is right about: post hoc is post hoc — only a forward test can confirm.
+
+**Agent K — "is next-day IV just DVOL?" (haiku). DOES NOT DISCONFIRM —
+re-run by me and CONFIRMED** (`P4-iv1d-dvol-control`): DVOL adds about what
+the 17:00 intercept adds (+0.31 % Brier); IV beats DVOL by +0.94 % Brier and
+adds +0.72 % on top of it (99.5 %). K's own numbers point the same way. Not
+counted: K's closing phrase "the claim is confirmed at 99.5 %" — a failed
+disproof on a proxy law is not a confirmation.
+
+**Decision (d):** the registered test REJECTED; three disproof attempts
+(fast realised vol, DVOL, statistics) failed to kill the post-hoc gap; no
+leakage. → Built OFF behind `IV_ANCHOR` (gate 13/13) and a FORWARD holdout
+FROZEN (DATA_USE sixth candidate) whose primary includes the placebo contrast
+the walk-forward rule lacked. Adoption waits for it.

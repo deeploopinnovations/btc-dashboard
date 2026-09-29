@@ -1,8 +1,8 @@
 # .github/workflows/forward-holdouts.yml
 # =====================================================================
 # Runs the frozen forward holdouts every day (research/DATA_USE.md): the
-# clock-aware anchor, the true-weekend anchor, the day-of-week anchor and the
-# clock-aware + day-of-week combination. Each script prints only a COUNT until
+# clock-aware anchor, the true-weekend anchor, the day-of-week anchor, the
+# clock-aware + day-of-week combination, and the next-day implied-vol anchor. Each script prints only a COUNT until
 # its pre-registered N_MIN of forward nights exists; at N_MIN it scores ONCE
 # (refusing if the frozen arrays' hashes changed) and writes its lock file,
 # research/forward_*_result.json; every later run prints the locked result.
@@ -44,7 +44,7 @@ jobs:
         run: |
           set -o pipefail
           mkdir -p /tmp/holdouts
-          for m in forward_hour_anchor forward_weekend_anchor forward_dow_anchor forward_clock_dow_anchor; do
+          for m in forward_hour_anchor forward_weekend_anchor forward_dow_anchor forward_clock_dow_anchor forward_iv1d_anchor; do
             echo "=== $m"
             python -m model.eval.$m 2>&1 | tee "/tmp/holdouts/$m.log"
           done

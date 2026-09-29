@@ -319,4 +319,31 @@ them together is a family: when more than one is scored, the report states
 how many primaries were read and gives the Bonferroni-corrected interval
 beside the 95% one. No holdout's result may amend another's design.
 
+## Sixth candidate: the next-day implied-vol anchor, frozen 2026-09-29
+
+The walk-forward test (`P4-iv1d-anchor-result`) was REJECTED as registered; the
+evidence for this candidate is POST HOC (`P4-iv1d-posthoc`) plus three failed
+disproofs (`P4-iv1d-proxy-control`, `P4-iv1d-dvol-control`, audit J). This
+holdout is the first test it has not shaped.
+
+    FREEZE DATE: 2026-09-29 (UTC); production nights strictly after it.
+
+**What is frozen:** `har_beta_iv` in `model/serve/noctua_v2.npz`
+(sha256(bytes) 22ea1539900cff9b..., a = -0.1361, b = +0.6722), written by
+`noctua/add_iv_anchor.py`, and the feature arithmetic in `noctua/iv1d.py`.
+
+**How:** `python -m model.eval.forward_iv1d_anchor`. Each forward night's IV is
+rebuilt from Deribit's trade history with serving's own code; three arms
+through `serve/predict.forecast` (every other anchor flag off): shipped, the
+night's own IV, and a seeded permutation of the forward nights' IVs (the
+placebo). **PRIMARY: PASS iff per-episode Brier improves with its 95% interval
+above zero against BOTH the shipped forecast AND the placebo.** Reported: log
+score, far-barrier Brier, QLIKE, and the same contrasts on ex-ante classes
+x < 0 / x >= 0. **N_MIN = 200** (the Is-vs-Ip gap needs ~105 nights at the
+walk-forward noise). Count only below N_MIN; one scoring; lock; refuses if
+`har_beta_iv`'s hash changed.
+
+**Switch status, 2026-09-29: OFF.** It also needs a live Deribit fetch at the
+17:00 anchor, which serving performs only when the flag is on.
+
 *Educational research only. Not financial advice.*
