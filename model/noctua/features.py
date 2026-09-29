@@ -286,6 +286,11 @@ def build_features(hours: pd.DataFrame, episodes: pd.DataFrame,
     out["cal_H"] = H.astype(np.float64) / 24.0
 
     # weekend fraction of the forward window -- the dominant calendar signal
+    # KNOWN DEFECT (research/ledger.json P4-weekend-bug): the epoch is a
+    # Thursday, so '+ 4' makes `>= 5` count FRIDAY and SATURDAY, not the
+    # weekend. The shipped artifact was trained on this column and serving
+    # builds it here too, so do NOT correct it in place -- that is a
+    # train/serve skew. Pinned by tests/test_weekend_column.py.
     maxH = int(H.max())
     offs = np.arange(maxH)
     fut_dow = (((anchor_ts[:, None] + offs[None, :] * HOUR) // 86400) + 4) % 7  # 0=Mon

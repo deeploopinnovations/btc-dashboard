@@ -98,6 +98,12 @@ jobs:
       - name: Hour-anchor serving gate
         run: python model/tests/test_hour_anchor.py
 
+      # Pins a known defect (P4-weekend-bug): cal_weekend_frac counts Fri+Sat.
+      # The shipped network was trained on it, so an in-place "fix" would be a
+      # train/serve skew; checked against pandas' calendar, not the formula.
+      - name: Weekend-column pin
+        run: python model/tests/test_weekend_column.py
+
       # Gates the online-adaptation guard: ACI's coverage guarantee, Ville's
       # bound on the e-processes, and the promotion/veto asymmetry. A
       # regression in any of these is SILENT -- the system keeps forecasting
