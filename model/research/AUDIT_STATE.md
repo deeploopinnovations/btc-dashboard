@@ -477,3 +477,31 @@ leave-one-out failures → the increment is BUILT behind `WEEKEND_ANCHOR = False
 (`c4f8974`, gate 16/16) and a forward holdout is FROZEN (DATA_USE.md, third
 candidate, N_MIN 450). Pending: agent B (calendar permutation) — the one
 remaining disqualifier ("a non-calendar control reproduces ≥ half the gain").
+
+**Agent B — "is it the calendar?" (haiku). REJECTED: did not run the attack.**
+Asked to fit each of the 21 day-pair columns INTO THE ANCHOR and score the
+barrier forecasts, it instead regressed Ws's per-night gain on day fractions —
+which says on which nights the existing fix helps, not whether another column
+would help as much — and its own tables contradict its verdict (Sat and Sun
+rank 1-2 as single days, Saturday nights gain +1.8%). Its "DISCONFIRMED" is not
+recorded as evidence.
+
+**The attack itself, run by me (`eval/weekend_calendar_perm.py`,
+`P4-weekend-calendar-perm`).** Sat+Sun ranks 2/21; Mon+Fri ranks 1 (144 % of
+Sat+Sun's Brier gain); Fri alone = Sat alone = +0.259 %; midweek-only pairs
+(incl. the registered placebo) ≈ 0. **The disqualifier ("a NON-calendar
+control reproduces ≥ half the gain") is not triggered** — every column that
+helps contains Mon, Fri or Sat. But the mechanism was mislabelled: the gain is
+separating high-vol Friday from low-vol Saturday (which the buggy column
+lumps), plus a Monday effect — not "the weekend". Decision unchanged: the
+increment stays built, OFF, holdout frozen. Mon+Fri is not adopted
+(post-hoc selection among 28). Next: the full day-of-week anchor, registered
+before its run.
+
+**Final tally for this audit:** agents A, C, D, E and my own check — 0
+confirmed defects; 4 agent claims rejected on evidence (A's leak, D's
+per-fold factor, B's whole analysis, E's recommendation as advocacy); 2 useful
+findings kept (D: serving needs its own true-weekend computation — built; C:
+the four metrics are one effect). The swarm's most useful output this round
+was the attack it FAILED to run: specifying it forced the permutation that
+corrected the mechanism.
