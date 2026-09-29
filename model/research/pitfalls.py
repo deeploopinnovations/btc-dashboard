@@ -654,7 +654,7 @@ def self_test() -> int:
         'pkill -f "model.eval.harvest_iv1d" ; python - <<EOF ...',
         "pkill inside its own command (historical FAIL)"))
     r.add(check_process_pattern_not_self("", "kill -0 12345", "wait on a PID"))
-    _t = np.array([1790355600, 1790442000, 1790528400, 1790614800])   # Thu..Sun 17:00 UTC
+    _t = np.array([1790355600, 1790442000, 1790528400, 1790614800])   # Fri..Mon 17:00 UTC
     _H = np.array([19, 19, 19, 19])
     _offs = np.arange(19)
     _bug = np.array([np.isin((((t + _offs * 3600) // 86400) + 4) % 7, (5, 6)).mean() for t in _t])
