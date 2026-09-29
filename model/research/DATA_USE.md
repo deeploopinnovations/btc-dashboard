@@ -220,4 +220,51 @@ Adoption, if it happens before the holdout is scored, rests on the
 walk-forward evidence and the serving gate, with that limitation stated -- the
 same position the dispersion correction is in.
 
+## Third candidate: the true-weekend anchor, frozen 2026-09-29
+
+Added 2026-09-29, the day the candidate was fixed (`P4-weekend-fix-result`,
+ADVANCE; artifact increment committed in `c4f8974`).
+
+    FREEZE DATE: 2026-09-29 (UTC)
+    Holdout = production nights (17:00 UTC anchor, H = 19) with anchor
+    timestamp strictly after the freeze.
+
+**What is frozen** -- two arrays in `model/serve/noctua_v2.npz`, written by
+`noctua/add_weekend_anchor.py` and never refitted, with the arithmetic in
+`noctua/calendar.py` and the rest of the artifact unchanged:
+
+    har_beta_weekend         sha256(bytes) 03ca1419345447ef...  [+0.03711, -0.13026]
+    har_beta_weekend_season  sha256(bytes) 4b59300962e77815...  [+0.03713, -0.13026]
+
+The coefficient is from the artifact's training split (through 2023) and is
+smaller than the walk-forward's recent folds (-0.26 to -0.29): the holdout
+tests the increment AS BUILT, not a refit on recent data.
+
+**Paired, one file.** `WEEKEND_ANCHOR` off is asserted bit-identical to the
+pre-candidate payload (`tests/test_weekend_anchor.py`), so every forward night
+is forecast both ways from the same artifact, `HOUR_ANCHOR` off (the served
+base at the freeze).
+
+**Primary, stated before any forward night exists:** per-episode paired Brier
+of the served barrier curves (shipped minus candidate), block bootstrap, one
+evaluation. Walk-forward effect +0.000301 per night. **Reported:** per-episode
+log score, far-barrier (+/-5%) Brier, QLIKE on sigma_mean (labelled
+underpowered, ~1,400 nights needed), and Brier on EX-ANTE weekday classes
+(Fri/Sat/Sun anchors; Mon-Thu). No outcome-selected subset.
+
+**How and when:** `python -m model.eval.forward_weekend_anchor`. **N_MIN = 450
+nights**, fixed now: at the walk-forward noise (95% half-width 0.000137 at
+2,046 nights, block 38) the interval narrows below the effect at about 425.
+Count only below N_MIN; one scoring at N_MIN into
+`research/forward_weekend_anchor_result.json`; refuses to rescore. Roughly
+fifteen months.
+
+**Overlap with the clock-aware holdout.** Both holdouts use the same forward
+nights. They answer different questions (each is scored against the shipped
+anchor with the OTHER flag off), and neither's result may be used to amend the
+other's design.
+
+**Switch status, 2026-09-29: OFF.** Adoption before the holdout is scored would
+rest on the walk-forward evidence and the audit, with that limitation stated.
+
 *Educational research only. Not financial advice.*

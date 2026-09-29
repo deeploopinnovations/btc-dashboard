@@ -445,3 +445,35 @@ fraction) ≈ 0 on H = 19 anchors, i.e. the two increments would add.
 
 Tally so far: of 13 attack items, 1 useful build requirement, 0 confirmed
 defects, 2 claims rejected on evidence.
+
+**Agent C — statistics (haiku). DOES NOT WEAKEN on 5 attacks; one fair critique ACCEPTED.**
+Leave-one-fold-out: rule met in 6/6 (my own independent run: 0/6 failures,
+all four metrics clearing each time). Block lengths 19/38/76/152/365: every
+barrier interval stays above zero. Family 40 and 80 (α 0.00125 / 0.000625):
+all four still clear (Brier [+0.000066, +0.000555] at family 80). Trimming the
+top/bottom 1 % of per-night deltas: rule still met. All six years positive on
+all four metrics (sign test p = 0.016, optimistic under expanding-window
+dependence — agreed). ACCEPTED: the four barrier metrics' per-night deltas
+correlate 0.73–0.93, so they are ONE effect measured four ways, not four
+confirmations; the rule's "2 of 4" is breadth, not independent evidence. The
+conclusion stands because Brier ALONE clears at family 80; the record now
+describes it as one effect. Not accepted as a weakness: per-night
+mean/sd ≈ 0.1 is ordinary for per-episode proper scores (it is why 2,046
+nights are needed).
+
+**Agent E — interaction with the clock-aware anchor (haiku, no-network law).
+ADDITIVE.** Overlap (GA + GW − GAW) ≈ 0 on all four metrics; season_fwd is a
+constant at any fixed (hour, H), so at the product anchor the two terms cannot
+interact; coefficients move < 0.4 % when fitted jointly. Consistent with my
+build-time measurements (corr 0.0000 on training rows; the increment is
+−0.13026 on either anchor; the gate moves the median by −0.069858 alone and
+−0.069851 on the clock-aware anchor). CAUTION KEPT: on the Gaussian law the
+weekend column's DSC is better in only 3/6 folds (NOCTUA: 6/6) — the ranking
+gain is model-dependent; the claim rests on the barrier metrics. E's
+"ship both" recommendation is advocacy outside its mandate and is not counted.
+
+**Decision so far (rule fixed above):** MET, no confirmed defect, 0/6
+leave-one-out failures → the increment is BUILT behind `WEEKEND_ANCHOR = False`
+(`c4f8974`, gate 16/16) and a forward holdout is FROZEN (DATA_USE.md, third
+candidate, N_MIN 450). Pending: agent B (calendar permutation) — the one
+remaining disqualifier ("a non-calendar control reproduces ≥ half the gain").
