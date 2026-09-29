@@ -1,0 +1,11 @@
+{
+  "repo": "msdgaming2222/noctua-btcusd-corpus",
+  "repo_type": "dataset",
+  "revision": "ccb51b80c873d88c25ee1a740597a77fbedc8eed",
+  "content_sha256": "195021346282f0b37fac9398f3d6f29901050c017ebea17c4f6a8eff6dd51b48",
+  "corpus_rows": 7681837,
+  "files": [
+    "btcusd_1min.parquet",
+    "btcusd_1min_AFTER_CORPUS_END_do_not_use_in_research.parquet"
+  ]
+}
