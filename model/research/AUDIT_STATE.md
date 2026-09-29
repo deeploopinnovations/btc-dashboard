@@ -505,3 +505,33 @@ findings kept (D: serving needs its own true-weekend computation — built; C:
 the four metrics are one effect). The swarm's most useful output this round
 was the attack it FAILED to run: specifying it forced the permutation that
 corrected the mechanism.
+
+---
+
+# 2026-09-29 (c): the day-of-week successor — audit returns
+
+Same decision rule as (b). `P4-dow-anchor-result` MET (Ds beats Ws on all five).
+
+**Agent F — statistics (haiku).** Leave-one-fold-out 6/6 met; every block
+length and families up to 120 clear. ACCEPTED: Thursday nights get worse
+(QLIKE −1.88 %, separated); gains grow each year (a strengthening weekday
+pattern, which also makes coefficients go stale); vs Ws the DSC is 3/6 — no
+ranking claim over Ws. REJECTED: "bottom 95 % negative" as a disqualifier
+(heavy-tailed per-night deltas are normal; trimming keeps the rule).
+
+**Agent G — overfitting (haiku). Headline REJECTED, one attack USEFUL.** Its
+verdict ("freedom, not calendar") is contradicted by its own fake cycles and by
+my re-run: periods 6 and 8 give ≈ 0; every phase of the real week gives
++0.23 % to +0.57 %; a whole-day relabel is identical. Its coefficient-vs-vol
+argument compared anchor weekday with window weekday. But its SHIFTED-WEEK
+attack found something real: the best day boundary sits ~6–9 h after UTC
+midnight — recorded as a hypothesis (post-hoc among 8 phases), not adopted.
+
+**My checks.** Staleness: frozen coefficients keep 0.82 of a yearly refit's
+gain (0.62 in the latest years), positive every year → fitting on the
+artifact's split is acceptable; the five-column increment was a design error
+(Sat and Sun forced to share a level), fixed to Mon..Sat before building.
+
+**Decision:** no disqualifier → built OFF (`DOW_ANCHOR`, alternative to
+`WEEKEND_ANCHOR`), gate 13/13, forward holdout frozen (N_MIN 450). The calendar
+line now continues ONLY on forward data, as the supervisor note required.

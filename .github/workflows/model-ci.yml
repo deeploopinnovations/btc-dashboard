@@ -112,6 +112,13 @@ jobs:
       - name: Weekend-anchor serving gate
         run: python model/tests/test_weekend_anchor.py
 
+      # Gates the day-of-week anchor increment (P4-dow-anchor-result): off is
+      # the shipped payload bit for bit, on moves the median by the increment
+      # algebra on all seven weekday nights, the fractions are pandas' calendar,
+      # and DOW_ANCHOR with WEEKEND_ANCHOR is refused.
+      - name: Day-of-week-anchor serving gate
+        run: python model/tests/test_dow_anchor.py
+
       # Gates the online-adaptation guard: ACI's coverage guarantee, Ville's
       # bound on the e-processes, and the promotion/veto asymmetry. A
       # regression in any of these is SILENT -- the system keeps forecasting

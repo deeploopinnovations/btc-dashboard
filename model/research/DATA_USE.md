@@ -267,4 +267,36 @@ other's design.
 **Switch status, 2026-09-29: OFF.** Adoption before the holdout is scored would
 rest on the walk-forward evidence and the audit, with that limitation stated.
 
+## Fourth candidate: the day-of-week anchor, frozen 2026-09-29
+
+Added 2026-09-29 (`P4-dow-anchor-result`, ADVANCE -- it replaces the weekend
+increment as the calendar candidate; the third candidate's freeze stands and
+is scored on its own terms).
+
+    FREEZE DATE: 2026-09-29 (UTC); production nights strictly after it.
+
+**What is frozen** -- two arrays in `model/serve/noctua_v2.npz`, written by
+`noctua/add_dow_anchor.py` and never refitted, with `noctua/calendar.py`:
+
+    har_beta_dow         sha256(bytes) a10cfe4816204035...  [intercept, Mon..Sat]
+    har_beta_dow_season  sha256(bytes) e1053f4c9aff7f38...
+
+Fitted on the artifact's split (through 2023). Frozen coefficients kept 0.82
+of a yearly refit's Brier gain over 2023-2026, 0.62 in the latest years
+(`eval/dow_staleness.py`): the holdout tests the increment AS BUILT.
+
+**Paired, one file**, `DOW_ANCHOR` off vs on, every other anchor flag off
+(`eval/forward_dow_anchor.py`, sharing `forward_weekend_anchor`'s scorer).
+**Primary:** per-episode Brier of the served barrier curves. Walk-forward
+effect +0.000444 per night. **Reported:** log score, far-barrier Brier, QLIKE,
+Brier by ex-ante weekday class. **N_MIN = 450**: the walk-forward noise alone
+needs ~200 nights, but at 0.67 of the effect (staleness) ~450.
+
+**Caveat, stated at the freeze:** the candidate was designed after
+`P4-weekend-calendar-perm` on the same walk-forward years. This holdout is
+the first evidence that did not shape it.
+
+**Switch status, 2026-09-29: OFF.** `DOW_ANCHOR` and `WEEKEND_ANCHOR` are
+alternatives (both on raises).
+
 *Educational research only. Not financial advice.*

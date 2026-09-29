@@ -136,6 +136,23 @@ HOUR_ANCHOR = False
 # is bit-identical and on moves exactly what the algebra says.
 WEEKEND_ANCHOR = False
 
+# The DAY-OF-WEEK ANCHOR (P4-dow-anchor-result, ADVANCE) -- the successor of
+# WEEKEND_ANCHOR and an ALTERNATIVE to it (the week contains the weekend; both
+# on is an error). The weekend increment works by separating busy Friday from
+# quiet Saturday, which the Fri+Sat column lumps (P4-weekend-calendar-perm);
+# the whole week does more. Walk-forward, 2,046 nights, against the shipped
+# anchor with this file's trailing factor: Brier +0.25%, log score +0.27%,
+# pinball +0.62%, CRPS +0.53%, QLIKE +3.3%, all separated at 99.67%; against
+# the weekend-only increment better on all five; a fake 6-day cycle with the
+# same freedom flat. Increment on Mon..Sat window fractions, fitted on the
+# artifact's split (noctua/add_dow_anchor.py); frozen coefficients kept 0.82 of
+# a yearly refit's gain over 2023-2026 (eval/dow_staleness.py). Designed after
+# the calendar permutation on the same years -- the forward holdout decides.
+#
+# OFF until then. tests/test_dow_anchor.py asserts off is bit-identical and on
+# moves exactly what the algebra says.
+DOW_ANCHOR = False
+
 
 def forecast(model, hours: pd.DataFrame, H: int = PROD_H,
              anchor_ts: int | None = None, source: str = "unknown",
@@ -167,6 +184,7 @@ def forecast(model, hours: pd.DataFrame, H: int = PROD_H,
     # computed from the same anchor it corrects (P4-hour-anchor scored it so)
     model.hour_anchor = bool(HOUR_ANCHOR)
     model.weekend_anchor = bool(WEEKEND_ANCHOR)
+    model.dow_anchor = bool(DOW_ANCHOR)
     d = model.prepare(X, np.array([float(H)]))
     pred = model.predict(d, disp_lambda=DISP_LAMBDA)
 
@@ -365,6 +383,19 @@ def forecast(model, hours: pd.DataFrame, H: int = PROD_H,
                           "every barrier curve, safe level and p_up, and the "
                           "trailing vol_calibration factor. Asserted in "
                           "tests/test_weekend_anchor.py.",
+        },
+        "dow_anchor": {
+            "enabled": bool(DOW_ANCHOR),
+            "available": bool(getattr(model, "has_dow_anchor", False)),
+            "day_fracs_mon_sat": ([round(float(v), 5) for v in d["dow_fracs"][0]]
+                                  if "dow_fracs" in d else None),
+            "note": "adds the window's fraction on each weekday (true UTC calendar) to "
+                    "the Log-HAR anchor; an alternative to weekend_anchor. Off is "
+                    "bit-identical to the shipped anchor. See P4-dow-anchor-result "
+                    "(ADVANCE).",
+            "applies_to": "the anchor, hence sigma_med, sigma_mean, sigma_atoms, every "
+                          "barrier curve, safe level and p_up, and the trailing "
+                          "vol_calibration factor. Asserted in tests/test_dow_anchor.py.",
         },
         "sigma_scale": {
             "scale": round(float(qs["scale"]), 4),

@@ -63,24 +63,31 @@ def logs_night(curves: dict, e) -> float:
     return float(np.mean(errs))
 
 
-def score(model, hours: pd.DataFrame, nights: pd.DataFrame):
+CAL_FLAGS = ("HOUR_ANCHOR", "WEEKEND_ANCHOR", "DOW_ANCHOR")
+
+
+def score(model, hours: pd.DataFrame, nights: pd.DataFrame, flag: str = "WEEKEND_ANCHOR"):
+    """Forecast each night with `flag` off and on, every OTHER anchor flag off
+    (the served base at the freeze). Shared by forward_dow_anchor.py."""
     from serve import predict as P
     rows = []
-    o_w, o_h = P.WEEKEND_ANCHOR, P.HOUR_ANCHOR
+    saved = {f: getattr(P, f) for f in CAL_FLAGS}
     try:
-        P.HOUR_ANCHOR = False
+        for f in CAL_FLAGS:
+            setattr(P, f, False)
         for _, e in nights.iterrows():
             out = {}
-            for flag in (False, True):
-                P.WEEKEND_ANCHOR = flag
+            for on in (False, True):
+                setattr(P, flag, on)
                 raw: dict = {}
                 pay = P.forecast(model, hours, H=PROD_H,
                                  anchor_ts=int(e["anchor_ts"]), raw=raw)
-                out[flag] = {"mean": float(raw["pred"]["sigma_mean"][0]),
-                             "curves": pay["barrier_curves"]}
+                out[on] = {"mean": float(raw["pred"]["sigma_mean"][0]),
+                           "curves": pay["barrier_curves"]}
             rows.append((e, out))
     finally:
-        P.WEEKEND_ANCHOR, P.HOUR_ANCHOR = o_w, o_h
+        for f, v in saved.items():
+            setattr(P, f, v)
     return rows
 
 
@@ -115,7 +122,7 @@ def evaluate(rows) -> dict:
 
 
 def run(hours, model, lock: Path = LOCK, n_min: int = N_MIN,
-        freeze: str = FREEZE) -> dict:
+        freeze: str = FREEZE, flag: str = "WEEKEND_ANCHOR") -> dict:
     if lock.exists():
         res = json.loads(lock.read_text())
         print(f"LOCKED: scored once on {res['scored_on']}; printing that result "
@@ -129,7 +136,7 @@ def run(hours, model, lock: Path = LOCK, n_min: int = N_MIN,
               f"the holdout is scored once at {n_min}. Nothing else is printed "
               f"before then.")
         return {"n_nights": n, "scored": False}
-    res = evaluate(score(model, hours, nights))
+    res = evaluate(score(model, hours, nights, flag))
     res.update(scored=True, freeze=freeze, n_min=n_min,
                scored_on=pd.Timestamp.now(tz="UTC").strftime("%Y-%m-%d"))
     lock.write_text(json.dumps(res, indent=2) + "\n")
@@ -189,7 +196,7 @@ def selftest() -> int:
         ok.append(("second run returns the locked result", r2 == json.loads(lock.read_text())))
         from serve import predict as P
         ok.append(("flags restored after scoring",
-                   P.WEEKEND_ANCHOR is False and P.HOUR_ANCHOR is False))
+                   all(getattr(P, f) is False for f in CAL_FLAGS)))
     for name, good in ok:
         print(f"  [{'ok' if good else 'FAIL'}] {name}")
     bad = sum(not g for _, g in ok)

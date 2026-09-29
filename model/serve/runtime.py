@@ -52,6 +52,7 @@ class NumpyNoctua:
         self.cal_shrink = self.meta["cal_shrink"]
         self.hour_anchor = False         # serve/predict.HOUR_ANCHOR sets this
         self.weekend_anchor = False      # serve/predict.WEEKEND_ANCHOR sets this
+        self.dow_anchor = False          # serve/predict.DOW_ANCHOR sets this
 
     # ---- primitives -------------------------------------------------------
     def _lin(self, prefix: str, x: np.ndarray) -> np.ndarray:
@@ -118,6 +119,11 @@ class NumpyNoctua:
         """Does the artifact carry the true-weekend increment (add_weekend_anchor)?"""
         return "har_beta_weekend" in self.w and "har_beta_weekend_season" in self.w
 
+    @property
+    def has_dow_anchor(self) -> bool:
+        """Does the artifact carry the day-of-week increment (add_dow_anchor)?"""
+        return "har_beta_dow" in self.w and "har_beta_dow_season" in self.w
+
     def prepare(self, features: "object", H: np.ndarray) -> dict:
         """`features` is a pandas DataFrame with at least `self.feat_cols`."""
         Xa = features[self.feat_cols].to_numpy(np.float64)
@@ -162,6 +168,26 @@ class NumpyNoctua:
             dw = dow_from_cal(features["cal_dow_sin"].to_numpy(),
                               features["cal_dow_cos"].to_numpy())
             d["weekend_frac"] = weekend_frac_from_clock(dw, hr, d["H"])
+        # DAY-OF-WEEK INCREMENT (P4-dow-anchor-result), off unless switched on.
+        # It spans the whole week, weekend included, so it is an ALTERNATIVE to
+        # the weekend increment, never a second layer on top of it.
+        if self.dow_anchor:
+            if self.weekend_anchor:
+                raise RuntimeError(
+                    "dow_anchor and weekend_anchor are alternatives (the week "
+                    "contains the weekend); switch one of them off")
+            if not self.has_dow_anchor:
+                raise RuntimeError(
+                    "dow_anchor is on but the artifact has no har_beta_dow/"
+                    "har_beta_dow_season; run `python -m model.noctua."
+                    "add_dow_anchor --write` or switch DOW_ANCHOR off")
+            from noctua.calendar import DOW_COLS, day_fracs_from_clock, dow_from_cal
+            from noctua.season import anchor_hour_from_cal
+            hr = anchor_hour_from_cal(features["cal_hour_sin"].to_numpy(),
+                                      features["cal_hour_cos"].to_numpy())
+            dw = dow_from_cal(features["cal_dow_sin"].to_numpy(),
+                              features["cal_dow_cos"].to_numpy())
+            d["dow_fracs"] = day_fracs_from_clock(dw, hr, d["H"])[:, list(DOW_COLS)]
         return d
 
     def har_logvol(self, d: dict) -> np.ndarray:
@@ -184,6 +210,11 @@ class NumpyNoctua:
             inc = self.w["har_beta_weekend_season" if "season_fwd" in d
                          else "har_beta_weekend"]
             out = out + inc[0] + inc[1] * d["weekend_frac"]
+        # With `dow_fracs` in `d` (dow_anchor on): the day-of-week increment,
+        # [intercept, Mon..Sat], fitted on the active anchor's residual.
+        if "dow_fracs" in d:
+            inc = self.w["har_beta_dow_season" if "season_fwd" in d else "har_beta_dow"]
+            out = out + inc[0] + d["dow_fracs"] @ inc[1:]
         return out
 
     # ---- full predictive object -------------------------------------------
@@ -305,6 +336,7 @@ class NoctuaV2(NumpyNoctua):
         self.cal_shrink = 0.0            # v2 pools instead of PIT-recalibrating
         self.hour_anchor = False         # serve/predict.HOUR_ANCHOR sets this
         self.weekend_anchor = False      # serve/predict.WEEKEND_ANCHOR sets this
+        self.dow_anchor = False          # serve/predict.DOW_ANCHOR sets this
 
     # ---- per-seed weight access ------------------------------------------
     def _seed_scope(self, src: dict, s: int) -> dict:
@@ -336,7 +368,9 @@ class NoctuaV2(NumpyNoctua):
                           **{k: full[k] for k in ("har_beta_season",
                                                   "season_profile",
                                                   "har_beta_weekend",
-                                                  "har_beta_weekend_season")
+                                                  "har_beta_weekend_season",
+                                                  "har_beta_dow",
+                                                  "har_beta_dow_season")
                              if k in full}}
                 outs.append(NumpyNoctua.predict(self, d, n_atoms=n_atoms,
                                                 disp_lambda=disp_lambda))
