@@ -21,8 +21,11 @@ COMMITTED manifest. A mismatch refuses: the store must hold the corpus the
 committed results were measured on, not whatever happens to be on disk.
 Restoring verifies the same hash after download.
 
-Uploading needs a write token in the environment variable HF_TOKEN (the
-owner adds it in the environment settings; it is never pasted into chat).
+Uploading needs TWO things from the environment settings (never pasted into
+chat): a write token in the environment variable HF_TOKEN, and huggingface.co
+allowed by the environment's network access (on 2026-09-29 the egress proxy
+answered 403 to huggingface.co, so neither upload nor restore can reach the Hub
+from this container until it is allowed).
 
     python -m model.noctua.hf_store --check            # hash only, no network
     python -m model.noctua.hf_store --upload           # needs HF_TOKEN
@@ -84,6 +87,19 @@ def verify(path: Path, man: dict) -> str:
     return digest
 
 
+def reachable() -> None:
+    """Fail with the actual remedy when the Hub is blocked, not a stack trace."""
+    import urllib.error
+    import urllib.request
+    try:
+        urllib.request.urlopen(f"https://huggingface.co/api/datasets/{REPO}", timeout=20)
+    except (urllib.error.URLError, OSError) as e:
+        raise SystemExit(
+            f"REFUSING: huggingface.co is not reachable from here ({e}). If the "
+            f"environment's network policy denies it (a 403 from the proxy), allow "
+            f"huggingface.co in the environment's network settings; do not retry.")
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="store/restore the corpus on HF")
     g = ap.add_mutually_exclusive_group(required=True)
@@ -94,6 +110,7 @@ def main(argv=None) -> int:
     man = json.loads(MANIFEST_PATH.read_text())
 
     if a.restore:
+        reachable()
         from huggingface_hub import hf_hub_download
         ARTIFACTS.mkdir(parents=True, exist_ok=True)
         for f in (RESEARCH, UNSEEN):
@@ -110,6 +127,7 @@ def main(argv=None) -> int:
     if not token:
         raise SystemExit("REFUSING: HF_TOKEN is not set. The owner adds a write token "
                          "as an environment variable in the environment settings.")
+    reachable()
     from huggingface_hub import HfApi
     api = HfApi(token=token)
     readme = README.format(rows=man["corpus_rows"], end=man["corpus_end_utc"], sha=digest)
