@@ -375,3 +375,44 @@ not testable forward on any per-episode score with power. See P4-short-anchor-au
 
 
 *Educational research only. Not financial advice.*
+
+---
+
+# 2026-09-29 (b): the weekend column — audit plan, written BEFORE the result
+
+*Written while `P4-weekend-fix` was running, before any of its metrics were
+printed. The attacks and the decision rule are fixed here so they cannot be
+chosen to fit the outcome.*
+
+## What is believed going in
+
+* `P4-weekend-bug` is a fact, not a hypothesis: `cal_weekend_frac` counts
+  Fri+Sat (checked against pandas' calendar and pinned in CI).
+* Whether FIXING it helps the product is the open question. Registered
+  prediction: Ws better on brier and logs per episode and on QLIKE, rule met
+  with probability about 0.5, gains in the later folds; placebo nothing; Fs
+  within noise of Ws.
+
+## What the swarm will attack (haiku; mandate: DISPROVE, not defend)
+
+| # | attack | what would count as a defect |
+|---|---|---|
+| 1 | leakage / timing | any input of Ws not known at the anchor; the OLS or profile touching calib/test rows; the served factor reading an unsettled window |
+| 2 | is it the CALENDAR? | a non-calendar control of the same size reproduces the gain: a constant shift with Ws's mean shift, a random two-day fraction, or the gain living entirely on one weekday (e.g. only undoing the bug's Thursday cut) |
+| 3 | statistics | the result flips when any one fold is dropped; the block length is too short for the dependence; the gain is one year |
+| 4 | deployment | the artifact increment (fitted on the artifact's own training split) would not reproduce the evaluated arm; the increment conflicts with HOUR_ANCHOR's joint fit |
+
+## Decision rule, fixed now
+
+* **Rule MET:** build the artifact increment behind a flag that ships OFF, and
+  freeze a forward holdout — UNLESS an agent's claim, after I verify it by
+  running code, shows leakage, or a non-calendar control reproduces at least
+  half of the brier/logs gain, or dropping any single fold un-meets the rule
+  in two or more of the six leave-one-out cases.
+* **Rule NOT MET:** record REJECT as registered. The audit then asks only one
+  question: is the failure the DESIGN (the network still carries the buggy
+  column at 25% of the level) — which Fs answers — and does Fs merit its own
+  registered test. No re-design of Ws on these folds.
+* Every agent claim is checked by running code before it is recorded; agent
+  prose is an input, not a verdict (two of five agent audits in phase 4
+  contained a fabricated or circular claim).
