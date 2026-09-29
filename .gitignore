@@ -17,6 +17,7 @@ model/artifacts/*
 !model/artifacts/hour_anchor_cond.npz
 !model/artifacts/iv_served_pe.npz
 !model/artifacts/weekend_fix.npz
+!model/artifacts/dow_anchor.npz
 !model/artifacts/blend_ceiling.npz
 __pycache__/
 *.pyc

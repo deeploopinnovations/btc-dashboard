@@ -2933,7 +2933,24 @@
       "rule": "PRE-REGISTERED BEFORE THE RUN. NOCTUA through run_fold, 6 folds, production nights (17:00, H=19); every arm carries serving's trailing factor from its own forecasts. ARMS: M0s = shipped; Ws = + true Sat+Sun fraction (the frozen candidate, re-run here so every arm shares the run); Ds = + the window's fraction on Mon, Tue, Wed, Thu, Fri (5 columns; with the shipped Fri+Sat column and the intercept they span all seven days) fitted on train like Ws; P6s = PLACEBO, 5 columns from a fake 6-day cycle (epoch day mod 6, phases 0-4): same freedom, no calendar. Per-episode brier, logs, pinball, crps (block 38) and QLIKE; DSC fold-level. Family = {Ds-Ws, Ds-M0s, P6s-M0s} x 5 = 15 -> 99.67%. RULE: Ds REPLACES Ws as the candidate iff Ds beats Ws on >= 2 of the 4 barrier metrics, is worse than Ws on none of the five, and P6s is better than M0s on none. Otherwise Ws stays the candidate and the calendar line CLOSES on walk-forward data.",
       "verdict": "OPEN",
       "result": "pre-registered. PREDICTION: Ds beats Ws by about +0.05% to +0.1% Brier (the Monday effect on the Gaussian law, P4-weekend-calendar-perm), which is near the noise at 99.67% with four extra parameters -- rule met with probability about 0.35; Ds beats M0s on all four; P6s nothing.",
-      "notes": "HONEST LIMITATION: designed AFTER seeing P4-weekend-calendar-perm on the same walk-forward years (a forking path, though the full calendar is the principled generalisation, not the post-hoc winner Mon+Fri). Walk-forward evidence here is weaker than for a fresh design; if Ds is adopted as the candidate it gets its OWN forward holdout, and the frozen Ws holdout is not amended. SUPERVISOR: phase4/timing-clock now at 5 attempts -- this design measures what none before could (the full calendar against the weekend-only increment, with a no-calendar placebo of equal freedom); whatever it returns, the line stops on walk-forward data and continues only on forward holdouts."
+      "notes": "HONEST LIMITATION: designed AFTER seeing P4-weekend-calendar-perm on the same walk-forward years (a forking path, though the full calendar is the principled generalisation, not the post-hoc winner Mon+Fri). Walk-forward evidence here is weaker than for a fresh design; if Ds is adopted as the candidate it gets its OWN forward holdout, and the frozen Ws holdout is not amended. SUPERVISOR: phase4/timing-clock now at 5 attempts -- this design measures what none before could (the full calendar against the weekend-only increment, with a no-calendar placebo of equal freedom); whatever it returns, the line stops on walk-forward data and continues only on forward holdouts.",
+      "superseded_by": [
+        "P4-dow-anchor-result"
+      ]
+    },
+    {
+      "id": "P4-dow-anchor-result",
+      "topic": "phase4",
+      "mechanism": "timing-clock",
+      "date": "2026-09-29",
+      "supersedes": [
+        "P4-dow-anchor"
+      ],
+      "question": "Closing P4-dow-anchor: does the FULL day-of-week calendar in the anchor beat the weekend-only increment on the product?",
+      "rule": "As registered: Ds replaces Ws as the candidate iff Ds beats Ws on >= 2 of the 4 barrier metrics (per episode, block 38, family 15, 99.67%), is worse on none of the five, and the 6-day-cycle placebo P6s is better than M0s on none.",
+      "verdict": "ADVANCE",
+      "result": "MET ON ALL FIVE, AGAINST BOTH. 2,046 production nights, guards passed every fold. Ds vs Ws: brier +0.081% [+0.000026, +0.000269], logs +0.101% [+0.000131, +0.000976], pinball +0.251% [+0.000002, +0.000015], crps +0.188% [+0.000002, +0.000017], QLIKE +1.80% [+0.002078, +0.007472]; DSC +0.000072, 3/6 folds. Ds vs M0s (shipped): brier +0.252%, logs +0.271%, pinball +0.616%, crps +0.533%, QLIKE +3.28% [+0.003248, +0.012888], all separated; DSC +0.000380, 6/6 folds. P6s (fake 6-day cycle, same 5 columns) vs M0s: nothing separated (brier -0.002%, QLIKE -0.11%). Day coefficients (Mon, Tue, Wed, Thu, Fri fractions; with the shipped Fri+Sat column and intercept): 2021 [0.05698438723832067, 0.014656369451021571, 0.06306105031730266, 0.05988751133087655, 0.1631662351275631], 2026 [0.2701051799632294, 0.09554440944736838, 0.1295915861234291, 0.09111207337732487, 0.4760613414845481] -- all positive (weekdays above the weekend) and GROWING every fold, Friday most (+0.16 -> +0.48). Per weekday Ds - Ws Brier: Mon +0.05%, Tue +0.24%, Wed +0.15%, Thu -0.22%, Fri +0.24%, Sat -0.05%, Sun +0.15%. PREDICTION SCORING: Ds beats Ws by +0.05-0.1% Brier -- right (+0.081%); rule met with p 0.35 -- it met; QLIKE separating -- not predicted; placebo nothing -- right.",
+      "notes": "CAVEAT CARRIED FORWARD: designed after P4-weekend-calendar-perm on the same years (forking path), though as the principled full calendar with a placebo of equal freedom, which is flat. The coefficients' growth over time makes the FIT WINDOW of any deployed increment a first-order question: the artifact's split ends 2023-01, the latest fold's 2025-07. Decided by a staleness test BEFORE the increment is built and frozen. Ds gets its own forward holdout; the frozen Ws holdout is not amended."
     }
   ]
 }
