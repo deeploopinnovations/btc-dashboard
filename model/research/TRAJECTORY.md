@@ -59,3 +59,10 @@ ADVANCE-not-ADOPT. Supervisor at start: REPETITION on the calibration mechanism
   consequential methodological change of the period is that product tests now
   score against the served base -- serving's trailing factor on every arm.
 
+## 2026-09-29: persistence, then the ranking gap
+
+| # | cycle | inspect → plan | implement | evaluate (ledger) | feedback → lesson |
+|---|---|---|---|---|---|
+| 18 | persist state | a restart once wiped `model/artifacts/` | whitelist every result JSON + the per-episode arrays in `.gitignore`, commit | 36 JSONs + 3 npz tracked (`ce6f304`) | the 150 MB raw 1-min source cannot go to GitHub (100 MB limit) -- still a single point of failure, flagged to the owner |
+| 19 | the ranking gap | audits: NOCTUA does not rank nights better than a simple model; har_short's reactivity was clock-biased at 17:00 | `short_anchor.py`: deseasonalised 1h/6h vol in the clock-aware anchor, raw control, no-network screen | `P4-short-anchor-result` REJECT (screen): pinball only; **DSC 6/6 folds, t misses by 0.00005** | the pre-registered consequence of a failed screen was "the line closes" -- honoured; the DSC pattern kept as a hypothesis for a future freeze, not claimed |
+

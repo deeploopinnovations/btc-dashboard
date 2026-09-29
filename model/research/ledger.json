@@ -2844,7 +2844,24 @@
       "rule": "PRE-REGISTERED BEFORE THE RUN. Screening test, NO NETWORK: Gaussian first-passage through eval/product_score (validated against run_fold), serving's trailing factor from each arm's own forecasts. Per fold, OLS fitted on the TRAIN slice with the same weights and target as the Log-HAR anchor. Arms: G_As = clock-aware Log-HAR anchor (reference); G_SD = + har_1h and har_6h each minus season_back (0.5 log mean seasonal variance over the trailing 1 / 6 clock hours, profile from train); G_SR = + RAW har_1h, har_6h (control: same reactivity, clock left in). Production nights (17:00, H=19), 2,046. Per-episode block bootstrap (block 38) on brier, logs, pinball, crps; DSC by fold t-interval with folds-better count; contrasts G_SD-G_As, G_SR-G_As, G_SD-G_SR; family 15. RULE (screen passed): G_SD beats G_As on >= 2 of the 4 per-episode metrics, is worse on none, has DSC better in >= 5 of 6 folds, and beats the raw control G_SR on >= 1 metric. Passing the screen licenses the NETWORK-level test with a swarm audit; it adopts nothing.",
       "verdict": "OPEN",
       "result": "pre-registered. season_back unit-checked (1h back from 17:00 = clock hour 16; 6h back = 11..16; wraps midnight). PREDICTION: G_SD improves DSC in 5-6 folds (its purpose) and brier/crps per episode; G_SR is worse than G_As at 17:00 (the known failure) and G_SD beats it on several metrics. Probability the screen passes: about 0.4 -- the reactive terms may add noise the Gaussian law cannot use.",
-      "notes": "Built from a MECHANISM identified on calib diagnostics and earlier results (the short windows' clock bias), not from this arm's test outcome. The supervisor flags phase4/architecture at 10 attempts on the STACKING mechanism; this is a different mechanism (deseasonalised inputs to the anchor), and if the screen fails the line closes rather than being re-designed."
+      "notes": "Built from a MECHANISM identified on calib diagnostics and earlier results (the short windows' clock bias), not from this arm's test outcome. The supervisor flags phase4/architecture at 10 attempts on the STACKING mechanism; this is a different mechanism (deseasonalised inputs to the anchor), and if the screen fails the line closes rather than being re-designed.",
+      "superseded_by": [
+        "P4-short-anchor-result"
+      ]
+    },
+    {
+      "id": "P4-short-anchor-result",
+      "topic": "phase4",
+      "mechanism": "architecture",
+      "date": "2026-09-29",
+      "supersedes": [
+        "P4-short-anchor"
+      ],
+      "question": "Closing P4-short-anchor: does a clock-aware reactive anchor (deseasonalised 1h/6h vol) rank nights better, on the no-network screen?",
+      "rule": "As registered: G_SD beats G_As on >= 2 of 4 per-episode metrics, worse on none, DSC better in >= 5 of 6 folds, and beats the raw control on >= 1 metric. Family 15.",
+      "verdict": "REJECT",
+      "result": "SCREEN NOT MET, AND THE LINE CLOSES AS REGISTERED. G_SD against G_As per episode: pinball +0.98% [+0.000005, +0.000061] BETTER; brier +0.14%, logs +0.33%, crps +0.45% positive but not separated; worse on nothing. DSC +0.000701 (about +8%), better in 6 of 6 folds, fold t [-0.000052, +0.001454] -- misses by 0.00005; the gain grows by fold (+0.00036 in 2021 to +0.00132 in 2026). Against the RAW control G_SR: brier +0.19% and crps +0.30% BETTER, pinball -0.26% worse, DSC 6/6 folds. The raw control itself beats G_As on logs and pinball (the reactive terms add information even with the clock left in, on the no-network law). Short-window coefficients are stable and positive (1h ~0.12-0.14, 6h ~0.14-0.22 deseasonalised). PREDICTION SCORING: DSC 5-6 folds -- right (6/6); brier/crps per episode -- wrong (positive, not separated); G_SR worse than G_As -- WRONG (it is better on logs and pinball); screen probability 0.4 -- it failed.",
+      "notes": "NOT RELITIGATED. The registration said a failed screen closes the line rather than being redesigned; it closes. WHAT IS KEPT, AS A HYPOTHESIS ONLY: a clock-aware reactive anchor ranks nights consistently better (6/6 folds, growing over time) -- the first consistent DSC signal in this line of work, and exactly the gap the audits named. It cannot be claimed from this data. It would need its own freeze and forward holdout, and DSC at fold level is underpowered on any horizon under several years; a per-episode ranking-sensitive proper score would have to be chosen BEFORE such a freeze. Recorded so the next session does not rediscover it and mistake a rediscovery for independent evidence."
     }
   ]
 }
