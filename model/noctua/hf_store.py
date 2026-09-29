@@ -4,8 +4,12 @@ noctua/hf_store.py
 Store the large research inputs on Hugging Face, and restore them from there,
 so a lost container never again means a lost corpus (DATA_LOSS_2026-09-12).
 
-WHERE: the public dataset repo Deeploopinnovations/noctua-btcusd-corpus
-(created 2026-09-29). The 1-minute corpus is derived from
+WHERE: a public dataset repo named noctua-btcusd-corpus under the account that
+OWNS the token in HF_TOKEN (the owner uses a separate Hugging Face account for
+this, deliberately not the one connected to this workspace). The repo id is
+taken from the token at upload time (or HF_REPO, if set) and written, with the
+upload's commit, to research/hf_store.json -- committed, so a restore knows
+where to look without any token. The 1-minute corpus is derived from
 ff137/bitstamp-btcusd-minute-data, MIT-licensed; it is redistributed under the
 same licence with attribution (the README says so).
 
@@ -45,7 +49,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from noctua.regenerate import MANIFEST, RESEARCH, UNSEEN, content_sha256  # noqa: E402
 
-REPO = "Deeploopinnovations/noctua-btcusd-corpus"
+REPO_NAME = "noctua-btcusd-corpus"
+POINTER = Path("model/research/hf_store.json")
 ARTIFACTS = Path("model/artifacts")
 MANIFEST_PATH = Path("model/research") / MANIFEST
 
@@ -56,9 +61,8 @@ pretty_name: NOCTUA BTC/USD 1-minute research corpus
 ---
 # NOCTUA BTC/USD 1-minute research corpus (pinned)
 
-The exact 1-minute BTC/USD corpus the NOCTUA research in
-[deeploopinnovations/btc-dashboard](https://github.com/deeploopinnovations/btc-dashboard)
-was measured on, stored so a lost container can restore it and verify it.
+The exact 1-minute BTC/USD corpus the NOCTUA volatility research was measured
+on, stored so a lost container can restore it and verify it.
 
 * `btcusd_1min.parquet` -- {rows:,} minutes ending {end}; content SHA-256 of the
   column data (`model/noctua/regenerate.py`, `content_sha256`): `{sha}`
@@ -92,7 +96,9 @@ def reachable() -> None:
     import urllib.error
     import urllib.request
     try:
-        urllib.request.urlopen(f"https://huggingface.co/api/datasets/{REPO}", timeout=20)
+        urllib.request.urlopen("https://huggingface.co/", timeout=20)
+    except urllib.error.HTTPError:
+        return                                  # an HTTP answer means the Hub is reachable
     except (urllib.error.URLError, OSError) as e:
         raise SystemExit(
             f"REFUSING: huggingface.co is not reachable from here ({e}). If the "
@@ -110,11 +116,19 @@ def main(argv=None) -> int:
     man = json.loads(MANIFEST_PATH.read_text())
 
     if a.restore:
+        repo, rev, files = os.environ.get("HF_REPO"), None, (RESEARCH,)
+        if repo is None:
+            if not POINTER.exists():
+                raise SystemExit(f"REFUSING: no {POINTER} (nothing has been uploaded yet) "
+                                 f"and no HF_REPO set -- nowhere to restore from.")
+            ptr = json.loads(POINTER.read_text())
+            repo, rev, files = ptr["repo"], ptr.get("revision"), tuple(ptr["files"])
         reachable()
         from huggingface_hub import hf_hub_download
         ARTIFACTS.mkdir(parents=True, exist_ok=True)
-        for f in (RESEARCH, UNSEEN):
-            p = hf_hub_download(REPO, f, repo_type="dataset", local_dir=ARTIFACTS)
+        for f in files:
+            p = hf_hub_download(repo, f, repo_type="dataset", revision=rev,
+                                local_dir=ARTIFACTS)
             print(f"restored {p}")
         print(f"verified sha256 {verify(ARTIFACTS / RESEARCH, man)}")
         return 0
@@ -130,19 +144,28 @@ def main(argv=None) -> int:
     reachable()
     from huggingface_hub import HfApi
     api = HfApi(token=token)
+    repo = os.environ.get("HF_REPO") or f"{api.whoami()['name']}/{REPO_NAME}"
+    api.create_repo(repo, repo_type="dataset", private=False, exist_ok=True)
     readme = README.format(rows=man["corpus_rows"], end=man["corpus_end_utc"], sha=digest)
     api.upload_file(path_or_fileobj=readme.encode(), path_in_repo="README.md",
-                    repo_id=REPO, repo_type="dataset", commit_message="README")
+                    repo_id=repo, repo_type="dataset", commit_message="README")
     api.upload_file(path_or_fileobj=str(MANIFEST_PATH), path_in_repo=MANIFEST,
-                    repo_id=REPO, repo_type="dataset", commit_message="corpus manifest")
+                    repo_id=repo, repo_type="dataset", commit_message="corpus manifest")
+    last = None
     for f in (RESEARCH, UNSEEN):
         p = ARTIFACTS / f
         if p.exists():
-            api.upload_file(path_or_fileobj=str(p), path_in_repo=f, repo_id=REPO,
-                            repo_type="dataset",
-                            commit_message=f"{f} (hash-verified against the committed manifest)")
+            last = api.upload_file(path_or_fileobj=str(p), path_in_repo=f, repo_id=repo,
+                                   repo_type="dataset",
+                                   commit_message=f"{f} (hash-verified against the committed manifest)")
             print(f"uploaded {f} ({p.stat().st_size / 1e6:.1f} MB)")
-    print(f"done: https://huggingface.co/datasets/{REPO}")
+    rev = getattr(last, "oid", None)
+    POINTER.write_text(json.dumps({
+        "repo": repo, "repo_type": "dataset", "revision": rev,
+        "content_sha256": digest, "corpus_rows": man["corpus_rows"],
+        "files": [f for f in (RESEARCH, UNSEEN) if (ARTIFACTS / f).exists()]}, indent=2) + "\n")
+    print(f"done: https://huggingface.co/datasets/{repo}  (revision {rev})")
+    print(f"wrote {POINTER} -- commit it so a restore needs no token")
     return 0
 
 
