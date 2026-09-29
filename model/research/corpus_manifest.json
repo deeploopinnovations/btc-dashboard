@@ -1,0 +1,42 @@
+{
+ "corpus_end_utc": "2026-08-09 14:37:00+00:00",
+ "corpus_rows": 7681837,
+ "holdout_start_utc": "2026-08-28 00:00:00+00:00",
+ "content_sha256": "195021346282f0b37fac9398f3d6f29901050c017ebea17c4f6a8eff6dd51b48",
+ "stats": {
+  "rows": 7681837,
+  "filled_minutes": 0.0,
+  "zero_volume_pct": 17.084585366755373,
+  "bad_print_pct": 0.1505238916160288
+ },
+ "split": {
+  "rows_research": 7681837,
+  "rows_after_end": 48179,
+  "rows_in_holdout": 21697,
+  "research_end_utc": "2026-08-09 14:37:00+00:00",
+  "source_end_utc": "2026-09-12 01:36:00+00:00"
+ },
+ "source": "ff137/bitstamp-btcusd-minute-data (MIT)",
+ "published_targets": {
+  "filled_minutes": 0.0,
+  "zero_volume_pct": 17.08,
+  "bad_print_pct": 0.15
+ },
+ "reproduction": {
+  "episodes_h4_rebuilt": 476359,
+  "episodes_h4_published": 476362,
+  "delta": -3,
+  "delta_pct": -0.00063,
+  "source_revision_test": {
+   "sidecar_rows_2026_08_29": 7710019,
+   "sidecar_last_bar_utc": "2026-08-29T04:19:00+00:00",
+   "original_rows": 7681837,
+   "original_last_bar_utc": "2026-08-09T14:37:00+00:00",
+   "row_difference": 28182,
+   "elapsed_minutes": 28182,
+   "drift_rows": 0,
+   "conclusion": "The source's own provenance sidecar records a row count that differs from the original corpus by EXACTLY the elapsed wall-clock minutes, zero drift. Upstream history was not revised; the minute grid is identical. The 3-episode gap is therefore NOT a data difference and is a bookkeeping discrepancy in the published figure itself."
+  },
+  "materiality": "3 of 476,362 episodes is 0.00063%. The Phase 2 contrasts at issue are pooled QLIKE differences of 0.006 to 0.062; three episodes cannot move one. The rebuild is adequate to AUDIT the published ranking and is a near-reproduction, not an identity. The committed content hash exists so that the NEXT rebuild can be an identity."
+ }
+}

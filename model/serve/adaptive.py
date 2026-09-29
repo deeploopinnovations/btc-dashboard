@@ -145,6 +145,87 @@ def volatility_correction(model, hours: pd.DataFrame, anchor_row: int, H: int,
     return info
 
 
+def qlike_scale(model, hours: pd.DataFrame, anchor_row: int, H: int,
+                window_days: int = WINDOW_DAYS, verbose: bool = False) -> dict:
+    """Trailing sqrt(mean(realized^2 / forecast^2)) -- the scalar QLIKE wants.
+
+    A SECOND FUNCTIONAL OF THE SAME EPISODES `volatility_correction` USES, and
+    the two answer different questions.
+
+    `volatility_correction` returns median(realized / forecast). That is the
+    right reading for a MEDIAN forecast and it sits near 1, which is what a
+    calibrated median should do. QLIKE is minimised by the conditional MEAN of
+    variance, and the scalar that gets there is sqrt(mean(RV^2 / sigma^2)).
+    Measured on the production slice, same episodes, same run:
+
+        median(RV / sigma)          0.9664   <- what volatility_correction returns
+        sqrt(mean(RV^2 / sigma^2))  1.1250   <- what QLIKE is minimised by
+
+    They point in OPPOSITE directions. Scoring the two end to end on 2,046
+    settled episodes: uncorrected 0.29519, times this scalar 0.26849, times the
+    median factor 0.31441. The median factor is 6.5% WORSE than not correcting
+    at all, because it lowers a forecast the loss wants raised.
+
+    WHAT THIS IS FOR, AND WHAT IT MUST NOT TOUCH. This scalar multiplies the
+    REPORTED sigma and nothing else. It must never reach the predictive object:
+    `P2-scale-v2` and `P2-mean-level` both moved the level inside the pipeline
+    and degraded all six barrier metrics, and `P2-mean-level`'s SHUFFLED control
+    degraded them by the same amount -- so the damage is caused by moving the
+    level at all, not by how the shift is obtained. `serve/tests` asserts the
+    separation rather than trusting this comment.
+
+    Causal by the same rule as `volatility_correction`: only episodes whose full
+    H-hour window closed before the anchor. Over 2,046 production episodes the
+    trailing estimate ran 0.9098 to 1.3960 and never left [CLIP_LO, CLIP_HI], so
+    the existing rail is kept unchanged rather than widened for it.
+    """
+    from noctua.features import build_features
+
+    rows = _settled_anchors(hours, anchor_row, H, window_days, STRIDE_HOURS)
+    info = {"scale": 1.0, "n_episodes": int(len(rows)), "window_days": window_days,
+            "applied": False, "reason": ""}
+    if len(rows) < MIN_EPISODES:
+        info["reason"] = f"only {len(rows)} settled episodes, need {MIN_EPISODES}"
+        return info
+
+    hour_ts = hours["hour_ts"].to_numpy(np.int64)
+    dt = pd.to_datetime(hour_ts[rows], unit="s", utc=True)
+    ep = pd.DataFrame({"anchor_ts": hour_ts[rows], "H": H, "row": rows, "dt": dt,
+                       "anchor_hour": dt.hour, "dow": dt.dayofweek})
+    X = build_features(hours, ep)
+    ok = np.isfinite(X.to_numpy()).all(1)
+    if ok.sum() < MIN_EPISODES:
+        info["reason"] = f"only {int(ok.sum())} episodes with complete features"
+        return info
+    X, rows = X[ok], rows[ok]
+
+    pred = model.predict(model.prepare(X, np.full(len(rows), float(H))))
+    sigma = np.asarray(pred["sigma_med"], dtype=np.float64)
+    rv5 = hours["rv5"].to_numpy(np.float64)
+    realized = np.array([np.sqrt(rv5[r:r + H].sum()) for r in rows])
+
+    good = np.isfinite(realized) & np.isfinite(sigma) & (sigma > 0) & (realized > 0)
+    if good.sum() < MIN_EPISODES:
+        info["reason"] = f"only {int(good.sum())} usable episodes"
+        return info
+
+    scale = float(np.sqrt(np.mean((realized[good] / sigma[good]) ** 2)))
+    info.update(n_episodes=int(good.sum()), raw_scale=scale)
+    if not np.isfinite(scale) or not (CLIP_LO <= scale <= CLIP_HI):
+        info["reason"] = (f"scale {scale:.3f} outside [{CLIP_LO}, {CLIP_HI}] -- "
+                          "treated as a data fault, not a regime shift")
+        info["scale"] = float(np.clip(scale, CLIP_LO, CLIP_HI)) if np.isfinite(scale) else 1.0
+        info["applied"] = bool(np.isfinite(scale))
+        return info
+
+    info.update(scale=scale, applied=True,
+                reason=f"trailing {window_days}d QLIKE scalar over {int(good.sum())} "
+                       f"settled episodes")
+    if verbose:
+        print(f"[adaptive] qlike_scale={scale:.4f} from {int(good.sum())} episodes")
+    return info
+
+
 def apply_correction(pred: dict, factor: float) -> dict:
     """Rescale the predictive object's volatility, leaving its SHAPE alone.
 

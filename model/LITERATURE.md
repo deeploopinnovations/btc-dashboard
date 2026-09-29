@@ -1,10 +1,13 @@
 # Literature review — and what I did not accept from it
 
-Three Haiku agents were sent to read the quantitative-finance literature on
-questions this project had reached the edge of. Their reports are summarised
-here **with a verdict attached to each substantive claim**, because a research
-assistant's output is a draft, not a result, and one of the three reports has a
-headline conclusion that is wrong in a way that would have damaged the model.
+Agents were sent to read the quantitative-finance literature on questions this
+project had reached the edge of — three Haiku on overfitting control, continual
+learning and volatility forecasting, and later one Sonnet on whether the sign
+of a short-horizon crypto return is predictable at all (§4). Their reports are
+summarised here **with a verdict attached to each substantive claim**, because
+a research assistant's output is a draft, not a result, and one of the first
+three has a headline conclusion that is wrong in a way that would have damaged
+the model.
 
 Verdicts used below:
 
@@ -104,12 +107,45 @@ What the same report got right, and is worth keeping:
 
 ---
 
+## 4. Is the SIGN of a short-horizon crypto return predictable at all?
+
+A fourth agent, run after `eval/direction.py` had already produced the null
+result, to establish whether that result is expected or a sign the approach is
+wrong. It answered the question and separated its own verified reading from
+its secondary sources without being asked to, which is why more of it survives
+than usual.
+
+| claim | verdict | note |
+|---|---|---|
+| **Zhang (2026), arXiv:2602.07841** — `E[R²_OOS] = κ(2p−1)²` for MSE-optimal point forecasts; κ̂ = 0.55 (S&P 500), 0.48 (DJIA), Gaussian κ ≈ 0.64 | **ADOPTED**, and the only citation here I fetched and read in full myself | The load-bearing one, so I checked it rather than relying on the report. The derivation is elementary and correct (eq. 9 follows from orthogonality of MSE-optimal forecast errors). Two consequences: a correctly specified volatility model with no independent directional signal is *provably* at DA = 0.5 and R² = 0 — the signature of doing volatility right — and the map is quadratic, so even DA = 0.52 buys R² of 0.08–0.10 %. **Caveat carried into `AUDIT.md`:** a ~2,200-word single-author note, not a canonical reference. Cite as a clarifying identity, not authority. |
+| Christoffersen & Diebold (2006), *Management Science* 52(9) 1273–1287 — sign predictability is a *derivative* of volatility predictability | **UNVERIFIED** (egress-blocked), corroborated indirectly | Reached only through Brou & Luger (2026), *JBF*, arXiv:2606.04153, which cites and builds on it and finds sign-conditioned-on-magnitude gains that are real but modest and at **monthly** horizons. Nothing in this project depends on it beyond framing. |
+| Bysik & Ślepaczuk (2026), arXiv:2606.00060 — hourly BTC/USDT, ~70k obs, 27-fold rolling walk-forward; directional trading collapses under 10 bp costs (XGBoost long-only ARC +73.5 % gross → **−64.0 % net**) | **UNVERIFIED**, believed | Closest published analogue to this project's setup and horizon. Not checked against the primary text. |
+| Young (2026), arXiv:2607.26245 — 43 microstructure features, walk-forward, 355,814 rows: model AUC 0.8377 vs naive market-implied prior 0.8405, i.e. **worse than the trivial baseline** OOS after a small in-sample edge | **UNVERIFIED**, believed | The failure mode it documents — an in-sample edge that vanishes out of sample — is the one this repo has already hit twice. |
+| Cont, Cucuringu & Zhang, arXiv:2112.13213 — order-flow imbalance explains 83.8 % of *contemporaneous* 1-min return variation, but forward-looking OOS R² at 1 min is ≈ **−0.10 to −0.37 %**, decaying to nothing "beyond several minutes" | **ADOPTED** as the decisive input to §5.4 of `AUDIT.md` | This is the number that sets the prior on the whole directional programme. The best-studied short-horizon directional signal in the most liquid market on earth is worth a fraction of a percent one minute ahead. This model forecasts 6–24 **hours** ahead. |
+| Published claims of **82–83 %** OOS directional accuracy for BTC from on-chain features | **REJECTED** as unusable | The agent flagged these itself, could not fetch the methodology, and reasoned that 80 %+ directional accuracy at these horizons is essentially never methodologically sound. I agree, and note that the correct disposition is "not credible without seeing the validation protocol", not "false". |
+| Crypto carry (Schmeling, Schrimpf & Todorov, BIS WP 1087 / *Management Science* 2024) — short-perp/long-spot Sharpe 6.45 over 2020–2025 | **SOUND, UNUSED** | Real, but a basis-convergence risk-premium harvest, not a forecast of BTC's own direction. Recorded so it is not mistaken for a directional signal if funding-rate data is ever added. |
+| Whether options skew carries *directional* information at this horizon | **reported as a gap, correctly** | The agent found no primary evidence and said so instead of padding. `AUDIT.md` §5.4 therefore enters skew as a hypothesis to falsify rather than an assumed feature. |
+| Empirical, out-of-sample-evaluated forecasting of the **maximum excursion** distribution (this model's actual output) | **reported as a gap** | Large pricing-theoretic first-passage literature; no located published work that forecasts the excursion distribution from history and evaluates it out of sample with proper scoring rules. Plausibly because desks do it and do not publish. Not a novelty claim — an absence of located precedent. |
+
+**Net effect on the project: none of the model changed, and that is the
+finding.** The literature says the directional null is the expected result of a
+well-behaved volatility model, and that the data which would change it is not
+in hourly bars. That converts an open goal into a costed decision, which is in
+`AUDIT.md` §5.4 with the falsification rule written before any data is bought.
+
+---
+
 ## What this exercise is worth
 
-Two of three reports were substantially reliable and one had a wrong headline
+Three of four reports were substantially reliable and one had a wrong headline
 stated confidently. The wrong one was caught by measuring the claim against
 this project's own data — a twenty-line regression — rather than by
 recognising the error from expertise.
+
+The fourth (§4) was the best of them, and the reason is worth naming: it
+separated what it had read from what it had only found quoted, and it reported
+two gaps as gaps rather than filling them. Its single load-bearing citation was
+still fetched and read independently before anything was built on it.
 
 That is the only method that generalises, and it is the reason none of these
 reports was allowed to change the model on its own authority. Every **ADOPTED**

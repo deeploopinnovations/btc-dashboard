@@ -1,0 +1,280 @@
+{
+  "candidate_artifact_only": true,
+  "not_wired_into": [
+    "noctua/features.py",
+    "noctua/spec.py",
+    "serve/",
+    "eval/benchmark.py"
+  ],
+  "timestamp_semantics": {
+    "funding": {
+      "n_rows": 64206,
+      "start_utc": "2019-04-30 10:00:00+00:00",
+      "end_utc": "2026-08-26 17:00:00+00:00",
+      "monotonic_increasing": true,
+      "duplicated_timestamps": 0,
+      "spacing_seconds_value_counts": {
+        "3600": 64204,
+        "10800": 1
+      },
+      "non_hourly_gaps": 1,
+      "aligned_to_hour_boundary": true,
+      "prev_index_price_equals_prior_row_index_price": {
+        "fraction_matching": 1.0,
+        "interpretation": "1.0 means every row's prev_index_price is EXACTLY the previous row's own index_price, i.e. interest_1h at timestamp t is computed from the price change ending AT t -- a trailing, already-known-by-t quantity, the same convention this repo's own hourly `close` uses (known at hour_ts, not before it). This is evidence AGAINST a forward-settlement stamp: a forward commitment for the NEXT interval would not need yesterday's own realized price change to define itself."
+      },
+      "interest_8h_changes_every_hour_fraction": 0.9838800112139052,
+      "interest_8h_interpretation": "a rolling trailing-8h reference updated on (nearly) every hourly row, not a value that only becomes meaningful at the 00/08/16 UTC settlement instants -- consistent with a continuously-updated as-of-t quantity",
+      "gap_locations": [
+        {
+          "before": "2020-08-27 05:00:00+00:00",
+          "after": "2020-08-27 08:00:00+00:00",
+          "gap_hours": 3.0
+        }
+      ]
+    },
+    "dvol": {
+      "n_rows": 47563,
+      "start_utc": "2021-03-24 00:00:00+00:00",
+      "end_utc": "2026-08-26 18:00:00+00:00",
+      "monotonic_increasing": true,
+      "duplicated_timestamps": 0,
+      "spacing_seconds_value_counts": {
+        "3600": 47562
+      },
+      "non_hourly_gaps": 0,
+      "aligned_to_hour_boundary": true
+    },
+    "required_lag_if_used_as_a_feature": "Established from the data: to respect this repo's own contract ('features = hours <= a-1', episodes.py:35) a funding/DVOL row stamped at hour h should not be joined to an anchor a until a >= h+1, i.e. the SAME lag convention already applied to the hourly OHLC table (build_features indexes trailing aggregates at `rows - extra_lag_hours`, never at `rows` itself). Joining on ts == anchor_ts, or any join that lets a funding/DVOL row reach the SAME hour it is timestamped for, would violate the contract exactly as using rv5[row] instead of rv5[row-1] would.",
+    "unverified": [
+      "Deribit's documented definition of the funding-rate 'timestamp' field was not fetched or consulted this session (no network call was made) -- the 'known as of t' reading above is inferred from the data's internal structure (prev_index_price chaining, hourly interest_8h updates), not confirmed against an API reference.",
+      "DVOL is a single 'volatility' column with no OHLC breakdown, so whether the hourly value is a point-in-time index level sampled AT the hour, or some intra-hour aggregate (e.g. a candle close), cannot be distinguished from the data alone; the conservative reading (treat it as known-as-of-its-timestamp, same lag as everything else) is recommended regardless of which is true.",
+      "Whether index_price itself (the Deribit BTC index, an average across constituent exchanges) has any residual publication delay relative to its own timestamp was not established."
+    ]
+  },
+  "causal_lag_applied_hours": 1,
+  "causal_lag_rationale": "a row stamped at hour h is joined only to anchors a >= h+1, matching eval/leakage.py:audit_new_data's stated contract and the same convention noctua/features.py applies to the hourly OHLC bars",
+  "features": [
+    "iv_level",
+    "iv_chg_1h",
+    "iv_chg_6h",
+    "iv_chg_24h",
+    "iv_z_20d",
+    "ivrv_ratio"
+  ],
+  "iv_term_slope": {
+    "feature": "iv_term_slope",
+    "status": "BLOCKED",
+    "reason": "dvol_btc.parquet carries a single 'volatility' column (one 30-day constant-maturity index), no second tenor anywhere in its schema. A term slope needs at least two maturities sampled at the same instant; Deribit's DVOL is defined as a single-maturity index, so re-fetching the same endpoint over any time range cannot produce one -- it would require a different endpoint (per-expiry option chains) that this harvest does not fetch. Not built; no synthetic proxy substituted."
+  },
+  "coverage": {
+    "n_episodes_total": 510485,
+    "n_train": 189831,
+    "n_calib": 52359,
+    "n_test": 73827,
+    "per_feature": {
+      "iv_level": {
+        "total": 188543,
+        "train": 62051,
+        "calib": 52359,
+        "test": 73827,
+        "pct_of_total": 36.93,
+        "pct_of_train": 32.69,
+        "pct_of_test": 100.0
+      },
+      "iv_chg_1h": {
+        "total": 188539,
+        "train": 62047,
+        "calib": 52359,
+        "test": 73827,
+        "pct_of_total": 36.93,
+        "pct_of_train": 32.69,
+        "pct_of_test": 100.0
+      },
+      "iv_chg_6h": {
+        "total": 188519,
+        "train": 62027,
+        "calib": 52359,
+        "test": 73827,
+        "pct_of_total": 36.93,
+        "pct_of_train": 32.67,
+        "pct_of_test": 100.0
+      },
+      "iv_chg_24h": {
+        "total": 188447,
+        "train": 61955,
+        "calib": 52359,
+        "test": 73827,
+        "pct_of_total": 36.92,
+        "pct_of_train": 32.64,
+        "pct_of_test": 100.0
+      },
+      "iv_z_20d": {
+        "total": 186623,
+        "train": 60131,
+        "calib": 52359,
+        "test": 73827,
+        "pct_of_total": 36.56,
+        "pct_of_train": 31.68,
+        "pct_of_test": 100.0
+      },
+      "ivrv_ratio": {
+        "total": 188543,
+        "train": 62051,
+        "calib": 52359,
+        "test": 73827,
+        "pct_of_total": 36.93,
+        "pct_of_train": 32.69,
+        "pct_of_test": 100.0
+      }
+    },
+    "iv_term_slope": {
+      "feature": "iv_term_slope",
+      "status": "BLOCKED",
+      "reason": "dvol_btc.parquet carries a single 'volatility' column (one 30-day constant-maturity index), no second tenor anywhere in its schema. A term slope needs at least two maturities sampled at the same instant; Deribit's DVOL is defined as a single-maturity index, so re-fetching the same endpoint over any time range cannot produce one -- it would require a different endpoint (per-expiry option chains) that this harvest does not fetch. Not built; no synthetic proxy substituted."
+    }
+  },
+  "units_reconciliation": {
+    "hours_per_year": 8760,
+    "formula": "ivrv_ratio = log(DVOL/100) - (har_1d + 0.5*log(HOURS_PER_YEAR))",
+    "ivrv_ratio_mean": 0.26321328336390315,
+    "ivrv_ratio_median": 0.24069714532401365,
+    "ivrv_ratio_ci95": [
+      0.25061536369821713,
+      0.27565977123039986
+    ],
+    "equivalent_vol_point_diff_mean": 9.68409291572522,
+    "equivalent_vol_point_diff_median": 11.627415563985629,
+    "cross_check_reference": "OPTION_BUYER_ALPHA.md: forward VRP (DVOL - subsequent 10d realized) averages +8.7 vol points post-ETF -- a different, forward-looking quantity from this file's trailing proxy; same-sign, same-order-of-magnitude is the bar, not an exact match"
+  },
+  "leakage": {
+    "verdict": {
+      "iv_level": "CAUSAL",
+      "iv_chg_1h": "CAUSAL",
+      "iv_chg_6h": "CAUSAL",
+      "iv_chg_24h": "CAUSAL",
+      "iv_z_20d": "CAUSAL",
+      "ivrv_ratio": "CAUSAL"
+    },
+    "max_abs_violation": {
+      "iv_level": 0.0,
+      "iv_chg_1h": 0.0,
+      "iv_chg_6h": 0.0,
+      "iv_chg_24h": 0.0,
+      "iv_z_20d": 0.0,
+      "ivrv_ratio": 0.0
+    },
+    "n_tested_cells": {
+      "iv_level": 632,
+      "iv_chg_1h": 632,
+      "iv_chg_6h": 632,
+      "iv_chg_24h": 632,
+      "iv_z_20d": 614,
+      "ivrv_ratio": 632
+    },
+    "trials": [
+      {
+        "cut_frac": 0.1,
+        "cut_ts": 1633665600,
+        "style": "scale_2_5x",
+        "n_probed": 304,
+        "n_boundary_episodes": 4,
+        "n_columns_moved": 0,
+        "decoy_caught": true
+      },
+      {
+        "cut_frac": 0.1,
+        "cut_ts": 1633665600,
+        "style": "nan_inject",
+        "n_probed": 304,
+        "n_boundary_episodes": 4,
+        "n_columns_moved": 0,
+        "decoy_caught": true
+      },
+      {
+        "cut_frac": 0.3,
+        "cut_ts": 1667908800,
+        "style": "scale_2_5x",
+        "n_probed": 304,
+        "n_boundary_episodes": 4,
+        "n_columns_moved": 0,
+        "decoy_caught": true
+      },
+      {
+        "cut_frac": 0.3,
+        "cut_ts": 1667908800,
+        "style": "nan_inject",
+        "n_probed": 304,
+        "n_boundary_episodes": 4,
+        "n_columns_moved": 0,
+        "decoy_caught": true
+      },
+      {
+        "cut_frac": 0.5,
+        "cut_ts": 1702155600,
+        "style": "scale_2_5x",
+        "n_probed": 304,
+        "n_boundary_episodes": 4,
+        "n_columns_moved": 0,
+        "decoy_caught": true
+      },
+      {
+        "cut_frac": 0.5,
+        "cut_ts": 1702155600,
+        "style": "nan_inject",
+        "n_probed": 304,
+        "n_boundary_episodes": 4,
+        "n_columns_moved": 0,
+        "decoy_caught": true
+      },
+      {
+        "cut_frac": 0.7,
+        "cut_ts": 1736402400,
+        "style": "scale_2_5x",
+        "n_probed": 304,
+        "n_boundary_episodes": 4,
+        "n_columns_moved": 0,
+        "decoy_caught": true
+      },
+      {
+        "cut_frac": 0.7,
+        "cut_ts": 1736402400,
+        "style": "nan_inject",
+        "n_probed": 304,
+        "n_boundary_episodes": 4,
+        "n_columns_moved": 0,
+        "decoy_caught": true
+      },
+      {
+        "cut_frac": 0.9,
+        "cut_ts": 1770645600,
+        "style": "scale_2_5x",
+        "n_probed": 304,
+        "n_boundary_episodes": 4,
+        "n_columns_moved": 0,
+        "decoy_caught": true
+      },
+      {
+        "cut_frac": 0.9,
+        "cut_ts": 1770645600,
+        "style": "nan_inject",
+        "n_probed": 304,
+        "n_boundary_episodes": 4,
+        "n_columns_moved": 0,
+        "decoy_caught": true
+      }
+    ],
+    "positive_control": {
+      "description": "decoy reads DVOL at the anchor hour itself (a), not a-1; must be flagged in every trial with a boundary episode",
+      "n_trials": 10,
+      "n_trials_with_boundary_episode": 10,
+      "caught_in_every_trial": true
+    },
+    "iv_term_slope": {
+      "feature": "iv_term_slope",
+      "status": "BLOCKED",
+      "reason": "dvol_btc.parquet carries a single 'volatility' column (one 30-day constant-maturity index), no second tenor anywhere in its schema. A term slope needs at least two maturities sampled at the same instant; Deribit's DVOL is defined as a single-maturity index, so re-fetching the same endpoint over any time range cannot produce one -- it would require a different endpoint (per-expiry option chains) that this harvest does not fetch. Not built; no synthetic proxy substituted."
+    }
+  },
+  "overall_leakage_verdict": "CAUSAL"
+}

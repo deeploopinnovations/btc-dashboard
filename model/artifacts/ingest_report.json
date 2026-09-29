@@ -1,0 +1,16 @@
+{
+  "raw_rows": 7730016,
+  "raw_start_utc": "2012-01-01 00:01:00+00:00",
+  "raw_end_utc": "2026-09-12 01:36:00+00:00",
+  "missing_minutes_filled": 0,
+  "ohlc_low_repaired": 0,
+  "ohlc_high_repaired": 0,
+  "bad_prints_flagged": 11563,
+  "bad_print_pct": 0.1496,
+  "final_rows": 7730016,
+  "final_start_utc": "2012-01-01 00:01:00+00:00",
+  "final_end_utc": "2026-09-12 01:36:00+00:00",
+  "pct_minutes_filled": 0.0,
+  "pct_zero_volume": 16.9782,
+  "parquet_mb": 158.6
+}

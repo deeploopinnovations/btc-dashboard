@@ -3,6 +3,19 @@ node_modules/
 *.log
 .env
 src/config.js
-model/artifacts/
+model/artifacts/*
+# small RESULT summaries are state, not build output, and the 2026-09-12
+# loss happened because this directory swallowed them (R55, DATA_LOSS doc)
+!model/artifacts/*_result.json
+!model/artifacts/tail_clustering.json
+# 2026-09-29: every result JSON is state (~1 MB total), and the per-episode
+# arrays below are what lets the next audit run WITHOUT retraining
+# (hour_anchor_cond.npz, iv_served_pe.npz) or rebuild E2c's fit
+# (blend_ceiling.npz). Data parquets and teacher_oof.npz stay untracked: they
+# are rebuildable from the 1-minute source (corpus_manifest.json).
+!model/artifacts/*.json
+!model/artifacts/hour_anchor_cond.npz
+!model/artifacts/iv_served_pe.npz
+!model/artifacts/blend_ceiling.npz
 __pycache__/
 *.pyc

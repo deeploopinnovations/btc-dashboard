@@ -1,8 +1,9 @@
 # NOCTUA
 
-A **49,866-parameter** model for one decision: the BTC option seller's
-**19-hour overnight window**, 17:00 UTC (22:30 IST) → 12:00 UTC (17:30 IST),
-which is the Delta Exchange daily-option holding period.
+A **6,445-parameter** model (×3 seeds = 19,335 stored weights) for one
+decision: the BTC option seller's **19-hour overnight window**, 17:00 UTC
+(22:30 IST) → 12:00 UTC (17:30 IST), which is the Delta Exchange daily-option
+holding period.
 
 It answers *"which levels are strong enough that they will not break?"* as a
 calibrated **barrier survival curve**, not a point forecast.
@@ -13,22 +14,32 @@ calibrated **barrier survival curve**, not a point forecast.
 | [`RESULTS.md`](RESULTS.md) | out-of-sample results **including the negative ones** |
 | `noctua/` | pipeline: ingest → episodes → features → train → evaluate → export |
 | `serve/` | NumPy-only runtime + Hugging Face Space app |
-| `eval/kronos_baseline.py` | head-to-head vs Kronos — **written, not yet run** (see below) |
+| [`BENCHMARK.md`](BENCHMARK.md) | the adversarial benchmark and every correction made to it — **the current source of truth for numbers** |
+| [`AUDIT.md`](AUDIT.md) | end-to-end audit: what is established, what is not, and what is next |
+| `eval/kronos_baseline.py` | head-to-head vs Kronos — run, 120 episodes (see `BENCHMARK.md` §5) |
 
 ## Headline
 
 Out-of-sample walk-forward, 2,046 non-overlapping production episodes:
 
-- **Volatility:** beats a well-specified Log-HAR by **2.79 % QLIKE**, p = 0.043,
-  5/6 folds.
-- **Deep-tail barriers:** calibration error **0.94 pp vs 3.33 pp** for the
+- **Volatility:** the shipped committee beats a well-specified Log-HAR by
+  **4.04 % QLIKE**, p = 0.0002.
+- **Deep-tail barriers:** calibration error **1.09 pp vs 3.33 pp** for the
   Gaussian first-passage baseline at α = 1 %. The textbook model understates
   deep-tail touch risk by 2–4×.
 - **Body barriers (α ≥ 10 %):** the Gaussian is better. Reported, not hidden.
-- **Direction:** no skill (log-loss 0.6941 vs 0.6931 for a coin flip). The
-  served `upside` field is pinned to 50.
-- **Kronos:** not benchmarked — `huggingface.co` is blocked in the build
-  environment, so no superiority claim over Kronos is made here.
+- **Direction: no skill, and now measured properly.** `eval/direction.py`
+  scores the model's own `prob_up` walk-forward against a base-rate
+  climatology, and separately asks whether ANY predictor built from these 42
+  features can beat it. See `AUDIT.md` §2 — the served `upside` field is
+  pinned to 50.0 and the raw value is deliberately wired to nothing.
+- **Kronos:** benchmarked, 120 episodes. NOCTUA is better calibrated and
+  ~190,000× faster; Kronos's barrier discrimination does **not** clear a
+  shuffled control. See `BENCHMARK.md` §5.
+
+> **Numbers here are summaries.** Where this file and `BENCHMARK.md` disagree,
+> `BENCHMARK.md` is right — it is regenerated from `model/artifacts/*.json`,
+> this file is written by hand and has been stale before.
 
 ## Why it replaced the Kronos scrape
 

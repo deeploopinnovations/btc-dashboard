@@ -1,0 +1,78 @@
+{
+ "arm": "D2",
+ "H": 168,
+ "folds": [
+  2023,
+  2024,
+  2025,
+  2026
+ ],
+ "committee": "fitted on calib at H=168; NOT the production committee",
+ "n_paired": 31432,
+ "block_len": 336,
+ "qlike_base": 0.16883149513913695,
+ "qlike_arm": 0.1655774629810097,
+ "qlike_delta": 0.003254032158127222,
+ "qlike_ci": [
+  0.001846271741345281,
+  0.0047113183124503025
+ ],
+ "barriers": {
+  "pinball": {
+   "before": 0.0097743700683544,
+   "after": 0.009763660160736619,
+   "delta": -1.070990761778065e-05,
+   "better": true,
+   "higher_is_better": false
+  },
+  "crps": {
+   "before": 0.014580344999135287,
+   "after": 0.014566659573622746,
+   "delta": -1.368542551254126e-05,
+   "better": true,
+   "higher_is_better": false
+  },
+  "brier": {
+   "before": 0.24867135523781753,
+   "after": 0.24868508987070484,
+   "delta": 1.3734632887313358e-05,
+   "better": false,
+   "higher_is_better": false
+  },
+  "DSC": {
+   "before": 0.0011977265895126627,
+   "after": 0.0011766665747493445,
+   "delta": -2.1060014763318218e-05,
+   "better": false,
+   "higher_is_better": true
+  },
+  "MCB": {
+   "before": 0.07488864266635525,
+   "after": 0.07488131728447925,
+   "delta": -7.32538187600551e-06,
+   "better": true,
+   "higher_is_better": false
+  },
+  "logs": {
+   "before": 0.6904522648095226,
+   "after": 0.6904825784768152,
+   "delta": 3.0313667292558577e-05,
+   "better": false,
+   "higher_is_better": false
+  }
+ },
+ "guards": {
+  "qlike_better": true,
+  "pinball_not_worse": true,
+  "crps_not_worse": true,
+  "brier_not_worse": false,
+  "dsc_not_worse": false,
+  "mcb_not_worse": true,
+  "logs_not_worse": false
+ },
+ "blocked_by": [
+  "brier_not_worse",
+  "dsc_not_worse",
+  "logs_not_worse"
+ ]
+}

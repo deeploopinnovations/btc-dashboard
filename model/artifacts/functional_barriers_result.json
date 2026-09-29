@@ -1,0 +1,86 @@
+{
+ "guard": "paired interval per metric (R69)",
+ "horizons": {
+  "1": {
+   "folds": [
+    2021,
+    2022,
+    2023,
+    2024,
+    2025,
+    2026
+   ],
+   "qlike_median": 0.7148343231127503,
+   "qlike_mean": 0.5043394158278547,
+   "qlike_delta": 0.21049490728489562,
+   "qlike_ci": [
+    0.19168075307823074,
+    0.23140525353963884
+   ],
+   "barriers": {
+    "pinball": {
+     "before": 0.0007699025778154284,
+     "after": 0.0007699025778154284,
+     "delta": 0.0,
+     "rel_pct": 0.0,
+     "better": false,
+     "higher_is_better": false
+    },
+    "crps": {
+     "before": 0.0011168277269442272,
+     "after": 0.0011168277269442272,
+     "delta": 0.0,
+     "rel_pct": 0.0,
+     "better": false,
+     "higher_is_better": false
+    },
+    "brier": {
+     "before": 0.049646474466800504,
+     "after": 0.049646474466800504,
+     "delta": 0.0,
+     "rel_pct": 0.0,
+     "better": false,
+     "higher_is_better": false,
+     "paired_ci": [
+      0.0,
+      0.0
+     ],
+     "degraded_by_interval": false
+    },
+    "DSC": {
+     "before": 0.006186826630519877,
+     "after": 0.006186826630519877,
+     "delta": 0.0,
+     "rel_pct": 0.0,
+     "better": false,
+     "higher_is_better": true
+    },
+    "MCB": {
+     "before": 0.0008316345880208376,
+     "after": 0.0008316345880208376,
+     "delta": 0.0,
+     "rel_pct": 0.0,
+     "better": false,
+     "higher_is_better": false
+    },
+    "logs": {
+     "before": 0.16630463903844736,
+     "after": 0.16630463903844736,
+     "delta": 0.0,
+     "rel_pct": 0.0,
+     "better": false,
+     "higher_is_better": false
+    }
+   },
+   "point_worse": [
+    "pinball",
+    "crps",
+    "brier",
+    "DSC",
+    "MCB",
+    "logs"
+   ],
+   "degraded": []
+  }
+ }
+}

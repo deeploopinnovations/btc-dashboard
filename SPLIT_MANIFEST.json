@@ -1,0 +1,336 @@
+{
+  "_meta": {
+    "purpose": "Machine-readable split manifest for Phase 1, computed from model/artifacts/episodes.parquet in this session.",
+    "source_file": "model/artifacts/episodes.parquet",
+    "source_module": "model/noctua/splits.py",
+    "horizons_in_data_hours": [
+      6,
+      12,
+      19,
+      24
+    ],
+    "total_episodes_all_H": 510496,
+    "embargo_hours": 24,
+    "embargo_rule": "embargo_hours = max(H) present in episodes.parquet; a split boundary purges any window whose [anchor, anchor+H) would cross it. Verified below as the measured gap at every boundary.",
+    "timestamp_convention": "anchor_*_unix are Unix seconds (UTC). anchor_*_iso / *_boundary_iso are ISO 8601 UTC."
+  },
+  "time_splits": {
+    "description": "Static train/calib/test split (splits.time_splits), production development split.",
+    "train_end_config": "2023-01-01",
+    "calib_end_config": "2024-07-01",
+    "train_end_boundary_unix": 1672531200,
+    "train_end_boundary_iso": "2023-01-01T00:00:00Z",
+    "calib_end_boundary_unix": 1719792000,
+    "calib_end_boundary_iso": "2024-07-01T00:00:00Z",
+    "train": {
+      "n_episodes": 189831,
+      "anchor_min_unix": 1501545600,
+      "anchor_max_unix": 1672423200,
+      "window_end_max_unix": 1672444800,
+      "anchor_min_iso": "2017-08-01T00:00:00Z",
+      "anchor_max_iso": "2022-12-30T18:00:00Z",
+      "window_end_max_iso": "2022-12-31T00:00:00Z"
+    },
+    "calib": {
+      "n_episodes": 52359,
+      "anchor_min_unix": 1672531200,
+      "anchor_max_unix": 1719684000,
+      "window_end_max_unix": 1719705600,
+      "anchor_min_iso": "2023-01-01T00:00:00Z",
+      "anchor_max_iso": "2024-06-29T18:00:00Z",
+      "window_end_max_iso": "2024-06-30T00:00:00Z"
+    },
+    "test": {
+      "n_episodes": 73867,
+      "anchor_min_unix": 1719792000,
+      "anchor_max_unix": 1786302000,
+      "window_end_max_unix": 1786323600,
+      "anchor_min_iso": "2024-07-01T00:00:00Z",
+      "anchor_max_iso": "2026-08-09T19:00:00Z",
+      "window_end_max_iso": "2026-08-10T01:00:00Z"
+    },
+    "embargo_hours": 24,
+    "measured_gap_hours": {
+      "train_to_calib_boundary": 24.0,
+      "calib_to_test_boundary": 24.0
+    },
+    "episode_counts": {
+      "train": 189831,
+      "calib": 52359,
+      "test": 73867,
+      "total": 316057
+    }
+  },
+  "walk_forward_folds": [
+    {
+      "test_year": 2021,
+      "calib_start_boundary_unix": 1593561600,
+      "calib_start_boundary_iso": "2020-07-01T00:00:00Z",
+      "test_start_boundary_unix": 1609459200,
+      "test_start_boundary_iso": "2021-01-01T00:00:00Z",
+      "train": {
+        "n_episodes": 102087,
+        "anchor_min_unix": 1501545600,
+        "anchor_max_unix": 1593453600,
+        "window_end_max_unix": 1593475200,
+        "anchor_min_iso": "2017-08-01T00:00:00Z",
+        "anchor_max_iso": "2020-06-29T18:00:00Z",
+        "window_end_max_iso": "2020-06-30T00:00:00Z"
+      },
+      "calib": {
+        "n_episodes": 17511,
+        "anchor_min_unix": 1593561600,
+        "anchor_max_unix": 1609351200,
+        "window_end_max_unix": 1609372800,
+        "anchor_min_iso": "2020-07-01T00:00:00Z",
+        "anchor_max_iso": "2020-12-30T18:00:00Z",
+        "window_end_max_iso": "2020-12-31T00:00:00Z"
+      },
+      "test": {
+        "n_episodes": 35040,
+        "anchor_min_unix": 1609459200,
+        "anchor_max_unix": 1640991600,
+        "window_end_max_unix": 1641078000,
+        "anchor_min_iso": "2021-01-01T00:00:00Z",
+        "anchor_max_iso": "2021-12-31T23:00:00Z",
+        "window_end_max_iso": "2022-01-01T23:00:00Z"
+      },
+      "embargo_hours": 24,
+      "measured_gap_hours": {
+        "train_to_calib_boundary": 24.0,
+        "calib_to_test_boundary": 24.0
+      },
+      "episode_counts": {
+        "train": 102087,
+        "calib": 17511,
+        "test": 35040
+      }
+    },
+    {
+      "test_year": 2022,
+      "calib_start_boundary_unix": 1625097600,
+      "calib_start_boundary_iso": "2021-07-01T00:00:00Z",
+      "test_start_boundary_unix": 1640995200,
+      "test_start_boundary_iso": "2022-01-01T00:00:00Z",
+      "train": {
+        "n_episodes": 137127,
+        "anchor_min_unix": 1501545600,
+        "anchor_max_unix": 1624989600,
+        "window_end_max_unix": 1625011200,
+        "anchor_min_iso": "2017-08-01T00:00:00Z",
+        "anchor_max_iso": "2021-06-29T18:00:00Z",
+        "window_end_max_iso": "2021-06-30T00:00:00Z"
+      },
+      "calib": {
+        "n_episodes": 17511,
+        "anchor_min_unix": 1625097600,
+        "anchor_max_unix": 1640887200,
+        "window_end_max_unix": 1640908800,
+        "anchor_min_iso": "2021-07-01T00:00:00Z",
+        "anchor_max_iso": "2021-12-30T18:00:00Z",
+        "window_end_max_iso": "2021-12-31T00:00:00Z"
+      },
+      "test": {
+        "n_episodes": 35040,
+        "anchor_min_unix": 1640995200,
+        "anchor_max_unix": 1672527600,
+        "window_end_max_unix": 1672614000,
+        "anchor_min_iso": "2022-01-01T00:00:00Z",
+        "anchor_max_iso": "2022-12-31T23:00:00Z",
+        "window_end_max_iso": "2023-01-01T23:00:00Z"
+      },
+      "embargo_hours": 24,
+      "measured_gap_hours": {
+        "train_to_calib_boundary": 24.0,
+        "calib_to_test_boundary": 24.0
+      },
+      "episode_counts": {
+        "train": 137127,
+        "calib": 17511,
+        "test": 35040
+      }
+    },
+    {
+      "test_year": 2023,
+      "calib_start_boundary_unix": 1656633600,
+      "calib_start_boundary_iso": "2022-07-01T00:00:00Z",
+      "test_start_boundary_unix": 1672531200,
+      "test_start_boundary_iso": "2023-01-01T00:00:00Z",
+      "train": {
+        "n_episodes": 172167,
+        "anchor_min_unix": 1501545600,
+        "anchor_max_unix": 1656525600,
+        "window_end_max_unix": 1656547200,
+        "anchor_min_iso": "2017-08-01T00:00:00Z",
+        "anchor_max_iso": "2022-06-29T18:00:00Z",
+        "window_end_max_iso": "2022-06-30T00:00:00Z"
+      },
+      "calib": {
+        "n_episodes": 17511,
+        "anchor_min_unix": 1656633600,
+        "anchor_max_unix": 1672423200,
+        "window_end_max_unix": 1672444800,
+        "anchor_min_iso": "2022-07-01T00:00:00Z",
+        "anchor_max_iso": "2022-12-30T18:00:00Z",
+        "window_end_max_iso": "2022-12-31T00:00:00Z"
+      },
+      "test": {
+        "n_episodes": 35040,
+        "anchor_min_unix": 1672531200,
+        "anchor_max_unix": 1704063600,
+        "window_end_max_unix": 1704150000,
+        "anchor_min_iso": "2023-01-01T00:00:00Z",
+        "anchor_max_iso": "2023-12-31T23:00:00Z",
+        "window_end_max_iso": "2024-01-01T23:00:00Z"
+      },
+      "embargo_hours": 24,
+      "measured_gap_hours": {
+        "train_to_calib_boundary": 24.0,
+        "calib_to_test_boundary": 24.0
+      },
+      "episode_counts": {
+        "train": 172167,
+        "calib": 17511,
+        "test": 35040
+      }
+    },
+    {
+      "test_year": 2024,
+      "calib_start_boundary_unix": 1688169600,
+      "calib_start_boundary_iso": "2023-07-01T00:00:00Z",
+      "test_start_boundary_unix": 1704067200,
+      "test_start_boundary_iso": "2024-01-01T00:00:00Z",
+      "train": {
+        "n_episodes": 207207,
+        "anchor_min_unix": 1501545600,
+        "anchor_max_unix": 1688061600,
+        "window_end_max_unix": 1688083200,
+        "anchor_min_iso": "2017-08-01T00:00:00Z",
+        "anchor_max_iso": "2023-06-29T18:00:00Z",
+        "window_end_max_iso": "2023-06-30T00:00:00Z"
+      },
+      "calib": {
+        "n_episodes": 17511,
+        "anchor_min_unix": 1688169600,
+        "anchor_max_unix": 1703959200,
+        "window_end_max_unix": 1703980800,
+        "anchor_min_iso": "2023-07-01T00:00:00Z",
+        "anchor_max_iso": "2023-12-30T18:00:00Z",
+        "window_end_max_iso": "2023-12-31T00:00:00Z"
+      },
+      "test": {
+        "n_episodes": 35136,
+        "anchor_min_unix": 1704067200,
+        "anchor_max_unix": 1735686000,
+        "window_end_max_unix": 1735772400,
+        "anchor_min_iso": "2024-01-01T00:00:00Z",
+        "anchor_max_iso": "2024-12-31T23:00:00Z",
+        "window_end_max_iso": "2025-01-01T23:00:00Z"
+      },
+      "embargo_hours": 24,
+      "measured_gap_hours": {
+        "train_to_calib_boundary": 24.0,
+        "calib_to_test_boundary": 24.0
+      },
+      "episode_counts": {
+        "train": 207207,
+        "calib": 17511,
+        "test": 35136
+      }
+    },
+    {
+      "test_year": 2025,
+      "calib_start_boundary_unix": 1719792000,
+      "calib_start_boundary_iso": "2024-07-01T00:00:00Z",
+      "test_start_boundary_unix": 1735689600,
+      "test_start_boundary_iso": "2025-01-01T00:00:00Z",
+      "train": {
+        "n_episodes": 242343,
+        "anchor_min_unix": 1501545600,
+        "anchor_max_unix": 1719684000,
+        "window_end_max_unix": 1719705600,
+        "anchor_min_iso": "2017-08-01T00:00:00Z",
+        "anchor_max_iso": "2024-06-29T18:00:00Z",
+        "window_end_max_iso": "2024-06-30T00:00:00Z"
+      },
+      "calib": {
+        "n_episodes": 17511,
+        "anchor_min_unix": 1719792000,
+        "anchor_max_unix": 1735581600,
+        "window_end_max_unix": 1735603200,
+        "anchor_min_iso": "2024-07-01T00:00:00Z",
+        "anchor_max_iso": "2024-12-30T18:00:00Z",
+        "window_end_max_iso": "2024-12-31T00:00:00Z"
+      },
+      "test": {
+        "n_episodes": 35040,
+        "anchor_min_unix": 1735689600,
+        "anchor_max_unix": 1767222000,
+        "window_end_max_unix": 1767308400,
+        "anchor_min_iso": "2025-01-01T00:00:00Z",
+        "anchor_max_iso": "2025-12-31T23:00:00Z",
+        "window_end_max_iso": "2026-01-01T23:00:00Z"
+      },
+      "embargo_hours": 24,
+      "measured_gap_hours": {
+        "train_to_calib_boundary": 24.0,
+        "calib_to_test_boundary": 24.0
+      },
+      "episode_counts": {
+        "train": 242343,
+        "calib": 17511,
+        "test": 35040
+      }
+    },
+    {
+      "test_year": 2026,
+      "calib_start_boundary_unix": 1751328000,
+      "calib_start_boundary_iso": "2025-07-01T00:00:00Z",
+      "test_start_boundary_unix": 1767225600,
+      "test_start_boundary_iso": "2026-01-01T00:00:00Z",
+      "train": {
+        "n_episodes": 277383,
+        "anchor_min_unix": 1501545600,
+        "anchor_max_unix": 1751220000,
+        "window_end_max_unix": 1751241600,
+        "anchor_min_iso": "2017-08-01T00:00:00Z",
+        "anchor_max_iso": "2025-06-29T18:00:00Z",
+        "window_end_max_iso": "2025-06-30T00:00:00Z"
+      },
+      "calib": {
+        "n_episodes": 17511,
+        "anchor_min_unix": 1751328000,
+        "anchor_max_unix": 1767117600,
+        "window_end_max_unix": 1767139200,
+        "anchor_min_iso": "2025-07-01T00:00:00Z",
+        "anchor_max_iso": "2025-12-30T18:00:00Z",
+        "window_end_max_iso": "2025-12-31T00:00:00Z"
+      },
+      "test": {
+        "n_episodes": 21163,
+        "anchor_min_unix": 1767225600,
+        "anchor_max_unix": 1786302000,
+        "window_end_max_unix": 1786323600,
+        "anchor_min_iso": "2026-01-01T00:00:00Z",
+        "anchor_max_iso": "2026-08-09T19:00:00Z",
+        "window_end_max_iso": "2026-08-10T01:00:00Z"
+      },
+      "embargo_hours": 24,
+      "measured_gap_hours": {
+        "train_to_calib_boundary": 24.0,
+        "calib_to_test_boundary": 24.0
+      },
+      "episode_counts": {
+        "train": 277383,
+        "calib": 17511,
+        "test": 21163
+      }
+    }
+  ],
+  "walk_forward_meta": {
+    "n_folds": 6,
+    "first_test_year": 2021,
+    "last_test_year": 2026,
+    "fold_construction": "Expanding window: train = everything before (test_year-1)-07-01 minus embargo; calib = 6 months before test_year minus embargo; test = full calendar year test_year (2026 fold truncated at data end)."
+  }
+}

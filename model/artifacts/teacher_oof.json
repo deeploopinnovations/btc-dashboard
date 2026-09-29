@@ -1,0 +1,372 @@
+{
+ "sha256": "ad18b0afae39652df868f6fc018b7b8e4ce863aaa2e5eaa276e54a79de8878bb",
+ "n_arrays": 576,
+ "emitted_slices": [
+  "calib",
+  "test"
+ ],
+ "horizons": [
+  1,
+  6,
+  24,
+  168
+ ],
+ "seeds": 3,
+ "hidden": 32,
+ "teachers": [
+  "garch_normal",
+  "garch_t",
+  "har_short",
+  "log_har",
+  "log_har_cal",
+  "noctua_v1",
+  "noctua_v1_mean",
+  "persistence"
+ ],
+ "inputs": {
+  "episodes_h4_rows": 506601,
+  "episodes_h4_content_sha256": "cdb6ed5f9864f17e7c1d902ef486ad522f80e030e6481483dbed24c76fcf19f0",
+  "features_rows": 510485,
+  "features_content_sha256": "491494a37038e84ec8e5d109eded5a4d3ed61d082504d954866f8f3cdd6c33a0",
+  "environment": {
+   "pins_file": "model/requirements-research.txt",
+   "packages": {
+    "arch": {
+     "pinned": "8.0.0",
+     "installed": "8.0.0",
+     "state": "ok"
+    },
+    "numpy": {
+     "pinned": "2.4.6",
+     "installed": "2.4.6",
+     "state": "ok"
+    },
+    "pandas": {
+     "pinned": "3.0.5",
+     "installed": "3.0.5",
+     "state": "ok"
+    },
+    "pyarrow": {
+     "pinned": "25.0.0",
+     "installed": "25.0.1",
+     "state": "DRIFT"
+    },
+    "scikit-learn": {
+     "pinned": "1.9.0",
+     "installed": null,
+     "state": "ABSENT"
+    },
+    "scipy": {
+     "pinned": "1.17.1",
+     "installed": "1.17.1",
+     "state": "ok"
+    },
+    "statsmodels": {
+     "pinned": "0.14.6",
+     "installed": "0.15.0",
+     "state": "DRIFT"
+    },
+    "torch": {
+     "pinned": "2.13.0+cu130",
+     "installed": "2.13.0+cu130",
+     "state": "ok"
+    }
+   },
+   "drift": [
+    "pyarrow",
+    "statsmodels"
+   ],
+   "python": "3.11.15"
+  }
+ },
+ "slices": [
+  {
+   "year": 2021,
+   "H": 1,
+   "slice": "calib",
+   "n": 4247
+  },
+  {
+   "year": 2021,
+   "H": 1,
+   "slice": "test",
+   "n": 8760
+  },
+  {
+   "year": 2021,
+   "H": 6,
+   "slice": "calib",
+   "n": 4243
+  },
+  {
+   "year": 2021,
+   "H": 6,
+   "slice": "test",
+   "n": 8760
+  },
+  {
+   "year": 2021,
+   "H": 24,
+   "slice": "calib",
+   "n": 4225
+  },
+  {
+   "year": 2021,
+   "H": 24,
+   "slice": "test",
+   "n": 8760
+  },
+  {
+   "year": 2021,
+   "H": 168,
+   "slice": "calib",
+   "n": 4081
+  },
+  {
+   "year": 2021,
+   "H": 168,
+   "slice": "test",
+   "n": 8760
+  },
+  {
+   "year": 2022,
+   "H": 1,
+   "slice": "calib",
+   "n": 4248
+  },
+  {
+   "year": 2022,
+   "H": 1,
+   "slice": "test",
+   "n": 8758
+  },
+  {
+   "year": 2022,
+   "H": 6,
+   "slice": "calib",
+   "n": 4243
+  },
+  {
+   "year": 2022,
+   "H": 6,
+   "slice": "test",
+   "n": 8760
+  },
+  {
+   "year": 2022,
+   "H": 24,
+   "slice": "calib",
+   "n": 4225
+  },
+  {
+   "year": 2022,
+   "H": 24,
+   "slice": "test",
+   "n": 8760
+  },
+  {
+   "year": 2022,
+   "H": 168,
+   "slice": "calib",
+   "n": 4081
+  },
+  {
+   "year": 2022,
+   "H": 168,
+   "slice": "test",
+   "n": 8760
+  },
+  {
+   "year": 2023,
+   "H": 1,
+   "slice": "calib",
+   "n": 4247
+  },
+  {
+   "year": 2023,
+   "H": 1,
+   "slice": "test",
+   "n": 8759
+  },
+  {
+   "year": 2023,
+   "H": 6,
+   "slice": "calib",
+   "n": 4243
+  },
+  {
+   "year": 2023,
+   "H": 6,
+   "slice": "test",
+   "n": 8760
+  },
+  {
+   "year": 2023,
+   "H": 24,
+   "slice": "calib",
+   "n": 4225
+  },
+  {
+   "year": 2023,
+   "H": 24,
+   "slice": "test",
+   "n": 8760
+  },
+  {
+   "year": 2023,
+   "H": 168,
+   "slice": "calib",
+   "n": 4081
+  },
+  {
+   "year": 2023,
+   "H": 168,
+   "slice": "test",
+   "n": 8760
+  },
+  {
+   "year": 2024,
+   "H": 1,
+   "slice": "calib",
+   "n": 4247
+  },
+  {
+   "year": 2024,
+   "H": 1,
+   "slice": "test",
+   "n": 8782
+  },
+  {
+   "year": 2024,
+   "H": 6,
+   "slice": "calib",
+   "n": 4243
+  },
+  {
+   "year": 2024,
+   "H": 6,
+   "slice": "test",
+   "n": 8784
+  },
+  {
+   "year": 2024,
+   "H": 24,
+   "slice": "calib",
+   "n": 4225
+  },
+  {
+   "year": 2024,
+   "H": 24,
+   "slice": "test",
+   "n": 8784
+  },
+  {
+   "year": 2024,
+   "H": 168,
+   "slice": "calib",
+   "n": 4081
+  },
+  {
+   "year": 2024,
+   "H": 168,
+   "slice": "test",
+   "n": 8784
+  },
+  {
+   "year": 2025,
+   "H": 1,
+   "slice": "calib",
+   "n": 4246
+  },
+  {
+   "year": 2025,
+   "H": 1,
+   "slice": "test",
+   "n": 8759
+  },
+  {
+   "year": 2025,
+   "H": 6,
+   "slice": "calib",
+   "n": 4243
+  },
+  {
+   "year": 2025,
+   "H": 6,
+   "slice": "test",
+   "n": 8760
+  },
+  {
+   "year": 2025,
+   "H": 24,
+   "slice": "calib",
+   "n": 4225
+  },
+  {
+   "year": 2025,
+   "H": 24,
+   "slice": "test",
+   "n": 8760
+  },
+  {
+   "year": 2025,
+   "H": 168,
+   "slice": "calib",
+   "n": 4081
+  },
+  {
+   "year": 2025,
+   "H": 168,
+   "slice": "test",
+   "n": 8760
+  },
+  {
+   "year": 2026,
+   "H": 1,
+   "slice": "calib",
+   "n": 4248
+  },
+  {
+   "year": 2026,
+   "H": 1,
+   "slice": "test",
+   "n": 5295
+  },
+  {
+   "year": 2026,
+   "H": 6,
+   "slice": "calib",
+   "n": 4243
+  },
+  {
+   "year": 2026,
+   "H": 6,
+   "slice": "test",
+   "n": 5290
+  },
+  {
+   "year": 2026,
+   "H": 24,
+   "slice": "calib",
+   "n": 4225
+  },
+  {
+   "year": 2026,
+   "H": 24,
+   "slice": "test",
+   "n": 5272
+  },
+  {
+   "year": 2026,
+   "H": 168,
+   "slice": "calib",
+   "n": 4081
+  },
+  {
+   "year": 2026,
+   "H": 168,
+   "slice": "test",
+   "n": 5128
+  }
+ ]
+}

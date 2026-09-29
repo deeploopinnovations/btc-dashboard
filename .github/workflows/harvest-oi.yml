@@ -1,0 +1,82 @@
+# Daily snapshot of the BTC options chain: open interest and volume by strike
+# and expiry.
+#
+# WHY THIS EXISTS AND WHY IT IS SCHEDULED
+#
+# Per-strike open interest cannot be backfilled. Deribit's public API reports
+# the chain as it stands now and publishes no history of it, so a snapshot
+# nobody took is gone. Every day this does not run is a day of history that
+# cannot be bought later -- which is why it is added before the thesis it
+# serves has been tested rather than after.
+#
+# NOTE ON WHEN IT STARTS COLLECTING: scheduled workflows only fire from the
+# repository's DEFAULT branch. Until this is merged, nothing accumulates. That
+# is the only action needed to start the clock.
+name: harvest-oi
+
+on:
+  schedule:
+    - cron: '23 1 * * *'   # daily, offset from harvest-newdata's :11 so the
+                            # two do not contend for the same runner minute
+  workflow_dispatch:
+  push:
+    paths:
+      - 'model/eval/harvest_oi.py'
+      - '.github/workflows/harvest-oi.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: harvest-oi
+  cancel-in-progress: false
+
+jobs:
+  harvest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install runtime
+        run: pip install --quiet -r model/serve/requirements-ci.txt
+
+      # Offline, and FIRST. The parser is the part that can silently corrupt a
+      # snapshot -- a future misread as an option puts a fabricated level into
+      # a strike histogram -- so it is checked before the network is touched.
+      - name: Parser self-test
+        run: python -m model.eval.harvest_oi --self-test
+
+      - name: Snapshot the chain
+        run: python -m model.eval.harvest_oi --live --out data/oi
+
+      - name: Commit the snapshot
+        run: |
+          set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          BR="${GITHUB_REF_NAME}"
+          for attempt in 1 2 3; do
+            git fetch origin "$BR" && git reset --soft "origin/$BR" || true
+            git add data/oi/
+            if git diff --cached --quiet; then
+              echo "nothing new to commit"; exit 0
+            fi
+            # Refuse to push anything but the snapshots. A harvester that can
+            # commit outside its own directory is a harvester that can rewrite
+            # the research corpus by accident.
+            if git diff --cached --name-only | grep -qv '^data/oi/'; then
+              echo "REFUSING: staged files outside data/oi/:"
+              git diff --cached --name-only
+              exit 1
+            fi
+            git commit -m "chore(data): options open-interest snapshot by strike"
+            git push origin "HEAD:$BR" && exit 0
+            echo "push attempt $attempt rejected; retrying"
+            sleep 5
+          done
+          echo "could not push after 3 attempts"; exit 1
