@@ -119,6 +119,13 @@ jobs:
       - name: Day-of-week-anchor serving gate
         run: python model/tests/test_dow_anchor.py
 
+      # Gates the next-day implied-vol increment (P4-iv1d-*): off is the shipped
+      # payload bit for bit; on at 17:00/H=19 with an implied vol moves the
+      # median by exactly a + b*(iv - anchor); elsewhere or without an IV
+      # nothing moves; combined with another anchor flag it raises. No network.
+      - name: Implied-vol-anchor serving gate
+        run: python model/tests/test_iv_anchor.py
+
       # Gates the online-adaptation guard: ACI's coverage guarantee, Ville's
       # bound on the e-processes, and the promotion/veto asymmetry. A
       # regression in any of these is SILENT -- the system keeps forecasting

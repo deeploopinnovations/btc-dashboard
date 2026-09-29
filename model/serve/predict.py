@@ -153,10 +153,27 @@ WEEKEND_ANCHOR = False
 # moves exactly what the algebra says.
 DOW_ANCHOR = False
 
+# The NEXT-DAY IMPLIED-VOL ANCHOR. The at-the-money implied vol of the Deribit
+# option expiring 08:00 UTC next morning, from trades in the hour BEFORE the
+# 17:00 anchor (noctua/iv1d.py), moves the shipped anchor toward the market's
+# forecast: a + b * (log hourly IV - anchor), at the 17:00 / H = 19 anchor only
+# (noctua/add_iv_anchor.py). Its registered walk-forward test was REJECTED
+# (P4-iv1d-anchor-result: the shuffled-IV placebo also helped, via the 17:00
+# intercept); post hoc the real IV beat that placebo on all five metrics
+# (P4-iv1d-posthoc) and a realised-vol proxy added nothing
+# (P4-iv1d-proxy-control). That is evidence for a FORWARD test only, frozen in
+# research/DATA_USE.md. Forecast input only -- never an options P&L.
+#
+# OFF. It needs a live Deribit fetch at the anchor; a failed fetch leaves the
+# anchor unchanged and the payload says so. tests/test_iv_anchor.py asserts
+# off is bit-identical and on moves exactly what the algebra says.
+IV_ANCHOR = False
+
 
 def forecast(model, hours: pd.DataFrame, H: int = PROD_H,
              anchor_ts: int | None = None, source: str = "unknown",
-             raw: dict | None = None) -> dict:
+             raw: dict | None = None, iv_pct: float | None = None,
+             fetch_iv: bool = True) -> dict:
     """Run one forecast anchored at `anchor_ts` (default: the latest full hour).
 
     `hours` is the merged hourly history from `serve.history.get_hours` --
@@ -185,7 +202,30 @@ def forecast(model, hours: pd.DataFrame, H: int = PROD_H,
     model.hour_anchor = bool(HOUR_ANCHOR)
     model.weekend_anchor = bool(WEEKEND_ANCHOR)
     model.dow_anchor = bool(DOW_ANCHOR)
-    d = model.prepare(X, np.array([float(H)]))
+    model.iv_anchor = bool(IV_ANCHOR)
+    # The implied vol exists only for the 17:00 / H = 19 product anchor. A
+    # caller may pass it (the forward holdout and the gate do, so neither needs
+    # the network); otherwise it is fetched here, and a failure leaves the
+    # anchor unchanged. Settled anchors read by the trailing factor never get it.
+    iv_info = {"enabled": bool(IV_ANCHOR), "applied": False, "iv_pct": None, "reason": "off"}
+    liv = None
+    if IV_ANCHOR:
+        if not (dt.hour == PROD_ANCHOR_UTC and int(H) == PROD_H):
+            iv_info["reason"] = "not the 17:00 UTC / H=19 anchor"
+        else:
+            if iv_pct is None and fetch_iv:
+                try:
+                    from noctua.iv1d import iv_nextday_for
+                    iv_pct = iv_nextday_for(dt.normalize().to_pydatetime())
+                except Exception as e:                  # network, API, parsing
+                    iv_info["reason"] = f"fetch failed: {type(e).__name__}"
+            if iv_pct is not None and np.isfinite(iv_pct) and iv_pct > 0:
+                from noctua.iv1d import log_hourly
+                liv = [log_hourly(float(iv_pct))]
+                iv_info.update(applied=True, iv_pct=round(float(iv_pct), 3), reason="applied")
+            elif iv_info["reason"] == "off":
+                iv_info["reason"] = "no qualifying next-day trade before the anchor"
+    d = model.prepare(X, np.array([float(H)]), iv_log_hourly=liv)
     pred = model.predict(d, disp_lambda=DISP_LAMBDA)
 
     # Causal volatility-level recalibration. Measured out of sample on
@@ -396,6 +436,16 @@ def forecast(model, hours: pd.DataFrame, H: int = PROD_H,
             "applies_to": "the anchor, hence sigma_med, sigma_mean, sigma_atoms, every "
                           "barrier curve, safe level and p_up, and the trailing "
                           "vol_calibration factor. Asserted in tests/test_dow_anchor.py.",
+        },
+        "iv_anchor": {
+            **iv_info,
+            "available": bool(getattr(model, "has_iv_anchor", False)),
+            "note": "moves the anchor toward the next-day ATM implied vol from Deribit "
+                    "trades before the 17:00 UTC anchor; forward-test candidate "
+                    "(P4-iv1d-posthoc). Off is bit-identical to the shipped anchor.",
+            "applies_to": "the 17:00/H=19 anchor only, hence sigma_med, sigma_mean, "
+                          "sigma_atoms, every barrier curve, safe level and p_up. Asserted "
+                          "in tests/test_iv_anchor.py.",
         },
         "sigma_scale": {
             "scale": round(float(qs["scale"]), 4),
