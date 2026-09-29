@@ -535,3 +535,34 @@ artifact's split is acceptable; the five-column increment was a design error
 **Decision:** no disqualifier → built OFF (`DOW_ANCHOR`, alternative to
 `WEEKEND_ANCHOR`), gate 13/13, forward holdout frozen (N_MIN 450). The calendar
 line now continues ONLY on forward data, as the supervisor note required.
+
+---
+
+# 2026-09-29 (d): next-day implied vol — audit returns
+
+`P4-iv1d-anchor-result` REJECT as registered (the shuffled-IV placebo also
+helped, via the 17:00 intercept both arms carry). Post hoc, labelled:
+`P4-iv1d-posthoc` (Is beats Ip on all five). My disproof attempt
+`P4-iv1d-proxy-control`: recent realised vol adds nothing beyond the 17:00
+level; implied vol adds +1.03 % Brier beyond it — NOT refuted.
+
+**Agent H — leakage / data integrity (haiku). 7 × NO DEFECT, two numbers
+wrong.** Every trade before its anchor; expiries parse to 08:00 UTC,
+next-day rows exactly 15 h; day mapping correct; placebo keeps each year's
+values; fit on train nights only. Its DVOL check merged at the wrong grain
+("228,291 days", ratio 12.65); redone by me daily at 16:00 UTC: corr 0.81,
+median ratio 0.85 over 1,981 days — parsing sound, overnight IV a little below
+30-day IV as the term structure implies.
+
+**Agent J — statistics of the post-hoc gap (haiku).** Leave-one-year-out 5/5,
+block 19–365 and families to 80: DOES NOT WEAKEN. ACCEPTED: 2022 is positive
+but not separated (separated in 4/5 years — my "every year" referred to point
+estimates and is corrected here); ~79 % of the Brier gain comes from the top
+5 % of nights, and survives trimming. VERIFIED AND RE-READ: the gain is
+concentrated where the market is CALMER than the anchor (x < 0, 33 % of
+nights: Is−Ip Brier +1.69 %, QLIKE +19 %), and smaller but separated at 95 %
+elsewhere (x ≥ 0: Brier +0.16 % [+0.00007, +0.00056]); J's "no separation"
+used 99.5 %. REJECTED: "regime-specific spurious pattern" — the split is ex
+ante, both sides are positive, and "the market says tonight is quieter than
+your trailing history" is exactly the information a Log-HAR anchor lacks.
+What J is right about: post hoc is post hoc — only a forward test can confirm.
