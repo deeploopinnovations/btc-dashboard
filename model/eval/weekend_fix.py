@@ -23,9 +23,10 @@ ARMS (every one carries serving's trailing factor from its OWN forecasts):
   Ps   PLACEBO: the same construction with the Tue+Wed fraction -- same two-day
        structure, no calendar reason. If Ps helps, the gain is freedom.
   Fs   SECONDARY: the column corrected everywhere, network and anchor
-       retrained per fold. Its served factor is applied by scaling the test
-       curves, which is exact for a test-slice-only shift; the identity is
-       VERIFIED per fold against a real post_shift run of M0s.
+       retrained per fold, served factor from its own forecasts, applied by
+       a real post_shift run (AMENDED: the registered curve-scaling shortcut
+       failed its own exactness guard, max rel err 4.95e-3, before any metric
+       was seen).
 
     python -m model.eval.weekend_fix --selftest
     python -m model.eval.weekend_fix
@@ -190,22 +191,30 @@ def main(argv=None) -> int:
             got[arm] = {"curves": cur, "M": M, "rv": p1["rv"],
                         "sigma_med": p1["sigma_med"], "sigma_mean": p1["sigma_mean"],
                         "lf": lf, "DSC": b["DSC"]}
-        # the scaling identity Fs relies on, checked on M0s
+        # AMENDED before any metric was printed: the registered shortcut for Fs
+        # (scale the test curves by the factor) is NOT exact -- the first run
+        # refused at a max relative error of 4.95e-3 against a real post_shift
+        # run of M0s. Fs is therefore built by a REAL run like the other arms;
+        # the scaling error is reported, not used.
         base = take(peB, rows)
         sc = scale_curves(base["curves"], got["M0s"]["lf"])
         rel = max(float(np.max(np.abs(sc[s] / got["M0s"]["curves"][s] - 1))) for s in sc)
-        if not rel < TOL_SCALE:
-            raise SystemExit(f"REFUSING: test-slice factor is not a pure curve scaling "
-                             f"(max rel err {rel:.2e}); Fs cannot be built this way")
-        # Fs: corrected column everywhere, factor from its own forecasts
         hF_idx, hF_rv, hF_sig = hist_from(peF)
         lfF = served_log_factor(ts[ti], ts[hF_idx], hF_rv, hF_sig)
-        fx = take(peF, rows)
-        curF = scale_curves(fx["curves"], lfF)
-        got["Fs"] = {"curves": curF, "M": fx["M"], "rv": fx["rv"],
-                     "sigma_med": fx["sigma_med"] * np.exp(lfF),
-                     "sigma_mean": fx["sigma_mean"] * np.exp(lfF), "lf": lfF,
-                     "DSC": battery(curF, fx["M"])["DSC"]}
+        fullF = np.zeros(len(ep))
+        fullF[ti] = lfF
+        rF1 = run_fold(ep, XF, f, a.hidden, a.seeds,
+                       post_shift_fn=lambda mask, _mt, _s=fullF: _s[mask])
+        pF = rF1["per_episode"]
+        if not np.array_equal(pF["test_idx"], ti):
+            raise SystemExit("REFUSING: Fs scored different episodes")
+        bF, bF_run = battery(pF["curves"]["noctua_v2"], pF["M_abs"]), barrier_cols(rF1["rows"])
+        errF = max(abs(bF[k] - bF_run[k]) for k in bF_run)
+        if not errF < TOL_BAT:
+            raise SystemExit(f"REFUSING: Fs offline battery differs by {errF:.2e}")
+        got["Fs"] = {"curves": pF["curves"]["noctua_v2"], "M": pF["M_abs"], "rv": pF["rv"],
+                     "sigma_med": pF["sigma_med"], "sigma_mean": pF["sigma_mean"],
+                     "lf": lfF, "DSC": bF["DSC"]}
         for arm in ARMS:
             g = got[arm]
             p = per_episode(g["curves"], g["M"])
@@ -233,7 +242,7 @@ def main(argv=None) -> int:
         years.append(f["year"])
         print(f"  fold {f['year']}: coef W {aW['coef']:+.3f} P {aP['coef']:+.3f}  "
               f"DSC " + " ".join(f"{k} {got[k]['DSC']:.6f}" for k in ARMS)
-              + f"  scaling err {rel:.1e}  ({time.time() - t0:.0f}s)", flush=True)
+              + f"  (curve-scaling err, reported only: {rel:.1e})  ({time.time() - t0:.0f}s)", flush=True)
 
     if not years:
         print("no complete folds"); return 1
