@@ -355,5 +355,23 @@ the gate that decided the question was the one written by me -- and was the
 one with a design flaw. Next time the ship-blocker gets the same adversarial
 review as the evidence, BEFORE it runs.
 
+---
+
+# Audit round 2026-09-29: is the reactive anchor's 6/6 DSC pattern real?
+
+*Dispatch record could not be written at dispatch (the tool permission check
+was failing); written after the returns, with that stated, so it cannot be
+read as a pre-report belief. The belief recorded in the ledger before dispatch
+(P4-short-anchor-result notes) stands as the prior.*
+
+| # | attack | verdict | checked here |
+|---|---|---|---|
+| A | leakage / timing | no defect | consistent with test_features and the season_back unit checks run before registration |
+| B | factor, stale-term, spread-stretch confounds | not disconfirmed | the stretched control LOSES DSC -- the most informative of the three |
+| C | selection, fold dependence, magnitude, per-episode score | selection and dependence accepted; magnitude argument rejected | Brier not separating is the decisive point |
+
+**Decision: not frozen; the line stays closed.** Likely real ranking information,
+not testable forward on any per-episode score with power. See P4-short-anchor-audit.
+
 
 *Educational research only. Not financial advice.*
