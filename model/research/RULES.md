@@ -1079,3 +1079,14 @@ run forward paper trading instead.
 ---
 
 *Educational research only. Not financial advice.*
+
+## R90: a placebo-controlled rule requires the candidate to beat BOTH the placebo and the base
+
+*Earned twice, 2026-09-29/30.* `P4-iv1d-anchor` required the placebo to do
+nothing, and a placebo sharing the candidate's intercept could not
+(REJECT, though the candidate beat it). `P4-skew-asym` required candidate >
+placebo and candidate not worse than base, and passed because the placebo was
+HARMFUL while the candidate was useless. The contrast that isolates the
+information is candidate − placebo (same freedom); the contrast that makes it
+worth shipping is candidate − base. A rule needs both, each excluding zero.
+

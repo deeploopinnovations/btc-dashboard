@@ -3044,7 +3044,24 @@
       "rule": "PRE-REGISTERED BEFORE ANY SKEW-vs-OUTCOME LOOK. SCREEN on the no-network Gaussian law (eval/product_score), folds 2022-2026, production nights. z = (median IV of next-day OTM puts with log K/S in [-0.10,-0.03] minus median IV of OTM calls in [+0.03,+0.10]) / next-day ATM IV, from trades in [16:00,17:00) UTC, nights with >= 2 of each (else symmetric). Base: fold Log-HAR anchor + serving's factor, one sigma for both sides. ARM Sk: level unchanged, sides split: sigma_dn = s*exp(+g/2), sigma_up = s*exp(-g/2), g = a + c*z, (a, c) by OLS of log(M_dn/M_up) on [1, z] over the fold's TRAIN 17:00 nights with z. PLACEBO Sp: identical, z shuffled across nights within each year (same intercept a, same freedom). Per-episode brier and logs (both sides), block 38, 99.5%. RULE (screen passes): Sk beats Sp on BOTH brier and logs, and Sk is worse than base on neither. The PRIMARY contrast is candidate vs its placebo (lesson of P4-iv1d-anchor-result). Passing licenses a NOCTUA-level registered test; it adopts nothing.",
       "verdict": "OPEN",
       "result": "pre-registered. PREDICTION: c > 0 (put skew -> larger downside), but the screen FAILS (probability of passing about 0.3): direction was null everywhere, and a skew that priced the next night's asymmetry would be arbitraged.",
-      "notes": "Coverage (data only): 1,538 of 2,494 days have >= 2 next-day OTM puts and calls. What this measures that nothing before could: the up/down split of the barrier distribution from forward-looking data; every earlier test moved the level or the dispersion, never the asymmetry."
+      "notes": "Coverage (data only): 1,538 of 2,494 days have >= 2 next-day OTM puts and calls. What this measures that nothing before could: the up/down split of the barrier distribution from forward-looking data; every earlier test moved the level or the dispersion, never the asymmetry.",
+      "superseded_by": [
+        "P4-skew-asym-result"
+      ]
+    },
+    {
+      "id": "P4-skew-asym-result",
+      "topic": "phase4",
+      "mechanism": "exogenous-iv-skew",
+      "date": "2026-09-30",
+      "supersedes": [
+        "P4-skew-asym"
+      ],
+      "question": "Closing P4-skew-asym (screen): does next-day option skew predict excursion asymmetry well enough to improve the two-sided product?",
+      "rule": "As registered: screen passes iff Sk beats the shuffled-skew placebo Sp on brier AND logs (99.5%, block 38) and Sk is worse than the symmetric base on neither.",
+      "verdict": "NULL",
+      "result": "RULE FORMALLY MET, NO PRODUCT GAIN -- THE PLACEBO WAS HARMFUL, NOT THE CANDIDATE HELPFUL. 1,681 nights. Sk vs Sp: brier +0.345% [+0.000078, +0.001245], logs +0.440% -- separated. Sk vs symmetric base: brier -0.130% [-0.000636, +0.000166], logs -0.199% -- WORSE in point estimate on both sides (up -0.05%, down -0.21%), not separated. Sp vs base: brier -0.476%, logs -0.642%, both significantly WORSE. Fitted c (put skew -> larger downside) positive in every fold (0.16-0.43); the intercept a flips sign (+0.16 in 2023, -0.16 in 2025): a drift-asymmetry term that does not transfer. PREDICTION: c > 0 -- right; screen fails -- formally wrong, substantively right.",
+      "notes": "RULE DESIGN LESSON (second in two days): 'beats its placebo AND not worse than base' can pass when the placebo is harmful and the candidate is useless. A placebo-controlled rule needs BOTH candidate > placebo AND candidate > base (as the frozen implied-vol holdout requires). The licensed NOCTUA-level test is DECLINED -- spending it on an arm that does not beat the base would only buy forking paths. Skew is recorded as not useful for the product at this form."
     }
   ]
 }
