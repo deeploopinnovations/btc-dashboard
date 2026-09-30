@@ -615,3 +615,44 @@ intercept. Claim stands.
 day-of-week mechanism) — both survive; one real defect found and fixed (the
 hour-anchor scorer's flags), found by checking an agent's FALSE "no defect"
 claim; one agent result valid only after I rebuilt it. Skew: NULL.
+
+## Round (e), 2026-09-30: disprove this cycle's own claims (5 haiku agents, every claim re-run)
+
+**A — NOCTUA_DEBUG never changes or breaks a forecast: SURVIVED (9 attacks).**
+Re-run: the v1 weights write a byte-identical noctua.json with the trace on (10
+records); an anchor 30 min off the hour is moved to the next bar and the trace
+now says `exact: false` (finding F6, visible as designed).
+
+**B — the bundle backfill is the same construction and loses nothing:
+SURVIVED (8 attacks).** Re-run, with one REFINEMENT: served features are not
+bit-identical at old anchors — `reg_vol_trend` (1.6e-14) and `reg_rv_vs_year`
+(1.8e-15) drift by float rounding (rolling sums now start 720 rows earlier),
+max relative 6.3e-14. "Nothing changed except the factor" holds to ~1e-13, not
+bit for bit; B found one of the two columns.
+
+**C — P4-factor-window-result: headline "REFUTED" rejected, its finding
+kept.** It reproduced the registered contrasts exactly. Its extra search (6
+windows x 2 metrics, re-run by me) shows factor quality MONOTONE in window
+length: 20 and 30 days significantly worse than 60, 90 days better on log
+score at 99.5 % (one of 12 post-hoc contrasts; fails a 12-way Bonferroni).
+The restore-to-60 decision is strengthened; 60 is not shown optimal. Recorded
+as `P4-factor-window-longer` (DIAGNOSTIC); a longer window needs its own
+registration and a DATA_USE amendment.
+
+**D — PIPELINE_TRACE.md facts: all checked claims RIGHT except one count.**
+"46/46 module selftests" was right at the sweep; `eval/factor_window.py` was
+added after it (47/47 now). Corrected. F4's numbers (16 runs, 2.6–8.5 h, ~15 %)
+recomputed independently.
+
+**E — the holdout amendment is legitimate: SURVIVED (6 attacks).** Re-run: no
+lock file anywhere in history, the clock holdout counts 2 nights and prints
+nothing else, frozen hashes match, the only eval change is the new script.
+
+**Operational:** A, C, D were cut off by an API rate limit mid-audit and
+resumed with their context; a CI re-run replays the ORIGINAL merge commit, so a
+data-freshness red cannot be cleared by re-running — only by a new push after
+main's cron refreshes (green at ed93841).
+
+**Tally:** 5 claims attacked, 0 defects in the code, 2 corrections to my own
+wording (feature drift ~1e-14, selftest count), 1 new post-hoc question
+(longer factor window).

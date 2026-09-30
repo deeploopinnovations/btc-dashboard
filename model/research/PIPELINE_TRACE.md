@@ -76,7 +76,7 @@ status. Re-run the serving half any time with `NOCTUA_DEBUG=1` (see
 |---|---|
 | `scripts/precommit.sh` | 20/20 gates (with `test_debug_trace`) |
 | forward holdout selftests | 5/5 (7, 7, 4, 4, 5 checks) |
-| every module `--selftest` in eval/, research/, noctua/ | 46/46 |
+| every module `--selftest` in eval/, research/, noctua/ | 46/46 at the sweep; 47/47 with `eval/factor_window.py`, added after it (audit D) |
 | `ruff --select F` beyond CI's F821 | 12 unused variables + 1 repeated dict key, each inspected: none is a live bug |
 | `node scripts/smoke.js` | FAILS on data age only (F9) |
 

@@ -33,6 +33,16 @@
 | 3 | **Keep the holdouts honest while they accrue** | a holdout nobody audits can rot (audit L found one) | monthly: frozen hashes, count-only output, workflow green; lock files only by the workflow |
 | 4 | **New information, aimed at shape**: the next-day option smile's WINGS (butterfly / risk-neutral tail mass) against the tails of the night's excursions | 92 % of barrier error is path and shape, not volatility (`BENCHMARK.md` §6f); NOCTUA's edge is shape; the harvested trades carry strikes; skew → asymmetry was NULL, wings → tail thickness is untested | registered before any wings-vs-outcome look; screen on the Gaussian law with a shuffled-wings placebo; R90 |
 
+**Considered and not started: reinforcement learning.** The forecast is a
+supervised problem with full next-morning labels and proper scoring rules; RL
+would learn from less information than it already has. RL (or a contextual
+bandit over strike choice) belongs to the TRADING decision layer, and needs a
+reward built from historical option quotes, spreads and fills, which this
+project does not have; the standing rule forbids manufacturing that P&L. It
+becomes phase 5 if a quote/order-book archive (e.g. Deribit history via a data
+vendor) is obtained: registered first, against a fixed-threshold selling rule
+as the baseline.
+
 ## How each phase is run (the discipline, written down so it survives the session)
 
 1. **Brainstorm before touching code.** Write two or three ways to do it and
