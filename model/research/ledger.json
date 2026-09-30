@@ -3073,6 +3073,17 @@
       "verdict": "DIAGNOSTIC",
       "result": "NOT REFUTED. 17:00-only intercept vs base: brier +0.210% [+0.000216, +0.000528], logs -0.070% (ns) -- the level fix helps Brier only. Day-of-week vs base: brier +0.384%, logs +0.450%. Day-of-week + intercept vs intercept: brier +0.364% [+0.000389, +0.000929], logs +0.441% [+0.001225, +0.003552] -- the calendar survives the level control. arm-not-degenerate PASS (served level moves up to 0.056). AGENT M reached the same verdict with INVALID evidence: its script added the intercept to every hour (history included), which the median factor absorbs, so its 'GI' was the base and its 'GDI vs GI' interval equals day-of-week vs base exactly ([+0.000420, +0.000971]). M also wrote files into the repository against its constraints; they were deleted unreviewed.",
       "notes": "Script: eval/dow_vs_intercept.py (the correct construction, with the pitfall check inline)."
+    },
+    {
+      "id": "P4-iv-on-calendar",
+      "topic": "phase4",
+      "mechanism": "exogenous-iv-horizon",
+      "date": "2026-09-30",
+      "question": "Do the two strongest candidates overlap? Does next-day implied vol add anything on top of the day-of-week calendar plus a 17:00-only intercept (the level fix that powered the IV placebo)?",
+      "rule": "Refute-only, no-network Gaussian law, folds 2022-2026, served factor from each arm's own forecasts; refuted if the IV increment fitted on the calendar+intercept anchor's residual does not separate from it (99.5%, block 38).",
+      "verdict": "DIAGNOSTIC",
+      "result": "NOT REFUTED -- COMPLEMENTARY. IV on top of calendar + 17:00 intercept: brier +0.711% [+0.000827, +0.001571], logs +1.024% [+0.003474, +0.006867]. IV weight b 0.32 / 0.31 / 0.31 / 0.39 / 0.46 by fold (vs 0.33-0.56 on the plain anchor); the intercept a shrinks (-0.01 to -0.08 vs -0.03 to -0.12) because the calendar already carries part of the level.",
+      "notes": "Deployment consequence: if both ever ship, the IV increment must be refitted on the calendar anchor's residual (the served IV_ANCHOR refuses to combine with other anchor flags until then); the frozen holdouts test each alone against the shipped anchor. Script: eval/iv_on_calendar.py."
     }
   ]
 }
