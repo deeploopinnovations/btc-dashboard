@@ -67,9 +67,16 @@ def forward_nights(hours: pd.DataFrame, freeze: str = FREEZE) -> pd.DataFrame:
 
 def score(model, hours: pd.DataFrame, nights: pd.DataFrame) -> dict:
     from serve import predict as P
+    from eval.forward_weekend_anchor import CAL_FLAGS
     rows = []
-    orig = P.HOUR_ANCHOR
+    # every OTHER anchor flag forced off (the frozen comparison is the same
+    # artifact with HOUR_ANCHOR off vs on; audit L, 2026-09-30: this scorer
+    # used to toggle HOUR_ANCHOR only, so a later default change elsewhere
+    # would have silently changed both arms)
+    saved = {f: getattr(P, f) for f in CAL_FLAGS}
     try:
+        for f in CAL_FLAGS:
+            setattr(P, f, False)
         for _, e in nights.iterrows():
             out = {}
             for flag in (False, True):
@@ -83,7 +90,8 @@ def score(model, hours: pd.DataFrame, nights: pd.DataFrame) -> dict:
                              "curves": pay["barrier_curves"]}
             rows.append((e, out))
     finally:
-        P.HOUR_ANCHOR = orig
+        for f, v in saved.items():
+            setattr(P, f, v)
     return rows
 
 
@@ -232,6 +240,18 @@ def selftest() -> int:
             r2 = run(hours, model, lock=lock, n_min=3, freeze=fake)
         ok.append(("second run returns the locked result, does not rescore",
                    r2 == json.loads(lock.read_text())))
+        from serve import predict as P
+        n0 = forward_nights(hours, fake).head(1)
+        raw0: dict = {}
+        P.forecast(model, hours, H=PROD_H, anchor_ts=int(n0["anchor_ts"].iloc[0]), raw=raw0)
+        clean = float(raw0["pred"]["sigma_mean"][0])       # every flag off (defaults)
+        P.DOW_ANCHOR = True                    # a later default change elsewhere...
+        try:
+            rows = score(model, hours, n0)
+            ok.append(("other anchor flags forced off while scoring, then restored",
+                       P.DOW_ANCHOR is True and rows[0][1][False]["mean"] == clean))
+        finally:
+            P.DOW_ANCHOR = False
         nights = forward_nights(hours, fake)
         ok.append(("only 17:00 anchors strictly after the freeze",
                    bool((nights["anchor_hour"] == PROD_A).all()) and

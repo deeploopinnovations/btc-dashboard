@@ -579,3 +579,26 @@ disproof on a proxy law is not a confirmation.
 leakage. → Built OFF behind `IV_ANCHOR` (gate 13/13) and a FORWARD holdout
 FROZEN (DATA_USE sixth candidate) whose primary includes the placebo contrast
 the walk-forward rule lacked. Adoption waits for it.
+
+---
+
+# 2026-09-30: attacks on the standing claims
+
+**Skew (`P4-skew-asym-result`, NULL):** screen formally met only because the
+shuffled placebo was harmful; the skew arm is worse than the symmetric base in
+point estimate. Licensed follow-up declined. New rule R90 (a placebo-controlled
+rule needs candidate > placebo AND candidate > base).
+
+**Agent L — "break the forward holdouts" (haiku). Reported NO DEFECT; one of
+its claims was FALSE and hid a real defect.** Verified correct: all seven
+frozen hashes match the artifact and DATA_USE.md; the IV rebuild uses
+[16:00, 17:00) only; night selection strictly after the freeze; the workflow
+never overwrites a lock and commits lock files only. FALSE: "every scorer
+forces the other anchor flags off". `forward_hour_anchor.py` (the oldest)
+toggled HOUR_ANCHOR alone, so any later default change of another flag would
+silently have changed BOTH arms of the clock-aware holdout. Fixed before any
+forward night was scored (the design is unchanged: same artifact, HOUR_ANCHOR
+off vs on); the new selftest check compares the off arm with a clean forecast
+and was shown to FAIL on the old code (R2). Not done by L: re-deriving an
+N_MIN (it restated the docstrings); mine were derived in
+`P4-weekend-fix`/`P4-dow` from the saved arrays.
