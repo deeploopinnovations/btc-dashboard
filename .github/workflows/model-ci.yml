@@ -126,6 +126,14 @@ jobs:
       - name: Implied-vol-anchor serving gate
         run: python model/tests/test_iv_anchor.py
 
+      # Gates NOCTUA_DEBUG, the stage-by-stage forecast trace (serve/debug.py):
+      # off prints nothing; on prints one record per stage to stderr only; the
+      # payload and the written noctua.json are identical on and off; the
+      # trace's numbers are the forecast's own; a failing stage is named and
+      # re-raised unchanged. Offline, no network.
+      - name: Debug-trace serving gate
+        run: python model/tests/test_debug_trace.py
+
       # Gates the online-adaptation guard: ACI's coverage guarantee, Ville's
       # bound on the e-processes, and the promotion/veto asymmetry. A
       # regression in any of these is SILENT -- the system keeps forecasting

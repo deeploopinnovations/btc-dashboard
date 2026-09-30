@@ -42,6 +42,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from noctua.features import build_features                    # noqa: E402
 from serve.adaptive import (apply_correction, qlike_scale,  # noqa: E501
                             volatility_correction)  # noqa: E402
+from serve import debug as D                                  # noqa: E402
 from serve.fetch import fetch_bars                            # noqa: E402
 from serve.history import get_hours, load_bundle              # noqa: E402
 from serve.runtime import load_model                          # noqa: E402
@@ -183,10 +184,20 @@ def forecast(model, hours: pd.DataFrame, H: int = PROD_H,
     """
     hour_ts = hours["hour_ts"].to_numpy(np.int64)
 
+    requested = anchor_ts
     if anchor_ts is None:
         anchor_ts = int(hour_ts[-1])          # forecast from the last closed hour
     row = int(np.searchsorted(hour_ts, anchor_ts))
+    clamped = row > len(hours) - 1
     row = min(row, len(hours) - 1)
+    # searchsorted moves an anchor that is not a bar in `hours` to the NEXT bar
+    # (and past the end, to the last) without a word; `exact` says if it did.
+    D.trace("anchor", requested=requested, row=row, H=int(H),
+            utc=lambda: str(pd.to_datetime(hour_ts[row], unit="s", utc=True)),
+            exact=lambda: bool(hour_ts[row] == anchor_ts), clamped=clamped,
+            history_rows=len(hours),
+            history_utc=lambda: [str(pd.to_datetime(hour_ts[i], unit="s", utc=True))
+                                 for i in (0, -1)])
     if row < 24 * 22:
         raise RuntimeError("not enough history at the requested anchor")
 
@@ -195,7 +206,10 @@ def forecast(model, hours: pd.DataFrame, H: int = PROD_H,
         "anchor_ts": [hour_ts[row]], "H": [H], "row": [row],
         "dt": [dt], "anchor_hour": [dt.hour], "dow": [dt.dayofweek],
     })
-    X = build_features(hours, ep)
+    with D.stage("features"):
+        X = build_features(hours, ep)
+    D.trace("features", values=lambda: {c: X[c].iloc[0] for c in X.columns},
+            nonfinite=lambda: [c for c in X.columns if not np.isfinite(X[c].iloc[0])])
     # set BEFORE the forecast and before volatility_correction, which calls
     # model.prepare/predict on settled anchors: the trailing factor must be
     # computed from the same anchor it corrects (P4-hour-anchor scored it so)
@@ -225,17 +239,29 @@ def forecast(model, hours: pd.DataFrame, H: int = PROD_H,
                 iv_info.update(applied=True, iv_pct=round(float(iv_pct), 3), reason="applied")
             elif iv_info["reason"] == "off":
                 iv_info["reason"] = "no qualifying next-day trade before the anchor"
-    d = model.prepare(X, np.array([float(H)]), iv_log_hourly=liv)
-    pred = model.predict(d, disp_lambda=DISP_LAMBDA)
+    D.trace("flags", hour_anchor=model.hour_anchor, weekend_anchor=model.weekend_anchor,
+            dow_anchor=model.dow_anchor, iv_anchor=dict(iv_info),
+            report_functional=REPORT_FUNCTIONAL, disp_lambda=DISP_LAMBDA)
+    with D.stage("prepare"):
+        d = model.prepare(X, np.array([float(H)]), iv_log_hourly=liv)
+    D.trace("prepare", arrays=lambda: {k: list(np.shape(v)) for k, v in d.items()},
+            anchor_logvol=lambda: float(np.asarray(model.har_logvol(d))[0]))
+    with D.stage("predict"):
+        pred = model.predict(d, disp_lambda=DISP_LAMBDA)
+    D.trace("predict", blend_w=getattr(model, "blend_w", None),
+            sigma_med=lambda: float(pred["sigma_med"][0]),
+            sigma_mean=lambda: float(pred["sigma_mean"][0]))
 
     # Causal volatility-level recalibration. Measured out of sample on
     # 2024-07 onward, the raw forecast runs high -- realized vol lands below
     # it 66.4% of the time -- which pushes every quoted strike too far out and
     # costs premium. The correction is estimated only from episodes that have
     # already settled, so it carries no look-ahead. See serve/adaptive.py.
-    cal = volatility_correction(model, hours, row, H)
-    if cal["applied"]:
-        pred = apply_correction(pred, cal["factor"])
+    with D.stage("vol_correction"):
+        cal = volatility_correction(model, hours, row, H)
+        if cal["applied"]:
+            pred = apply_correction(pred, cal["factor"])
+    D.trace("vol_correction", cal=dict(cal), sigma_mean_after=lambda: float(pred["sigma_mean"][0]))
     # The payload below is ROUNDED for publication. A caller that scores the
     # served object (eval/forward_hour_anchor.py) needs it unrounded, and
     # re-implementing this function to get it is how two "identical" pipelines
@@ -347,7 +373,7 @@ def forecast(model, hours: pd.DataFrame, H: int = PROD_H,
 
     p_up = float(model.prob_up(pred)[0])
     settle = int(hour_ts[row] + H * 3600)
-    return {
+    out = {
         "anchor_utc": str(dt), "settle_utc": str(pd.to_datetime(settle, unit="s", utc=True)),
         "H_hours": H, "spot": round(spot, 2),
         "sigma_window_pct": round(100 * sigma, 3),
@@ -466,6 +492,17 @@ def forecast(model, hours: pd.DataFrame, H: int = PROD_H,
         "source": source,
         "history_hours": int(len(hours)),
     }
+    # a touch probability must not rise with distance from spot on either side
+    D.trace("payload", anchor_utc=out["anchor_utc"], spot=out["spot"],
+            sigma_window_pct=out["sigma_window_pct"],
+            sigma_annualized_pct=out["sigma_annualized_pct"], p_up=out["p_up"],
+            p_vol_amplify=out["p_vol_amplify"],
+            vol_calibration_applied=out["vol_calibration"]["applied"],
+            touch_prob=lambda: {k: [r["touch_prob"] for r in curves[k]] for k in ("up", "dn")},
+            curves_monotone=lambda: all(a >= b for s in ("up", "dn")
+                                        for a, b in zip([r["touch_prob"] for r in curves[s]],
+                                                        [r["touch_prob"] for r in curves[s]][1:])))
+    return out
 
 
 def model_prob_rv_above(model, pred: dict, threshold: float) -> float:
@@ -532,14 +569,22 @@ def main(argv=None) -> int:
 
     # Prefer the v2 committee artifact; fall back to v1 if it is absent. The
     # runtime is chosen from the artifact's own metadata, not its filename.
-    model = load_model(a.weights)
+    with D.stage("load_model"):
+        model = load_model(a.weights)
     print(f"[predict] model = {model.meta.get('version', 'NOCTUA-v1')} "
           f"({model.meta.get('n_params_total', model.meta.get('n_params')):,} params)")
-    if a.offline:
-        hours, src = load_bundle(), "offline:bundle"
-    else:
-        hours, info = get_hours(fetch_bars)
-        src = info["source"]
+    D.trace("load_model", version=model.meta.get("version"), weights=str(a.weights),
+            arrays=lambda: sorted(getattr(model, "w", {})))
+    info = {}
+    with D.stage("history"):
+        if a.offline:
+            hours, src = load_bundle(), "offline:bundle"
+        else:
+            hours, info = get_hours(fetch_bars)
+            src = info["source"]
+    # info rides as ONE field: splatting it collided with `source` and crashed
+    # the first live run with the trace on (tests/test_debug_trace.py)
+    D.trace("history", source=src, rows=len(hours), live=info)
 
     _MODEL_TAG[0] = model.meta.get("version", "NOCTUA-v1")
     f = forecast(model, hours, H=a.H, anchor_ts=a.anchor, source=src)
@@ -548,6 +593,8 @@ def main(argv=None) -> int:
     a.out_dir.mkdir(parents=True, exist_ok=True)
     (a.out_dir / "noctua.json").write_text(json.dumps(f, indent=2) + "\n")
     (a.out_dir / "kronos.json").write_text(json.dumps(legacy, indent=2) + "\n")
+    D.trace("write", files=lambda: {n: (a.out_dir / n).stat().st_size
+                                    for n in ("noctua.json", "kronos.json")})
 
     print(json.dumps(f, indent=2))
     return 0
