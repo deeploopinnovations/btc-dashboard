@@ -3034,6 +3034,17 @@
       "verdict": "DIAGNOSTIC",
       "result": "NOT REFUTED -- IT IS NOT DVOL. Gain vs the Log-HAR anchor (1,681 nights): DVOL +0.310% brier / +0.221% logs (about the 17:00 intercept's +0.255%); IV +1.245% / +1.350%. Giv vs Gdv: brier +0.938% [+0.001096, +0.002062], logs +1.132% [+0.003727, +0.007620]. IV on top of DVOL (Gdviv vs Gdv): brier +0.722% [+0.000773, +0.001714], logs +0.949%. Agent K (haiku) reported the same direction independently (Giv vs Gdv +1.22% brier; DVOL's weight turns negative once IV is in).",
       "notes": "With P4-iv1d-proxy-control: next-day IV carries information neither the price history (har_1h, har_6h) nor the 30-day implied-vol index carries. Enough to FREEZE a forward test (DATA_USE sixth candidate); not enough to adopt -- the walk-forward evidence is post hoc."
+    },
+    {
+      "id": "P4-skew-asym",
+      "topic": "phase4",
+      "mechanism": "exogenous-iv-skew",
+      "date": "2026-09-30",
+      "question": "Does the next-day option SKEW (OTM put IV minus OTM call IV, pre-anchor trades) predict the ASYMMETRY of the night's excursions -- how far down vs how far up -- and so improve the two-sided barrier product? (Price DIRECTION was NULL at all horizons; excursion-size asymmetry was never tested.)",
+      "rule": "PRE-REGISTERED BEFORE ANY SKEW-vs-OUTCOME LOOK. SCREEN on the no-network Gaussian law (eval/product_score), folds 2022-2026, production nights. z = (median IV of next-day OTM puts with log K/S in [-0.10,-0.03] minus median IV of OTM calls in [+0.03,+0.10]) / next-day ATM IV, from trades in [16:00,17:00) UTC, nights with >= 2 of each (else symmetric). Base: fold Log-HAR anchor + serving's factor, one sigma for both sides. ARM Sk: level unchanged, sides split: sigma_dn = s*exp(+g/2), sigma_up = s*exp(-g/2), g = a + c*z, (a, c) by OLS of log(M_dn/M_up) on [1, z] over the fold's TRAIN 17:00 nights with z. PLACEBO Sp: identical, z shuffled across nights within each year (same intercept a, same freedom). Per-episode brier and logs (both sides), block 38, 99.5%. RULE (screen passes): Sk beats Sp on BOTH brier and logs, and Sk is worse than base on neither. The PRIMARY contrast is candidate vs its placebo (lesson of P4-iv1d-anchor-result). Passing licenses a NOCTUA-level registered test; it adopts nothing.",
+      "verdict": "OPEN",
+      "result": "pre-registered. PREDICTION: c > 0 (put skew -> larger downside), but the screen FAILS (probability of passing about 0.3): direction was null everywhere, and a skew that priced the next night's asymmetry would be arbitraged.",
+      "notes": "Coverage (data only): 1,538 of 2,494 days have >= 2 next-day OTM puts and calls. What this measures that nothing before could: the up/down split of the barrier distribution from forward-looking data; every earlier test moved the level or the dispersion, never the asymmetry."
     }
   ]
 }
