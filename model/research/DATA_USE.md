@@ -346,4 +346,25 @@ walk-forward noise). Count only below N_MIN; one scoring; lock; refuses if
 **Switch status, 2026-09-29: OFF.** It also needs a live Deribit fetch at the
 17:00 anchor, which serving performs only when the flag is on.
 
+## Amendment, 2026-09-30, before any holdout was scored: the served base's factor window
+
+Every holdout above scores its arms "through serving's own trailing factor".
+That factor was specified, and scored in every walk-forward result, as a
+60-day median (`serve/adaptive.WINDOW_DAYS`, `eval/hour_anchor.FAC_WINDOW_D`).
+Serving actually computed it over ~34–41 days: the 400-day history bundle could
+not give the window's oldest ~26 days their 365-day `reg_rv_vs_year` lookback,
+so those anchors were dropped (`P4-factor-window`, found by the NOCTUA_DEBUG
+trace). `P4-factor-window-result` restored 60 days (bundle 430 days).
+
+**What this changes for the holdouts:** the served BASE of every arm, in every
+holdout, identically — so every contrast stays paired, and each now tests its
+candidate under the factor its walk-forward evidence was scored with. **What it
+does not change:** any frozen array (the `FROZEN_SHA16` hashes are untouched),
+any primary, any N_MIN, any arm definition. **Why this is not a forked path:**
+it was made before any holdout was scored — the clock-aware holdout (frozen
+2026-09-27) had at most a few forward nights counted, and its scorer computes
+and prints nothing below N_MIN; the 2026-09-29 holdouts had none — and it was
+decided by a rule registered before its own measurement, on the walk-forward
+slice, not on any forward night.
+
 *Educational research only. Not financial advice.*
