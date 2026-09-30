@@ -602,3 +602,16 @@ off vs on); the new selftest check compares the off arm with a clean forecast
 and was shown to FAIL on the old code (R2). Not done by L: re-deriving an
 N_MIN (it restated the docstrings); mine were derived in
 `P4-weekend-fix`/`P4-dow` from the saved arrays.
+
+**Agent M — "day-of-week = a 17:00 level shift?" (haiku). Right verdict,
+INVALID evidence; files it wrote into the repo deleted.** Its intercept was
+added at every hour, so the median factor absorbed it (the G_C degeneracy of
+2026-09-28, pitfall `arm-not-degenerate`) and its control equalled the base.
+Re-run correctly (`P4-dow-level-control`, `eval/dow_vs_intercept.py`): the
+calendar adds +0.36 % Brier / +0.44 % log score beyond a real 17:00-only
+intercept. Claim stands.
+
+**Tally 2026-09-30:** two standing claims attacked (forward-holdout soundness,
+day-of-week mechanism) — both survive; one real defect found and fixed (the
+hour-anchor scorer's flags), found by checking an agent's FALSE "no defect"
+claim; one agent result valid only after I rebuilt it. Skew: NULL.

@@ -3062,6 +3062,17 @@
       "verdict": "NULL",
       "result": "RULE FORMALLY MET, NO PRODUCT GAIN -- THE PLACEBO WAS HARMFUL, NOT THE CANDIDATE HELPFUL. 1,681 nights. Sk vs Sp: brier +0.345% [+0.000078, +0.001245], logs +0.440% -- separated. Sk vs symmetric base: brier -0.130% [-0.000636, +0.000166], logs -0.199% -- WORSE in point estimate on both sides (up -0.05%, down -0.21%), not separated. Sp vs base: brier -0.476%, logs -0.642%, both significantly WORSE. Fitted c (put skew -> larger downside) positive in every fold (0.16-0.43); the intercept a flips sign (+0.16 in 2023, -0.16 in 2025): a drift-asymmetry term that does not transfer. PREDICTION: c > 0 -- right; screen fails -- formally wrong, substantively right.",
       "notes": "RULE DESIGN LESSON (second in two days): 'beats its placebo AND not worse than base' can pass when the placebo is harmful and the candidate is useless. A placebo-controlled rule needs BOTH candidate > placebo AND candidate > base (as the frozen implied-vol holdout requires). The licensed NOCTUA-level test is DECLINED -- spending it on an arm that does not beat the base would only buy forking paths. Skew is recorded as not useful for the product at this form."
+    },
+    {
+      "id": "P4-dow-level-control",
+      "topic": "phase4",
+      "mechanism": "timing-clock",
+      "date": "2026-09-30",
+      "question": "Audit M's attack on P4-dow-anchor-result: is the day-of-week gain just a 17:00 level shift (the mechanism behind the implied-vol placebo's success)?",
+      "rule": "Disproof attempt (refute-only), no-network Gaussian law, all folds, served factor from each arm's own forecasts. Refuted if the calendar adds nothing once 17:00 has its own intercept (GDI vs GI not separated), 99.5%, block 38. The intercept must be applied at 17:00/H=19 nights ONLY and checked non-degenerate.",
+      "verdict": "DIAGNOSTIC",
+      "result": "NOT REFUTED. 17:00-only intercept vs base: brier +0.210% [+0.000216, +0.000528], logs -0.070% (ns) -- the level fix helps Brier only. Day-of-week vs base: brier +0.384%, logs +0.450%. Day-of-week + intercept vs intercept: brier +0.364% [+0.000389, +0.000929], logs +0.441% [+0.001225, +0.003552] -- the calendar survives the level control. arm-not-degenerate PASS (served level moves up to 0.056). AGENT M reached the same verdict with INVALID evidence: its script added the intercept to every hour (history included), which the median factor absorbs, so its 'GI' was the base and its 'GDI vs GI' interval equals day-of-week vs base exactly ([+0.000420, +0.000971]). M also wrote files into the repository against its constraints; they were deleted unreviewed.",
+      "notes": "Script: eval/dow_vs_intercept.py (the correct construction, with the pitfall check inline)."
     }
   ]
 }
