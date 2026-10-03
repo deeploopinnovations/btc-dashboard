@@ -13,6 +13,10 @@ license: mit
 
 # NOCTUA paper-trading agent
 
+> Runs today on GitHub Actions (`.github/workflows/paper-agent.yml`), because
+> Gradio Spaces on the free tier now require HF PRO. This Space bootstrap is
+> ready for when PRO is enabled: `python -m model.space.deploy --ref main --warm-start`.
+
 **Paper trading only. No exchange account, no keys, no orders.** Educational
 research, not financial advice.
 

@@ -1,0 +1,51 @@
+# .github/workflows/paper-agent.yml
+# =====================================================================
+# The NOCTUA paper-trading agent (P5-rl-paper), one step per run.
+# PAPER TRADING ONLY: no exchange account, no keys, no orders.
+#
+# The agent acts at 00/06/12/18 UTC. GitHub delivers schedules late or not at
+# all (fetch-data's */30 arrives every 2.6-8.5 h), so each slot gets three
+# attempts inside the agent's 50-minute grace window; a tick is idempotent, so
+# the extra runs do nothing. A slot no run reaches in time is logged as missed
+# and the position is held -- never filled at a stale price.
+#
+# State and the per-step log (inputs, action, return, utility, regret, what
+# FLAT/HALF/HOLD/VT earned) live in the PRIVATE dataset RL_DATASET on the
+# project's HF account. Secret HF_PAPER_TOKEN: that account's token (the script
+# refuses any other). It is deliberately NOT the HF_TOKEN secret fetch-data
+# uses for sentiment.
+#
+# Scheduled workflows run on the default branch only: active once merged.
+name: paper-agent
+
+on:
+  schedule:
+    - cron: '7,22,37 0,6,12,18 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: paper-agent
+  cancel-in-progress: false
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install runtime (serving deps + hub)
+        run: pip install --quiet -r model/serve/requirements-ci.txt "huggingface_hub>=1.16"
+
+      - name: One agent step
+        env:
+          HF_PAPER_TOKEN: ${{ secrets.HF_PAPER_TOKEN }}
+          RL_DATASET: ${{ vars.RL_DATASET }}
+        run: python -m model.space.tick

@@ -43,6 +43,12 @@ becomes phase 5 if a quote/order-book archive (e.g. Deribit history via a data
 vendor) is obtained: registered first, against a fixed-threshold selling rule
 as the baseline.
 
+**Phase 5 started 2026-10-03, on spot BTC, PAPER ONLY:** `P5-rl-paper-result`
+— no learner beat holding out of sample; the agent runs anyway on GitHub
+Actions (`paper-agent.yml`) to collect forward evidence and a loss log in the
+private dataset `msdgaming2222/noctua-rl-paper`. A learner earns a claim of
+skill only by clearing the volatility-target rule at 99.5 % in that forward log.
+
 ## How each phase is run (the discipline, written down so it survives the session)
 
 1. **Brainstorm before touching code.** Write two or three ways to do it and
