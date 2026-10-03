@@ -19,6 +19,8 @@ on:
       - 'model/**'
       - 'data/noctua_history.parquet'
       - 'scripts/**'
+      - 'src/**'
+      - 'index.html'
       - '.github/workflows/model-ci.yml'
       - '.github/workflows/fetch-data.yml'
   push:
@@ -168,6 +170,14 @@ jobs:
       # scripts, so the FILE is what gets checked.
       - name: Teacher ledger schema
         run: python -m model.research.teacher_ledger --validate
+
+      # The dashboard's forecast panel shows ONE model by design: NOCTUA's
+      # snapshot while its 19-hour window is open, aged on every read, else
+      # offline -- never the third-party demo it used to scrape whenever the
+      # snapshot was over 45 min old (PIPELINE_TRACE.md F4). Runs the real
+      # src/data.js in a node sandbox; asserts no demo/proxy request is made.
+      - name: Dashboard shows NOCTUA only
+        run: node scripts/test-noctua-source.js
 
       # LAST, DELIBERATELY. This checks the AGE of a committed data snapshot
       # against a 6-hour threshold, so it fails whenever the data cron has not
