@@ -280,168 +280,49 @@ const DataLayer = (() => {
   }
 
   // ══════════════════════════════════════════════════════════════════════
-  //      KRONOS SCRAPER (BULLETPROOF — 4 proxies + DOMParser)
+  //      FORECAST PANEL — NOCTUA ONLY (data/kronos.json, cron snapshot)
   // ══════════════════════════════════════════════════════════════════════
-  // The live page is rendered as static HTML with the two metrics appearing
-  // in deterministic sections. Instead of hoping one regex works, we:
-  //   1. Try each CORS proxy in sequence until we get HTML
-  //   2. Parse HTML with DOMParser (robust to whitespace/tag shifts)
-  //   3. Extract by heading → next large % number (3 strategies)
-  //   4. Sanity-check (0 ≤ upside ≤ 100, timestamp parseable)
-  //   5. Expose freshness: how stale is the source timestamp vs now?
+  // ONE MODEL BY DESIGN. This panel used to accept NOCTUA's snapshot only when
+  // it was under 45 min old and otherwise scrape the third-party Kronos demo
+  // through free CORS proxies. GitHub fires the */30 cron every ~2.6-8.5 h, so
+  // the dashboard showed NOCTUA ~15% of the time and the demo the rest -- and
+  // the demo's `upside` is directional, while NOCTUA pins it to 50 on purpose
+  // (no validated directional skill; it skews strikes and the conviction score).
+  // See model/research/PIPELINE_TRACE.md, finding F4.
+  //
+  // Now: the snapshot is shown for as long as the window it forecasts is open
+  // (anchor + 19 h), with its age computed on every read from the anchor time
+  // (the file's own ageHrs/freshness are frozen when it is written). After the
+  // window closes, or if the snapshot is missing or malformed, the panel is
+  // OFFLINE -- never another model. Gated by scripts/test-noctua-source.js.
+  const NOCTUA_WINDOW_H = 19;            // the product window: anchor -> settle
+
+  function agedNoctua(s) {
+    if (!s || typeof s.upside !== 'number' || typeof s.volAmp !== 'number') return null;
+    const anchorMs = s.sourceMs || s._updatedMs;
+    if (!anchorMs) return null;
+    const ageHrs = (Date.now() - anchorMs) / 3600_000;
+    if (ageHrs >= NOCTUA_WINDOW_H) return null;          // the window has closed
+    const freshness = ageHrs < 2 ? 'fresh' : ageHrs < 8 ? 'recent' : 'stale';
+    return { ...s, ageHrs: Math.max(0, ageHrs), freshness };
+  }
 
   async function fetchKronos() {
-    const cached = cacheGet('kronos');
-    if (cached) return cached;
+    // New cache keys: an entry under the old 'kronos' keys may hold the demo.
+    const cached = cacheGet('noctua');
+    if (cached) return agedNoctua(cached);
 
-    // v4.1 snapshot-first: the GH Actions cron parses the demo page server-side
-    // (no CORS proxy roulette) and commits data/kronos.json. Prefer it.
     const snap = await tryLoadSnapshot('kronos');
-    if (snap?.upside != null && snap._freshness === 'fresh-snapshot') {
-      cacheSet('kronos', snap, 3600_000);
-      cacheSet('kronos_stale', snap, 86400_000 * 3);
-      return snap;
+    const aged = agedNoctua(snap);
+    if (aged) {
+      const { _freshness, ...raw } = snap;
+      cacheSet('noctua', raw, 600_000);                       // re-read every 10 min
+      cacheSet('noctua_last', raw, NOCTUA_WINDOW_H * 3600_000);
+      return aged;
     }
-
-    if (!RateLimit.canCall('kronos').allowed) return cacheGet('kronos_stale');
-
-    const target = 'https://shiyu-coder.github.io/Kronos-demo/';
-    let html, proxyUsed;
-    try {
-      const res = await fetchViaProxyChain(target, 9000);
-      html = res.text; proxyUsed = res.proxy;
-    } catch (e) {
-      console.error('[fetchKronos] proxy chain failed', e);
-      return cacheGet('kronos_stale');
-    }
-
-    const parsed = parseKronosHtml(html);
-    if (!parsed) {
-      console.error('[fetchKronos] parse failed, html length=', html.length);
-      return cacheGet('kronos_stale');
-    }
-
-    // Compute freshness based on source timestamp
-    const srcMs = parseSourceTs(parsed.sourceTs);
-    const ageHrs = srcMs ? (Date.now() - srcMs) / 3600_000 : null;
-    // v4.1: parseSourceTs assumes the demo timestamp is UTC. If that guess is
-    // wrong (page switches to local time), age can come out negative — treat
-    // anything more than 15 min in the "future" as an unknown timezone.
-    const freshness = (ageHrs === null || ageHrs < -0.25) ? 'unknown'
-                    : ageHrs < 2   ? 'fresh'
-                    : ageHrs < 8   ? 'recent'
-                    : ageHrs < 24  ? 'stale'
-                    :                'very-stale';
-
-    const data = {
-      upside:    parsed.upside,
-      volAmp:    parsed.volAmp,
-      sourceTs:  parsed.sourceTs,
-      sourceMs:  srcMs,
-      ageHrs,
-      freshness,
-      fetchedAt: Date.now(),
-      proxy:     proxyUsed,
-    };
-    RateLimit.record('kronos');
-    cacheSet('kronos', data, 3600_000 * 3);            // 3h browser cache
-    cacheSet('kronos_stale', data, 86400_000 * 3);
-    return data;
-  }
-
-  // Kronos HTML parser — strict, defensive, multiple strategies
-  function parseKronosHtml(html) {
-    // STRATEGY A: DOMParser — look for h3 headings, find following percentage
-    try {
-      const doc = new DOMParser().parseFromString(html, 'text/html');
-      const headings = [...doc.querySelectorAll('h1,h2,h3,h4,h5,p,strong')];
-      let upside = null, volAmp = null;
-      for (const h of headings) {
-        const hText = (h.textContent || '').toLowerCase();
-        if (upside === null && hText.includes('upside probability')) {
-          // Look at siblings for a "XX.X%" number
-          const pct = findNearbyPercent(h);
-          if (pct !== null && pct >= 0 && pct <= 100) upside = pct;
-        }
-        if (volAmp === null && hText.includes('volatility amplification')) {
-          const pct = findNearbyPercent(h);
-          if (pct !== null && pct >= 0 && pct <= 100) volAmp = pct;
-        }
-      }
-      // Timestamp
-      let sourceTs = null;
-      const bodyTxt = doc.body?.textContent || '';
-      const tsM = bodyTxt.match(/Last Updated[^:]*:\s*([0-9]{4}-[0-9]{2}-[0-9]{2}\s+[0-9]{2}:[0-9]{2}:[0-9]{2})/i);
-      if (tsM) sourceTs = tsM[1].trim();
-
-      if (upside !== null && volAmp !== null) {
-        return { upside, volAmp, sourceTs, strategy: 'domparser' };
-      }
-    } catch (e) { console.warn('[parseKronos] DOM strategy failed', e); }
-
-    // STRATEGY B: Labeled-section regex — percent immediately after the label
-    // "Upside Probability (Next 24h)</h3>\n16.7%"
-    try {
-      const labelRe = /Upside\s+Probability[\s\S]{0,200}?(\d+(?:\.\d+)?)\s*%/i;
-      const upMatch  = html.match(labelRe);
-      const volRe    = /Volatility\s+Amplification[\s\S]{0,200}?(\d+(?:\.\d+)?)\s*%/i;
-      const vlMatch  = html.match(volRe);
-      const tsM      = html.match(/Last Updated[^:]*:\s*(?:<[^>]+>)?([0-9]{4}-[0-9]{2}-[0-9]{2}\s+[0-9]{2}:[0-9]{2}:[0-9]{2})/i);
-      if (upMatch && vlMatch) {
-        return {
-          upside: parseFloat(upMatch[1]),
-          volAmp: parseFloat(vlMatch[1]),
-          sourceTs: tsM ? tsM[1].trim() : null,
-          strategy: 'label-regex',
-        };
-      }
-    } catch (e) { console.warn('[parseKronos] label-regex failed', e); }
-
-    // STRATEGY C: Legacy long-context regex (our v3 fallback)
-    try {
-      const upM = html.match(/([\d.]+)\s*%[\s\S]{0,400}?higher than the last known price/i);
-      const vlM = html.match(/([\d.]+)\s*%[\s\S]{0,400}?recent historical volatility/i);
-      if (upM && vlM) {
-        const tsM = html.match(/Last Updated[^:]*:\s*(?:<[^>]+>)?([^<*\n]+)/i);
-        return {
-          upside: parseFloat(upM[1]),
-          volAmp: parseFloat(vlM[1]),
-          sourceTs: tsM ? tsM[1].trim() : null,
-          strategy: 'legacy-regex',
-        };
-      }
-    } catch (e) { console.warn('[parseKronos] legacy failed', e); }
-
-    return null;
-  }
-
-  // Helper: starting from a header element, walk following siblings looking
-  // for the first "XX.X%" number (ignores the header's own text).
-  function findNearbyPercent(startEl) {
-    let el = startEl;
-    for (let i = 0; i < 12 && el; i++) {
-      // Check siblings first
-      let sib = el.nextElementSibling;
-      for (let j = 0; j < 6 && sib; j++) {
-        const txt = (sib.textContent || '').trim();
-        const m = txt.match(/^(\d+(?:\.\d+)?)\s*%\s*$/) || txt.match(/(\d+(?:\.\d+)?)\s*%/);
-        if (m) {
-          const n = parseFloat(m[1]);
-          if (n >= 0 && n <= 100) return n;
-        }
-        sib = sib.nextElementSibling;
-      }
-      el = el.parentElement;
-    }
-    return null;
-  }
-
-  function parseSourceTs(s) {
-    if (!s) return null;
-    // "2026-04-18 17:00:25" → treated as UTC
-    const m = s.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})$/);
-    if (!m) return null;
-    return Date.UTC(+m[1], +m[2]-1, +m[3], +m[4], +m[5], +m[6]);
+    // Unreachable or malformed: the last good NOCTUA snapshot if its window is
+    // still open, else offline. No other source.
+    return agedNoctua(cacheGet('noctua_last'));
   }
 
   // ══════════════════════════════════════════════════════════════════════
@@ -787,7 +668,7 @@ const DataLayer = (() => {
     }
     const direction = kronosUpside >= 55 ? 'bullish' : kronosUpside <= 45 ? 'bearish' : 'neutral';
     if (direction === 'neutral') {
-      return { ok: false, reason: `Kronos ${kronosUpside}% ≈ 50/50. No directional edge — use symmetric condor instead.` };
+      return { ok: false, reason: `Forecast upside ${kronosUpside}% ≈ 50/50. No directional edge — use symmetric condor instead.` };
     }
     const sellSide = direction === 'bullish' ? 'P' : 'C';
     const sellSideLabel = direction === 'bullish' ? 'PUTS (below spot)' : 'CALLS (above spot)';
@@ -899,14 +780,14 @@ const DataLayer = (() => {
 
     // Kronos freshness
     if (kronos?.freshness === 'very-stale') {
-      blockers.push(`Kronos last updated >${kronos.ageHrs?.toFixed(0)}h ago — signal stale`);
+      blockers.push(`${kronos.model || 'NOCTUA'} last updated >${kronos.ageHrs?.toFixed(0)}h ago — signal stale`);
     } else if (kronos) {
-      reasons.push(`Kronos: ${kronos.upside.toFixed(1)}% upside / ${kronos.volAmp.toFixed(1)}% vol-amp (${kronos.freshness})`);
+      reasons.push(`${kronos.model || 'NOCTUA'}: ${kronos.upside.toFixed(1)}% upside / ${kronos.volAmp.toFixed(1)}% vol-amp (${kronos.freshness})`);
     }
 
     // Directional clarity
     if (kronos && Math.abs(kronos.upside - 50) < 5) {
-      blockers.push(`Kronos ${kronos.upside.toFixed(1)}% ≈ 50/50 — no directional edge for asymmetric wing`);
+      blockers.push(`${kronos.model || 'NOCTUA'} ${kronos.upside.toFixed(1)}% ≈ 50/50 — no directional edge for asymmetric wing`);
     }
 
     // Plan viability

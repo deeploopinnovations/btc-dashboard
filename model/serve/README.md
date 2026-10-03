@@ -65,6 +65,29 @@ Serving fetches 5-minute bars from the **same venue and pair** — venue
 consistency matters because the target is a barrier touch, and different venues
 wick to different extremes.
 
+## Debugging a forecast: `NOCTUA_DEBUG`
+
+A wrong forecast does not crash — every stage hands the next a finite number.
+To find the first stage whose output is wrong, turn the trace on:
+
+    NOCTUA_DEBUG=1 python model/serve/predict.py --offline --out-dir /tmp/x 2> trace.log
+    grep '^\[noctua-debug\]' trace.log | cut -c16- | jq .
+
+One JSON record per stage on **stderr**, in pipeline order: `load_model`,
+`history`, (`fetch`, `fetch.fallback` on the live path), `anchor`, `features`,
+`flags`, `prepare`, `predict`, `vol_correction`, `payload`, `write`. A stage
+that raises is recorded with its name and the error, then the exception
+propagates unchanged. Things worth reading first: `anchor.exact` (false means
+the requested anchor was not a bar and was moved to the next one),
+`features.nonfinite`, `vol_correction.reason`, `payload.curves_monotone`, and
+`fetch.fallback` (the primary venue failed and the fallback served).
+
+**Back to normal:** unset `NOCTUA_DEBUG` (or set it to `0`). Nothing else to
+undo: the switch is read at call time, stdout and every written file are
+unchanged either way, and with it off no traced field is evaluated.
+`tests/test_debug_trace.py` asserts all of this, including that the payload is
+bit-identical with the trace on and off.
+
 ---
 
 *Educational research only. Not financial advice. Short-option strategies fail

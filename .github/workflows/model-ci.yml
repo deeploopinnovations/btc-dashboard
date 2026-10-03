@@ -19,6 +19,8 @@ on:
       - 'model/**'
       - 'data/noctua_history.parquet'
       - 'scripts/**'
+      - 'src/**'
+      - 'index.html'
       - '.github/workflows/model-ci.yml'
       - '.github/workflows/fetch-data.yml'
   push:
@@ -104,6 +106,36 @@ jobs:
       - name: Weekend-column pin
         run: python model/tests/test_weekend_column.py
 
+      # Gates the true-weekend anchor increment (P4-weekend-fix-result): off
+      # must publish the shipped payload bit for bit, on must move the served
+      # median by exactly the increment algebra (Saturday and Monday, alone and
+      # on top of the clock-aware anchor), read the TRUE calendar, and never
+      # move the barrier grid.
+      - name: Weekend-anchor serving gate
+        run: python model/tests/test_weekend_anchor.py
+
+      # Gates the day-of-week anchor increment (P4-dow-anchor-result): off is
+      # the shipped payload bit for bit, on moves the median by the increment
+      # algebra on all seven weekday nights, the fractions are pandas' calendar,
+      # and DOW_ANCHOR with WEEKEND_ANCHOR is refused.
+      - name: Day-of-week-anchor serving gate
+        run: python model/tests/test_dow_anchor.py
+
+      # Gates the next-day implied-vol increment (P4-iv1d-*): off is the shipped
+      # payload bit for bit; on at 17:00/H=19 with an implied vol moves the
+      # median by exactly a + b*(iv - anchor); elsewhere or without an IV
+      # nothing moves; combined with another anchor flag it raises. No network.
+      - name: Implied-vol-anchor serving gate
+        run: python model/tests/test_iv_anchor.py
+
+      # Gates NOCTUA_DEBUG, the stage-by-stage forecast trace (serve/debug.py):
+      # off prints nothing; on prints one record per stage to stderr only; the
+      # payload and the written noctua.json are identical on and off; the
+      # trace's numbers are the forecast's own; a failing stage is named and
+      # re-raised unchanged. Offline, no network.
+      - name: Debug-trace serving gate
+        run: python model/tests/test_debug_trace.py
+
       # Gates the online-adaptation guard: ACI's coverage guarantee, Ville's
       # bound on the e-processes, and the promotion/veto asymmetry. A
       # regression in any of these is SILENT -- the system keeps forecasting
@@ -138,6 +170,14 @@ jobs:
       # scripts, so the FILE is what gets checked.
       - name: Teacher ledger schema
         run: python -m model.research.teacher_ledger --validate
+
+      # The dashboard's forecast panel shows ONE model by design: NOCTUA's
+      # snapshot while its 19-hour window is open, aged on every read, else
+      # offline -- never the third-party demo it used to scrape whenever the
+      # snapshot was over 45 min old (PIPELINE_TRACE.md F4). Runs the real
+      # src/data.js in a node sandbox; asserts no demo/proxy request is made.
+      - name: Dashboard shows NOCTUA only
+        run: node scripts/test-noctua-source.js
 
       # LAST, DELIBERATELY. This checks the AGE of a committed data snapshot
       # against a 6-hour threshold, so it fails whenever the data cron has not

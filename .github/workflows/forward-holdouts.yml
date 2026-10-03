@@ -1,0 +1,90 @@
+# .github/workflows/forward-holdouts.yml
+# =====================================================================
+# Runs the frozen forward holdouts every day (research/DATA_USE.md): the
+# clock-aware anchor, the true-weekend anchor, the day-of-week anchor, the
+# clock-aware + day-of-week combination, and the next-day implied-vol anchor. Each script prints only a COUNT until
+# its pre-registered N_MIN of forward nights exists; at N_MIN it scores ONCE
+# (refusing if the frozen arrays' hashes changed) and writes its lock file,
+# research/forward_*_result.json; every later run prints the locked result.
+#
+# Why a workflow: a holdout nobody runs is a promise, not a test. This makes
+# the scoring happen on schedule whether or not a research session is open,
+# and the lock file makes a second scoring impossible.
+#
+# Commits ONLY the lock files; refuses to push anything else.
+name: forward-holdouts
+
+on:
+  schedule:
+    - cron: '37 13 * * *'   # daily, after the 17:00 UTC -> 12:00 UTC window closes
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: forward-holdouts-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  holdouts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install runtime (serving dependencies only)
+        run: pip install --quiet -r model/serve/requirements-ci.txt
+
+      - name: Run each holdout (count only until due; one scoring at N_MIN)
+        run: |
+          set -o pipefail
+          mkdir -p /tmp/holdouts
+          for m in forward_hour_anchor forward_weekend_anchor forward_dow_anchor forward_clock_dow_anchor forward_iv1d_anchor; do
+            echo "=== $m"
+            python -m model.eval.$m 2>&1 | tee "/tmp/holdouts/$m.log"
+          done
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: forward-holdout-logs
+          path: /tmp/holdouts/*.log
+          if-no-files-found: warn
+
+      - name: Commit any newly written lock file
+        run: |
+          set -euo pipefail
+          BR="${{ github.ref_name }}"
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add model/research/forward_*_result.json 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "no holdout was scored today"; exit 0
+          fi
+          if git diff --cached --name-only | grep -qv '^model/research/forward_.*_result\.json$'; then
+            echo "REFUSING: staged files other than holdout lock files:"
+            git diff --cached --name-only
+            exit 1
+          fi
+          mkdir -p /tmp/locks && cp model/research/forward_*_result.json /tmp/locks/
+          for attempt in 1 2 3; do
+            git fetch origin "$BR"
+            git checkout -f -B "$BR" "origin/$BR"
+            for f in /tmp/locks/*.json; do
+              dest="model/research/$(basename "$f")"
+              # never overwrite a lock that already exists on the branch
+              [ -e "$dest" ] || cp "$f" "$dest"
+            done
+            git add model/research/forward_*_result.json
+            if git diff --cached --quiet; then echo "already committed"; exit 0; fi
+            git commit -m "chore(research): forward holdout scored (one-shot lock)"
+            git push origin "HEAD:$BR" && exit 0
+            echo "push attempt $attempt rejected; retrying"; sleep 5
+          done
+          echo "could not push after 3 attempts"; exit 1

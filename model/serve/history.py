@@ -32,7 +32,7 @@ THE FIX
 -------
 Ship the long history as a committed hourly bundle and fetch only the tail.
 
-    data/noctua_history.parquet   ~400 days of hourly aggregates (~716 KB)
+    data/noctua_history.parquet   ~430 days of hourly aggregates (~770 KB)
     live fetch                    the tail since the bundle ends (usually 1 call)
 
 The bundle carries the same hourly columns `noctua.features` consumes, built by
@@ -62,7 +62,14 @@ from noctua.episodes import build_hourly  # noqa: E402
 
 HOUR = 3600
 BARS_PER_HOUR = 12                     # 5-minute grid
-BUNDLE_DAYS = 400
+# 365 days for the forecast anchor's own reg_rv_vs_year lookback is NOT enough:
+# serve/adaptive.volatility_correction forecasts every settled anchor of its
+# 60-day window, and each of those needs its own 365 days. At 400 the oldest
+# ~26 days of the window had a NaN feature and were silently dropped, so the
+# served factor was a ~34-41 day median while every walk-forward result scored
+# 60 (P4-factor-window). 365 + 60 + 1 (the H = 19 settle) + 4 days of slack.
+# tests/test_adaptive.py asserts the relation and that the window is whole.
+BUNDLE_DAYS = 430
 
 # How stale the committed bundle is allowed to get before it is rewritten.
 #
