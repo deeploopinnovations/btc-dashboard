@@ -36,7 +36,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from rl import env as E                                                # noqa: E402
 from rl.agent import make_agent                                        # noqa: E402
 
-START = "2024-01-01"
+START = "2024-01-01"            # as registered; Jan-Jun 2024 was the shipped model's CALIBRATION slice
+UNSEEN = "2024-07-01"           # noctua/splits.CALIB_END: what the shipped model never saw (audit F)
 ART = Path("model/artifacts")
 CACHE = ART / "rl_inputs.parquet"
 OUT = ART / "rl_replay.json"
@@ -112,7 +113,10 @@ def path_stats(w, R, cost=E.COST, gamma=E.GAMMA) -> dict:
     u = g - 0.5 * gamma * (w * R) ** 2
     eq = np.cumsum(np.log1p(g))
     dd = float(np.max(np.maximum.accumulate(eq) - eq))
+    total = float(np.expm1(np.log1p(g).sum()))
     return {"u": u, "mean_u": float(u.mean()), "ann_return": float(g.mean() * STEPS_PER_YEAR),
+            "ann_return_compounded": float((1 + total) ** (STEPS_PER_YEAR / len(g)) - 1),
+            "total_return": total,
             "ann_vol": float(g.std() * np.sqrt(STEPS_PER_YEAR)),
             "sharpe": float(g.mean() / g.std() * np.sqrt(STEPS_PER_YEAR)) if g.std() > 0 else 0.0,
             "max_drawdown": float(1 - np.exp(-dd)), "turnover": float(np.abs(w - prev).mean()),
@@ -183,6 +187,16 @@ def n_min(d) -> dict:
             "note": "steps for the 99.5% interval to clear zero at the replay's effect and noise"}
 
 
+def table(out) -> None:
+    print(f"\n{'arm':6} {'mean u':>10} {'arith/yr':>9} {'compd/yr':>9} {'total':>8} {'ann vol':>8} "
+          f"{'sharpe':>7} {'maxDD':>7} {'turn':>6} {'short':>6} {'flat':>6} {'expo':>6}")
+    for k, v in out.items():
+        print(f"{k:6} {v['mean_u']:+10.6f} {v['ann_return']:+9.1%} {v['ann_return_compounded']:+9.1%} "
+              f"{v['total_return']:+8.1%} {v['ann_vol']:8.1%} {v['sharpe']:+7.2f} "
+              f"{v['max_drawdown']:7.1%} {v['turnover']:6.3f} {v['share_short']:6.1%} "
+              f"{v['share_flat']:6.1%} {v['mean_exposure']:+6.2f}")
+
+
 def selftest() -> int:
     rng = np.random.default_rng(0)
     n = 400
@@ -215,12 +229,7 @@ def main(argv=None) -> int:
     print(f"{len(df)} steps {pd.Timestamp(int(df.E.iloc[0]), unit='s', tz='UTC')} -> "
           f"{pd.Timestamp(int(df.E.iloc[-1]), unit='s', tz='UTC')}")
     out, W = arms(df)
-    print(f"\n{'arm':6} {'mean u':>10} {'ann ret':>8} {'ann vol':>8} {'sharpe':>7} {'maxDD':>7} "
-          f"{'turn':>6} {'short':>6} {'flat':>6} {'expo':>6}")
-    for k, v in out.items():
-        print(f"{k:6} {v['mean_u']:+10.6f} {v['ann_return']:+8.1%} {v['ann_vol']:8.1%} "
-              f"{v['sharpe']:+7.2f} {v['max_drawdown']:7.1%} {v['turnover']:6.3f} "
-              f"{v['share_short']:6.1%} {v['share_flat']:6.1%} {v['mean_exposure']:+6.2f}")
+    table(out)
     res = {"n_steps": len(df), "arms": {k: {kk: vv for kk, vv in v.items() if kk != "u"}
                                         for k, v in out.items()}, "contrasts": {}}
     print("\nprimary contrasts (per-step utility, 99.5%, block 28):")
@@ -237,6 +246,20 @@ def main(argv=None) -> int:
         res["sensitivity"][label]["MV_vs_VT"] = contrast(o2["MV"]["u"], o2["VT"]["u"])
         print(f"  {label:10}: MV {o2['MV']['mean_u']:+.6f}  VT {o2['VT']['mean_u']:+.6f}  "
               f"HOLD {o2['HOLD']['mean_u']:+.6f}  MV-VT {res['sensitivity'][label]['MV_vs_VT']['verdict']}")
+    # audit F: Jan-Jun 2024 was the shipped model's calibration slice. The same
+    # arms, agents restarted, on what it never saw.
+    du = df[df.E >= int(pd.Timestamp(UNSEEN, tz="UTC").timestamp())].reset_index(drop=True)
+    ou, _ = arms(du)
+    print(f"\n--- the window the shipped model never saw: {UNSEEN} on, {len(du)} steps")
+    table(ou)
+    res["unseen_window"] = {"start": UNSEEN, "n_steps": len(du),
+                            "arms": {k: {kk: vv for kk, vv in v.items() if kk != "u"} for k, v in ou.items()},
+                            "contrasts": {}}
+    for c, o in (("MV", "HOLD"), ("MV", "VT"), ("MV", "MV_P"), ("TS", "MV")):
+        r = contrast(ou[c]["u"], ou[o]["u"])
+        res["unseen_window"]["contrasts"][f"{c}_vs_{o}"] = r
+        print(f"  {c:4} vs {o:5}: {r['diff_per_step']:+.6f}  [{r['ci_99_5'][0]:+.6f}, "
+              f"{r['ci_99_5'][1]:+.6f}]  {r['verdict']}")
     res["loss_study_MV"] = loss_study(df, W["MV"], R)
     res["forward_n_min_vs_VT"] = n_min(out["MV"]["u"] - out["VT"]["u"])
     print("\nloss study (MV):", json.dumps(res["loss_study_MV"], indent=1))

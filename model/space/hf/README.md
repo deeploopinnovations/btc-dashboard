@@ -35,18 +35,19 @@ The design and its pre-registered test are `P5-rl-paper` in
 
 ## What the registered replay found (P5-rl-paper-result)
 
-Out of sample, 3,806 six-hour steps from 2024-01-01 to 2026-08-09, same code
-path as this Space:
+Same code path as the live agent, every 6-hour step on the period the shipped
+NOCTUA model never saw (2024-07-01 to 2026-08-09, 3,078 steps), compounded:
 
-| arm | annual return | Sharpe | max drawdown |
-|---|---|---|---|
-| this agent (MV) | −11.8 % | −0.65 | 36 % |
-| hold BTC | +27.6 % | +0.58 | 54 % |
-| hold half | +13.8 % | +0.58 | 30 % |
-| volatility-target rule | +13.8 % | +0.33 | 54 % |
-| classic RL bandit (not deployed) | −72.5 % | −2.28 | 85 % |
+| arm | per year | total | Sharpe | max drawdown |
+|---|---|---|---|---|
+| this agent (MV) | −10.1 % | −20.2 % | −0.61 | 34 % |
+| hold BTC | +1.6 % | +3.4 % | +0.27 | 54 % |
+| hold half | +3.6 % | +7.6 % | +0.27 | 30 % |
+| volatility-target rule | −8.4 % | −16.9 % | −0.01 | 54 % |
+| classic RL bandit (not deployed) | −65.6 % | −89.4 % | −3.40 | 90 % |
 
-**No learner beat simply holding**, and the agent did no better than a copy
-fed shuffled inputs: NOCTUA's forecast carries no exploitable 6-hour trading
-edge. The agent runs here anyway, on paper, to collect forward evidence and a
-loss log — not because it makes money.
+**No learner beat simply holding** (the agent is not statistically separable
+from holding, from the volatility-target rule, or from a copy fed shuffled
+inputs), and classic RL was significantly worse. NOCTUA's forecast carries no
+exploitable 6-hour trading edge. The agent runs anyway, on paper, to collect
+forward evidence and a loss log — not because it makes money.

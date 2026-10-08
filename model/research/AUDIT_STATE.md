@@ -656,3 +656,30 @@ main's cron refreshes (green at ed93841).
 **Tally:** 5 claims attacked, 0 defects in the code, 2 corrections to my own
 wording (feature drift ~1e-14, selftest count), 1 new post-hoc question
 (longer factor window).
+
+## Round (f), 2026-10-08: disprove the RL paper agent (2 haiku agents, cut off by a usage limit, resumed)
+
+**F — the replay: no look-ahead SURVIVED; the out-of-sample label was FALSE.**
+Re-run by me independently first: 200/200 returns and entry prices recomputed
+from raw bars; inputs byte-identical with 48 h of future bars present. F's
+correction stands: 2024-01-01 is not the shipped model's unseen period —
+Jan–Jun 2024 was its calibration slice (`noctua/splits.py`, DATA_USE.md) —
+and the annual returns were arithmetic. Re-run on the unseen window
+(2024-07-01 on), compounded: MV −10.1 %/yr, HOLD +1.6 %/yr (+3.4 % total), TS
+−65.6 %/yr; verdicts unchanged (MV not separated from HOLD, VT or placebo; TS
+worse). The "+27.6 %" for holding I reported overstated the benchmark.
+
+**G — the live loop: REFUTED, five real defects, all fixed before any live
+use.** Restore treated every download error as a first run (a 5xx would
+overwrite the learned state and log); a crash after settling duplicated a log
+record; a settled-up-to watermark stranded windows whose bars arrived late;
+baseline costs assumed settlement order; a clock far ahead of the feed minted
+a year of fake holds. Each reproduced as a failing check first (31 now), then
+fixed; G's own attack scripts rerun on the fix all resolve, and its randomised
+5-seed restart/gap stress run stays clean.
+
+**Tally:** two claims attacked, both partly refuted — one research claim
+corrected (window and return convention, verdict unchanged), five live-loop
+defects fixed. My own first test of out-of-order settlement could not fail
+(the hidden bar was shared by both windows); rebuilt to reproduce G's exact
+sequence.
