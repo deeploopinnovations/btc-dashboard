@@ -35,7 +35,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from rl import env as E                                            # noqa: E402
 from rl.agent import make_agent                   # noqa: E402
 from rl.loop import PaperTrader                                     # noqa: E402
-from rl.store import LocalStore                                     # noqa: E402
+from rl.store import HFStore, LocalStore                            # noqa: E402
 
 HOUR = 3600
 
@@ -182,6 +182,128 @@ def main() -> int:
               len(miss) == 1 and pt3.w == w_before and pt3.pending and pt3.pending[-1]["missed"])
         log = st.read_log()
         check("log-is-append-only-jsonl", len(log) >= 1 and all("E" in r for r in log), f"{len(log)} records")
+
+    # ---- robustness (audit G, 2026-10-08): each was a real failure -------
+    from huggingface_hub import errors as hf_errors
+
+    class FakeApi:
+        token = "x"
+
+        def __init__(self):
+            self.uploads = []
+
+        def create_repo(self, *a, **k):
+            pass
+
+        def upload_file(self, path_or_fileobj, path_in_repo, **k):
+            self.uploads.append(path_in_repo)
+
+    def raiser(exc):
+        def f(*a, **k):
+            raise exc
+        return f
+
+    # 1. a transient download error must ABORT, not look like a first run
+    #    (it used to upload a fresh agent / a one-line log over the real ones)
+    with tempfile.TemporaryDirectory() as td:
+        hs = HFStore(Path(td), "u/d", api=FakeApi())
+        hs._download = raiser(ConnectionError("503 from the hub"))
+        aborted = False
+        try:
+            hs.restore()
+        except Exception:
+            aborted = True
+        check("restore-error-aborts-instead-of-starting-fresh", aborted)
+        resp = type("R", (), {"status_code": 404, "headers": {}, "request": None})()
+        hs._download = raiser(hf_errors.RemoteEntryNotFoundError("missing", response=resp))
+        ok_absent = True
+        try:
+            hs.restore()
+        except Exception as e:
+            ok_absent = f"raised {type(e).__name__}"
+        check("restore-missing-file-is-a-first-run", ok_absent is True, str(ok_absent))
+
+    # a three-slot stretch of real bars, fake forecaster
+    E3 = slots[-20]
+
+    def run_ticks(st, plan, forecaster=fake_forecaster):
+        out = []
+        for t, h in plan:
+            out += PaperTrader(st, agent_kind="MV", forecaster=forecaster).tick(t, h)
+        return out
+
+    # 2. a crash after a settlement (here: in the next decision) must not
+    #    duplicate the log record or the learning on restart
+    with tempfile.TemporaryDirectory() as td:
+        st = LocalStore(Path(td))
+        run_ticks(st, [(E3 + 180, upto(E3 + 180))])
+        boom = {"n": 0}
+
+        def flaky(h_upto, Eslot):
+            boom["n"] += 1
+            raise RuntimeError("planted crash while deciding")
+        try:
+            PaperTrader(st, agent_kind="MV", forecaster=flaky).tick(E3 + 6 * HOUR + 180, upto(E3 + 6 * HOUR + 180))
+        except RuntimeError:
+            pass
+        pt = PaperTrader(st, agent_kind="MV", forecaster=fake_forecaster)
+        pt.tick(E3 + 6 * HOUR + 240, upto(E3 + 6 * HOUR + 240))
+        Es = [r["E"] for r in st.read_log()]
+        check("crash-after-settlement-no-duplicate-record", Es == [E3], f"log E {Es}")
+        check("crash-after-settlement-learns-once", pt.agent.n_updates == 1, f"n_updates {pt.agent.n_updates}")
+
+    # 3. a window whose bars arrive AFTER a later window settled still settles,
+    #    and every baseline's cost uses its own previous position. Reproduces
+    #    audit G's a3d3: the bar before slot Ea is late, so the window before
+    #    it cannot close and Ea becomes a forced hold; a later window Eb then
+    #    settles first. A settled-up-to watermark left Ez and Ea pending forever.
+    with tempfile.TemporaryDirectory() as td:
+        st = LocalStore(Path(td))
+        Ez, Ea = E3, E3 + 6 * HOUR
+        Eb = Ea + 6 * HOUR
+        gap = Ea - HOUR
+        holey = lambda t: upto(t)[lambda d: d.hour_ts != gap].reset_index(drop=True)   # noqa: E731
+        run_ticks(st, [(Ez + 180, upto(Ez + 180)),                 # decide Ez
+                       (Ea + 3100, holey(Ea + 3100)),              # Ea past grace, bar missing: hold
+                       (Eb + 180, holey(Eb + 180)),                # decide Eb
+                       (Eb + 6 * HOUR + 180, holey(Eb + 6 * HOUR + 180)),   # Eb settles first
+                       (Eb + 6 * HOUR + 400, upto(Eb + 6 * HOUR + 400))])   # the bar arrives
+        log = st.read_log()
+        Es = sorted(r["E"] for r in log if r["type"] == "settled")
+        check("late-bar-window-still-settles", {Ez, Ea, Eb} <= set(Es) and len(Es) == len(set(Es)),
+              f"settled {[(e - Ez) // HOUR for e in Es]} h after Ez")
+        rb = {r["E"]: r for r in log}
+        base_ok = Eb in rb and abs(rb[Eb]["u_baseline"]["HOLD"]
+                                   - E.utility(1.0, rb[Eb]["R"], 1.0)) < 1e-15
+        check("baseline-cost-uses-its-own-previous-position-out-of-order", base_ok,
+              f"HOLD u {rb[Eb]['u_baseline']['HOLD'] if Eb in rb else None}")
+
+    # 4. a window whose bars never arrive is logged VOID after a week, not pending forever
+    with tempfile.TemporaryDirectory() as td:
+        st = LocalStore(Path(td))
+        Ea = slots[-60]                                   # 8+ days of real bars after it
+        never = lambda t: upto(t)[lambda d: d.hour_ts != Ea + 5 * HOUR].reset_index(drop=True)   # noqa: E731
+        run_ticks(st, [(Ea + 180, upto(Ea + 180))])
+        t_late = Ea + 6 * HOUR + 8 * 86400
+        pt = PaperTrader(st, agent_kind="MV", forecaster=fake_forecaster)
+        pt.tick(t_late, never(t_late))
+        voids = [r for r in st.read_log() if r.get("type") == "void" and r["E"] == Ea]
+        check("never-settling-window-is-logged-void", len(voids) == 1 and all(d["E"] != Ea for d in pt.pending),
+              f"voids {len(voids)}, still pending {[d['E'] for d in pt.pending][:3]}")
+
+    # 5. a clock far ahead of the feed must not mint a year of fake holds
+    with tempfile.TemporaryDirectory() as td:
+        st = LocalStore(Path(td))
+        run_ticks(st, [(E3 + 180, upto(E3 + 180))])
+        before = st.state_path.read_text()
+        pt = PaperTrader(st, agent_kind="MV", forecaster=fake_forecaster)
+        refused = False
+        try:
+            pt.tick(E3 + 365 * 86400, upto(E3 + 180))
+        except E.ClockAheadOfFeed:
+            refused = True
+        check("clock-far-ahead-of-feed-is-refused-state-untouched",
+              refused and st.state_path.read_text() == before)
 
     # ---- one real NOCTUA step through the serving code -----------------
     real = E.inputs_at(None, hours[hours.hour_ts < E0].reset_index(drop=True), E0)

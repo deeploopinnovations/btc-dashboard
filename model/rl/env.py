@@ -41,6 +41,16 @@ class NotReady(RuntimeError):
     """The hour before the slot is not in the feed yet."""
 
 
+class ClockAheadOfFeed(RuntimeError):
+    """`now` is far beyond the newest bar: a wrong clock or a dead feed. Ticking
+    anyway would mint a hold for every slot in between (audit G: a +365-day
+    clock jump inserted 1,459 holds and froze decisions)."""
+
+
+MAX_FEED_LAG = 24 * HOUR      # refuse to tick when the newest bar ended longer ago
+VOID_AFTER = 7 * 86400        # a window whose bars never arrive is logged void after this
+
+
 def utility(a: float, R: float, w_prev: float, cost: float = COST, gamma: float = GAMMA) -> float:
     return a * R - cost * abs(a - w_prev) - 0.5 * gamma * (a * R) ** 2
 

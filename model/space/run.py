@@ -93,7 +93,7 @@ def summary(trader: PaperTrader) -> tuple:
     ]
     if STATUS.get("error"):
         head.append(f"⚠️ Last error ({ts(STATUS.get('error_at'))}): `{STATUS['error']}`")
-    live = [r for r in log if r.get("type") == "settled"]
+    live = sorted((r for r in log if r.get("type") == "settled"), key=lambda r: r["E"])
     if live:
         tot = {"agent": sum(r["u"] for r in live)}
         for k in ("FLAT", "HALF", "HOLD", "VT"):

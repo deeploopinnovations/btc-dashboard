@@ -53,22 +53,29 @@ class HFStore(LocalStore):
 
     def __init__(self, root: Path, repo_id: str, token: str | None = None, api=None):
         super().__init__(root)
-        from huggingface_hub import HfApi
+        from huggingface_hub import HfApi, hf_hub_download
         self.repo_id = repo_id
         self.api = api or HfApi(token=token)
+        self._download = hf_hub_download
         self.last_error = None
 
     def restore(self) -> str:
-        from huggingface_hub import hf_hub_download
-        got = []
+        """Only a file or repo that genuinely does not exist yet counts as a first
+        run. Anything else -- a 5xx, a network error, an auth failure -- RAISES:
+        carrying on would start a fresh agent and upload it over the real state
+        and log (audit G, 2026-10-08). LocalEntryNotFoundError, the hub's
+        OFFLINE error, shares a parent class with the not-found one and is
+        deliberately NOT caught."""
+        from huggingface_hub.errors import RemoteEntryNotFoundError, RepositoryNotFoundError
+        got, absent = [], []
         for name in ("state.json", "log.jsonl"):
             try:
-                p = hf_hub_download(self.repo_id, name, repo_type="dataset",
-                                    token=self.api.token, local_dir=self.root)
+                p = self._download(self.repo_id, name, repo_type="dataset",
+                                   token=self.api.token, local_dir=self.root)
                 got.append(Path(p).name)
-            except Exception as e:                           # first run: nothing there yet
-                self.last_error = f"restore {name}: {type(e).__name__}"
-        return f"restored {got}" if got else "nothing to restore"
+            except (RemoteEntryNotFoundError, RepositoryNotFoundError):
+                absent.append(name)
+        return f"restored {got}" + (f", not there yet {absent}" if absent else "")
 
     def flush(self) -> str:
         try:
