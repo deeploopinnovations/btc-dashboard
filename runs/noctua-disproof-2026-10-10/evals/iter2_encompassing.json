@@ -1,0 +1,44 @@
+{
+ "fit_from_2018-01-01": {
+  "wk_har": 0.2264,
+  "noctua_x_wk": 0.2193,
+  "wk_har_plus_noctua": 0.2081,
+  "har_plus_noctua": 0.2307,
+  "noctua_raw_med": 0.2431,
+  "gain_adding_noctua_to_wk_har": [
+   0.0183,
+   [
+    0.0042,
+    0.0327
+   ]
+  ],
+  "noctua_x_wk_minus_wk_har": [
+   0.007,
+   [
+    -0.0003,
+    0.0149
+   ]
+  ]
+ },
+ "fit_from_2023-01-01": {
+  "wk_har": 0.1947,
+  "noctua_x_wk": 0.1945,
+  "wk_har_plus_noctua": 0.1847,
+  "har_plus_noctua": 0.2185,
+  "noctua_raw_med": 0.2431,
+  "gain_adding_noctua_to_wk_har": [
+   0.01,
+   [
+    0.0012,
+    0.0191
+   ]
+  ],
+  "noctua_x_wk_minus_wk_har": [
+   0.0002,
+   [
+    -0.0058,
+    0.0063
+   ]
+  ]
+ }
+}
