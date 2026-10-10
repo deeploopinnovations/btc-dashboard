@@ -18,6 +18,7 @@ on:
     paths:
       - 'model/**'
       - 'data/noctua_history.parquet'
+      - 'data/context/**'
       - 'scripts/**'
       - '.github/workflows/model-ci.yml'
       - '.github/workflows/fetch-data.yml'
@@ -62,6 +63,12 @@ jobs:
       # torch ensemble was scored on, stay in bounds, and read no future hour.
       - name: Trading-policy runtime self-test
         run: python model/tests/test_policy_runtime.py
+
+      # Point-in-time context data: every file validates, the as-of join is
+      # strict, hindsight labels cannot load as features, and deleting every
+      # row published at or after t leaves the features at t unchanged.
+      - name: Context dataset point-in-time gate
+        run: python model/tests/test_context_pit.py
 
       - name: History / live-path self-test
         run: python model/tests/test_history.py
