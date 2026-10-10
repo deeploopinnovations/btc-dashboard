@@ -683,3 +683,34 @@ corrected (window and return convention, verdict unchanged), five live-loop
 defects fixed. My own first test of out-of-order settlement could not fail
 (the hidden bar was shared by both windows); rebuilt to reproduce G's exact
 sequence.
+
+## Round (g), 2026-10-10: the Codex review of PR #14 (7 findings, external reviewer)
+
+Every finding was reproduced or confirmed against the code before it was
+fixed; none was dismissed. Each fix is test-first (a check that fails on the
+old code), and none changes a frozen array, a primary, an N_MIN or an arm.
+
+| # | finding (Codex id) | confirmed? | fix |
+|---|---|---|---|
+| A | rl/store: state and log were two Hub commits; a failure between them loses a settled record for good (4237626878) | yes: the state drops the decision from `pending`, the log never gets it | 4afab2f: one `create_commit` with both files; checked against a fake API |
+| B | rl/agent: hyperparameters were not in the state; a default change would apply old statistics under a new learner and utility (4237626896) | yes | a2e5d1a: `params` saved and restored; settled utilities use the agent's own cost and gamma, stored per record |
+| C | space/deploy `--warm-start` failed on a clean checkout: the replay inputs were not committed (4237626889) | yes | 962fa92: inputs committed (~200 KB); otherwise rebuilt, otherwise a stop with the remedy |
+| D | forward_iv1d: a Deribit fetch error was scored as a no-trade night and could be locked on the one scoring day (4237626888) | yes | 89dd55a: an error aborts, no lock written, the workflow retries; a genuine no-trade night is still scored |
+| E | serve/history: the rolling bundle would starve, then drop, the holdouts' earliest nights; a 450-night holdout could never score (4237626876) | yes | d938c6c: `BUNDLE_PIN` keeps every row from 2025-07-25 15:00 on |
+| F | the holdouts hashed only their increments; a base change would move both arms unnoticed (4237626883) | yes | bf4dbca: base arrays + metadata + served numbers at three anchors fingerprinted, identical at all four freeze commits; checked daily and (40f58a2) on every pull request |
+| G | no code computed the family-wise interval DATA_USE.md promises, and locks kept no per-night deltas (4237626892) | yes, and the family text itself had a slip ("dispersion candidate" for E2c's holdout) | 7f3185e: `eval/forward_family.py`, K = 6, alpha / 6, per-night deltas and the family block in every lock; the report rebuilds each interval from the lock |
+
+**Found while fixing, not by the reviewer:** the five scorer selftests, which
+are the only test of the one-shot scoring mechanics, ran in no CI job and not
+in precommit; `test_rl` ran in precommit but not CI. Both now run on every
+pull request. PR #14 had a merge conflict with main (the history bundle,
+rewritten by main's weekly cron on 2026-10-05 under the old 400-day rule), so
+GitHub ran no pull-request CI on the 2026-10-08 pushes; resolved as the union of both
+versions, bit-identical on all 9,429 shared hours (3195ea6).
+
+**DATA_USE.md amendment, 2026-10-10**, before any holdout scored: the family,
+the base fingerprints, the bundle pin and the fetch-error rule, with the
+reason each is not a forked path.
+
+**Tally:** 7 findings, 7 confirmed, 7 fixed; 2 further CI gaps closed; 0
+changes to what any holdout tests.
