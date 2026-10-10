@@ -71,6 +71,18 @@ BARS_PER_HOUR = 12                     # 5-minute grid
 # tests/test_adaptive.py asserts the relation and that the window is whole.
 BUNDLE_DAYS = 430
 
+# The frozen forward holdouts (research/DATA_USE.md) score every night since
+# their freeze THROUGH this bundle, and each of those nights needs its own 365
+# days of features plus the 60-day factor window. A purely rolling bundle would
+# first starve, then drop, their earliest nights; a 450-night holdout could
+# never be scored (Codex review, PR #14). So rows from BUNDLE_PIN on are never
+# dropped; only rows before the pin roll off under BUNDLE_DAYS. The bundle
+# therefore grows by ~0.7 MB a year until the last holdout locks (the 450-night
+# ones, around 2027-12); then the pin may move forward, recorded in DATA_USE.md.
+# tests/test_history.py asserts the pin covers the earliest holdout's needs.
+HOLDOUT_EARLIEST_FREEZE = "2026-09-27"          # the clock-aware anchor's holdout
+BUNDLE_PIN = 1753455600                          # 2025-07-25 15:00 UTC: needed from 2025-07-28 22:00
+
 # How stale the committed bundle is allowed to get before it is rewritten.
 #
 # The cron runs every 30 minutes, but the bundle is ~716 KB of ALREADY-
@@ -111,9 +123,12 @@ def load_bundle(path: Path | None = None) -> pd.DataFrame:
 
 
 def save_bundle(hours: pd.DataFrame, path: Path | None = None, days: int = BUNDLE_DAYS) -> Path:
+    """Keep the last `days` of hours AND every hour from BUNDLE_PIN on."""
     p = Path(path) if path else default_bundle_path()
     p.parent.mkdir(parents=True, exist_ok=True)
-    out = hours[HOURLY_COLS].tail(days * 24).reset_index(drop=True)
+    h = hours[HOURLY_COLS].sort_values("hour_ts", ignore_index=True)
+    rolling_start = int(h["hour_ts"].iloc[max(len(h) - days * 24, 0)]) if len(h) else BUNDLE_PIN
+    out = h[h["hour_ts"] >= min(rolling_start, BUNDLE_PIN)].reset_index(drop=True)
     out.to_parquet(p, index=False, compression="zstd")
     return p
 
