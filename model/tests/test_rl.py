@@ -198,6 +198,9 @@ def main() -> int:
         def upload_file(self, path_or_fileobj, path_in_repo, **k):
             self.uploads.append(path_in_repo)
 
+        def create_commit(self, repo_id, operations, **k):
+            self.commits = getattr(self, "commits", []) + [sorted(o.path_in_repo for o in operations)]
+
     def raiser(exc):
         def f(*a, **k):
             raise exc
@@ -222,6 +225,18 @@ def main() -> int:
         except Exception as e:
             ok_absent = f"raised {type(e).__name__}"
         check("restore-missing-file-is-a-first-run", ok_absent is True, str(ok_absent))
+
+    # 1b. state and log go up in ONE commit (Codex review, PR #14): two
+    #     independent uploads let a run commit state and lose the log record
+    with tempfile.TemporaryDirectory() as td:
+        api = FakeApi()
+        hs = HFStore(Path(td), "u/d", api=api)
+        hs.save_state({"x": 1})
+        hs.append_log({"E": 1})
+        res = hs.flush()
+        check("state-and-log-commit-atomically",
+              getattr(api, "commits", None) == [["log.jsonl", "state.json"]] and api.uploads == [],
+              f"{res}; commits {getattr(api, 'commits', None)}, single-file uploads {api.uploads}")
 
     # a three-slot stretch of real bars, fake forecaster
     E3 = slots[-20]

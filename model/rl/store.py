@@ -78,13 +78,18 @@ class HFStore(LocalStore):
         return f"restored {got}" + (f", not there yet {absent}" if absent else "")
 
     def flush(self) -> str:
+        """State and log in ONE Hub commit: either both land or neither does.
+        Two separate uploads (the first version) could commit a state that has
+        already settled a window while its log record failed to upload -- a
+        record nothing would ever recreate (Codex review, PR #14)."""
+        from huggingface_hub import CommitOperationAdd
         try:
             self.api.create_repo(self.repo_id, repo_type="dataset", private=True, exist_ok=True)
-            for p in (self.state_path, self.log_path):
-                if p.exists():
-                    self.api.upload_file(path_or_fileobj=str(p), path_in_repo=p.name,
-                                         repo_id=self.repo_id, repo_type="dataset",
-                                         commit_message=f"paper agent: {p.name}")
+            ops = [CommitOperationAdd(path_in_repo=p.name, path_or_fileobj=str(p))
+                   for p in (self.state_path, self.log_path) if p.exists()]
+            if ops:
+                self.api.create_commit(repo_id=self.repo_id, repo_type="dataset", operations=ops,
+                                       commit_message="paper agent: state + log")
             self.last_error = None
             return "uploaded"
         except Exception as e:                               # noqa: BLE001 -- keep trading on paper
