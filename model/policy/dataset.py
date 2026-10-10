@@ -44,6 +44,7 @@ sys.path.insert(0, str(MODEL))
 
 from noctua.features import build_features  # noqa: E402
 
+NOCTUA_ARTIFACT = MODEL / "serve" / "noctua_v2.npz"
 CACHE = Path(__file__).with_name("cache") / "dataset.parquet"
 HOLD_H = 24
 NOCTUA_H = 19
@@ -91,7 +92,9 @@ def _trail_sum(x: np.ndarray, k: int) -> np.ndarray:
 def noctua_outputs(hours: pd.DataFrame, X: pd.DataFrame) -> pd.DataFrame:
     """NOCTUA's forecast for the 19 h window at each anchor, in batch."""
     from serve.runtime import load_model
-    m = load_model()
+    # PINNED, not "newest": serve/ also holds noctua_v2_refreshed_2026-08-09.npz,
+    # fit through 2026-08 -- it would make the test-period forecasts in-sample.
+    m = load_model(NOCTUA_ARTIFACT)
     out = []
     for s in range(0, len(X), 8192):
         xb = X.iloc[s:s + 8192]
