@@ -212,16 +212,20 @@ def evaluate(rows) -> dict:
     for name, msk in (("Fri/Sat/Sun", dow >= 4), ("Mon-Thu", dow <= 3)):
         classes[name] = {"n": int(msk.sum()),
                          **({"brier": ci(b[msk], 1)} if msk.sum() >= 10 else {})}
+    from eval.forward_family import per_night
     return {"n_nights": len(rows), "block_len": L,
             "primary_brier": ci(b),
             "logs": ci(lg), "brier_far": ci(bf),
             "qlike": {**ci(q[False] - q[True]),
                       "note": "underpowered: ~1,400 nights needed"},
-            "exante_weekday_classes": classes}
+            "exante_weekday_classes": classes,
+            "per_night": per_night(rows, {"brier": b, "logs": lg, "brier_far": bf,
+                                          "qlike": q[False] - q[True]})}
 
 
 def run(hours, model, lock: Path = LOCK, n_min: int = N_MIN,
-        freeze: str = FREEZE, flag="WEEKEND_ANCHOR") -> dict:
+        freeze: str = FREEZE, flag="WEEKEND_ANCHOR",
+        member: str = "forward_weekend_anchor") -> dict:
     if lock.exists():
         res = json.loads(lock.read_text())
         print(f"LOCKED: scored once on {res['scored_on']}; printing that result "
@@ -237,6 +241,9 @@ def run(hours, model, lock: Path = LOCK, n_min: int = N_MIN,
         return {"n_nights": n, "scored": False}
     check_frozen(model, flag)
     res = evaluate(score(model, hours, nights, flag))
+    from eval.forward_family import family_block
+    res["family"] = family_block(member, {"brier": res["per_night"]["brier"]},
+                                 res["block_len"], research=lock.parent)
     res.update(scored=True, freeze=freeze, n_min=n_min,
                scored_on=pd.Timestamp.now(tz="UTC").strftime("%Y-%m-%d"))
     lock.write_text(json.dumps(res, indent=2) + "\n")
@@ -300,6 +307,9 @@ def selftest() -> int:
         with contextlib.redirect_stdout(io.StringIO()):
             r2 = run(hours, model, lock=lock, n_min=3, freeze=fake)
         ok.append(("second run returns the locked result", r2 == json.loads(lock.read_text())))
+        from eval.forward_family import lock_problems
+        probs = lock_problems(r1, "forward_weekend_anchor", {"brier": r1["primary_brier"]})
+        ok.append((f"lock keeps per-night deltas and the family interval {probs or ''}", not probs))
         import copy
         bad = copy.copy(model)
         bad.w = dict(model.w)

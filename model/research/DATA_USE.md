@@ -318,6 +318,9 @@ Each is scored ONCE against the shipped anchor on its own primary. Reading
 them together is a family: when more than one is scored, the report states
 how many primaries were read and gives the Bonferroni-corrected interval
 beside the 95% one. No holdout's result may amend another's design.
+*(Corrected 2026-10-10, see the amendment below: the earlier holdout is E2c's,
+not a dispersion candidate's, and with the implied-vol anchor the family is
+six, K = 6, `eval/forward_family.py`.)*
 
 ## Sixth candidate: the next-day implied-vol anchor, frozen 2026-09-29
 
@@ -366,5 +369,65 @@ it was made before any holdout was scored — the clock-aware holdout (frozen
 and prints nothing below N_MIN; the 2026-09-29 holdouts had none — and it was
 decided by a rule registered before its own measurement, on the walk-forward
 slice, not on any forward night.
+
+## Amendment, 2026-10-10, before any holdout was scored: what each scoring freezes, keeps and reports
+
+Four changes, from the Codex review of PR #14. None is a design choice made
+after seeing a forward result: no holdout has reached its N_MIN (the first, the
+implied-vol anchor's 200 nights, falls around 2027-04), and every scorer prints
+nothing but a count below it.
+
+**1. The family, corrected and made binding.** "Several holdouts on the same
+forward nights" above names "the dispersion candidate before them". That is a
+slip: no dispersion freeze exists (see "The freeze is CANDIDATE-SPECIFIC"); the
+holdout before them is E2c's, frozen 2026-08-28. With the implied-vol anchor
+the family is **six** — E2c (no scorer yet; counted, because it will be read
+and leaving it out would shrink K), clock-aware, weekend, day-of-week, the
+combination, implied-vol — so **K = 6 and each primary is also read at
+alpha = 0.05 / 6**, by the same estimator (`eval.ci.mean_ci`, the primary's own
+block length). The implied-vol PASS needs both of its contrasts (an
+intersection-union test), so each is read at 0.05 / 6 and no further split is
+due. Until now no code computed this. Each lock now also stores:
+
+- `per_night`: `anchor_ts` and every metric's per-night delta (shipped minus
+  candidate; positive favours the candidate), so the family reading, or any
+  later procedure that needs the nights, never requires rescoring a spent
+  holdout;
+- `family`: K, alpha / K, each primary's family interval, whether it clears,
+  and which members had already been scored.
+
+`python -m model.eval.forward_family` prints every member, scored or not, and
+rebuilds each family interval from its lock's deltas; the daily workflow runs
+it. **Each holdout's registered PASS rule is unchanged**; the family interval
+is reported beside it, as the section above already required.
+
+**2. The whole base is frozen, not only the increments.** `FROZEN_SHA16`
+hashed each candidate's own arrays, so a retrain, a base-array edit, or a
+change to the serving arithmetic would have moved both arms of every holdout
+unnoticed. `eval/forward_weekend_anchor.BASE_SHA16` adds two fingerprints:
+every non-increment array plus the metadata (`681efe8810cbc369`), and the
+flags-off served payload at three fixed 17:00 anchors on the committed bundle
+(`aae8af223b70e2f2`). Both are identical at every freeze commit (ef6e44b,
+c4f8974, 4efbda9, dea1b44). Scoring refuses on a mismatch; the daily workflow
+and every pull request check it. A deliberate change updates them with an
+amendment here, made before any holdout scores.
+
+**3. The history the holdouts score through is kept.** Every forward night is
+forecast through the committed bundle and needs its own 365 days of features
+plus the 60-day factor window. The 430-day bundle rolled, so it would first
+have starved and then dropped the earliest forward nights; a 450-night holdout
+could never have been scored. `serve/history.BUNDLE_PIN` (2025-07-25 15:00 UTC,
+what the earliest holdout night needs) keeps every row from the pin on; only
+rows before it roll off. The bundle grows ~0.7 MB a year until the last holdout
+locks (the 450-night ones, around 2027-12); the pin may then move forward, with
+an amendment here. The rows the forecasts read are unchanged.
+
+**4. An implied-vol fetch error is not a no-trade night.** The scorer caught
+every exception from the Deribit history fetch and scored that night as if no
+IV existed, the shipped forecast in both IV arms. On the one scoring day a
+timeout would have been locked in as data. A fetch error now aborts the
+scoring with no lock written, and the daily workflow retries; a night with
+genuinely no trades is still scored as before. The arm definitions are
+unchanged.
 
 *Educational research only. Not financial advice.*

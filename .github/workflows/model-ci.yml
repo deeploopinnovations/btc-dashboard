@@ -155,6 +155,14 @@ jobs:
       - name: Forward holdouts' frozen base intact
         run: python -m model.eval.forward_weekend_anchor --check-base
 
+      # The six forward holdouts are one family (research/DATA_USE.md): each
+      # lock must carry its primary's Bonferroni interval (alpha / 6) and the
+      # per-night deltas it was built from, so the family can be read without
+      # rescoring a spent holdout. The gate shows the correction can change a
+      # reading and that a tampered lock is caught.
+      - name: Forward-holdout family intervals
+        run: python model/tests/test_forward_family.py
+
       # The paper-trading agent (P5-rl-paper): planted-edge and pure-noise
       # learning, causality, idempotency, outages, out-of-order bars, voids,
       # the atomic two-file Hub commit (against a fake API, no network), and
@@ -211,3 +219,32 @@ jobs:
       # it is.
       - name: Smoke-test existing snapshots (data freshness)
         run: node scripts/smoke.js
+
+  # The forward holdouts' one-shot scorers, exercised on ALREADY-SEEN nights
+  # (a fake freeze inside the committed bundle, a tiny N_MIN, a temporary
+  # lock -- never the holdout): count-only below N_MIN, score-and-lock at it,
+  # refuse to rescore, refuse a changed base or candidate, abort (no lock) on
+  # an IV fetch error, and write the per-night deltas and family interval.
+  # Each holdout scores exactly once, months from now, on the default branch;
+  # a mechanics defect found then cannot be fixed without spending it. A
+  # separate job so the ~4 minutes run beside the gates above.
+  forward-holdout-selftests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install serving runtime
+        run: pip install --quiet -r model/serve/requirements-ci.txt
+
+      - name: Forward-holdout scorers' self-tests
+        run: |
+          set -e
+          for m in forward_hour_anchor forward_weekend_anchor forward_dow_anchor forward_clock_dow_anchor forward_iv1d_anchor; do
+            echo "=== $m"
+            python -m model.eval.$m --selftest
+          done

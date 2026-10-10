@@ -126,6 +126,7 @@ def exante_flags(hours, nights) -> dict:
 
 def evaluate(rows, exante: dict | None = None) -> dict:
     from eval.ci import mean_ci
+    from eval.forward_family import per_night
     rv = np.array([e["RV"] for e, _ in rows])
     q = {f: qlike(rv, np.array([o[f]["mean"] for _, o in rows])) for f in (False, True)}
     d = q[False] - q[True]
@@ -160,7 +161,8 @@ def evaluate(rows, exante: dict | None = None) -> dict:
             "brier_diff": float(db.mean()), "brier_ci95": [float(blo), float(bhi)],
             "brier_far_diff": float(dbf.mean()), "brier_far_ci95": [float(flo), float(fhi)],
             "exante_subsets": sub,
-            "brier_note": "reported, underpowered at any horizon under a year"}
+            "brier_note": "reported, underpowered at any horizon under a year",
+            "per_night": per_night(rows, {"qlike": d, "brier": db, "brier_far": dbf})}
 
 
 def run(hours, model, lock: Path = LOCK, n_min: int = N_MIN,
@@ -181,6 +183,9 @@ def run(hours, model, lock: Path = LOCK, n_min: int = N_MIN,
     from eval.forward_weekend_anchor import check_frozen
     check_frozen(model, "HOUR_ANCHOR")
     res = evaluate(score(model, hours, nights), exante_flags(hours, nights))
+    from eval.forward_family import family_block
+    res["family"] = family_block("forward_hour_anchor", {"qlike": res["per_night"]["qlike"]},
+                                 res["block_len"], research=lock.parent)
     res.update(scored=True, freeze=freeze, n_min=n_min,
                scored_on=pd.Timestamp.now(tz="UTC").strftime("%Y-%m-%d"))
     lock.write_text(json.dumps(res, indent=2) + "\n")
@@ -240,6 +245,10 @@ def selftest() -> int:
             r2 = run(hours, model, lock=lock, n_min=3, freeze=fake)
         ok.append(("second run returns the locked result, does not rescore",
                    r2 == json.loads(lock.read_text())))
+        from eval.forward_family import lock_problems
+        probs = lock_problems(r1, "forward_hour_anchor",
+                              {"qlike": {"diff": r1["qlike_diff"], "ci95": r1["qlike_ci95"]}})
+        ok.append((f"lock keeps per-night deltas and the family interval {probs or ''}", not probs))
         from serve import predict as P
         n0 = forward_nights(hours, fake).head(1)
         raw0: dict = {}

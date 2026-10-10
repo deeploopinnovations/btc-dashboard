@@ -119,14 +119,17 @@ def evaluate(rows, ivs) -> dict:
 
     br = lambda o, e: brier_night(o["curves"], e)                        # noqa: E731
     res = {"n_nights": len(rows), "n_with_iv": int(np.isfinite(ivs).sum()), "block_len": L}
+    deltas = {}
     for c, o in (("Is", "M0s"), ("Is", "Ip")):
-        res[f"brier_{c}_vs_{o}"] = ci(diff(br, c, o))
-        res[f"logs_{c}_vs_{o}"] = ci(diff(lambda o_, e: logs_night(o_["curves"], e), c, o))
-        res[f"brier_far_{c}_vs_{o}"] = ci(diff(lambda o_, e: brier_night(o_["curves"], e, FAR_PCT), c, o))
         rv = np.array([e["RV"] for e, _ in rows])
         qo = qlike(rv, np.array([out[o]["mean"] for _, out in rows]))
         qc = qlike(rv, np.array([out[c]["mean"] for _, out in rows]))
-        res[f"qlike_{c}_vs_{o}"] = ci(qo - qc)
+        deltas[f"brier_{c}_vs_{o}"] = diff(br, c, o)
+        deltas[f"logs_{c}_vs_{o}"] = diff(lambda o_, e: logs_night(o_["curves"], e), c, o)
+        deltas[f"brier_far_{c}_vs_{o}"] = diff(lambda o_, e: brier_night(o_["curves"], e, FAR_PCT), c, o)
+        deltas[f"qlike_{c}_vs_{o}"] = qo - qc
+    for k, d in deltas.items():
+        res[k] = ci(d)
     x = np.array([log_hourly(v) - out["M0s"]["anchor"] if np.isfinite(v) else np.nan
                   for v, (_, out) in zip(ivs, rows)])
     cls = {}
@@ -138,6 +141,8 @@ def evaluate(rows, ivs) -> dict:
         cls[name] = cell
     res["exante_x_classes"] = cls
     res["passed"] = bool(res["brier_Is_vs_M0s"]["ci95"][0] > 0 and res["brier_Is_vs_Ip"]["ci95"][0] > 0)
+    from eval.forward_family import per_night
+    res["per_night"] = per_night(rows, deltas)
     return res
 
 
@@ -156,6 +161,10 @@ def run(hours, model, lock: Path = LOCK, n_min: int = N_MIN, freeze: str = FREEZ
     check_frozen(model, "IV_ANCHOR")
     ivs = night_ivs(nights, fetch)
     res = evaluate(score(model, hours, nights, ivs), ivs)
+    from eval.forward_family import family_block
+    res["family"] = family_block("forward_iv1d_anchor",
+                                 {k: res["per_night"][k] for k in ("brier_Is_vs_M0s", "brier_Is_vs_Ip")},
+                                 res["block_len"], research=lock.parent)
     res.update(scored=True, freeze=freeze, n_min=n_min,
                scored_on=pd.Timestamp.now(tz="UTC").strftime("%Y-%m-%d"))
     lock.write_text(json.dumps(res, indent=2) + "\n")
@@ -231,6 +240,10 @@ def selftest() -> int:
         with contextlib.redirect_stdout(io.StringIO()):
             r2 = run(hours, model, lock=lock, n_min=3, freeze=fake, fetch=feed)
         ok.append(("second run returns the locked result", r2 == json.loads(lock.read_text())))
+        from eval.forward_family import lock_problems
+        probs = lock_problems(r1, "forward_iv1d_anchor",
+                              {k: r1[k] for k in ("brier_Is_vs_M0s", "brier_Is_vs_Ip")})
+        ok.append((f"lock keeps per-night deltas and the family interval {probs or ''}", not probs))
         ok.append(("flags restored", all(getattr(P, f) is False for f in CAL_FLAGS)))
     for name, good in ok:
         print(f"  [{'ok' if good else 'FAIL'}] {name}")

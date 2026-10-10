@@ -56,6 +56,15 @@ jobs:
             python -m model.eval.$m 2>&1 | tee "/tmp/holdouts/$m.log"
           done
 
+      # The family reading (research/DATA_USE.md, "Several holdouts on the same
+      # forward nights"): every member, scored or not, and each scored primary's
+      # Bonferroni interval (alpha / 6) rebuilt from its lock's per-night
+      # deltas. Fails only if a rebuilt interval disagrees with its lock.
+      - name: Family reading across the six holdouts
+        run: |
+          set -o pipefail
+          python -m model.eval.forward_family 2>&1 | tee /tmp/holdouts/family.log
+
       - name: Upload logs
         if: always()
         uses: actions/upload-artifact@v4

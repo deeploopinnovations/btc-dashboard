@@ -66,6 +66,12 @@ run "test_debug_trace"       python model/tests/test_debug_trace.py
 run "dashboard: NOCTUA only" node scripts/test-noctua-source.js
 run "test_rl (paper agent)"   python model/tests/test_rl.py
 run "forward holdouts' frozen base" python -m model.eval.forward_weekend_anchor --check-base
+run "test_forward_family"     python model/tests/test_forward_family.py
+run "forward_hour_anchor --selftest" python -m model.eval.forward_hour_anchor --selftest
+run "forward_weekend_anchor --selftest" python -m model.eval.forward_weekend_anchor --selftest
+run "forward_dow_anchor --selftest" python -m model.eval.forward_dow_anchor --selftest
+run "forward_clock_dow_anchor --selftest" python -m model.eval.forward_clock_dow_anchor --selftest
+run "forward_iv1d_anchor --selftest" python -m model.eval.forward_iv1d_anchor --selftest
 # Serving gates run in a CI job WITHOUT the research stack (no sklearn); a gate
 # that imports eval/ fails there and nowhere else (pitfalls: serving-gate-imports).
 run "serving gates import serving code only" python -c "import sys; sys.path.insert(0,'model'); from research.pitfalls import check_serving_gate_imports as c; fs=['model/tests/test_hour_anchor.py','model/tests/test_weekend_anchor.py','model/tests/test_dow_anchor.py','model/tests/test_iv_anchor.py','model/tests/test_debug_trace.py','model/tests/test_weekend_column.py','model/tests/test_dispersion_report.py','model/tests/test_level_report.py']; v=[c(open(f).read(), f) for f in fs]; [print(x) for x in v]; sys.exit(0 if all(x.ok for x in v) else 1)"

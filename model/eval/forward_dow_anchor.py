@@ -45,7 +45,8 @@ LOCK = Path(__file__).resolve().parents[1] / "research" / "forward_dow_anchor_re
 
 
 def run(hours, model, lock: Path = LOCK, n_min: int = N_MIN, freeze: str = FREEZE) -> dict:
-    return _run(hours, model, lock=lock, n_min=n_min, freeze=freeze, flag=FLAG)
+    return _run(hours, model, lock=lock, n_min=n_min, freeze=freeze, flag=FLAG,
+                member="forward_dow_anchor")
 
 
 def main(argv=None) -> int:
@@ -89,6 +90,9 @@ def selftest() -> int:
         with contextlib.redirect_stdout(io.StringIO()):
             r2 = run(hours, model, lock=lock, n_min=3, freeze=fake)
         ok.append(("second run returns the locked result", r2 == json.loads(lock.read_text())))
+        from eval.forward_family import lock_problems
+        probs = lock_problems(r1, "forward_dow_anchor", {"brier": r1["primary_brier"]})
+        ok.append((f"lock keeps per-night deltas and the family interval {probs or ''}", not probs))
         ok.append(("flags restored", all(getattr(P, f) is False for f in CAL_FLAGS)))
     for name, good in ok:
         print(f"  [{'ok' if good else 'FAIL'}] {name}")
