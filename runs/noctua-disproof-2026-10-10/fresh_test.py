@@ -12,11 +12,15 @@ the price history is extended to 2026-10-10 with live 5-minute bars
 (evals/hours_through_now.parquet, built by policy/paper.fetch_tail).
 
     python runs/noctua-disproof-2026-10-10/fresh_test.py
+    python runs/noctua-disproof-2026-10-10/fresh_test.py --artifact model/serve/other.npz --tag other
 
-Writes evals/fresh_test.json and evals/fresh_test_episodes.parquet.
+Writes evals/fresh_test.json and evals/fresh_test_episodes.parquet, or with
+--tag NAME evals/fresh_test_NAME.json and evals/fresh_test_episodes_NAME.parquet.
 """
 from __future__ import annotations
 
+import argparse
+import hashlib
 import json
 import sys
 import time
@@ -34,12 +38,16 @@ from serve.runtime import load_model, norm_ppf        # noqa: E402
 from policy import dataset as DS                      # noqa: E402
 from policy import backtest as BT                     # noqa: E402
 from policy.runtime import NumpyTrader                # noqa: E402
+from serve.adaptive import _settled_anchors           # noqa: E402
 
 H = 19
 PROD_HOUR = 17
 TEST_START = pd.Timestamp("2024-07-01", tz="UTC")
 TRAIN_START = pd.Timestamp("2018-01-01", tz="UTC")
-FRESH_START = pd.Timestamp("2026-08-15", tz="UTC")   # asset history ended here
+# Splice: data/assets/btc_history.parquet ends 2026-08-15 11:00 UTC,
+# data/noctua_history.parquet ends 2026-10-05 17:00 UTC, and live Bitstamp/Coinbase
+# bars cover the rest (evals/hours_tail_live.parquet). Label only, not a filter.
+FRESH_START = pd.Timestamp("2026-08-15", tz="UTC")
 ADAPT_WINDOW_D, ADAPT_STRIDE, ADAPT_MIN = 60, 6, 20
 ADAPT_CLIP = (0.70, 1.40)
 BLOCK, REPS = 20, 4000
@@ -60,6 +68,17 @@ PERIODS = {
 def qlike(rv: np.ndarray, sig: np.ndarray) -> np.ndarray:
     r = np.maximum(rv, 1e-12) ** 2 / np.maximum(sig, 1e-12) ** 2
     return r - np.log(r) - 1.0
+
+
+def auc_mann_whitney(score: np.ndarray, y: np.ndarray) -> float:
+    """Rank AUC: P(score[up] > score[down]), ties count half (Mann-Whitney U)."""
+    pos = y == 1
+    n1 = int(pos.sum())
+    n0 = len(y) - n1
+    if n1 == 0 or n0 == 0:
+        return float("nan")
+    r = pd.Series(score).rank(method="average").to_numpy()
+    return float((r[pos].sum() - n1 * (n1 + 1) / 2) / (n1 * n0))
 
 
 def block_boot_mean(x: np.ndarray, block: int = BLOCK, reps: int = REPS, seed: int = 0):
@@ -94,19 +113,20 @@ def trailing_sum(x: np.ndarray, k: int) -> np.ndarray:
 
 def noctua_batch(model, hours: pd.DataFrame, rows: np.ndarray, keep_pred=False):
     ts = hours.hour_ts.to_numpy(np.int64)
-    out_med, out_mean, preds = [], [], []
+    out_med, out_mean, preds, feat_ok = [], [], [], []
     for s in range(0, len(rows), 4096):
         r = rows[s:s + 4096]
         dt = pd.to_datetime(ts[r], unit="s", utc=True)
         ep = pd.DataFrame({"anchor_ts": ts[r], "H": H, "row": r, "dt": dt,
                            "anchor_hour": dt.hour, "dow": dt.dayofweek})
         X = build_features(hours, ep)
+        feat_ok.append(np.isfinite(X.to_numpy()).all(1))    # serve/adaptive.py `ok` filter
         p = model.predict(model.prepare(X, np.full(len(r), float(H))))
         out_med.append(np.asarray(p["sigma_med"], np.float64))
         out_mean.append(np.asarray(p["sigma_mean"], np.float64))
         if keep_pred:
             preds.append(p)
-    return np.concatenate(out_med), np.concatenate(out_mean), preds
+    return np.concatenate(out_med), np.concatenate(out_mean), preds, np.concatenate(feat_ok)
 
 
 def load_hours_through_now() -> pd.DataFrame:
@@ -126,7 +146,22 @@ def load_hours_through_now() -> pd.DataFrame:
     return h
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    ap = argparse.ArgumentParser(description="Fresh out-of-sample test of the NOCTUA artifact.")
+    ap.add_argument("--artifact", default="model/serve/noctua_v2.npz",
+                    help="NOCTUA artifact, relative to the repo root")
+    ap.add_argument("--tag", default="",
+                    help="write evals/fresh_test_<tag>.json instead of evals/fresh_test.json")
+    ap.add_argument("--served", choices=("all_hour", "same_hour"), default="all_hour",
+                    help="served-correction replica: all_hour = the 6 h stride shipped until "
+                         "2026-10-10 (what VERDICT.md scored); same_hour = serve/adaptive.py "
+                         "as fixed on 2026-10-10 (24 h stride stepping back from the anchor)")
+    args = ap.parse_args(argv)
+    art_path = ROOT / args.artifact
+    art_sha12 = hashlib.sha256(art_path.read_bytes()).hexdigest()[:12]
+    stem = f"fresh_test_{args.tag}" if args.tag else "fresh_test"
+    ep_stem = f"fresh_test_episodes_{args.tag}" if args.tag else "fresh_test_episodes"
+
     t0 = time.time()
     hours = load_hours_through_now()
     ts = hours.hour_ts.to_numpy(np.int64)
@@ -147,28 +182,36 @@ def main() -> int:
     rows17 = np.flatnonzero(is17 & (dt_all >= TRAIN_START) & np.isfinite(RV))
     rows17 = rows17[rows17 > 24 * 400]
 
-    model = load_model(ROOT / "model" / "serve" / "noctua_v2.npz")
-    print(f"[fresh] artifact meta: {model.meta.get('name', '?')} seeds={model.n_seeds}")
+    model = load_model(art_path)
+    print(f"[fresh] artifact {args.artifact} sha256[:12]={art_sha12} "
+          f"meta: {model.meta.get('name', '?')} seeds={model.n_seeds}")
 
     # NOCTUA at every 17:00 anchor (keep full predictive objects for test rows)
-    sig_med17, sig_mean17, _ = noctua_batch(model, hours, rows17)
+    sig_med17, sig_mean17, _, _ = noctua_batch(model, hours, rows17)
 
     # ---------- served correction (serve/adaptive.py, replicated) ---------
     # Needs NOCTUA at every hour in the trailing 60 d of each test anchor.
     first_needed = int(np.searchsorted(ts, int((TEST_START - pd.Timedelta(days=ADAPT_WINDOW_D + 3)).timestamp())))
     rows_all = np.arange(first_needed, n)
-    sm_all, _, _ = noctua_batch(model, hours, rows_all)
+    sm_all, _, _, ok_all = noctua_batch(model, hours, rows_all)
     sig_by_row = np.full(n, np.nan)
     sig_by_row[rows_all] = sm_all
+    feat_ok_by_row = np.zeros(n, dtype=bool)               # all NOCTUA features finite at that row
+    feat_ok_by_row[rows_all] = ok_all
     factor17 = np.full(len(rows17), 1.0)
+    n_nonfinite_dropped = 0
     for i, a in enumerate(rows17):
         if dt_all[a] < TEST_START:
             continue
         last = a - H
         first = max(24 * 30, last - ADAPT_WINDOW_D * 24)
-        rr = np.arange(first, last, ADAPT_STRIDE)
+        if args.served == "same_hour":
+            rr = _settled_anchors(hours, int(a), H, ADAPT_WINDOW_D, 24)
+        else:
+            rr = np.arange(first, last, ADAPT_STRIDE)
         s, rvv = sig_by_row[rr], RV[rr]
-        g = np.isfinite(s) & np.isfinite(rvv) & (s > 0) & (rvv > 0)
+        n_nonfinite_dropped += int((~feat_ok_by_row[rr]).sum())
+        g = feat_ok_by_row[rr] & np.isfinite(s) & np.isfinite(rvv) & (s > 0) & (rvv > 0)
         if g.sum() >= ADAPT_MIN:
             factor17[i] = float(np.clip(np.median(rvv[g] / s[g]), *ADAPT_CLIP))
     print(f"[fresh] NOCTUA forecasts done in {time.time() - t0:.0f}s")
@@ -252,15 +295,38 @@ def main() -> int:
     fitted["dvol_scale"] = k
     fitted["har5_plus_dvol_coef"] = b.tolist()
 
+    # weekday-aware HAR (A1): 6 dummies for the 17:00 anchor's day of week, Monday as base.
+    # Same embargoed train mask as above; the recent arm starts its fit window in 2023.
+    wd_cols = [f"wd{d}" for d in range(1, 7)]
+    for d, col in enumerate(wd_cols, start=1):
+        E[col] = (E.dt.dt.dayofweek == d).astype(float)
+    wk_cols = specs["har5"] + wd_cols
+    wk_fits = {"har5_weekday_frozen": train,
+               "har5_weekday_recent": train & (E.dt >= pd.Timestamp("2023-01-01", tz="UTC")).to_numpy()}
+    for name, fit_mask in wk_fits.items():
+        b = ols(wk_cols, fit_mask)
+        s = pred_ols(wk_cols, b)
+        k = qlike_scale(s, fit_mask)
+        E[name] = s * k
+        fitted[name] = {"coef": b.tolist(), "scale": k, "cols": wk_cols,
+                        "fit_start": str(E.dt[fit_mask].min()), "n_fit": int(fit_mask.sum())}
+
     noctua_arms = ["noctua_raw_med", "noctua_raw_mean", "noctua_served_mean", "noctua_served_med"]
     base_arms = ["log_har3_frozen", "har5_frozen", "har5_refit", "ewma", "dvol_market",
-                 "har5_plus_dvol", "persistence"]
+                 "har5_plus_dvol", "persistence", "har5_weekday_frozen", "har5_weekday_recent"]
 
     results = {"vol": {}, "meta": {
-        "artifact": "model/serve/noctua_v2.npz", "H": H, "anchor_hour_utc": PROD_HOUR,
+        "artifact": args.artifact, "artifact_sha256_12": art_sha12,
+        "served_replica": args.served,
+        "H": H, "anchor_hour_utc": PROD_HOUR,
         "history_end_utc": str(dt_all[-1]), "n_train_episodes": int(train.sum()),
         "n_test_episodes": int(test.sum()), "baseline_fits": fitted,
-        "block_days": BLOCK, "reps": REPS}}
+        "served_replica_nonfinite_dropped": n_nonfinite_dropped,
+        "block_days": BLOCK, "reps": REPS,
+        "notes": ("Baseline arms (HAR, refit, EWMA, persistence, DVOL, weekday HAR) get an in-sample "
+                  "QLIKE rescale fitted on the training window; NOCTUA arms do not. The served arms "
+                  "multiply by a causal trailing median factor. The Gaussian barrier arms use the "
+                  "mean-type scaled har5_frozen and har5_weekday_frozen; NOCTUA's median-based arms are unscaled.")}}
 
     for pname, (p0, p1) in PERIODS.items():
         pm = ((E.dt >= pd.Timestamp(p0, tz="UTC")) & (E.dt < pd.Timestamp(p1, tz="UTC"))).to_numpy()
@@ -324,6 +390,7 @@ def main() -> int:
                     lv_srv[(a, up)].append(model.safe_level(pj, a, up))
         off += m
     gauss_sig = E.har5_frozen.to_numpy()[test]
+    gauss_wk_sig = E.har5_weekday_frozen.to_numpy()[test]
     dts = E.dt[test].reset_index(drop=True)
     for a in ALPHAS:
         for up in (True, False):
@@ -331,8 +398,11 @@ def main() -> int:
             u_raw = np.concatenate(lv_raw[(a, up)])
             u_srv = np.concatenate(lv_srv[(a, up)])
             u_gau = -gauss_sig * norm_ppf(a / 2.0)       # reflection principle, P(touch)=a
+            u_gau_wk = -gauss_wk_sig * norm_ppf(a / 2.0)
             M = mup if up else -mdn
-            for arm, u in (("noctua_raw", u_raw), ("noctua_served", u_srv), ("gauss_har5", u_gau)):
+            arms = (("noctua_raw", u_raw), ("noctua_served", u_srv), ("gauss_har5", u_gau),
+                    ("gauss_har5wk", u_gau_wk))
+            for arm, u in arms:
                 hit = M >= np.abs(u)
                 fr = (dts >= FRESH_START).to_numpy()
                 tail[f"{side}_a{a:.2f}_{arm}"] = {
@@ -346,13 +416,19 @@ def main() -> int:
     pu = np.concatenate([model.prob_up(p) for p in preds])
     R = np.log(close[te_rows + H - 1] / s_tau)
     yup = (R > 0).astype(float)
-    base = float(yup[: len(yup) // 2].mean())             # causal-ish: first half base rate
+    # pre-test base rate: 17:00 anchors whose 19h outcome closes before TEST_START (train mask, embargoed)
+    tr_row = E.row.to_numpy()[train]
+    base_pre = float((np.log(close[tr_row + H - 1] / close[tr_row - 1]) > 0).mean())
     results["direction"] = {
         "n": int(len(yup)), "frac_up": float(yup.mean()),
+        "base_rate_pre_test": base_pre, "n_pre_test": int(len(tr_row)),
         "brier_model": float(np.mean((pu - yup) ** 2)),
-        "brier_half": float(np.mean((0.5 - yup) ** 2)),
-        "auc_like_corr": float(np.corrcoef(pu, yup)[0, 1]),
-        "note": "served upside is pinned to 50.0; this scores the raw prob_up anyway"}
+        "brier_base_rate": float(np.mean((base_pre - yup) ** 2)),
+        "brier_half": float(np.mean((0.5 - yup) ** 2)),       # constant 0.5 forecast, not a base rate
+        "pearson_r": float(np.corrcoef(pu, yup)[0, 1]),
+        "auc": auc_mann_whitney(pu, yup),
+        "note": "served upside is pinned to 50.0; this scores the raw prob_up anyway. "
+                "brier_half is the constant-0.5 forecast; brier_base_rate uses the pre-test base rate."}
 
     # ---------- trader v1 --------------------------------------------------
     rows_tr = np.flatnonzero((dt_all.hour == PROD_HOUR) & (dt_all >= TEST_START))
@@ -364,12 +440,26 @@ def main() -> int:
     ret, fund = T.tgt_ret.to_numpy(), T.tgt_fund.to_numpy()
     sig_ann_trail = np.sqrt(trailing_sum(rv5, 24 * 30)[rows_tr] / (24 * 30) * 24 * 365)
     sig_ann_nx = np.exp(F.nx_logsig_med.to_numpy()) * np.sqrt(24 * 365 / 19.0)
+    # matched-exposure controls (M2)
+    idx_tr = np.arange(len(pos))
+    lo_tr = np.maximum(0, idx_tr - 60)
+    cpos = np.concatenate([[0.0], np.cumsum(pos)])
+    cnt_tr = idx_tr - lo_tr                                 # days in the prior 60-day window
+    trailing60 = np.where(cnt_tr > 0, (cpos[idx_tr] - cpos[lo_tr]) / np.maximum(cnt_tr, 1), 0.0)
     strategies = {
         "trader_v1": pos,
         "buy_and_hold": np.ones(len(pos)),
         "half_long": np.full(len(pos), 0.5),
         "voltarget_trailing30d_cap0.5": np.clip(0.25 / sig_ann_trail, 0, 0.5),
         "voltarget_noctua_cap0.5": np.clip(0.25 / sig_ann_nx, 0, 0.5),
+        "constant_matched_exposure": np.full(len(pos), float(pos.mean())),
+        "trailing60_mean_position": trailing60,
+    }
+    strat_notes = {
+        "constant_matched_exposure": "diagnostic only: constant position equal to the trader's mean "
+                                     "position over the scored days; uses the sample mean, not tradable",
+        "trailing60_mean_position": "causal: day i holds the mean of the trader's positions on days "
+                                    "i-60..i-1 (excludes day i); expanding mean before 60 days; 0 on day 0",
     }
     dtr = pd.to_datetime(F.anchor_ts.to_numpy(), unit="s", utc=True)
     trd = {"n_days": int(len(pos)), "first": str(dtr[0]), "last": str(dtr[-1]),
@@ -385,18 +475,20 @@ def main() -> int:
         fr = (dtr >= FRESH_START)
         m["compounded_by_year"] = yr
         m["fresh_total_return"] = float(np.prod(1 + pl[k][fr]) - 1)
+        if k in strat_notes:
+            m["notes"] = strat_notes[k]
         trd["strategies"][k] = m
     for k in strategies:
         if k != "trader_v1":
             trd["vs_trader"][k] = BT.block_bootstrap_sharpe_diff(pl["trader_v1"], pl[k], reps=4000)
     results["trader"] = trd
 
-    out = HERE / "evals" / "fresh_test.json"
+    out = HERE / "evals" / f"{stem}.json"
     out.write_text(json.dumps(results, indent=2, default=float) + "\n")
-    E.to_parquet(HERE / "evals" / "fresh_test_episodes.parquet")
+    E.to_parquet(HERE / "evals" / f"{ep_stem}.parquet")
     print(f"[fresh] wrote {out} in {time.time() - t0:.0f}s")
     return 0
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(main(sys.argv[1:]))

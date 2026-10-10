@@ -270,7 +270,8 @@ def build_features(hours: pd.DataFrame, episodes: pd.DataFrame,
         # rather than crashing -- refusing to forecast is the correct response.
         cols = list(out.keys()) + [f"seas_{d}d" for d in (1, 5, 22)] + [
             "cal_hour_sin", "cal_hour_cos", "cal_dow_sin", "cal_dow_cos",
-            "cal_H", "cal_weekend_frac", "cal_month_sin", "cal_month_cos",
+            "cal_H", "cal_weekend_frac", "cal_weekend_frac_ss",
+            "cal_month_sin", "cal_month_cos",
         ]
         return pd.DataFrame({c: np.zeros(0) for c in cols})
 
@@ -297,6 +298,17 @@ def build_features(hours: pd.DataFrame, episodes: pd.DataFrame,
     valid = offs[None, :] < H[:, None]
     is_we = ((fut_dow >= 5) & valid).sum(axis=1)
     out["cal_weekend_frac"] = is_we / np.maximum(H, 1)
+
+    # THE CORRECTED COLUMN (P4-weekend-bug, fixed 2026-10-10). The epoch is a
+    # Thursday, so Monday = 0 needs '+ 3'. This counts SATURDAY and SUNDAY.
+    # It is a NEW name rather than an in-place fix: the pinned v2 artifacts list
+    # `cal_weekend_frac` in their metadata and keep reading the legacy column,
+    # while spec.BASE_COLS/SHAPE_COLS (and so every artifact trained from now
+    # on) name this one. The runtime reads column names from the artifact, so
+    # neither can be fed the other's column.
+    true_dow = (((anchor_ts[:, None] + offs[None, :] * HOUR) // 86400) + 3) % 7  # 0=Mon
+    is_ss = ((true_dow >= 5) & valid).sum(axis=1)
+    out["cal_weekend_frac_ss"] = is_ss / np.maximum(H, 1)
 
     # mean climatological hourly variance over the forward window (the demoted
     # but still free clock signal): uses only the hour-of-day identity

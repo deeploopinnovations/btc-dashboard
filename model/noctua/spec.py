@@ -35,7 +35,10 @@ MEDIAN_IDX = int(np.argmin(np.abs(LEVELS - 0.5)))
 
 # Stage A's linear base: exactly the Log-HAR cascade plus the two calendar
 # terms that the baseline scoreboard showed to matter.
-BASE_COLS = ["har_1d", "har_5d", "har_22d", "cal_H", "cal_weekend_frac"]
+# `cal_weekend_frac_ss` is the corrected Sat+Sun fraction. Artifacts up to and
+# including noctua_v2 were trained on the legacy Fri+Sat `cal_weekend_frac`
+# (P4-weekend-bug) and keep reading it through their own metadata.
+BASE_COLS = ["har_1d", "har_5d", "har_22d", "cal_H", "cal_weekend_frac_ss"]
 
 # Stage B sees only SHAPE information -- not the vol level itself, except
 # through the explicit log-sigma conditioning input appended at the end.
@@ -45,7 +48,7 @@ SHAPE_COLS = [
     "mom_ret_1d", "mom_ret_5d", "mom_ret_22d", "mom_dist_ma100",
     "mom_drawdown_90d", "vov_5d", "vov_22d", "reg_rv_vs_year",
     "reg_post_etf", "cal_hour_sin", "cal_hour_cos", "cal_dow_sin",
-    "cal_dow_cos", "cal_H", "cal_weekend_frac",
+    "cal_dow_cos", "cal_H", "cal_weekend_frac_ss",
 ]
 
 # Path efficiency -- range per unit realized vol over the trailing window.
@@ -59,6 +62,9 @@ EFFICIENCY_COLS = ["eff_1d", "eff_3d", "eff_7d"]
 # this, adding a column to features.py silently widens the wide block Xa and
 # changes the shipped artifact -- a research feature would leak into production
 # by the mere act of being computed.
-NON_MODEL_COLS = tuple(EFFICIENCY_COLS)
+# `cal_weekend_frac` is the legacy Fri+Sat column (P4-weekend-bug): still built,
+# because the v2 artifacts read it, but never fed to a newly trained model.
+LEGACY_COLS = ("cal_weekend_frac",)
+NON_MODEL_COLS = tuple(EFFICIENCY_COLS) + LEGACY_COLS
 
 SHAPE_COLS_WITH_EFF = SHAPE_COLS + EFFICIENCY_COLS

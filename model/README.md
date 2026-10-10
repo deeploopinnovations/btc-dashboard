@@ -8,6 +8,9 @@ holding period.
 It answers *"which levels are strong enough that they will not break?"* as a
 calibrated **barrier survival curve**, not a point forecast.
 
+> **Readiness: not production-ready for real positions.** The evidence has to
+> come from a forward holdout after 2026-10-10 ([VERDICT §4](../runs/noctua-disproof-2026-10-10/VERDICT.md)).
+
 | | |
 |---|---|
 | [`RESEARCH_PLAN.md`](RESEARCH_PLAN.md) | problem formalization, literature, architecture, protocol |
@@ -24,6 +27,11 @@ Out-of-sample walk-forward, 2,046 non-overlapping production episodes:
 
 - **Volatility:** the shipped committee beats a well-specified Log-HAR by
   **4.04 % QLIKE**, p = 0.0002.
+  *Caveat:* the Log-HAR and HAR baselines here are calendar-blind. A HAR with
+  weekday terms fit before 2024-07 beats NOCTUA's QLIKE at 17:00 UTC by about
+  20 % with a 2023-24 fit (ahead in every half-year of 2024-07..2026-10) and by
+  about 7 % with a 2018-24 fit, whose margin depends on the HAR specification.
+  See [VERDICT §1](../runs/noctua-disproof-2026-10-10/VERDICT.md).
 - **Deep-tail barriers:** calibration error **1.09 pp vs 3.33 pp** for the
   Gaussian first-passage baseline at α = 1 %. The textbook model understates
   deep-tail touch risk by 2–4×.
@@ -40,6 +48,33 @@ Out-of-sample walk-forward, 2,046 non-overlapping production episodes:
 > **Numbers here are summaries.** Where this file and `BENCHMARK.md` disagree,
 > `BENCHMARK.md` is right — it is regenerated from `model/artifacts/*.json`,
 > this file is written by hand and has been stale before.
+
+## Known defect: weekday column
+
+`noctua/features.py` builds `cal_weekend_frac` with `+ 4` where `+ 3` is needed,
+so the column counts Friday and Saturday instead of Saturday and Sunday. This is
+one cause of NOCTUA's weekday miscalibration
+([VERDICT §1](../runs/noctua-disproof-2026-10-10/VERDICT.md)).
+
+- The shipped `noctua_v2.npz` was trained on the legacy column and keeps reading
+  it, so training and serving agree.
+- The corrected column is `cal_weekend_frac_ss` (Saturday and Sunday). Newly
+  trained artifacts read it, as set in `noctua/spec.py`.
+
+## Live forecast and correction
+
+- `.github/workflows/fetch-data.yml` runs `serve/predict.py` every 30 minutes.
+  It publishes the forecast for the last closed hour, not only the 17:00 UTC
+  product anchor.
+- The live correction factor (`serve/adaptive.py`) is estimated on the served
+  hour of day: settled episodes are stepped back from the anchor in 24-hour
+  strides. It used to be a median over all hours. On 2024-07+ data, served median
+  RV/sigma is 0.99-1.01 at all 24 hours. QLIKE improves at 14-23 UTC (+0.065 at
+  17:00) and worsens by up to 0.02 at 00-13 UTC, pooled +0.0065 (CI +0.0045 to
+  +0.0085).
+- That measurement is on 2024-07+ data. It is not out of sample for this design
+  choice, because the window and the decision to ship were picked while looking
+  at that era.
 
 ## Why it replaced the Kronos scrape
 

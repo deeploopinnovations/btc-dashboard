@@ -581,7 +581,8 @@ def freshness_arm(ep, X):
         # shorter than a day that already exist in features.parquet and are
         # already used nowhere in NOCTUA's linear anchor or Stage-A base.
         "har_fast_cal": B.OLS(
-            ["har_1h", "har_6h", "har_1d", "har_5d", "har_22d", "cal_H", "cal_weekend_frac"]
+            ["har_1h", "har_6h", "har_1d", "har_5d", "har_22d", "cal_H",
+             "cal_weekend_frac_ss"]  # same calendar term as log_har_cal (2026-10-10)
         ).fit(X[m_tr], yall[m_tr], wtr),
         # the floor: the single fastest-updating feature alone, no cascade,
         # no calendar -- how far does freshness alone get without the rest of

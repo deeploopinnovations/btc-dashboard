@@ -54,8 +54,21 @@ long, not a market-timing model.
 | NOCTUA vol-target long | 0.30 | 4.1% | -52% | 0.96 |
 | 20-day momentum, vol-targeted | 0.42 | 9.4% | -36% | long/short |
 
+The table is the original scoring window: 826 days, 2024-07 to 2026-10 (see
+Protocol). Re-scored on the extended price data over 830 days, 2024-07-01 to
+2026-10-08, the trader gets Sharpe 0.44 vs 0.37 for buy-and-hold, CAGR 2.5% vs
+7.1% compounded, and an average position of 0.14
+([VERDICT §3](../../runs/noctua-disproof-2026-10-10/VERDICT.md)). The re-score
+adds 4 days and rebuilt price data; why it lands lower was not investigated
+(data bundle or sample definition, A0 B2).
+
 - **Sharpe vs buy-and-hold:** +0.08, 95% block-bootstrap CI [-0.19, +0.33].
   Not significant.
+- **Exposure control.** A constant 14% long has the same Sharpe as
+  buy-and-hold, because scaling does not change Sharpe. So the edge to explain
+  is 0.07 Sharpe, CI [-0.19, +0.31] on the re-score. It vanishes at 12 bp fees
+  and flips sign if 2026 Q1 is left out (VERDICT §3; A3).
+  **Status: no evidence of timing skill.**
 
 ## How the swarm was used
 

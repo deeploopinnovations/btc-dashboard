@@ -47,7 +47,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from noctua.features import audit_lookahead, build_features  # noqa: E402
-from noctua.spec import NON_MODEL_COLS                       # noqa: E402
+from noctua.spec import LEGACY_COLS, NON_MODEL_COLS          # noqa: E402
 
 FAILS: list[str] = []
 
@@ -156,7 +156,10 @@ def main() -> int:
             missing = [c for c in cols if c not in produced]
             check(f"every {name} the artifact declares is produced",
                   not missing, f"missing {missing}")
-        leaked = [c for c in NON_MODEL_COLS if c in set(m.feat_cols)]
+        # A LEGACY column is allowed only in an artifact trained before it was
+        # retired (the v2 network reads cal_weekend_frac); research columns never.
+        leaked = [c for c in NON_MODEL_COLS if c in set(m.feat_cols)
+                  and not (c in LEGACY_COLS and "cal_weekend_frac_ss" not in m.feat_cols)]
         check("research-only columns are not in the artifact's inputs",
               not leaked, f"{leaked} leaked into feat_cols")
     except FileNotFoundError:
