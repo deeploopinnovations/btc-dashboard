@@ -67,10 +67,12 @@ def night_ivs(nights: pd.DataFrame, fetch=None) -> np.ndarray:
     out = []
     for t in nights["anchor_ts"].to_numpy(np.int64):
         day = pd.Timestamp(int(t), unit="s", tz="UTC").normalize().to_pydatetime()
-        try:
-            v = fetch(day.replace(tzinfo=timezone.utc))
-        except Exception:
-            v = None
+        # None = no qualifying next-day trade: a real outcome, scored as shipped.
+        # An EXCEPTION (timeout, rate limit, bad response) propagates: run()
+        # then fails before writing the lock and the daily workflow retries.
+        # Swallowing it would score an outage as "no trade" on the one
+        # evaluation day and spend the holdout (Codex review, PR #14).
+        v = fetch(day.replace(tzinfo=timezone.utc))
         out.append(np.nan if v is None else float(v))
     return np.array(out)
 
@@ -197,6 +199,28 @@ def selftest() -> int:
         with contextlib.redirect_stdout(buf):
             r0 = run(hours, model, lock=lock, n_min=10_000, freeze=fake, fetch=feed)
         ok.append(("below N_MIN: count only", r0["scored"] is False and "brier" not in buf.getvalue().lower()))
+        # Codex review, PR #14: a fetch ERROR on the one scoring day must not be
+        # scored as a no-trade night and locked -- it must abort, lock unwritten,
+        # so the daily workflow retries. A genuine no-trade night (None) is scored.
+        lock_err = Path(td) / "lock_err.json"
+
+        def flaky(day):
+            if day.day % 3 == 0:
+                raise TimeoutError("Deribit timeout (planted)")
+            return feed(day)
+        raised = False
+        try:
+            with contextlib.redirect_stdout(io.StringIO()):
+                run(hours, model, lock=lock_err, n_min=3, freeze=fake, fetch=flaky)
+        except Exception:
+            raised = True
+        ok.append(("a fetch error aborts the scoring and writes no lock", raised and not lock_err.exists()))
+        lock_none = Path(td) / "lock_none.json"
+        with contextlib.redirect_stdout(io.StringIO()):
+            rn = run(hours, model, lock=lock_none, n_min=3, freeze=fake,
+                     fetch=lambda day: None if day.day % 2 else feed(day))
+        ok.append(("a no-trade night is scored as shipped and counted",
+                   lock_none.exists() and 0 < rn["n_with_iv"] < rn["n_nights"]))
         with contextlib.redirect_stdout(io.StringIO()):
             r1 = run(hours, model, lock=lock, n_min=3, freeze=fake, fetch=feed)
         ok.append(("at N_MIN: scored, locked, both contrasts present",
