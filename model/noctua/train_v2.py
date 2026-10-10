@@ -177,6 +177,11 @@ def main(argv=None) -> int:
         "specialists": ["neural", "gaussian", "empirical", "evt"],
         "weights": "equal",   # measured: fitted and gated weights both degenerate
         "stage_b_sigma_ref": "causal_har_1d_clipped",
+        # Which weekend column the anchor and Stage B were fitted on: the
+        # corrected Sat+Sun `cal_weekend_frac_ss`, or the legacy Fri+Sat
+        # `cal_weekend_frac` that noctua_v2.npz carries (P4-weekend-bug).
+        "weekend_column": ("cal_weekend_frac_ss" if "cal_weekend_frac_ss"
+                           in tr["cols"]["base"] else "cal_weekend_frac"),
         # Which feature-lag setting these weights were fitted at. Recorded
         # because the artifact's metadata disagreeing with its own weights is
         # a defect this repo has shipped before, and `extra_lag_hours` is now

@@ -50,7 +50,7 @@ def main() -> int:
     # window has to have closed before the anchor it informs.
     worst = None
     for anchor in (2000, 5000, 9000, 9599):
-        rows = _settled_anchors(pd_hours_len(anchor), anchor, H, 60, STRIDE_HOURS)
+        rows = _settled_anchors(grid_hours(10000), anchor, H, 60, STRIDE_HOURS)
         if len(rows) == 0:
             continue
         margin = int(anchor - (rows.max() + H))
@@ -60,12 +60,27 @@ def main() -> int:
     check("causality margin is non-negative at every anchor tested",
           worst is not None and worst >= 0, str(worst))
 
-    rows = _settled_anchors(None, 5000, H, 60, STRIDE_HOURS)
+    rows = _settled_anchors(grid_hours(10000), 5000, H, 60, STRIDE_HOURS)
     check("window is bounded to the requested horizon",
           bool(len(rows) and (5000 - rows.min()) <= 60 * 24 + H + STRIDE_HOURS),
           f"reaches back {5000 - int(rows.min())}h")
     check("anchors are subsampled, not one-per-hour",
           bool(len(rows) > 1 and np.diff(rows).min() >= STRIDE_HOURS))
+
+    # ---- same hour of day, even across a gap (audit A5, 2026-10-10) --------
+    g = grid_hours(10000)
+    ts = g["hour_ts"].to_numpy(np.int64)
+    rows = _settled_anchors(g, 9000, H, 60, STRIDE_HOURS)
+    check("every row sits at the anchor's hour of day",
+          bool(len(rows) and np.all((ts[rows] - ts[9000]) % 86400 == 0)))
+    gap = g.drop(index=8500).reset_index(drop=True)       # one missing hour
+    tg = gap["hour_ts"].to_numpy(np.int64)
+    rows = _settled_anchors(gap, 8999, H, 60, STRIDE_HOURS)  # same anchor time
+    check("a one-hour gap does not shift the hour of day",
+          bool(len(rows) and np.all((tg[rows] - tg[8999]) % 86400 == 0)),
+          f"{int(np.sum((tg[rows] - tg[8999]) % 86400 != 0))} rows off")
+    check("the gap costs at most the one missing day",
+          len(rows) >= len(_settled_anchors(g, 9000, H, 60, STRIDE_HOURS)) - 1)
 
     # ---- the real thing, on the committed bundle --------------------------
     model = load_model()
@@ -141,9 +156,10 @@ def main() -> int:
     return 0
 
 
-def pd_hours_len(_n):
-    """_settled_anchors only reads scalars, so the frame itself is irrelevant."""
-    return None
+def grid_hours(n):
+    """A gap-free hourly frame; _settled_anchors reads only hour_ts."""
+    import pandas as pd
+    return pd.DataFrame({"hour_ts": 1_600_000_000 // 3600 * 3600 + 3600 * np.arange(n)})
 
 
 if __name__ == "__main__":

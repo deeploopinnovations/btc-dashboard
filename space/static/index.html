@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NOCTUA forward holdout</title>
+<style>
+:root{--bg:#fafaf9;--panel:#fff;--text:#1c1917;--muted:#78716c;--line:#e7e5e4;--a:#4f46e5;--b:#a8a29e;--c:#0d9488;--neg:#b91c1c;--pos:#15803d}
+@media (prefers-color-scheme:dark){:root{--bg:#0c0a09;--panel:#1c1917;--text:#f5f5f4;--muted:#a8a29e;--line:#292524;--a:#818cf8;--b:#78716c;--c:#2dd4bf;--neg:#f87171;--pos:#4ade80}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+main{max-width:920px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:24px;margin:0 0 4px}h2{font-size:17px;margin:28px 0 10px}
+p.lead{color:var(--muted);margin:0 0 20px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.card .k{color:var(--muted);font-size:13px}.card .v{font-size:22px;font-weight:600;font-variant-numeric:tabular-nums}
+table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);font-size:14px}th{color:var(--muted);font-weight:500}
+.wrap{overflow-x:auto}.neg{color:var(--neg)}.pos{color:var(--pos)}.muted{color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px;margin-right:14px;font-size:13px;color:var(--muted)}
+.legend i{width:12px;height:3px;border-radius:2px;display:inline-block}
+svg{width:100%;height:auto;background:var(--panel);border:1px solid var(--line);border-radius:10px}
+footer{margin-top:28px;color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+<main>
+<h1>NOCTUA-Trader: forward holdout</h1>
+<p class="lead">The frozen v1 policy, scored only on days after 2026-10-10. It picks a BTC position at 17:00 UTC and holds it 24 hours. Paper trading only. In backtests it showed no timing skill; it mostly holds a small long and trims it when volatility is high.</p>
+<div id="status" class="muted">Loading the log...</div>
+<h2 id="latest-h">Latest decision</h2>
+<div class="cards" id="latest"></div>
+<h2>Forward record</h2>
+<div class="wrap"><table id="record"></table></div>
+<p class="legend" id="legend"></p>
+<div id="chart"></div>
+<h2>Every decision</h2>
+<div class="wrap"><table id="log"></table></div>
+<footer id="foot"></footer>
+</main>
+<script>
+const SRC = "https://raw.githubusercontent.com/deeploopinnovations/btc-dashboard/main/data/forward/forward_log.json";
+const START = "2026-10-10 17:00 UTC";
+const pct = x => x == null ? "n/a" : (x >= 0 ? "+" : "") + (100 * x).toFixed(2) + "%";
+const cls = x => x == null ? "" : x < 0 ? "neg" : "pos";
+const when = s => s.slice(0, 16).replace("T", " ");
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+function stats(p) {
+  let w = 1, peak = 1, dd = 0; const eq = [];
+  for (const x of p) { w *= 1 + x; peak = Math.max(peak, w); dd = Math.min(dd, w / peak - 1); eq.push(w); }
+  const n = p.length, m = p.reduce((a, b) => a + b, 0) / (n || 1);
+  const sd = n > 1 ? Math.sqrt(p.reduce((a, b) => a + (b - m) ** 2, 0) / (n - 1)) : 0;
+  return { total: n ? w - 1 : null, sharpe: n >= 20 && sd > 0 ? m / sd * Math.sqrt(365) : null, dd: n ? dd : null, eq };
+}
+
+function chart(series, dates) {
+  if (!dates.length) return "";
+  const W = 880, H = 260, L = 48, R = 12, T = 12, B = 28;
+  const all = series.flatMap(s => s.eq); let lo = Math.min(1, ...all), hi = Math.max(1, ...all);
+  const pad = (hi - lo) * 0.1 || 0.01; lo -= pad; hi += pad;
+  const x = i => L + (dates.length === 1 ? (W - L - R) / 2 : i * (W - L - R) / (dates.length - 1));
+  const y = v => T + (hi - v) * (H - T - B) / (hi - lo);
+  let g = "";
+  for (let k = 0; k <= 4; k++) {
+    const v = lo + k * (hi - lo) / 4;
+    g += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="${css("--line")}"/>` +
+         `<text x="${L - 6}" y="${y(v) + 4}" text-anchor="end" font-size="11" fill="${css("--muted")}">${((v - 1) * 100).toFixed(1)}%</text>`;
+  }
+  g += `<text x="${L}" y="${H - 8}" font-size="11" fill="${css("--muted")}">${dates[0]}</text>` +
+       `<text x="${W - R}" y="${H - 8}" text-anchor="end" font-size="11" fill="${css("--muted")}">${dates[dates.length - 1]}</text>`;
+  for (const s of series) {
+    const pts = s.eq.map((v, i) => `${x(i)},${y(v)}`).join(" ");
+    g += `<polyline points="${pts}" fill="none" stroke="${css(s.color)}" stroke-width="2"/>`;
+    if (s.eq.length === 1) g += `<circle cx="${x(0)}" cy="${y(s.eq[0])}" r="3" fill="${css(s.color)}"/>`;
+  }
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Cumulative return by strategy">${g}</svg>`;
+}
+
+function render(log) {
+  log.sort((a, b) => a.anchor_ts - b.anchor_ts);
+  const done = log.filter(e => e.pnl != null);
+  const late = log.filter(e => e.late).length;
+  document.getElementById("status").textContent =
+    `${log.length} decisions, ${done.length} settled, ${late} decided late. Log refreshed by GitHub Actions; this page reads it live.`;
+  const e = log[log.length - 1];
+  if (e) {
+    document.getElementById("latest-h").textContent = `Latest decision: ${when(e.anchor_utc)} UTC`;
+    const cards = [
+      ["Position (cap 0.5, long-only)", e.position.toFixed(3)],
+      ["NOCTUA vol forecast (annualised)", (100 * e.noctua_ann_vol).toFixed(1) + "%"],
+      ["NOCTUA move, next 19 h (1 sd)", "±" + (100 * e.noctua_sigma_19h).toFixed(2) + "%"],
+      ["Deribit DVOL", e.dvol == null ? "missing" : e.dvol.toFixed(1)],
+      ["Entry price", "$" + Math.round(e.entry_price).toLocaleString("en-US")],
+      ["Result", e.pnl == null ? "open" : pct(e.pnl)],
+    ];
+    document.getElementById("latest").innerHTML = cards.map(([k, v]) =>
+      `<div class="card"><div class="k">${k}</div><div class="v">${esc(v)}</div></div>`).join("") +
+      (e.stale_inputs && e.stale_inputs.length ? `<div class="card"><div class="k">Stale inputs</div><div class="v neg">${esc(e.stale_inputs.join(", "))}</div></div>` : "");
+  } else {
+    document.getElementById("latest").innerHTML = `<div class="card"><div class="k">No forward decisions yet</div><div class="v">${START}</div></div>`;
+  }
+  const S = [
+    { name: "NOCTUA-Trader v1", key: "pnl", color: "--a" },
+    { name: "Buy and hold 1x", key: "pnl_buy_hold", color: "--b" },
+    { name: "Constant 0.14", key: "pnl_const", color: "--c" },
+  ].map(s => ({ ...s, ...stats(done.map(d => d[s.key])) }));
+  document.getElementById("record").innerHTML =
+    "<tr><th>Strategy</th><th>Total return (compounded)</th><th>Sharpe (from 20 days)</th><th>Max drawdown</th></tr>" +
+    S.map(s => `<tr><td>${s.name}</td><td class="${cls(s.total)}">${pct(s.total)}</td><td>${s.sharpe == null ? "n/a" : s.sharpe.toFixed(2)}</td><td>${pct(s.dd)}</td></tr>`).join("");
+  document.getElementById("legend").innerHTML = done.length ? S.map(s => `<span><i style="background:${css(s.color)}"></i>${s.name}</span>`).join("") : "";
+  document.getElementById("chart").innerHTML = chart(S, done.map(d => new Date((d.anchor_ts + 86400) * 1000).toISOString().slice(0, 10)));
+  document.getElementById("log").innerHTML =
+    "<tr><th>Anchor (UTC)</th><th>Position</th><th>NOCTUA vol</th><th>BTC 24h</th><th>Trader P&amp;L</th><th>Decided</th></tr>" +
+    log.slice().reverse().map(d => `<tr><td>${when(d.anchor_utc)}</td><td>${d.position.toFixed(3)}</td><td>${(100 * d.noctua_ann_vol).toFixed(1)}%</td>` +
+      `<td class="${cls(d.btc_return)}">${pct(d.btc_return)}</td><td class="${cls(d.pnl)}">${pct(d.pnl)}</td><td>${d.late ? "late" : "on time"}</td></tr>`).join("");
+  if (e) document.getElementById("foot").textContent =
+    `Frozen weights: policy ${e.policy_sha256}, forecaster ${e.forecaster_sha256}. Source: github.com/deeploopinnovations/btc-dashboard (space/). Educational research only, not financial advice.`;
+}
+
+fetch(SRC, { cache: "no-store" })
+  .then(r => r.status === 404 ? [] : r.ok ? r.json() : Promise.reject(new Error("HTTP " + r.status)))
+  .then(render)
+  .catch(err => { document.getElementById("status").textContent = "Could not load the log: " + err.message; });
+</script>
+</body>
+</html>

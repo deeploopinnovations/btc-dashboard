@@ -30,6 +30,21 @@ from policy.runtime import NumpyTrader         # noqa: E402
 DEFAULT_LOG = DS.ROOT / "data" / "noctua_trader_paper.json"
 
 
+def fetch_tail(h: pd.DataFrame) -> pd.DataFrame:
+    """Committed bars plus a live tail long enough to close the gap since the
+    bundle ends. A fixed 72 h tail on an older bundle leaves a hole, and every
+    trailing feature counts rows, not hours, so the hole must fail loudly."""
+    import time
+    from serve.fetch import fetch_bars
+    from serve.history import check_continuity, hours_from_bars, merge
+    behind_h = int((time.time() - int(h.hour_ts.iloc[-1])) // 3600) + 6
+    h = merge(h, hours_from_bars(fetch_bars(tail_hours=max(72, behind_h))))
+    c = check_continuity(h, max_gap_hours=1)
+    if not c["contiguous"]:
+        raise RuntimeError(f"hourly history has a gap after the live merge: {c}")
+    return h
+
+
 def latest_anchor_row(h: pd.DataFrame, hour: int = DS.PROD_HOUR) -> int:
     """Row index of the most recent anchor at `hour` UTC whose prior hour is
     closed (the anchor row itself need not exist yet)."""
@@ -88,9 +103,7 @@ def main(argv=None) -> int:
 
     h = DS.load_hours()
     if a.fetch:
-        from serve.fetch import fetch_bars
-        from serve.history import merge, hours_from_bars
-        h = merge(h, hours_from_bars(fetch_bars()))
+        h = fetch_tail(h)
     model = NumpyTrader(a.weights) if a.weights else NumpyTrader()
 
     log = json.loads(a.log.read_text()) if a.log.exists() else []

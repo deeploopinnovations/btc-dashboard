@@ -125,6 +125,22 @@ def main(argv=None) -> int:
     if np.max(np.abs(wf_bug - X["cal_weekend_frac"].to_numpy())) > 1e-12:
         raise SystemExit("REFUSING: the shipped column is not the Fri+Sat fraction "
                          "this test was registered against")
+    # spec.BASE_COLS/SHAPE_COLS and log_har_cal now read cal_weekend_frac_ss
+    # (fix of 2026-10-10). This test was registered against the SHIPPED
+    # column, so the M0s/Ws/Ps arms must see the Fri+Sat fraction under the
+    # name the model now reads; Fs gets the true one under both names.
+    X = X.copy()
+    X["cal_weekend_frac_ss"] = wf_bug
+    # the shipped artifact trains Stage B on the causal clipped har_1d reference
+    # (train_v2.py, meta stage_b_sigma_ref); without it run_fold falls back to
+    # the non-shipping target and M0s would not be the shipped configuration
+    # (audit A5, 2026-10-10). Same construction as eval/anchor_freshness.py.
+    raw_ref = np.exp(X["har_1d"].to_numpy(np.float64)) * np.sqrt(Hs.astype(np.float64))
+
+    def sig_fn(m):
+        lo, hi = np.quantile(raw_ref[m], [0.005, 0.995])
+        return np.maximum(np.clip(raw_ref, lo, hi), 1e-12)
+
     wf_true = day_frac(ts, Hs, WEEKEND)
     wf_plac = day_frac(ts, Hs, PLACEBO)
     true_dow = pd.to_datetime(ts, unit="s", utc=True).dayofweek.to_numpy()
@@ -135,6 +151,7 @@ def main(argv=None) -> int:
     w = I.BLEND_W
     XF = X.copy()
     XF["cal_weekend_frac"] = wf_true
+    XF["cal_weekend_frac_ss"] = wf_true
     print(f"P4-weekend-fix   production 17:00/H=19, factor hours {fac_hours}, "
           f"seeds {a.seeds}", flush=True)
 
@@ -163,8 +180,8 @@ def main(argv=None) -> int:
         sh = {"M0s": np.zeros(len(ep)),
               "Ws": np.nan_to_num((1 - w) * (aW["anchor"] - aW["lhc"])),
               "Ps": np.nan_to_num((1 - w) * (aP["anchor"] - aP["lhc"]))}
-        rB = run_fold(ep, X, f, a.hidden, a.seeds, prod_override=prod | fac_mask)
-        rF = run_fold(ep, XF, f, a.hidden, a.seeds, prod_override=prod | fac_mask)
+        rB = run_fold(ep, X, f, a.hidden, a.seeds, sigma_ref_fn=sig_fn, prod_override=prod | fac_mask)
+        rF = run_fold(ep, XF, f, a.hidden, a.seeds, sigma_ref_fn=sig_fn, prod_override=prod | fac_mask)
         if rB is None or rF is None:
             continue
         peB, peF = rB["per_episode"], rF["per_episode"]
@@ -178,7 +195,7 @@ def main(argv=None) -> int:
             lf = served_log_factor(ts[ti], ts[h_idx], h_rv, h_sig * np.exp(sh[arm][h_idx]))
             full = sh[arm].copy()
             full[ti] += lf
-            r1 = run_fold(ep, X, f, a.hidden, a.seeds,
+            r1 = run_fold(ep, X, f, a.hidden, a.seeds, sigma_ref_fn=sig_fn,
                           post_shift_fn=lambda mask, _mt, _s=full: _s[mask])
             p1 = r1["per_episode"]
             if not np.array_equal(p1["test_idx"], ti):
@@ -203,7 +220,7 @@ def main(argv=None) -> int:
         lfF = served_log_factor(ts[ti], ts[hF_idx], hF_rv, hF_sig)
         fullF = np.zeros(len(ep))
         fullF[ti] = lfF
-        rF1 = run_fold(ep, XF, f, a.hidden, a.seeds,
+        rF1 = run_fold(ep, XF, f, a.hidden, a.seeds, sigma_ref_fn=sig_fn,
                        post_shift_fn=lambda mask, _mt, _s=fullF: _s[mask])
         pF = rF1["per_episode"]
         if not np.array_equal(pF["test_idx"], ti):

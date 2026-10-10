@@ -1,0 +1,50 @@
+{
+  "iterations": [
+    {
+      "iter": 1,
+      "path": "fresh_test",
+      "claims": {
+        "C1": "supported_pending_audit",
+        "C2": "supported_pending_audit",
+        "C3": "mixed",
+        "C4": "raw_yes_served_no",
+        "C5": "conservative_not_calibrated",
+        "C6": "not_significant",
+        "C7": "confirmed_no_skill",
+        "C8_served_worse_than_raw": "new_finding"
+      },
+      "failure": "",
+      "ts": "2026-10-10T15:37:15Z"
+    },
+    {
+      "iter": 2,
+      "path": "fresh_test",
+      "claims": {
+        "C1": "disproved_vs_weekday_har",
+        "C2": "disproved_vs_weekday_har",
+        "C9_noctua_incremental_info": "supported_pending_audit",
+        "C10_weekday_bug": "confirmed"
+      },
+      "failure": "",
+      "ts": "2026-10-10T15:43:22Z"
+    },
+    {
+      "iter": 3,
+      "path": "fresh_test",
+      "claims": {
+        "C1": "disproved_vs_weekday_har",
+        "C2": "disproved_vs_weekday_har",
+        "C9_noctua_incremental_info": "weakened",
+        "C10_weekday_bug": "confirmed"
+      },
+      "failure": "",
+      "ts": "2026-10-10T15:49:16Z"
+    }
+  ],
+  "stopped_paths": [],
+  "last_verdict": {
+    "stagnant": false,
+    "reason": "new claim status: ['C9_noctua_incremental_info']",
+    "ts": "2026-10-10T15:49:16Z"
+  }
+}

@@ -403,7 +403,7 @@ GATE_FEATURES = [
     "har_1d",            # current volatility level
     "vov_22d",           # volatility of volatility -- how unstable is the regime
     "reg_rv_vs_year",    # where this vol sits against its own year
-    "cal_weekend_frac",  # the dominant calendar effect
+    "cal_weekend_frac_ss",  # the dominant calendar effect (Sat+Sun)
     "jump_share_1d",     # how much of recent variance was jumps, not diffusion
 ]
 

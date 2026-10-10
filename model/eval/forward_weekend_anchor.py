@@ -94,13 +94,16 @@ FROZEN_SHA16 = {
 #             identical for the artifacts of all four freeze commits. Set 2026-10-10, after the
 #             2026-09-30 factor-window amendment, before any holdout scored.
 # A deliberate change updates these with a DATA_USE.md amendment made BEFORE
-# the holdout scores -- never silently.
+# the holdout scores -- never silently. Done once: `forecast` was aae8af223b70e2f2
+# until main's serve/adaptive.py moved the live factor to the anchor's own hour
+# (PR #19, 2026-10-10; restoring that one file restores the old value exactly);
+# re-frozen the same day, before any holdout scored (DATA_USE.md).
 INCREMENT_ARRAYS = {"season_profile", "har_beta_season", "har_beta_weekend",
                     "har_beta_weekend_season", "har_beta_dow", "har_beta_dow_season",
                     "har_beta_iv"}
 INCREMENT_META = ("hour_anchor", "weekend_anchor", "dow_anchor", "iv_anchor")
 FINGERPRINT_ANCHORS = ("2026-09-25 17:00", "2026-09-26 17:00", "2026-09-27 17:00")
-BASE_SHA16 = {"arrays": "681efe8810cbc369", "forecast": "aae8af223b70e2f2"}
+BASE_SHA16 = {"arrays": "681efe8810cbc369", "forecast": "7b8c39c432db7cba"}
 
 
 def base_fingerprint(model, hours=None) -> dict:

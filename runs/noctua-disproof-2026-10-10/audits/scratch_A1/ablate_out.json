@@ -1,0 +1,212 @@
+[
+ {
+  "label": "HAR5 QLIKE-direct fit 2018-2024H1",
+  "qlike": 0.2953,
+  "noct_gain_pct": 17.66,
+  "ci": [
+   0.0364,
+   0.0665
+  ],
+  "p_noct_le0": 0.0
+ },
+ {
+  "label": "HAR5+wf QLIKE-direct fit 2018-2024H1",
+  "qlike": 0.2774,
+  "noct_gain_pct": 12.35,
+  "ci": [
+   0.0211,
+   0.0467
+  ],
+  "p_noct_le0": 0.0
+ },
+ {
+  "label": "HAR5+dow QLIKE-direct fit 2018-2024H1",
+  "qlike": 0.2462,
+  "noct_gain_pct": 1.24,
+  "ci": [
+   -0.0123,
+   0.017
+  ],
+  "p_noct_le0": 0.3265
+ },
+ {
+  "label": "HAR5+wf+dow QLIKE-direct fit 2018-2024H1",
+  "qlike": 0.2462,
+  "noct_gain_pct": 1.24,
+  "ci": [
+   -0.0123,
+   0.017
+  ],
+  "p_noct_le0": 0.3265
+ },
+ {
+  "label": "HAR5 QLIKE-direct fit 2022H2-2024H1",
+  "qlike": 0.2604,
+  "noct_gain_pct": 6.63,
+  "ci": [
+   0.0034,
+   0.0305
+  ],
+  "p_noct_le0": 0.0057
+ },
+ {
+  "label": "HAR5+wf QLIKE-direct fit 2022H2-2024H1",
+  "qlike": 0.24,
+  "noct_gain_pct": -1.29,
+  "ci": [
+   -0.0179,
+   0.013
+  ],
+  "p_noct_le0": 0.6717
+ },
+ {
+  "label": "HAR5+dow QLIKE-direct fit 2022H2-2024H1",
+  "qlike": 0.1894,
+  "noct_gain_pct": -28.35,
+  "ci": [
+   -0.0714,
+   -0.0363
+  ],
+  "p_noct_le0": 1.0
+ },
+ {
+  "label": "HAR5+wf+dow QLIKE-direct fit 2022H2-2024H1",
+  "qlike": 0.1894,
+  "noct_gain_pct": -28.35,
+  "ci": [
+   -0.0714,
+   -0.0363
+  ],
+  "p_noct_le0": 1.0
+ },
+ {
+  "label": "HAR5 QLIKE-direct fit 2023H1-2024H1",
+  "qlike": 0.261,
+  "noct_gain_pct": 6.86,
+  "ci": [
+   0.0048,
+   0.0306
+  ],
+  "p_noct_le0": 0.004
+ },
+ {
+  "label": "HAR5+wf QLIKE-direct fit 2023H1-2024H1",
+  "qlike": 0.2413,
+  "noct_gain_pct": -0.76,
+  "ci": [
+   -0.0157,
+   0.0131
+  ],
+  "p_noct_le0": 0.6162
+ },
+ {
+  "label": "HAR5+dow QLIKE-direct fit 2023H1-2024H1",
+  "qlike": 0.1889,
+  "noct_gain_pct": -28.73,
+  "ci": [
+   -0.0724,
+   -0.0375
+  ],
+  "p_noct_le0": 1.0
+ },
+ {
+  "label": "HAR5+wf+dow QLIKE-direct fit 2023H1-2024H1",
+  "qlike": 0.1889,
+  "noct_gain_pct": -28.73,
+  "ci": [
+   -0.0724,
+   -0.0375
+  ],
+  "p_noct_le0": 1.0
+ },
+ {
+  "label": "NOCTUA raw_med x per-weekday QLIKE scale fit 2018-2024H1",
+  "qlike": 0.2269,
+  "noct_gain_pct": -7.14,
+  "ci": [
+   -0.0309,
+   -0.0035
+  ],
+  "p_noct_le0": 0.9945
+ },
+ {
+  "label": "NOCTUA raw_med x per-wf-bin QLIKE scale fit 2018-2024H1",
+  "qlike": 0.2274,
+  "noct_gain_pct": -6.93,
+  "ci": [
+   -0.0297,
+   -0.0035
+  ],
+  "p_noct_le0": 0.9952
+ },
+ {
+  "label": "NOCTUA raw_med x constant QLIKE scale fit 2018-2024H1 (c=1.093)",
+  "qlike": 0.2589,
+  "noct_gain_pct": 6.08,
+  "ci": [
+   0.0069,
+   0.024
+  ],
+  "p_noct_le0": 0.0
+ },
+ {
+  "label": "NOCTUA raw_med x per-weekday QLIKE scale fit 2022H2-2024H1",
+  "qlike": 0.1914,
+  "noct_gain_pct": -27.01,
+  "ci": [
+   -0.0724,
+   -0.0316
+  ],
+  "p_noct_le0": 1.0
+ },
+ {
+  "label": "NOCTUA raw_med x per-wf-bin QLIKE scale fit 2022H2-2024H1",
+  "qlike": 0.1933,
+  "noct_gain_pct": -25.79,
+  "ci": [
+   -0.0696,
+   -0.03
+  ],
+  "p_noct_le0": 1.0
+ },
+ {
+  "label": "NOCTUA raw_med x constant QLIKE scale fit 2022H2-2024H1 (c=1.041)",
+  "qlike": 0.2467,
+  "noct_gain_pct": 1.45,
+  "ci": [
+   -0.0006,
+   0.0075
+  ],
+  "p_noct_le0": 0.047
+ },
+ {
+  "label": "NOCTUA raw_med x per-weekday QLIKE scale fit 2023H1-2024H1",
+  "qlike": 0.1921,
+  "noct_gain_pct": -26.53,
+  "ci": [
+   -0.0722,
+   -0.0307
+  ],
+  "p_noct_le0": 1.0
+ },
+ {
+  "label": "NOCTUA raw_med x per-wf-bin QLIKE scale fit 2023H1-2024H1",
+  "qlike": 0.1939,
+  "noct_gain_pct": -25.4,
+  "ci": [
+   -0.0691,
+   -0.0295
+  ],
+  "p_noct_le0": 1.0
+ },
+ {
+  "label": "NOCTUA raw_med x constant QLIKE scale fit 2023H1-2024H1 (c=1.048)",
+  "qlike": 0.2478,
+  "noct_gain_pct": 1.91,
+  "ci": [
+   -0.0001,
+   0.0093
+  ],
+  "p_noct_le0": 0.0293
+ }
+]

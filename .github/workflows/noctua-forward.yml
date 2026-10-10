@@ -1,0 +1,63 @@
+# .github/workflows/noctua-forward.yml
+# =====================================================================
+# NOCTUA-Trader v1 forward holdout (space/forward.py). The frozen policy decides
+# a paper position at each 17:00 UTC anchor from 2026-10-10 on and settles it
+# 24 h later. The log is committed to data/forward/forward_log.json, which the
+# Hugging Face Space renders. Paper only: no orders, no exchange keys, no
+# secrets needed.
+#
+# 17:07 is the on-time decision run; the six-hourly runs settle finished days
+# and catch up any anchor a delayed or failed run missed (flagged `late`).
+name: noctua-forward
+
+on:
+  schedule:
+    - cron: '7 17 * * *'
+    - cron: '37 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: noctua-forward
+  cancel-in-progress: false
+
+jobs:
+  forward:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install runtime
+        run: pip install --quiet -r model/serve/requirements-ci.txt
+
+      - name: Decide and settle
+        env:
+          NOCTUA_STATE_DIR: data/forward
+        run: python space/forward.py --no-push
+
+      - name: Commit the log
+        run: |
+          set -euo pipefail
+          BR="${{ github.ref_name }}"
+          cp data/forward/forward_log.json /tmp/forward_log.json
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          for attempt in 1 2 3; do
+            git fetch origin "$BR"
+            git checkout -f -B "$BR" "origin/$BR"
+            mkdir -p data/forward
+            cp /tmp/forward_log.json data/forward/forward_log.json
+            git add data/forward/forward_log.json
+            if git diff --cached --quiet; then echo "no change"; exit 0; fi
+            git commit -m "forward: NOCTUA-Trader v1 log $(date -u +%Y-%m-%dT%H:%MZ)"
+            if git push origin "HEAD:$BR"; then exit 0; fi
+            sleep $((attempt * 10))
+          done
+          exit 1

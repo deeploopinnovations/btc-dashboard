@@ -1,7 +1,9 @@
 """
 tests/test_weekend_column.py
 =====================================================================
-Pins a KNOWN DEFECT so it cannot be "fixed" silently (P4-weekend-bug).
+Pins a KNOWN DEFECT so it cannot be "fixed" silently (P4-weekend-bug), and
+pins its FIX: the corrected Sat+Sun column `cal_weekend_frac_ss` (2026-10-10),
+which every newly trained artifact reads instead.
 
 noctua/features.py's cal_weekend_frac counts FRIDAY and SATURDAY, not the
 weekend: its weekday formula uses offset +4 where the epoch (a Thursday) needs
@@ -57,7 +59,9 @@ def main() -> int:
     H = rng.choice([6, 12, 19, 24], len(rows))
     ep = pd.DataFrame({"anchor_ts": hour_ts[rows], "H": H, "row": rows, "dt": dt,
                        "anchor_hour": dt.hour, "dow": dt.dayofweek})
-    col = build_features(hours, ep)["cal_weekend_frac"].to_numpy(np.float64)
+    F = build_features(hours, ep)
+    col = F["cal_weekend_frac"].to_numpy(np.float64)
+    col_ss = F["cal_weekend_frac_ss"].to_numpy(np.float64)
     fri_sat = independent_frac(hour_ts[rows], H, (4, 5))
     sat_sun = independent_frac(hour_ts[rows], H, (5, 6))
     ok = []
@@ -65,6 +69,17 @@ def main() -> int:
                "P4-weekend-bug)", np.allclose(col, fri_sat, atol=1e-12)))
     ok.append(("the gate can fail: the true Sat+Sun fraction does not pass the pin",
                not np.allclose(sat_sun, fri_sat, atol=1e-12)))
+    # THE FIX (2026-10-10): a NEW column, so the legacy one above stays pinned
+    # for the v2 artifacts while newly trained artifacts read the correct one.
+    ok.append(("cal_weekend_frac_ss is the true Sat+Sun fraction",
+               np.allclose(col_ss, sat_sun, atol=1e-12)))
+    ok.append(("the fix's gate can fail: the Fri+Sat fraction does not pass it",
+               not np.allclose(col_ss, fri_sat, atol=1e-12)))
+    from noctua.spec import BASE_COLS, NON_MODEL_COLS, SHAPE_COLS
+    ok.append(("new training reads the corrected column, never the legacy one",
+               "cal_weekend_frac_ss" in BASE_COLS and "cal_weekend_frac_ss" in SHAPE_COLS
+               and "cal_weekend_frac" not in BASE_COLS + SHAPE_COLS
+               and "cal_weekend_frac" in NON_MODEL_COLS))
     ok.append(("the sample exercises weekend windows",
                bool((sat_sun > 0).sum() >= 5 and (fri_sat != sat_sun).sum() >= 5)))
     for name, good in ok:

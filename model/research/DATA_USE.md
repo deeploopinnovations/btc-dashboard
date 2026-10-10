@@ -407,8 +407,8 @@ change to the serving arithmetic would have moved both arms of every holdout
 unnoticed. `eval/forward_weekend_anchor.BASE_SHA16` adds two fingerprints:
 every non-increment array plus the metadata (`681efe8810cbc369`), and the
 flags-off served payload at three fixed 17:00 anchors on the committed bundle
-(`aae8af223b70e2f2`). Both are identical at every freeze commit (ef6e44b,
-c4f8974, 4efbda9, dea1b44). Scoring refuses on a mismatch; the daily workflow
+(`aae8af223b70e2f2`; re-frozen in amendment (b) below). Both are identical at
+every freeze commit (ef6e44b, c4f8974, 4efbda9, dea1b44). Scoring refuses on a mismatch; the daily workflow
 and every pull request check it. A deliberate change updates them with an
 amendment here, made before any holdout scores.
 
@@ -429,5 +429,46 @@ timeout would have been locked in as data. A fetch error now aborts the
 scoring with no lock written, and the daily workflow retries; a night with
 genuinely no trades is still scored as before. The arm definitions are
 unchanged.
+
+## Amendment, 2026-10-10 (b), before any holdout was scored: the served base moved
+
+The same day, `main` merged PR #19 (another session's disproof audit,
+`runs/noctua-disproof-2026-10-10`, A0 B1/A2 and A5): `serve/adaptive.py` now
+estimates the live volatility factor on the anchor's **own hour of day**
+(24-hour stride over the 60-day window) instead of a median over all hours
+(6-hour stride). At 17:00 the served median RV/sigma_med was ~0.85 under the
+all-hour factor; the same-hour factor brings it to 0.99-1.01 at every hour.
+That PR also set the bundle to 460 days (kept here, with `BUNDLE_PIN`).
+
+**What moved:** the served base of every arm in every holdout, identically.
+The `forecast` fingerprint changed (aae8af223b70e2f2 -> 7b8c39c432db7cba);
+restoring `serve/adaptive.py` alone restores the old value exactly, and the
+`arrays` fingerprint and every `FROZEN_SHA16` hash are unchanged. Following
+the rule written in the amendment above, `BASE_SHA16` is re-frozen to the new
+base, with this record, before any holdout scored (the first, 200 nights, is
+due around 2027-04). Each holdout therefore tests its frozen candidate against
+**what is served**, as the 2026-09-30 amendment also did.
+
+**What it does to the holdouts, stated before any is read:**
+
+- **Clock-aware (and the combination, which contains it):** the candidate
+  corrects the 17:00 level through an hour-of-day profile; the new base already
+  removes most of that level bias. Its effect over the new base may be far
+  smaller than the walk-forward effect, which was measured against the
+  all-hour factor, and N_MIN = 300 was sized for that walk-forward effect. N_MIN
+  is **not** changed (R26): if the holdout is underpowered, it fails as
+  underpowered. Its secondary (the sign of the median log(RV / sigma_med) at
+  17:00) starts near zero under the new base.
+- **Weekend / day-of-week:** night-level increments on top of the anchor. The
+  same-hour factor is estimated over all weekdays, so it does not remove the
+  weekday pattern; overlap is expected to be small, not zero.
+- **Implied-vol:** its PASS already requires beating a placebo that carries
+  the same 17:00 shift, so the contrast that isolates the night's IV is
+  unaffected by where the base level sits.
+
+**Why not pin the scorers to the old factor instead:** it would score each
+candidate against a base nobody serves. That alternative remains open until
+the first holdout scores, by an amendment here; nothing has been read that
+could inform the choice.
 
 *Educational research only. Not financial advice.*

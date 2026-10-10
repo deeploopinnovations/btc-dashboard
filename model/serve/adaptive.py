@@ -42,19 +42,23 @@ The episode-level ratio has lag-1 autocorrelation of -0.021 -- individual
 nights are unpredictable, and this makes no attempt to predict them. What
 drifts slowly is the LEVEL of the ratio, and that is all this tracks.
 
-MEASURED EFFECT (test era, 2024-07 onward, out of sample)
+MEASURED EFFECT (test era, 2024-07 onward -- NOT out of sample for design:
+the window and the decision to ship were chosen while looking at this era;
+see runs/noctua-disproof-2026-10-10 audit A0 B2)
 
-    median RV/sigma      0.874  ->  0.990
-    fraction below       66.4%  ->  51.5%
-    barrier calibration  2.073  ->  1.373 pp   (mean |breach - nominal|)
+The original claims here (median RV/sigma 0.874 -> 0.990, barrier error
+2.073 -> 1.373 pp) were measured with the old 6-hour stride, which pooled all
+hours of the day. Re-measured 2026-10-10 with the same-hour stride below, at
+every anchor hour (runs/noctua-fixes-2026-10-10/evals/adaptive_same_hour.json):
 
-and on the calibration split, where the model was already unbiased, the
-factor comes out at 1.011 -- it correctly does nothing. That self-cancelling
-property is the point: this is insurance against regime change, not a tuning
-knob.
+    served median RV/sigma_med    0.99-1.01 at all 24 hours
+    QLIKE vs the all-hour factor  better at 14-23 UTC (+0.065 at 17:00),
+                                  worse by up to 0.02 at 00-13 UTC,
+                                  pooled +0.0065, CI [+0.0045, +0.0085]
 
-Robust to the window: 30, 60, 90 and 180 days all land within 0.98-0.99 on the
-test era, so the horizon is not fitted to the answer.
+On the calibration split, where the model was already unbiased, the factor
+comes out near 1.0 -- it correctly does nothing. That self-cancelling property
+is the point: this is insurance against regime change, not a tuning knob.
 """
 from __future__ import annotations
 
@@ -64,7 +68,19 @@ import pandas as pd
 WINDOW_DAYS = 60
 MIN_EPISODES = 20
 CLIP_LO, CLIP_HI = 0.70, 1.40      # a correction outside this is a bug, not a regime
-STRIDE_HOURS = 6                   # subsample anchors; neighbours overlap 18/19 anyway
+# SAME HOUR OF DAY AS THE ANCHOR (fixed 2026-10-10). The stride was 6 h with
+# the grid starting wherever the window happened to start, so the factor was a
+# median over ALL hours of the day, while the model's level bias depends on the
+# hour: at 17:00 the median RV/sigma_med was 0.85 and the all-hour factor
+# averaged 0.986, so the correction left the product window ~15 % high (audit
+# A0 B1 / A2 in runs/noctua-disproof-2026-10-10). Stepping back from the
+# anchor in whole days estimates the factor on the hour being served. Measured
+# in runs/noctua-fixes-2026-10-10 on 2024-07+ at every hour (NOT out of sample
+# for design): the served median RV/sigma_med moves to 0.99-1.01 at all 24
+# hours, reported-sigma QLIKE improves at 14-23 UTC (+0.065 at 17:00) and
+# worsens by up to 0.02 at 00-13 UTC, pooled +0.0065, CI [+0.0045, +0.0085].
+STRIDE_HOURS = 24
+HOUR_S = 3600
 
 
 def _settled_anchors(hours: pd.DataFrame, anchor_row: int, H: int,
@@ -74,12 +90,28 @@ def _settled_anchors(hours: pd.DataFrame, anchor_row: int, H: int,
     The `- H` is the whole point: an episode is only usable once its outcome
     is fully observed. Without it the newest episodes would leak partially
     unrealized information into the correction.
+
+    Rows are stepped back from the anchor's TIMESTAMP in multiples of
+    `stride` hours, so with the default stride of 24 every row sits at the
+    anchor's own hour of day even if the history has a gap (check_continuity
+    accepts gaps of up to 2 h, and a row-offset step would then land an hour
+    off -- audit A5 in runs/noctua-fixes-2026-10-10). Settlement is judged on
+    timestamps too: the episode's H hours must end at or before the anchor.
     """
-    last = anchor_row - H
-    first = max(24 * 30, last - window_days * 24)
-    if last <= first:
-        return np.empty(0, dtype=int)
-    return np.arange(first, last, stride, dtype=int)
+    ts = hours["hour_ts"].to_numpy(np.int64)
+    a_ts = int(ts[anchor_row])
+    last_ts = a_ts - H * HOUR_S                  # newest start whose window has closed
+    first_ts = last_ts - window_days * 24 * HOUR_S
+    k0 = max(1, -(-H // stride))                 # first step whose window has closed
+    k1 = (window_days * 24 + H) // stride + 1
+    want = a_ts - stride * HOUR_S * np.arange(k0, k1 + 1, dtype=np.int64)
+    want = want[(want >= first_ts) & (want <= last_ts)]
+    idx = np.searchsorted(ts, want)
+    ok = idx < len(ts)
+    idx, want = idx[ok], want[ok]
+    rows = idx[ts[idx] == want]                  # exact hour present in the history
+    rows = rows[(rows >= 24 * 30) & (rows < anchor_row)]
+    return np.sort(rows).astype(int)
 
 
 def volatility_correction(model, hours: pd.DataFrame, anchor_row: int, H: int,
