@@ -33,9 +33,18 @@ SPACE_NAME, DATASET_NAME = "noctua-paper-agent", "noctua-rl-paper"
 
 
 def warm_state() -> dict:
+    """MV after the registered replay. The replay's inputs are committed
+    (model/artifacts/rl_inputs.parquet, ~200 KB); if they are missing they are
+    rebuilt from the corpus, and without either this stops with the remedy
+    instead of a FileNotFoundError (Codex review, PR #14)."""
     import numpy as np
-    from eval.rl_replay import CACHE, xmat
+    from eval.rl_replay import ART, CACHE, build_inputs, xmat
     from rl.agent import make_agent
+    if not CACHE.exists():
+        if not (ART / "btcusd_1h.parquet").exists():
+            raise SystemExit(f"--warm-start needs {CACHE} (committed) or the corpus to rebuild it: "
+                             "python -m model.noctua.hf_store --restore, then python -m model.eval.rl_replay")
+        build_inputs()
     df = __import__("pandas").read_parquet(CACHE)
     df = df[np.isfinite(df.R) & np.isfinite(df.sigma)].reset_index(drop=True)
     X, S, R = xmat(df), df.sigma.to_numpy(), df.R.to_numpy()

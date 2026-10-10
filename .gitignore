@@ -20,6 +20,7 @@ model/artifacts/*
 !model/artifacts/dow_anchor.npz
 !model/artifacts/iv1d.parquet
 !model/artifacts/iv1d_trades.parquet
+!model/artifacts/rl_inputs.parquet
 !model/artifacts/iv1d_anchor.npz
 !model/artifacts/blend_ceiling.npz
 __pycache__/
