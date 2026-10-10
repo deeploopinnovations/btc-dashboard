@@ -48,6 +48,8 @@ run "ruff F821 (undefined names)" ruff check --no-cache --select F821 model/ scr
 echo "precommit gates (the same ones CI runs)"
 run "ledger --validate"      python -m model.research.ledger --validate
 run "test_serving"           python model/tests/test_serving.py
+run "test_policy_runtime"    python model/tests/test_policy_runtime.py
+run "test_context_pit"       python model/tests/test_context_pit.py
 run "test_history"           python model/tests/test_history.py
 run "test_adaptive"          python model/tests/test_adaptive.py
 run "test_features"          python model/tests/test_features.py
