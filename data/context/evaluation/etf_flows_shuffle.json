@@ -1,0 +1,24 @@
+{
+  "group": "etf_flows",
+  "features": [
+    "etf_net5_bn",
+    "etf_last_bn",
+    "etf_net5_bn_missing",
+    "etf_last_bn_missing",
+    "etf_flows_present"
+  ],
+  "coverage": {
+    "train": 0.0,
+    "val": 0.3104158718046547,
+    "test": 1.0
+  },
+  "verdict": "UNTESTABLE: under 20% of training days have this source",
+  "trader": {
+    "base": {
+      "sharpe": 0.4822689408294679,
+      "cagr": 0.027051790791000174,
+      "max_drawdown": -0.07601898626484893,
+      "avg_abs_position": 0.1392705618036284
+    }
+  }
+}
