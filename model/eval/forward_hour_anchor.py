@@ -67,9 +67,16 @@ def forward_nights(hours: pd.DataFrame, freeze: str = FREEZE) -> pd.DataFrame:
 
 def score(model, hours: pd.DataFrame, nights: pd.DataFrame) -> dict:
     from serve import predict as P
+    from eval.forward_weekend_anchor import CAL_FLAGS
     rows = []
-    orig = P.HOUR_ANCHOR
+    # every OTHER anchor flag forced off (the frozen comparison is the same
+    # artifact with HOUR_ANCHOR off vs on; audit L, 2026-09-30: this scorer
+    # used to toggle HOUR_ANCHOR only, so a later default change elsewhere
+    # would have silently changed both arms)
+    saved = {f: getattr(P, f) for f in CAL_FLAGS}
     try:
+        for f in CAL_FLAGS:
+            setattr(P, f, False)
         for _, e in nights.iterrows():
             out = {}
             for flag in (False, True):
@@ -83,7 +90,8 @@ def score(model, hours: pd.DataFrame, nights: pd.DataFrame) -> dict:
                              "curves": pay["barrier_curves"]}
             rows.append((e, out))
     finally:
-        P.HOUR_ANCHOR = orig
+        for f, v in saved.items():
+            setattr(P, f, v)
     return rows
 
 
@@ -117,7 +125,8 @@ def exante_flags(hours, nights) -> dict:
 
 
 def evaluate(rows, exante: dict | None = None) -> dict:
-    from eval.direction import mean_ci
+    from eval.ci import mean_ci
+    from eval.forward_family import per_night
     rv = np.array([e["RV"] for e, _ in rows])
     q = {f: qlike(rv, np.array([o[f]["mean"] for _, o in rows])) for f in (False, True)}
     d = q[False] - q[True]
@@ -152,7 +161,8 @@ def evaluate(rows, exante: dict | None = None) -> dict:
             "brier_diff": float(db.mean()), "brier_ci95": [float(blo), float(bhi)],
             "brier_far_diff": float(dbf.mean()), "brier_far_ci95": [float(flo), float(fhi)],
             "exante_subsets": sub,
-            "brier_note": "reported, underpowered at any horizon under a year"}
+            "brier_note": "reported, underpowered at any horizon under a year",
+            "per_night": per_night(rows, {"qlike": d, "brier": db, "brier_far": dbf})}
 
 
 def run(hours, model, lock: Path = LOCK, n_min: int = N_MIN,
@@ -170,7 +180,12 @@ def run(hours, model, lock: Path = LOCK, n_min: int = N_MIN,
               f"windows; the holdout is scored once at {n_min}. Nothing else "
               f"is printed before then.")
         return {"n_nights": n, "scored": False}
+    from eval.forward_weekend_anchor import check_frozen
+    check_frozen(model, "HOUR_ANCHOR")
     res = evaluate(score(model, hours, nights), exante_flags(hours, nights))
+    from eval.forward_family import family_block
+    res["family"] = family_block("forward_hour_anchor", {"qlike": res["per_night"]["qlike"]},
+                                 res["block_len"], research=lock.parent)
     res.update(scored=True, freeze=freeze, n_min=n_min,
                scored_on=pd.Timestamp.now(tz="UTC").strftime("%Y-%m-%d"))
     lock.write_text(json.dumps(res, indent=2) + "\n")
@@ -230,6 +245,22 @@ def selftest() -> int:
             r2 = run(hours, model, lock=lock, n_min=3, freeze=fake)
         ok.append(("second run returns the locked result, does not rescore",
                    r2 == json.loads(lock.read_text())))
+        from eval.forward_family import lock_problems
+        probs = lock_problems(r1, "forward_hour_anchor",
+                              {"qlike": {"diff": r1["qlike_diff"], "ci95": r1["qlike_ci95"]}})
+        ok.append((f"lock keeps per-night deltas and the family interval {probs or ''}", not probs))
+        from serve import predict as P
+        n0 = forward_nights(hours, fake).head(1)
+        raw0: dict = {}
+        P.forecast(model, hours, H=PROD_H, anchor_ts=int(n0["anchor_ts"].iloc[0]), raw=raw0)
+        clean = float(raw0["pred"]["sigma_mean"][0])       # every flag off (defaults)
+        P.DOW_ANCHOR = True                    # a later default change elsewhere...
+        try:
+            rows = score(model, hours, n0)
+            ok.append(("other anchor flags forced off while scoring, then restored",
+                       P.DOW_ANCHOR is True and rows[0][1][False]["mean"] == clean))
+        finally:
+            P.DOW_ANCHOR = False
         nights = forward_nights(hours, fake)
         ok.append(("only 17:00 anchors strictly after the freeze",
                    bool((nights["anchor_hour"] == PROD_A).all()) and

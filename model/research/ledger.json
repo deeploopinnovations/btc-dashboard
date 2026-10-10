@@ -2894,7 +2894,263 @@
       "rule": "PRE-REGISTERED BEFORE THE RUN. NOCTUA through run_fold, 6 walk-forward folds, production nights (17:00, H=19). Every arm carries serving's trailing factor from its OWN forecasts (60 d, 6 h stride, median, clip [0.70, 1.40], >= 20). ARMS: M0s = shipped (buggy Fri+Sat column) -- baseline; Ws = log_har_cal's OLS plus ONE extra column, the true Sat+Sun fraction, fitted on the same train rows/weights/target, entering through post_shift_fn as (1-w)(anchor_W - lhc) -- the network and its inputs untouched, deployable as an artifact increment like the hour anchor; Ps = PLACEBO, the same construction with the Tue+Wed fraction (same two-day structure, no calendar reason). SECONDARY, reported, no rule: Fs = the column corrected EVERYWHERE (network and anchor retrained per fold), served factor applied by exact test-slice scaling, verified per fold against a real post_shift run of M0s. METRICS: per-episode brier, logs, pinball, crps (moving block 38) and per-episode QLIKE on sigma_mean; DSC fold-level (t-interval, folds better). Primary family = {Ws, Ps} vs M0s x 5 per-episode metrics = 10 -> 99.5%. RULE: ADVANCE if Ws beats M0s on >= 2 of {brier, logs, pinball, crps}, is worse on none of the five, and Ps is better than M0s on none of the five. Otherwise REJECT. Reported beside it: Fs vs M0s and Fs vs Ws (family 20, labelled secondary), median log(RV/sigma_med) by anchor weekday per arm, per-episode deltas on ex-ante weekday classes (Fri/Sat/Sun anchors; Thursday -- the night the bug calls weekend; Mon-Wed). ADVANCE licenses a swarm audit and an artifact increment behind a flag; it ships nothing by itself.",
       "verdict": "OPEN",
       "result": "pre-registered. PREDICTION: Ws better on brier and logs per episode and on QLIKE (probability the rule is met about 0.5); gains concentrated in the later folds, where the train coefficient on the true fraction is largest; Ps better on nothing; Fs within noise of Ws (the network carries 25% of the level); the Saturday-anchor bias moves toward the weekday one under Ws.",
-      "notes": "Supervisor: phase4/calibration shows REPETITION (14 attempts on the level line). What this design measures that the previous ones could not: every earlier level fix (served factor, clock-aware anchor, hour-of-week profile, calib differential) conditioned on a weekend column that counts the wrong days; this is the first test of the calendar the anchor was specified to have, with a two-day placebo that separates the calendar from the extra freedom."
+      "notes": "Supervisor: phase4/calibration shows REPETITION (14 attempts on the level line). What this design measures that the previous ones could not: every earlier level fix (served factor, clock-aware anchor, hour-of-week profile, calib differential) conditioned on a weekend column that counts the wrong days; this is the first test of the calendar the anchor was specified to have, with a two-day placebo that separates the calendar from the extra freedom.",
+      "superseded_by": [
+        "P4-weekend-fix-result"
+      ]
+    },
+    {
+      "id": "P4-weekend-fix-result",
+      "topic": "phase4",
+      "mechanism": "timing-clock",
+      "date": "2026-09-29",
+      "supersedes": [
+        "P4-weekend-fix"
+      ],
+      "question": "Closing P4-weekend-fix: does the TRUE weekend fraction in the served anchor improve the barrier product, and is it the calendar rather than an extra two-day column?",
+      "rule": "As registered: ADVANCE if Ws beats M0s on >= 2 of {brier, logs, pinball, crps} per episode (block 38, family 10, 99.5%), is worse on none of the five (incl. QLIKE), and the Tue+Wed placebo Ps is better on none. One amendment before any metric was seen: the secondary Fs arm built by a real run (the curve-scaling shortcut failed its exactness guard, max rel err 4.95e-3).",
+      "verdict": "ADVANCE",
+      "result": "MET ON ALL FOUR BARRIER METRICS; PLACEBO FLAT. 2,046 production nights, 6 folds, guards passed in every fold (offline battery = run_fold to 1e-10). Ws vs M0s: brier +0.171% [+0.000103, +0.000505], logs +0.170% [+0.000269, +0.001538], pinball +0.366% [+0.000004, +0.000021], crps +0.346% [+0.000006, +0.000029]; QLIKE +1.50% [-0.000975, +0.007990] not separated; DSC +0.000308, better in 6/6 folds, t [-0.000138, +0.000755]. Positive in EVERY fold on every metric (brier +0.03/+0.16/+0.24/+0.21/+0.32/+0.11% for 2021-2026). Ps vs M0s: nothing separated (brier +0.003%, logs +0.002%, QLIKE +0.05%); its train coefficient +0.002..+0.013 except -0.025 in 2026. True-weekend train coefficient -0.091 / -0.087 / -0.120 / -0.181 / -0.258 / -0.288. SECONDARY Fs (column corrected everywhere, network retrained): positive points (brier +0.09%, pinball +0.29%, QLIKE +0.88%), nothing separated at 99.75%, and BEHIND Ws on every point -- the gain does not need a retrain. WHERE IT COMES FROM (ex-ante weekday classes, reported): Fri/Sat/Sun nights (n=878) brier +0.70%, logs +0.63%, QLIKE +5.32%, all separated; Thursday (n=292) WORSE, brier -0.37%, QLIKE -4.29%; Mon-Wed (n=876) slightly WORSE, brier -0.12%, QLIKE -2.33%. Median log(RV/sigma_med), mean over folds, M0s -> Ws: Sat -0.284 -> -0.211, Fri -0.195 -> -0.179, Thu -0.028 -> -0.068, Mon-Wed -0.084 -> -0.096, Sun +0.156 -> +0.155. PREDICTION SCORING: brier and logs better -- right; QLIKE better -- WRONG (positive, not separated); pinball and crps better -- not predicted; gains concentrated late -- partly (largest 2023-2025, small 2021 and 2026); placebo nothing -- right; Fs within noise of Ws -- right; Saturday bias toward the weekday level -- right.",
+      "notes": "The weekday losses have a mechanism the audit must test rather than assume: lowering weekend-touching windows raises the served factor's pooled median (its history includes those windows), which lifts EVERY night -- weekday nights, already over-forecast at 17:00, pay for it. Sunday nights stay under-forecast (+0.155) under every arm: the UTC-day weekend does not see the CME reopen (Sun ~22:00 UTC) inside Sunday's window. Neither is re-designed on these folds. Per AUDIT_STATE 2026-09-29 (b): MET -> build the artifact increment behind an OFF flag and freeze a forward holdout, unless the remaining attacks (calendar controls, leave-one-fold-out) find a disqualifying defect."
+    },
+    {
+      "id": "P4-weekend-calendar-perm",
+      "topic": "phase4",
+      "mechanism": "timing-clock",
+      "date": "2026-09-29",
+      "question": "Audit of P4-weekend-fix-result: is the gain the CALENDAR, and is it the WEEKEND? Every weekday pair (21) and single day (7) as the extra anchor column.",
+      "rule": "Audit check fixed in AUDIT_STATE 2026-09-29 (b) before the result: the result is disqualified if a NON-CALENDAR control reproduces >= half of the brier/logs gain. No-network Gaussian law (eval/product_score), each arm fitted on train like the candidate, serving's factor from its own forecasts, 2,046 production nights. Run by me after audit agent B returned a different analysis (it regressed Ws's per-night gain on day fractions, which cannot answer the question, and contradicted itself; rejected).",
+      "verdict": "DIAGNOSTIC",
+      "result": "IT IS THE CALENDAR, BUT THE MECHANISM IS 'FRIDAY IS NOT SATURDAY', NOT 'THE WEEKEND'. Per-episode Brier gain over the base: Mon+Fri +0.357% (rank 1/21, coef +0.164), Sat+Sun +0.248% (rank 2/21, coef -0.171), Tue+Sat +0.134%, Wed+Sat +0.122%, Mon+Thu +0.117%, ...; Tue+Wed (the registered placebo) +0.001%, Tue+Thu 0.000%, Wed+Thu -0.020%. Single days: Fri +0.259% and Sat +0.259% IDENTICAL (coef +0.287 / -0.287 -- with the shipped Fri+Sat column in the anchor, adding either day is the same split), Mon +0.107%, Sun +0.081%, Tue/Wed/Thu ~0. READING: the shipped column lumps a high-vol day (Friday) with a low-vol one (Saturday); any column that separates them recovers ~0.26%; Monday adds ~0.1%; Sunday little. Sat+Sun is the correct DEFINITION and does the split; Mon+Fri scores more because it also carries Monday. The disqualifier is NOT triggered (only midweek-only pairs are non-calendar, and they give ~0), so the build (OFF) and the frozen holdout stand -- the holdout tests the increment as built, whatever its mechanism is called.",
+      "notes": "Mon+Fri is NOT adopted: it was selected from 28 variants after seeing them (forking path). The principled next candidate is the FULL day-of-week anchor (the window's fraction on each weekday, one column per day minus one), fixed before its run: P4-dow-anchor. The mechanism label in P4-weekend-fix-result ('the calendar Sat+Sun') is corrected here, not edited there."
+    },
+    {
+      "id": "P4-dow-anchor",
+      "topic": "phase4",
+      "mechanism": "timing-clock",
+      "date": "2026-09-29",
+      "question": "The weekend increment works by separating Friday from Saturday, and Monday carries a further effect (P4-weekend-calendar-perm). Does the FULL day-of-week calendar in the anchor beat the weekend-only increment on the product?",
+      "rule": "PRE-REGISTERED BEFORE THE RUN. NOCTUA through run_fold, 6 folds, production nights (17:00, H=19); every arm carries serving's trailing factor from its own forecasts. ARMS: M0s = shipped; Ws = + true Sat+Sun fraction (the frozen candidate, re-run here so every arm shares the run); Ds = + the window's fraction on Mon, Tue, Wed, Thu, Fri (5 columns; with the shipped Fri+Sat column and the intercept they span all seven days) fitted on train like Ws; P6s = PLACEBO, 5 columns from a fake 6-day cycle (epoch day mod 6, phases 0-4): same freedom, no calendar. Per-episode brier, logs, pinball, crps (block 38) and QLIKE; DSC fold-level. Family = {Ds-Ws, Ds-M0s, P6s-M0s} x 5 = 15 -> 99.67%. RULE: Ds REPLACES Ws as the candidate iff Ds beats Ws on >= 2 of the 4 barrier metrics, is worse than Ws on none of the five, and P6s is better than M0s on none. Otherwise Ws stays the candidate and the calendar line CLOSES on walk-forward data.",
+      "verdict": "OPEN",
+      "result": "pre-registered. PREDICTION: Ds beats Ws by about +0.05% to +0.1% Brier (the Monday effect on the Gaussian law, P4-weekend-calendar-perm), which is near the noise at 99.67% with four extra parameters -- rule met with probability about 0.35; Ds beats M0s on all four; P6s nothing.",
+      "notes": "HONEST LIMITATION: designed AFTER seeing P4-weekend-calendar-perm on the same walk-forward years (a forking path, though the full calendar is the principled generalisation, not the post-hoc winner Mon+Fri). Walk-forward evidence here is weaker than for a fresh design; if Ds is adopted as the candidate it gets its OWN forward holdout, and the frozen Ws holdout is not amended. SUPERVISOR: phase4/timing-clock now at 5 attempts -- this design measures what none before could (the full calendar against the weekend-only increment, with a no-calendar placebo of equal freedom); whatever it returns, the line stops on walk-forward data and continues only on forward holdouts.",
+      "superseded_by": [
+        "P4-dow-anchor-result"
+      ]
+    },
+    {
+      "id": "P4-dow-anchor-result",
+      "topic": "phase4",
+      "mechanism": "timing-clock",
+      "date": "2026-09-29",
+      "supersedes": [
+        "P4-dow-anchor"
+      ],
+      "question": "Closing P4-dow-anchor: does the FULL day-of-week calendar in the anchor beat the weekend-only increment on the product?",
+      "rule": "As registered: Ds replaces Ws as the candidate iff Ds beats Ws on >= 2 of the 4 barrier metrics (per episode, block 38, family 15, 99.67%), is worse on none of the five, and the 6-day-cycle placebo P6s is better than M0s on none.",
+      "verdict": "ADVANCE",
+      "result": "MET ON ALL FIVE, AGAINST BOTH. 2,046 production nights, guards passed every fold. Ds vs Ws: brier +0.081% [+0.000026, +0.000269], logs +0.101% [+0.000131, +0.000976], pinball +0.251% [+0.000002, +0.000015], crps +0.188% [+0.000002, +0.000017], QLIKE +1.80% [+0.002078, +0.007472]; DSC +0.000072, 3/6 folds. Ds vs M0s (shipped): brier +0.252%, logs +0.271%, pinball +0.616%, crps +0.533%, QLIKE +3.28% [+0.003248, +0.012888], all separated; DSC +0.000380, 6/6 folds. P6s (fake 6-day cycle, same 5 columns) vs M0s: nothing separated (brier -0.002%, QLIKE -0.11%). Day coefficients (Mon, Tue, Wed, Thu, Fri fractions; with the shipped Fri+Sat column and intercept): 2021 [0.05698438723832067, 0.014656369451021571, 0.06306105031730266, 0.05988751133087655, 0.1631662351275631], 2026 [0.2701051799632294, 0.09554440944736838, 0.1295915861234291, 0.09111207337732487, 0.4760613414845481] -- all positive (weekdays above the weekend) and GROWING every fold, Friday most (+0.16 -> +0.48). Per weekday Ds - Ws Brier: Mon +0.05%, Tue +0.24%, Wed +0.15%, Thu -0.22%, Fri +0.24%, Sat -0.05%, Sun +0.15%. PREDICTION SCORING: Ds beats Ws by +0.05-0.1% Brier -- right (+0.081%); rule met with p 0.35 -- it met; QLIKE separating -- not predicted; placebo nothing -- right.",
+      "notes": "CAVEAT CARRIED FORWARD: designed after P4-weekend-calendar-perm on the same years (forking path), though as the principled full calendar with a placebo of equal freedom, which is flat. The coefficients' growth over time makes the FIT WINDOW of any deployed increment a first-order question: the artifact's split ends 2023-01, the latest fold's 2025-07. Decided by a staleness test BEFORE the increment is built and frozen. Ds gets its own forward holdout; the frozen Ws holdout is not amended."
+    },
+    {
+      "id": "P4-dow-audit",
+      "topic": "phase4",
+      "mechanism": "timing-clock",
+      "date": "2026-09-29",
+      "question": "Adversarial audit of P4-dow-anchor-result (haiku agents F: statistics, G: overfitting) and my own checks: staleness of frozen coefficients, and whether the WEEK (not freedom) carries the gain.",
+      "rule": "Decision rule of AUDIT_STATE 2026-09-29 (b) applied to the successor candidate: build OFF and freeze a forward holdout unless verified leakage, a NON-CALENDAR control reproducing >= half the gain, or >= 2 of 6 leave-one-fold-out failures. Every agent claim re-run before recording.",
+      "verdict": "DIAGNOSTIC",
+      "result": "NO DISQUALIFIER. F: leave-one-fold-out 6/6 met; block 19-365 and families 30/60/120 all clear -- DOES NOT WEAKEN. Accepted from F: Thursday nights WORSE under Ds (QLIKE -1.88%, separated -- removing the bug's accidental Thursday cut costs where the 17:00 anchor over-forecasts); gains grow every year (QLIKE +0.3% in 2021 to +6.7% in 2026: the weekday pattern strengthened); vs Ws the DSC is 3/6 folds (no ranking claim over Ws). Rejected from F: 'bottom 95% negative' (the ordinary heavy-tailed shape of per-night Brier deltas; the rule survives trimming). G claimed 'freedom, not calendar' -- REJECTED ON ITS OWN DATA AND MINE: non-weekly fake cycles (periods 6 and 8, 5 columns) give -0.003% / -0.001% while every phase of the real week gives +0.23% to +0.57% (Gaussian law, 2,046 nights); a whole-day relabel (+48 h) is identical (+0.384%), as it must be; G's 'coefficients do not match realised vol' compared ANCHOR weekday with day-of-WINDOW. STALENESS (eval/dow_staleness.py): coefficients frozen on the artifact split keep 0.82 of a yearly refit's Brier gain over 2023-2026 (1.09 / 0.92 / 0.65 / 0.62), positive every year; a five-column INCREMENT loses most of 2026's gain (the residual regression lacks the Fri+Sat column), so the built increment uses Mon..Sat. NEW HYPOTHESIS, NOT ADOPTED: the day BOUNDARY matters -- shifting it by +6 h to +9 h (days starting ~15:00-18:00 UTC, nearer US market hours) gives +0.57% vs +0.38% at UTC midnight; chosen from a scan of 8 phases, so it is a forking path and is recorded only as a candidate for a future pre-registration.",
+      "notes": "Built: noctua/add_dow_anchor.py (har_beta_dow, har_beta_dow_season; 121 arrays unchanged), runtime + DOW_ANCHOR = False, tests/test_dow_anchor.py 13/13, forward holdout eval/forward_dow_anchor.py frozen 2026-09-29 N_MIN 450 (DATA_USE.md fourth candidate). Agent tally this round: F useful and mostly right; G's headline wrong but its shifted-week attack surfaced the day-boundary effect."
+    },
+    {
+      "id": "P4-event-calendar-inspect",
+      "topic": "phase4",
+      "mechanism": "exogenous-calendar",
+      "date": "2026-09-29",
+      "question": "Do scheduled events inside the 17:00->12:00 window -- FOMC statements (18:00/19:00 UTC) and Deribit monthly/quarterly expiries (Fri 08:00 UTC) -- leave a residual the anchor misses? (First use of real event dates: P2-dataset-audit found no event labels; P2-event-window used ET clock columns only.)",
+      "rule": "INSPECT only, pre-2021 data (not the walk-forward test years): median Log-HAR residual on event nights vs same-weekday nights, bootstrap 95%. A product test would be registered only if the training era showed an effect large enough to matter on so few nights.",
+      "verdict": "DIAGNOSTIC",
+      "result": "NULL IN THE TRAINING ERA; NOT PURSUED. FOMC statement nights (scheduled meetings only, from federalreserve.gov, research/fomc_scheduled.json): n=26, median residual -0.072 vs same-weekday nights [-0.206, +0.142], mean RV ratio 0.92. Monthly-expiry Thursday nights: +0.057 [-0.086, +0.131]. Quarterly: +0.096 [-0.082, +0.353], n=14. Even a real post-2022 effect would touch ~2-4% of nights (about 48 FOMC nights in 2021-2026), bounding the product-level gain and leaving a per-episode test without power.",
+      "notes": "SUPERVISOR REDIRECT applied at the inspect stage rather than after a costly build. The FOMC date file (87 scheduled statement days 2017-2027, sources recorded) is kept for forward monitoring."
+    },
+    {
+      "id": "P4-iv1d-anchor",
+      "topic": "phase4",
+      "mechanism": "exogenous-iv-horizon",
+      "date": "2026-09-29",
+      "question": "Does the market's own forecast for the product night -- the at-the-money implied vol of the Deribit option expiring 08:00 UTC next morning, from trades in the hour BEFORE the 17:00 anchor -- improve the served barrier product?",
+      "rule": "PRE-REGISTERED BEFORE ANY IV-vs-RV RELATIONSHIP WAS LOOKED AT (the harvest collects data only). Feature: iv = next-day expiry ATM IV (|log K/S| <= 0.03, amount-weighted median of trades in [16:00, 17:00) UTC; eval/harvest_iv1d.py); x = log(iv/100/sqrt(8760)) - lhc, the gap between the market's hourly vol and the fold's Log-HAR anchor. ARM Is: increment a + b*x at 17:00 H=19 nights WITH iv (train, calib and test), fitted by OLS of the anchor residual y - lhc on [1, x] over the fold's TRAIN 17:00 nights with iv, same weights; nights without iv keep the served anchor (as deployed). PLACEBO Ip: identical, but each night's iv replaced by the iv of a random other night in the same calendar year (seeded): same distribution, no night-specific information. NOCTUA through run_fold, every arm with serving's trailing factor from its own forecasts. FOLDS 2022-2026 (fold 2021 excluded now: its train slice would hold < 7 months of iv). Per-episode brier, logs, pinball, crps (block 38) and QLIKE on the production nights of those folds (all nights, with or without iv); DSC fold-level. Family {Is, Ip} vs M0s x 5 = 10, 99.5%. RULE: ADVANCE iff Is beats M0s on >= 2 of the 4 barrier metrics, is worse on none of the five, and Ip is better on none. Reported: coverage by year, the fitted (a, b) per fold, per-episode deltas on nights with iv only, and on ex-ante nights where |x| is in its top decile.",
+      "verdict": "OPEN",
+      "result": "pre-registered. PREDICTION: b between 0.2 and 0.6 (the market adds information but the anchor keeps weight); a < 0 (implied above realised); Is beats M0s on brier, logs and crps and on QLIKE (+3% to +6%), rule met with probability about 0.55; Ip nothing -- if Ip helps, the gain is a level effect, not the night's information.",
+      "notes": "What this measures that the exogenous line (P3-exogenous-dvol, E2c, P4-iv-served-pe) could not: a HORIZON-MATCHED implied vol (15 h to expiry vs a 19 h window) instead of the 30-day DVOL index, and a placebo that keeps the IV level but removes the night. Data became reachable only today (full network access): history.deribit.com serves historical option trades with IV. Forecast input only -- no options P&L (no historical tradable quotes/spreads/execution).",
+      "superseded_by": [
+        "P4-iv1d-anchor-result"
+      ]
+    },
+    {
+      "id": "P4-iv1d-anchor-result",
+      "topic": "phase4",
+      "mechanism": "exogenous-iv-horizon",
+      "date": "2026-09-29",
+      "supersedes": [
+        "P4-iv1d-anchor"
+      ],
+      "question": "Closing P4-iv1d-anchor: does next-day ATM implied vol (pre-anchor trades) improve the served barrier product?",
+      "rule": "As registered: ADVANCE iff Is beats M0s on >= 2 of the 4 barrier metrics (per episode, block 38, family 10, 99.5%), is worse on none of the five, and the shuffled-IV placebo Ip is better on none.",
+      "verdict": "REJECT",
+      "result": "NOT MET -- THE PLACEBO ALSO HELPS, AND THE REASON IS A DESIGN FLAW IN MY RULE. 1,681 production nights 2022-2026, 100% with iv, guards passed. Is vs M0s: brier +1.082% [+0.001299, +0.002340], logs +1.078%, pinball +2.347%, crps +2.337%, QLIKE +11.95% [+0.018674, +0.043690], all separated; DSC +0.00171, 5/5 folds -- the largest effect in the project. Ip vs M0s: brier +0.448%, logs +0.339%, pinball +0.708%, crps +0.933%, QLIKE +3.76%, ALL separated -> rule not met. Fits (year, a_Is, b_Is, a_Ip, b_Ip): [(2022, -0.034, 0.326, -0.025, 0.036), (2023, -0.054, 0.336, -0.037, 0.051), (2024, -0.09, 0.346, -0.05, 0.028), (2025, -0.118, 0.473, -0.061, 0.035), (2026, -0.123, 0.56, -0.067, 0.047)]. READING: both arms carry an intercept on 17:00 nights; the intercept alone corrects the known 17:00 over-forecast (the clock-aware anchor's defect, P4-hour-anchor: Brier +0.40%), which is what the placebo captured (its IV weight b is 0.03-0.05). The rule required the placebo to move nothing; with an intercept in both arms, it could not. PREDICTION SCORING: b 0.2-0.6 -- right (0.33-0.56, growing); a < 0 -- right; Is beats M0s on brier/logs/crps and QLIKE +3-6% -- right in sign, QLIKE far larger (+11.9%); P(met) 0.55 -- not met; Ip nothing -- WRONG, for the reason above.",
+      "notes": "The verdict stands as registered. The placebo-controlled contrast that SHOULD have been primary (Is vs Ip: same freedom, night-specific information removed) is recorded separately as a post-hoc diagnostic (P4-iv1d-posthoc) and can support only a forward test, never an adoption."
+    },
+    {
+      "id": "P4-iv1d-posthoc",
+      "topic": "phase4",
+      "mechanism": "exogenous-iv-horizon",
+      "date": "2026-09-29",
+      "question": "POST HOC, NOT REGISTERED: does the real next-day IV beat its own shuffled placebo (same intercept freedom) -- i.e. is there night-specific information beyond the 17:00 level?",
+      "rule": "Diagnostic on the saved per-episode arrays of P4-iv1d-anchor (both arms real NOCTUA runs); computed AFTER seeing that run. It cannot adopt anything; it can only motivate a forward holdout.",
+      "verdict": "DIAGNOSTIC",
+      "result": "Is vs Ip per episode (99.5%): brier +0.638% [+0.000694, +0.001473], logs +0.742%, pinball +1.651%, crps +1.418%, QLIKE +8.51% [+0.011060, +0.032643], all separated; positive in EVERY year and growing (brier +0.13 / +0.46 / +0.69 / +1.00 / +1.28% for 2022-2026; QLIKE +0.9% -> +23.4%).",
+      "notes": "Most plausible alternative to rule out before any forward freeze: IV is a fast proxy of recent realised vol (the model's own har_1h / har_6h already carry that). Handed to the swarm and to my own control."
+    },
+    {
+      "id": "P4-iv1d-proxy-control",
+      "topic": "phase4",
+      "mechanism": "exogenous-iv-horizon",
+      "date": "2026-09-29",
+      "question": "Attack on P4-iv1d-posthoc: is next-day implied vol just a fast estimate of recent realised vol, which the model already has (har_1h covers the same 16:00-17:00 hour as the option trades; har_6h)?",
+      "rule": "Disproof attempt, run after the result (it can refute, not confirm): no-network Gaussian law, folds 2022-2026, every arm an increment on the fold's Log-HAR anchor at 17:00/H=19, OLS on train 17:00 nights, serving's factor from each arm's own forecasts. Refuted if the realised-vol increment (Grv) reaches the implied-vol increment (Giv), or if IV adds nothing on top of it (Gall vs Grv not separated). 99.5%, block 38.",
+      "verdict": "DIAGNOSTIC",
+      "result": "NOT REFUTED -- THE MARKET CARRIES WHAT THE PRICE HISTORY DOES NOT. Gain vs the Log-HAR anchor (1,681 nights): intercept only +0.257% brier / -0.084% logs; har_1h + har_6h +0.220% / -0.157%; implied vol +1.245% / +1.350%; all three +1.159% / +1.201%. Grv vs intercept: -0.038% brier [-0.000466, +0.000393] -- recent realised vol adds NOTHING beyond the 17:00 level. Giv vs Grv: brier +1.028% [+0.001047, +0.002364], logs +1.504% [+0.004504, +0.010622]; Gall vs Grv +0.942% brier, separated. IV weight with the RV terms present 0.29-0.51 (alone 0.33-0.56); har_6h's weight collapses to ~0 once IV is in.",
+      "notes": "Consistent with the NOCTUA post-hoc Is-vs-Ip gap. Two haiku agents attack the statistics (J) and the DVOL-proxy alternative (K). Confirmation can only come from a forward test registered before any forward night."
+    },
+    {
+      "id": "P4-iv1d-dvol-control",
+      "topic": "phase4",
+      "mechanism": "exogenous-iv-horizon",
+      "date": "2026-09-29",
+      "question": "Audit K's attack on P4-iv1d-posthoc, re-run by me: is next-day implied vol just the 30-day DVOL index in disguise (which failed on the served base, P4-iv-served-pe-result)?",
+      "rule": "Disproof attempt (refute-only): same method and script as P4-iv1d-proxy-control (eval/iv1d_proxy_control.py), DVOL at 16:00 UTC of the anchor day as log hourly vol. Refuted if DVOL matches IV or IV adds nothing on top of DVOL. 99.5%, block 38. The script's first version fitted every arm on nights where ALL signals existed; fixed to each arm's own signals before this run (earlier arms moved <= 0.1 pp).",
+      "verdict": "DIAGNOSTIC",
+      "result": "NOT REFUTED -- IT IS NOT DVOL. Gain vs the Log-HAR anchor (1,681 nights): DVOL +0.310% brier / +0.221% logs (about the 17:00 intercept's +0.255%); IV +1.245% / +1.350%. Giv vs Gdv: brier +0.938% [+0.001096, +0.002062], logs +1.132% [+0.003727, +0.007620]. IV on top of DVOL (Gdviv vs Gdv): brier +0.722% [+0.000773, +0.001714], logs +0.949%. Agent K (haiku) reported the same direction independently (Giv vs Gdv +1.22% brier; DVOL's weight turns negative once IV is in).",
+      "notes": "With P4-iv1d-proxy-control: next-day IV carries information neither the price history (har_1h, har_6h) nor the 30-day implied-vol index carries. Enough to FREEZE a forward test (DATA_USE sixth candidate); not enough to adopt -- the walk-forward evidence is post hoc."
+    },
+    {
+      "id": "P4-skew-asym",
+      "topic": "phase4",
+      "mechanism": "exogenous-iv-skew",
+      "date": "2026-09-30",
+      "question": "Does the next-day option SKEW (OTM put IV minus OTM call IV, pre-anchor trades) predict the ASYMMETRY of the night's excursions -- how far down vs how far up -- and so improve the two-sided barrier product? (Price DIRECTION was NULL at all horizons; excursion-size asymmetry was never tested.)",
+      "rule": "PRE-REGISTERED BEFORE ANY SKEW-vs-OUTCOME LOOK. SCREEN on the no-network Gaussian law (eval/product_score), folds 2022-2026, production nights. z = (median IV of next-day OTM puts with log K/S in [-0.10,-0.03] minus median IV of OTM calls in [+0.03,+0.10]) / next-day ATM IV, from trades in [16:00,17:00) UTC, nights with >= 2 of each (else symmetric). Base: fold Log-HAR anchor + serving's factor, one sigma for both sides. ARM Sk: level unchanged, sides split: sigma_dn = s*exp(+g/2), sigma_up = s*exp(-g/2), g = a + c*z, (a, c) by OLS of log(M_dn/M_up) on [1, z] over the fold's TRAIN 17:00 nights with z. PLACEBO Sp: identical, z shuffled across nights within each year (same intercept a, same freedom). Per-episode brier and logs (both sides), block 38, 99.5%. RULE (screen passes): Sk beats Sp on BOTH brier and logs, and Sk is worse than base on neither. The PRIMARY contrast is candidate vs its placebo (lesson of P4-iv1d-anchor-result). Passing licenses a NOCTUA-level registered test; it adopts nothing.",
+      "verdict": "OPEN",
+      "result": "pre-registered. PREDICTION: c > 0 (put skew -> larger downside), but the screen FAILS (probability of passing about 0.3): direction was null everywhere, and a skew that priced the next night's asymmetry would be arbitraged.",
+      "notes": "Coverage (data only): 1,538 of 2,494 days have >= 2 next-day OTM puts and calls. What this measures that nothing before could: the up/down split of the barrier distribution from forward-looking data; every earlier test moved the level or the dispersion, never the asymmetry.",
+      "superseded_by": [
+        "P4-skew-asym-result"
+      ]
+    },
+    {
+      "id": "P4-skew-asym-result",
+      "topic": "phase4",
+      "mechanism": "exogenous-iv-skew",
+      "date": "2026-09-30",
+      "supersedes": [
+        "P4-skew-asym"
+      ],
+      "question": "Closing P4-skew-asym (screen): does next-day option skew predict excursion asymmetry well enough to improve the two-sided product?",
+      "rule": "As registered: screen passes iff Sk beats the shuffled-skew placebo Sp on brier AND logs (99.5%, block 38) and Sk is worse than the symmetric base on neither.",
+      "verdict": "NULL",
+      "result": "RULE FORMALLY MET, NO PRODUCT GAIN -- THE PLACEBO WAS HARMFUL, NOT THE CANDIDATE HELPFUL. 1,681 nights. Sk vs Sp: brier +0.345% [+0.000078, +0.001245], logs +0.440% -- separated. Sk vs symmetric base: brier -0.130% [-0.000636, +0.000166], logs -0.199% -- WORSE in point estimate on both sides (up -0.05%, down -0.21%), not separated. Sp vs base: brier -0.476%, logs -0.642%, both significantly WORSE. Fitted c (put skew -> larger downside) positive in every fold (0.16-0.43); the intercept a flips sign (+0.16 in 2023, -0.16 in 2025): a drift-asymmetry term that does not transfer. PREDICTION: c > 0 -- right; screen fails -- formally wrong, substantively right.",
+      "notes": "RULE DESIGN LESSON (second in two days): 'beats its placebo AND not worse than base' can pass when the placebo is harmful and the candidate is useless. A placebo-controlled rule needs BOTH candidate > placebo AND candidate > base (as the frozen implied-vol holdout requires). The licensed NOCTUA-level test is DECLINED -- spending it on an arm that does not beat the base would only buy forking paths. Skew is recorded as not useful for the product at this form."
+    },
+    {
+      "id": "P4-dow-level-control",
+      "topic": "phase4",
+      "mechanism": "timing-clock",
+      "date": "2026-09-30",
+      "question": "Audit M's attack on P4-dow-anchor-result: is the day-of-week gain just a 17:00 level shift (the mechanism behind the implied-vol placebo's success)?",
+      "rule": "Disproof attempt (refute-only), no-network Gaussian law, all folds, served factor from each arm's own forecasts. Refuted if the calendar adds nothing once 17:00 has its own intercept (GDI vs GI not separated), 99.5%, block 38. The intercept must be applied at 17:00/H=19 nights ONLY and checked non-degenerate.",
+      "verdict": "DIAGNOSTIC",
+      "result": "NOT REFUTED. 17:00-only intercept vs base: brier +0.210% [+0.000216, +0.000528], logs -0.070% (ns) -- the level fix helps Brier only. Day-of-week vs base: brier +0.384%, logs +0.450%. Day-of-week + intercept vs intercept: brier +0.364% [+0.000389, +0.000929], logs +0.441% [+0.001225, +0.003552] -- the calendar survives the level control. arm-not-degenerate PASS (served level moves up to 0.056). AGENT M reached the same verdict with INVALID evidence: its script added the intercept to every hour (history included), which the median factor absorbs, so its 'GI' was the base and its 'GDI vs GI' interval equals day-of-week vs base exactly ([+0.000420, +0.000971]). M also wrote files into the repository against its constraints; they were deleted unreviewed.",
+      "notes": "Script: eval/dow_vs_intercept.py (the correct construction, with the pitfall check inline)."
+    },
+    {
+      "id": "P4-iv-on-calendar",
+      "topic": "phase4",
+      "mechanism": "exogenous-iv-horizon",
+      "date": "2026-09-30",
+      "question": "Do the two strongest candidates overlap? Does next-day implied vol add anything on top of the day-of-week calendar plus a 17:00-only intercept (the level fix that powered the IV placebo)?",
+      "rule": "Refute-only, no-network Gaussian law, folds 2022-2026, served factor from each arm's own forecasts; refuted if the IV increment fitted on the calendar+intercept anchor's residual does not separate from it (99.5%, block 38).",
+      "verdict": "DIAGNOSTIC",
+      "result": "NOT REFUTED -- COMPLEMENTARY. IV on top of calendar + 17:00 intercept: brier +0.711% [+0.000827, +0.001571], logs +1.024% [+0.003474, +0.006867]. IV weight b 0.32 / 0.31 / 0.31 / 0.39 / 0.46 by fold (vs 0.33-0.56 on the plain anchor); the intercept a shrinks (-0.01 to -0.08 vs -0.03 to -0.12) because the calendar already carries part of the level.",
+      "notes": "Deployment consequence: if both ever ship, the IV increment must be refitted on the calendar anchor's residual (the served IV_ANCHOR refuses to combine with other anchor flags until then); the frozen holdouts test each alone against the shipped anchor. Script: eval/iv_on_calendar.py."
+    },
+    {
+      "id": "P4-factor-window",
+      "topic": "phase4",
+      "mechanism": "serving-parity",
+      "date": "2026-09-30",
+      "question": "The served trailing factor is meant to be a 60-day median (serve/adaptive.WINDOW_DAYS; eval/hour_anchor.FAC_WINDOW_D, which every walk-forward result used). The NOCTUA_DEBUG trace showed serving actually uses 133-143 of the window's 240 settled anchors: the history bundle keeps 400 days, and a 60-day window of anchors each needing reg_rv_vs_year's 365-day lookback needs ~425. The oldest ~26 days get a NaN feature and are silently dropped, so the served window is ~34 days just after the weekly bundle rewrite and ~41 days just before it. Does the truncation change the served product?",
+      "rule": "PRE-REGISTERED BEFORE ANY WINDOW-VS-OUTCOME NUMBER. No-network Gaussian law (eval/product_score), folds 2022-2026, production nights (17:00, H=19), fold Log-HAR anchor, serving's median factor (6h stride, >=20 ratios, clip [0.70,1.40]) from each arm's own forecasts. ARMS differ ONLY in the window: W60 (intended, what research scored), W34 and W41 (the served range). CONTRASTS W34 vs W60 and W41 vs W60 on per-episode Brier and log score, 99.5% moving-block bootstrap, block 38. Also reported: sd of the log factor per arm. DECISION RULE, fixed now: (a) if neither contrast separates on either metric, RESTORE 60 days in serving (extend the bundle) -- the tie is broken by research/serving identity (R18), since every walk-forward and frozen-holdout claim was scored at 60; (b) if W60 is better at 99.5% on either metric and worse on neither, restore 60 with that as the reason; (c) if a short window is better at 99.5% on both, do NOT restore silently -- report it, keep 60 as the served definition, and register the shorter window as its own forward candidate. PREDICTION: no contrast separates; |gap| < 0.1% Brier; the short windows' log factor is noisier (sd ratio ~ sqrt(240/140) ~ 1.3).",
+      "verdict": "OPEN",
+      "result": "pre-registered. PREDICTION: no contrast separates at 99.5%; |gap| < 0.1% Brier; the short windows' log factor is noisier (sd ratio ~1.3). Decision rule in `rule`.",
+      "notes": "Script: eval/factor_window.py. Found by the NOCTUA_DEBUG trace on its first live run (vol_correction.cal.n_episodes = 143). Not from this session: BUNDLE_DAYS = 400 (serve/history.py, 2026-08-10) predates WINDOW_DAYS = 60 (serve/adaptive.py, a32551a, 2026-08-14).",
+      "superseded_by": [
+        "P4-factor-window-result"
+      ]
+    },
+    {
+      "id": "P4-factor-window-result",
+      "topic": "phase4",
+      "mechanism": "serving-parity",
+      "date": "2026-09-30",
+      "supersedes": [
+        "P4-factor-window"
+      ],
+      "question": "Closing P4-factor-window: does the served factor's truncation to ~34-41 days change the product, and which window does serving ship?",
+      "rule": "As registered: W34 and W41 against W60 on per-episode Brier and log score, 99.5%, block 38; decision (a) tie -> restore 60 (R18), (b) W60 better -> restore 60, (c) a short window better on both -> keep 60, register it separately.",
+      "verdict": "ADOPT",
+      "result": "RULE (a): NO CONTRAST SEPARATES; EVERY POINT ESTIMATE FAVOURS 60 DAYS; 60 RESTORED IN SERVING. 1,681 production nights, folds 2022-2026. W34 vs W60: brier -0.068% [-0.000277, +0.000033], logs -0.100% [-0.001256, +0.000088]. W41 vs W60: brier -0.054% [-0.000214, +0.000024], logs -0.064% [-0.000944, +0.000138]. The truncated factor is NOISIER, more than predicted: night-to-night sd of the log factor 0.0138 (W34) and 0.0121 (W41) against 0.0080 (W60); level sd 0.0572 / 0.0536 / 0.0475. Prediction (no separation, |gap| < 0.1% Brier) held on Brier; the logs gap at W34 reached 0.100%. FIX: serve/history.BUNDLE_DAYS 400 -> 430 (365 + 60 + 1 + 4 slack) and the committed bundle extended backwards by 720 corpus hours with `noctua.make_bundle --backfill`, which refuses unless corpus and bundle agree bit for bit on their overlap (8,399 hours identical; the one difference is the corpus's own partial last hour, 2026-08-09 14:00, which the live feed completed) and keeps every committed row exactly. Served effect at the six latest production anchors: episodes used 113-133 -> 233-240, factor ~0.972 -> ~0.990, sigma_window_pct +0.012 to +0.049 pp, P(touch +2%) +0.002 to +0.011.",
+      "notes": "Gated in tests/test_adaptive.py (red before the fix: 136 of 240 anchors, 400d vs 425.8d needed): the correction must use >= 95% of its window's settled anchors, and BUNDLE_DAYS must cover 365d + WINDOW_DAYS + H. Every forward holdout's served base moved with it; research/DATA_USE.md records the amendment, made before any holdout was scored (the clock-aware holdout had at most a few nights counted, nothing computed or printed; the 2026-09-29 holdouts had none). The frozen arrays did not change. ROOT CAUSE, for the record: BUNDLE_DAYS was sized on 2026-08-10 for the forecast anchor's own 365-day lookback; the 60-day adaptive window arrived four days later (a32551a) and nobody re-derived the history it needs. The same pattern -- a constant sized for one consumer, silently short for a later one -- is worth checking wherever a lookback is added. Script: eval/factor_window.py (selftest: W60 equals research's served_log_factor bit for bit)."
+    },
+    {
+      "id": "P4-factor-window-longer",
+      "topic": "phase4",
+      "mechanism": "serving-parity",
+      "date": "2026-09-30",
+      "question": "Audit C on P4-factor-window-result: across windows 20-90 days, is 60 the best served factor window, or does a longer window do better?",
+      "rule": "POST HOC (found by the auditor's search, not registered). Same law and contrasts as P4-factor-window, windows 20/30/45/50/75/90 vs 60; reported with the family size. Not a basis for any serving change: a longer window needs its own registration, a longer bundle, and a DATA_USE amendment made before any holdout is scored.",
+      "verdict": "DIAGNOSTIC",
+      "result": "MONOTONE IN WINDOW LENGTH. Reproduced the auditor's run. vs W60, brier / logs: W20 -0.230% / -0.303% and W30 -0.104% / -0.155% (both significantly WORSE at 99.5% on both), W45 -0.037% / -0.036%, W50 -0.040% / -0.045% (ns), W75 +0.021% / +0.035% (ns), W90 +0.051% (ns) / +0.085% [+0.000069, +0.000907] (clears 99.5% on logs only). Night-to-night sd of the log factor falls steadily: 0.0252, 0.0158, 0.0104, 0.0101, 0.0080, 0.0062, 0.0053. READING: the restore-to-60 decision is strengthened (every shorter window is worse, the two shortest significantly); 60 is not shown to be the optimum. W90's log-score gain is one of 12 post-hoc contrasts and would not clear a 12-way Bonferroni (99.96%). The auditor's 'CLAIM REFUTED' overreaches: the registered claim was about W34/W41 vs W60, which it reproduced exactly.",
+      "notes": "Follow-up, not taken now: register 'W90 (or W120) served factor' as its own candidate. It needs BUNDLE_DAYS >= 365 + window + 1, and it changes the served base under every frozen holdout, so it goes through DATA_USE before any holdout is scored or waits until after they lock. Script: the auditor's copy of eval/factor_window.py with extra windows (/tmp/audit_C, not committed)."
+    },
+    {
+      "id": "P5-rl-paper",
+      "topic": "phase5",
+      "mechanism": "trading-rl",
+      "date": "2026-10-03",
+      "question": "Owner: a reinforcement-learning agent that learns to trade BTC, corrects its mistakes by studying its losses, and keeps learning in a Hugging Face Space. Does an online-learning agent fed NOCTUA's served forecast earn more risk-adjusted paper return than simple rules, out of sample, and which RL formulation learns better?",
+      "rule": "PRE-REGISTERED BEFORE ANY REPLAY NUMBER. PAPER TRADING ONLY: no exchange keys, no orders. STEPS: anchors E at 00/06/12/18 UTC, H = 6; inputs = serve/predict.forecast(H=6, anchor E) on the corpus hourly table (serving's own code; shown causal: a NaN bar at E leaves the payload byte-identical); entry at close of the hour before E, exit at close of the hour starting E+5h, R = exit/entry - 1. PERIOD: 2024-01-01 00:00 (the shipped artifact's test era) to the last anchor whose window closes by the corpus end 2026-08-09. ACTIONS: exposure w in {-1, -0.5, 0, 0.5, 1}. UTILITY per step u = w R - c|w - w_prev| - (gamma/2)(w R)^2, c = 10 bps per unit traded (5 fee + 5 slippage, an ASSUMPTION; 5 and 25 bps reported), gamma = 2 (0.5 and 5 reported). FEATURES (fixed transforms, nothing fitted): x1 = (ln s - ln 0.015)/0.5 with s = NOCTUA sigma_window_pct/100; x2 = ln(s / max(trailing_rv, 1e-4)); x3 = p_vol_amplify - 0.5; x4 = p_up - 0.5; x5 = R_24h_before_E / 0.03. ARMS: MV = full-feedback model-based learner: mu(x) = E[R|x] by exponentially forgotten ridge (rho 0.998, prior = 50 pseudo-observations of zero return on every coefficient), E[R^2|x] = kappa * s^2 with kappa a forgotten ratio estimate (prior 1, weight 50); acts argmax_a a*mu - (gamma/2) a^2 E[R^2] - c|a - w_prev|; after every window it updates from the realised R, i.e. from the utility of EVERY action (its loss and its regret). TS = classic RL contextual bandit: per-action Bayesian linear regression of u on [1, x1..x5, w_prev] (lambda 1, noise scale 0.01, rho 0.998), Thompson sampling, learns only from the action it took; 5 seeds, primary on the seed mean. MV_P = MV with the feature rows permuted in time (seeded), R aligned: the placebo. BASELINES: FLAT (0), HALF (0.5), HOLD (1), VT (w = clip(0.0131/s, 0, 1), a 50% annualised target). PRIMARY: mean per-step utility; contrasts MV vs HOLD, MV vs VT, MV vs MV_P, TS vs MV; moving-block bootstrap 99.5%, block 28 steps (one week). REPORTED: annualised return, vol, Sharpe, max drawdown, turnover, share of short steps, utility by s-quintile, the worst-5% steps (what lost: market move, cost, risk), regret against the best action in hindsight. DEPLOYMENT RULE, fixed now: the live Space runs the higher-ranked of MV and TS on the primary, as paper trading; every live step also logs the utility FLAT/HALF/HOLD/VT would have earned on the same R, so the forward comparison accumulates by itself; no claim of trading skill unless the forward log shows the agent above VT at 99.5% after N_MIN steps, N_MIN derived from the replay's per-step noise and recorded with the result.",
+      "verdict": "OPEN",
+      "result": "pre-registered. PREDICTION: MV does NOT beat VT or HOLD at 99.5% (direction is unpredictable here -- log-loss 0.6941 vs 0.6931 for a coin flip -- and econ-voltarget-result found NOCTUA-sized vol targeting NULL); MV vs its placebo not separated; MV rarely shorts and learns a long bias from drift; TS does worse than MV (it learns from one action per step and pays for exploration). If MV beats every baseline at 99.5%, suspect a leak before believing it.",
+      "notes": "Code: model/rl/ (agent, env, loop, store), eval/rl_replay.py, tests/test_rl.py; Space bootstrap in model/space/. RL formulation note: the agent's trades do not move the BTC price, so the reward of every action is observable after each window; a learner that uses that (MV) should dominate one that only sees its own action (TS). Both are tested rather than assumed. AMENDED 2026-10-03, BEFORE ANY REPLAY NUMBER, from the synthetic gate tests/test_rl.py (written before the code): MV as registered (now arm MV0) traded its own estimation noise -- fed pure noise it was flat on 23% of late steps and lost 8 bps of utility per step -- and, given a standard-error band alone, it never left a position it had drifted into (one-step planning: staying cost one step of risk, leaving cost the fee once). MV is now (i) pessimistic: mu_eff = sign(mu) max(|mu| - z se(mu), 0), and (ii) forward-looking: action values = this step's utility - fee + delta * V(position), V by value iteration over the five positions under the average edge, delta = 0.98. z chosen on FRESH synthetic seeds (21, 22; not the test's, never the replay's) by a rule fixed before the grid: maximise planted-edge capture subject to >= 95% flat and >= -0.25 bp mean utility in pure noise. Grid (noise flat%, noise u | planted u, corr): z0/d0 9.9%, -3.1e-4 | +3.59e-3, 0.82; z0/d.98 14.1%, -3e-6 | +3.04e-3; z0.5/d.98 57.8%; z1/d.98 98.3%, -2.2e-5 | +2.28e-3, 0.71 (CHOSEN); z1.5/d.98 100% | +1.60e-3; z2/d.98 100% | +1.13e-3. MV0 stays in the replay as a reported arm so the amendment's effect is visible on real data; the primary is on MV. TS as registered also fails the noise gate (flat 27%, -12 bps per step: Thompson exploration with forgetting never stops); it stays in the replay as registered, and the deployment rule gains a condition: the live agent must pass the noise gate, which bars TS.",
+      "superseded_by": [
+        "P5-rl-paper-result"
+      ]
+    },
+    {
+      "id": "P5-rl-paper-result",
+      "topic": "phase5",
+      "mechanism": "trading-rl",
+      "date": "2026-10-03",
+      "supersedes": [
+        "P5-rl-paper"
+      ],
+      "question": "Closing P5-rl-paper: does an online-learning agent on NOCTUA's served forecast earn more risk-adjusted paper return than simple rules, out of sample, and which RL formulation learns better?",
+      "rule": "As registered and amended before any replay number (MV pessimistic + Bellman planning; MV0 reported; TS barred from live use by the noise gate).",
+      "verdict": "NULL",
+      "result": "NO EDGE; THE PREDICTION HELD; CLASSIC RL IS SIGNIFICANTLY WORSE. 3,806 six-hour steps, 2024-01-01 -> 2026-08-09, inputs through serving's own forecast. Mean per-step utility / annualised return / Sharpe / max drawdown: MV -0.000104 / -11.8% / -0.65 / 36.0% (flat 83.7%, short 0.3%, mean exposure +0.12); MV0 -0.000171 / -8.4% / -0.21 / 58.4%; MV_P (time-permuted inputs) +0.000005 / +3.6% / +0.22 / 22.3%; TS -0.000567 / -72.5% / -2.28 / 84.6% (turnover 0.64 per step); HOLD +0.000036 / +27.6% / +0.58 / 53.5%; HALF +0.000056 / +13.8% / +0.58 / 30.4%; VT -0.000026 / +13.8% / +0.33 / 54.1%. Contrasts at 99.5%, block 28: MV vs HOLD -0.000140 [-0.000632, +0.000383], MV vs VT -0.000077 [-0.000555, +0.000428], MV vs MV_P -0.000109 [-0.000321, +0.000081], MV vs MV0 +0.000067 [-0.000363, +0.000493] -- none separated; TS vs MV -0.000463 [-0.000687, -0.000217] WORSE. MV vs VT is not separated at cost 5 or 25 bps or gamma 0.5 or 5. LOSS STUDY (MV): every one of the worst 5% steps lost on the market move (mean move -1.23%, cost 0.2 bp, mean |exposure| 0.82); exposure rises with NOCTUA's sigma (quintile means +0.03, +0.08, +0.10, +0.15, +0.25) and so does regret (0.0038 -> 0.0115): it bet most where the outcome is noisiest; the time-permuted placebo did no worse, so the inputs carry no exploitable 6-hour trading edge and MV's positions were fits to coincidence. Forward N_MIN vs VT: none -- no forward claim of skill is expected. Prediction scoring: MV does not beat VT or HOLD (right); not separated from its placebo (right); rarely shorts (right, 0.3%); learns a long bias from drift (WRONG: mean exposure only +0.12 -- the standard-error band suppressed the drift too); TS worse than MV (right, significantly).",
+      "notes": "DEPLOYED as registered: MV runs live in the Space as PAPER trading (zero real risk), warm-started from this replay, every step logging FLAT/HALF/HOLD/VT on the same move, no claim of skill. What the live run is FOR: forward evidence on the same question, and a growing per-step log (inputs, action, R, utility, regret) to study losses with. Simple holding beat every learner here; that is the result, and the Space page says so. CORRECTED 2026-10-08 (audit F; verdict unchanged). (1) The registration called 2024-01-01 'the shipped artifact's test era'; by noctua/splits.py (TRAIN_END 2023-01-01, CALIB_END 2024-07-01) and DATA_USE.md, Jan-Jun 2024 was its CALIBRATION slice -- 728 of the 3,806 steps. I took the date from an older ledger entry describing a different split without checking the split module. (2) 'Annualised return' above is arithmetic (mean x 1460). Compounded, 2024-01-01 on: MV -12.6%/yr (total -29.6%), HOLD +17.8%/yr (+53.4%), HALF +11.6%, VT +5.1%, TS -52.6%. THE WINDOW THE SHIPPED MODEL NEVER SAW, 2024-07-01 on, 3,078 steps, agents restarted, compounded/yr (total): MV -10.1% (-20.2%), MV0 -29.0% (-51.5%), MV_P 0.0% (it stayed flat throughout), HOLD +1.6% (+3.4%), HALF +3.6% (+7.6%), VT -8.4% (-16.9%), TS -65.6% (-89.4%). Contrasts at 99.5%: MV vs HOLD -0.000019 [-0.000570, +0.000536], MV vs VT +0.000037 [-0.000487, +0.000556], MV vs MV_P -0.000081 [-0.000275, +0.000085] -- not separated; TS vs MV -0.000685 [-0.000926, -0.000449] worse. The finding stands -- no learner beats holding, classic RL is significantly worse -- but 'holding made +27.6% a year' overstated the benchmark: over the unseen window holding BTC returned +3.4% in total. eval/rl_replay.py now reports both conventions and both windows. Audit F also confirmed no look-ahead: R and entry prices from raw bars, inputs unchanged with future bars present, act() before update()."
     }
   ]
 }

@@ -42,6 +42,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from noctua.features import build_features                    # noqa: E402
 from serve.adaptive import (apply_correction, qlike_scale,  # noqa: E501
                             volatility_correction)  # noqa: E402
+from serve import debug as D                                  # noqa: E402
 from serve.fetch import fetch_bars                            # noqa: E402
 from serve.history import get_hours, load_bundle              # noqa: E402
 from serve.runtime import load_model                          # noqa: E402
@@ -118,10 +119,62 @@ DISP_LAMBDA = 1.0
 # is bit-identical and that on moves exactly what the algebra says.
 HOUR_ANCHOR = False
 
+# The TRUE-WEEKEND ANCHOR (P4-weekend-fix-result, ADVANCE). The anchor's
+# weekend column counts FRIDAY and SATURDAY (P4-weekend-bug: an epoch-offset
+# slip in noctua/features.py) and stays that way because the network was
+# trained on it. With this on, the anchor gains an increment on the true
+# Sat+Sun fraction of the window (noctua/calendar.py), fitted on the artifact's
+# training split (noctua/add_weekend_anchor.py). Walk-forward, 2,046 nights,
+# every arm carrying this file's trailing factor: Brier +0.17%, log score
+# +0.17%, pinball +0.37%, CRPS +0.35% per episode at 99.5%, positive in every
+# fold, a Tue+Wed placebo flat. The gain is on weekend-touching nights;
+# Mon-Thu nights pay a little for it. The artifact's coefficient (-0.130) is
+# from training data through 2023, smaller than the recent folds' (-0.26 to
+# -0.29): the weekend effect has grown.
+#
+# OFF until the swarm audit clears and a forward holdout is frozen for it. It
+# MOVES THE PRODUCT like HOUR_ANCHOR; tests/test_weekend_anchor.py asserts off
+# is bit-identical and on moves exactly what the algebra says.
+WEEKEND_ANCHOR = False
+
+# The DAY-OF-WEEK ANCHOR (P4-dow-anchor-result, ADVANCE) -- the successor of
+# WEEKEND_ANCHOR and an ALTERNATIVE to it (the week contains the weekend; both
+# on is an error). The weekend increment works by separating busy Friday from
+# quiet Saturday, which the Fri+Sat column lumps (P4-weekend-calendar-perm);
+# the whole week does more. Walk-forward, 2,046 nights, against the shipped
+# anchor with this file's trailing factor: Brier +0.25%, log score +0.27%,
+# pinball +0.62%, CRPS +0.53%, QLIKE +3.3%, all separated at 99.67%; against
+# the weekend-only increment better on all five; a fake 6-day cycle with the
+# same freedom flat. Increment on Mon..Sat window fractions, fitted on the
+# artifact's split (noctua/add_dow_anchor.py); frozen coefficients kept 0.82 of
+# a yearly refit's gain over 2023-2026 (eval/dow_staleness.py). Designed after
+# the calendar permutation on the same years -- the forward holdout decides.
+#
+# OFF until then. tests/test_dow_anchor.py asserts off is bit-identical and on
+# moves exactly what the algebra says.
+DOW_ANCHOR = False
+
+# The NEXT-DAY IMPLIED-VOL ANCHOR. The at-the-money implied vol of the Deribit
+# option expiring 08:00 UTC next morning, from trades in the hour BEFORE the
+# 17:00 anchor (noctua/iv1d.py), moves the shipped anchor toward the market's
+# forecast: a + b * (log hourly IV - anchor), at the 17:00 / H = 19 anchor only
+# (noctua/add_iv_anchor.py). Its registered walk-forward test was REJECTED
+# (P4-iv1d-anchor-result: the shuffled-IV placebo also helped, via the 17:00
+# intercept); post hoc the real IV beat that placebo on all five metrics
+# (P4-iv1d-posthoc) and a realised-vol proxy added nothing
+# (P4-iv1d-proxy-control). That is evidence for a FORWARD test only, frozen in
+# research/DATA_USE.md. Forecast input only -- never an options P&L.
+#
+# OFF. It needs a live Deribit fetch at the anchor; a failed fetch leaves the
+# anchor unchanged and the payload says so. tests/test_iv_anchor.py asserts
+# off is bit-identical and on moves exactly what the algebra says.
+IV_ANCHOR = False
+
 
 def forecast(model, hours: pd.DataFrame, H: int = PROD_H,
              anchor_ts: int | None = None, source: str = "unknown",
-             raw: dict | None = None) -> dict:
+             raw: dict | None = None, iv_pct: float | None = None,
+             fetch_iv: bool = True) -> dict:
     """Run one forecast anchored at `anchor_ts` (default: the latest full hour).
 
     `hours` is the merged hourly history from `serve.history.get_hours` --
@@ -131,10 +184,20 @@ def forecast(model, hours: pd.DataFrame, H: int = PROD_H,
     """
     hour_ts = hours["hour_ts"].to_numpy(np.int64)
 
+    requested = anchor_ts
     if anchor_ts is None:
         anchor_ts = int(hour_ts[-1])          # forecast from the last closed hour
     row = int(np.searchsorted(hour_ts, anchor_ts))
+    clamped = row > len(hours) - 1
     row = min(row, len(hours) - 1)
+    # searchsorted moves an anchor that is not a bar in `hours` to the NEXT bar
+    # (and past the end, to the last) without a word; `exact` says if it did.
+    D.trace("anchor", requested=requested, row=row, H=int(H),
+            utc=lambda: str(pd.to_datetime(hour_ts[row], unit="s", utc=True)),
+            exact=lambda: bool(hour_ts[row] == anchor_ts), clamped=clamped,
+            history_rows=len(hours),
+            history_utc=lambda: [str(pd.to_datetime(hour_ts[i], unit="s", utc=True))
+                                 for i in (0, -1)])
     if row < 24 * 22:
         raise RuntimeError("not enough history at the requested anchor")
 
@@ -143,13 +206,51 @@ def forecast(model, hours: pd.DataFrame, H: int = PROD_H,
         "anchor_ts": [hour_ts[row]], "H": [H], "row": [row],
         "dt": [dt], "anchor_hour": [dt.hour], "dow": [dt.dayofweek],
     })
-    X = build_features(hours, ep)
+    with D.stage("features"):
+        X = build_features(hours, ep)
+    D.trace("features", values=lambda: {c: X[c].iloc[0] for c in X.columns},
+            nonfinite=lambda: [c for c in X.columns if not np.isfinite(X[c].iloc[0])])
     # set BEFORE the forecast and before volatility_correction, which calls
     # model.prepare/predict on settled anchors: the trailing factor must be
     # computed from the same anchor it corrects (P4-hour-anchor scored it so)
     model.hour_anchor = bool(HOUR_ANCHOR)
-    d = model.prepare(X, np.array([float(H)]))
-    pred = model.predict(d, disp_lambda=DISP_LAMBDA)
+    model.weekend_anchor = bool(WEEKEND_ANCHOR)
+    model.dow_anchor = bool(DOW_ANCHOR)
+    model.iv_anchor = bool(IV_ANCHOR)
+    # The implied vol exists only for the 17:00 / H = 19 product anchor. A
+    # caller may pass it (the forward holdout and the gate do, so neither needs
+    # the network); otherwise it is fetched here, and a failure leaves the
+    # anchor unchanged. Settled anchors read by the trailing factor never get it.
+    iv_info = {"enabled": bool(IV_ANCHOR), "applied": False, "iv_pct": None, "reason": "off"}
+    liv = None
+    if IV_ANCHOR:
+        if not (dt.hour == PROD_ANCHOR_UTC and int(H) == PROD_H):
+            iv_info["reason"] = "not the 17:00 UTC / H=19 anchor"
+        else:
+            if iv_pct is None and fetch_iv:
+                try:
+                    from noctua.iv1d import iv_nextday_for
+                    iv_pct = iv_nextday_for(dt.normalize().to_pydatetime())
+                except Exception as e:                  # network, API, parsing
+                    iv_info["reason"] = f"fetch failed: {type(e).__name__}"
+            if iv_pct is not None and np.isfinite(iv_pct) and iv_pct > 0:
+                from noctua.iv1d import log_hourly
+                liv = [log_hourly(float(iv_pct))]
+                iv_info.update(applied=True, iv_pct=round(float(iv_pct), 3), reason="applied")
+            elif iv_info["reason"] == "off":
+                iv_info["reason"] = "no qualifying next-day trade before the anchor"
+    D.trace("flags", hour_anchor=model.hour_anchor, weekend_anchor=model.weekend_anchor,
+            dow_anchor=model.dow_anchor, iv_anchor=dict(iv_info),
+            report_functional=REPORT_FUNCTIONAL, disp_lambda=DISP_LAMBDA)
+    with D.stage("prepare"):
+        d = model.prepare(X, np.array([float(H)]), iv_log_hourly=liv)
+    D.trace("prepare", arrays=lambda: {k: list(np.shape(v)) for k, v in d.items()},
+            anchor_logvol=lambda: float(np.asarray(model.har_logvol(d))[0]))
+    with D.stage("predict"):
+        pred = model.predict(d, disp_lambda=DISP_LAMBDA)
+    D.trace("predict", blend_w=getattr(model, "blend_w", None),
+            sigma_med=lambda: float(pred["sigma_med"][0]),
+            sigma_mean=lambda: float(pred["sigma_mean"][0]))
 
     # Causal volatility-level recalibration. Measured out of sample on
     # 2024-07 onward, the raw forecast runs high -- realized vol lands below
@@ -164,16 +265,19 @@ def forecast(model, hours: pd.DataFrame, H: int = PROD_H,
     # by the "never reaches pred" rule below, which is about that other scalar
     # (audit A0 M6, runs/noctua-disproof-2026-10-10). The factor is estimated
     # on the anchor's own hour of day since 2026-10-10.
-    cal = volatility_correction(model, hours, row, H)
-    if cal["applied"]:
-        pred = apply_correction(pred, cal["factor"])
+    with D.stage("vol_correction"):
+        cal = volatility_correction(model, hours, row, H)
+        if cal["applied"]:
+            pred = apply_correction(pred, cal["factor"])
+    D.trace("vol_correction", cal=dict(cal), sigma_mean_after=lambda: float(pred["sigma_mean"][0]))
     # The payload below is ROUNDED for publication. A caller that scores the
     # served object (eval/forward_hour_anchor.py) needs it unrounded, and
     # re-implementing this function to get it is how two "identical" pipelines
     # drift apart (R18). So it can ask for the object itself. Default None:
     # nothing served changes.
     if raw is not None:
-        raw.update(pred=pred, cal=cal, anchor_row=row)
+        raw.update(pred=pred, cal=cal, anchor_row=row,
+                   anchor_logvol=float(np.asarray(model.har_logvol(d))[0]))
 
     # THE REPORTED VOLATILITY AND THE BARRIER CURVE ARE TWO PRODUCTS WITH TWO
     # LOSSES, and this is the line where they part company.
@@ -277,7 +381,7 @@ def forecast(model, hours: pd.DataFrame, H: int = PROD_H,
 
     p_up = float(model.prob_up(pred)[0])
     settle = int(hour_ts[row] + H * 3600)
-    return {
+    out = {
         "anchor_utc": str(dt), "settle_utc": str(pd.to_datetime(settle, unit="s", utc=True)),
         "H_hours": H, "spot": round(spot, 2),
         "sigma_window_pct": round(100 * sigma, 3),
@@ -339,6 +443,45 @@ def forecast(model, hours: pd.DataFrame, H: int = PROD_H,
                           "(computed from the same anchor). Asserted in "
                           "tests/test_hour_anchor.py.",
         },
+        "weekend_anchor": {
+            "enabled": bool(WEEKEND_ANCHOR),
+            "available": bool(getattr(model, "has_weekend_anchor", False)),
+            "weekend_frac": (round(float(d["weekend_frac"][0]), 5)
+                             if "weekend_frac" in d else None),
+            "weekend_coef": (round(float(model.w["har_beta_weekend"][1]), 5)
+                             if getattr(model, "has_weekend_anchor", False) else None),
+            "note": "adds the TRUE Sat+Sun fraction of the forecast window to the "
+                    "Log-HAR anchor (the model's own weekend column counts Fri+Sat). "
+                    "Off is bit-identical to the shipped anchor. See "
+                    "P4-weekend-fix-result (ADVANCE).",
+            "applies_to": "the anchor, hence sigma_med, sigma_mean, sigma_atoms, "
+                          "every barrier curve, safe level and p_up, and the "
+                          "trailing vol_calibration factor. Asserted in "
+                          "tests/test_weekend_anchor.py.",
+        },
+        "dow_anchor": {
+            "enabled": bool(DOW_ANCHOR),
+            "available": bool(getattr(model, "has_dow_anchor", False)),
+            "day_fracs_mon_sat": ([round(float(v), 5) for v in d["dow_fracs"][0]]
+                                  if "dow_fracs" in d else None),
+            "note": "adds the window's fraction on each weekday (true UTC calendar) to "
+                    "the Log-HAR anchor; an alternative to weekend_anchor. Off is "
+                    "bit-identical to the shipped anchor. See P4-dow-anchor-result "
+                    "(ADVANCE).",
+            "applies_to": "the anchor, hence sigma_med, sigma_mean, sigma_atoms, every "
+                          "barrier curve, safe level and p_up, and the trailing "
+                          "vol_calibration factor. Asserted in tests/test_dow_anchor.py.",
+        },
+        "iv_anchor": {
+            **iv_info,
+            "available": bool(getattr(model, "has_iv_anchor", False)),
+            "note": "moves the anchor toward the next-day ATM implied vol from Deribit "
+                    "trades before the 17:00 UTC anchor; forward-test candidate "
+                    "(P4-iv1d-posthoc). Off is bit-identical to the shipped anchor.",
+            "applies_to": "the 17:00/H=19 anchor only, hence sigma_med, sigma_mean, "
+                          "sigma_atoms, every barrier curve, safe level and p_up. Asserted "
+                          "in tests/test_iv_anchor.py.",
+        },
         "sigma_scale": {
             "scale": round(float(qs["scale"]), 4),
             "applied": False,
@@ -357,6 +500,17 @@ def forecast(model, hours: pd.DataFrame, H: int = PROD_H,
         "source": source,
         "history_hours": int(len(hours)),
     }
+    # a touch probability must not rise with distance from spot on either side
+    D.trace("payload", anchor_utc=out["anchor_utc"], spot=out["spot"],
+            sigma_window_pct=out["sigma_window_pct"],
+            sigma_annualized_pct=out["sigma_annualized_pct"], p_up=out["p_up"],
+            p_vol_amplify=out["p_vol_amplify"],
+            vol_calibration_applied=out["vol_calibration"]["applied"],
+            touch_prob=lambda: {k: [r["touch_prob"] for r in curves[k]] for k in ("up", "dn")},
+            curves_monotone=lambda: all(a >= b for s in ("up", "dn")
+                                        for a, b in zip([r["touch_prob"] for r in curves[s]],
+                                                        [r["touch_prob"] for r in curves[s]][1:])))
+    return out
 
 
 def model_prob_rv_above(model, pred: dict, threshold: float) -> float:
@@ -423,14 +577,22 @@ def main(argv=None) -> int:
 
     # Prefer the v2 committee artifact; fall back to v1 if it is absent. The
     # runtime is chosen from the artifact's own metadata, not its filename.
-    model = load_model(a.weights)
+    with D.stage("load_model"):
+        model = load_model(a.weights)
     print(f"[predict] model = {model.meta.get('version', 'NOCTUA-v1')} "
           f"({model.meta.get('n_params_total', model.meta.get('n_params')):,} params)")
-    if a.offline:
-        hours, src = load_bundle(), "offline:bundle"
-    else:
-        hours, info = get_hours(fetch_bars)
-        src = info["source"]
+    D.trace("load_model", version=model.meta.get("version"), weights=str(a.weights),
+            arrays=lambda: sorted(getattr(model, "w", {})))
+    info = {}
+    with D.stage("history"):
+        if a.offline:
+            hours, src = load_bundle(), "offline:bundle"
+        else:
+            hours, info = get_hours(fetch_bars)
+            src = info["source"]
+    # info rides as ONE field: splatting it collided with `source` and crashed
+    # the first live run with the trace on (tests/test_debug_trace.py)
+    D.trace("history", source=src, rows=len(hours), live=info)
 
     _MODEL_TAG[0] = model.meta.get("version", "NOCTUA-v1")
     f = forecast(model, hours, H=a.H, anchor_ts=a.anchor, source=src)
@@ -439,6 +601,8 @@ def main(argv=None) -> int:
     a.out_dir.mkdir(parents=True, exist_ok=True)
     (a.out_dir / "noctua.json").write_text(json.dumps(f, indent=2) + "\n")
     (a.out_dir / "kronos.json").write_text(json.dumps(legacy, indent=2) + "\n")
+    D.trace("write", files=lambda: {n: (a.out_dir / n).stat().st_size
+                                    for n in ("noctua.json", "kronos.json")})
 
     print(json.dumps(f, indent=2))
     return 0

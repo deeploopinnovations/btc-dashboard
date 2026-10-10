@@ -56,13 +56,13 @@ async function doRefreshAll() {
   state.sentiment = DataLayer.computeSentiment(state.news, state.kronos, state.fg, state.regime);
 
   // Retail plan
-  if (state.price && state.options && state.atmInfo && state.hv20 && state.regime && state.kronos) {
+  if (state.price && state.options && state.atmInfo && state.hv20 && state.regime) {
     state.retailPlan = DataLayer.buildRetailPlan({
       price:          state.price.price,
       options:        state.options,
       atmInfo:        state.atmInfo,
       hv20:           state.hv20,
-      kronosUpside:   state.kronos.upside,
+      kronosUpside:   state.kronos?.upside ?? 50,   // NOCTUA pins 50; offline = neutral
       regime:         state.regime,
       shortLots:      parseInt(document.getElementById('rpLots')?.value) || 60,
       touchThreshold: parseFloat(document.getElementById('rpTouch')?.value || '0.10'),
@@ -131,13 +131,13 @@ function onRetailSliderChange() {
 }
 
 function doRetailSliderChange() {
-  if (!state.price || !state.options || !state.atmInfo || !state.hv20 || !state.regime || !state.kronos) return;
+  if (!state.price || !state.options || !state.atmInfo || !state.hv20 || !state.regime) return;
   state.retailPlan = DataLayer.buildRetailPlan({
     price:          state.price.price,
     options:        state.options,
     atmInfo:        state.atmInfo,
     hv20:           state.hv20,
-    kronosUpside:   state.kronos.upside,
+    kronosUpside:   state.kronos?.upside ?? 50,   // NOCTUA pins 50; offline = neutral
     regime:         state.regime,
     shortLots:      parseInt(document.getElementById('rpLots')?.value) || 60,
     touchThreshold: parseFloat(document.getElementById('rpTouch')?.value || '0.10'),

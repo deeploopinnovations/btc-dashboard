@@ -16,6 +16,12 @@ model/artifacts/*
 !model/artifacts/*.json
 !model/artifacts/hour_anchor_cond.npz
 !model/artifacts/iv_served_pe.npz
+!model/artifacts/weekend_fix.npz
+!model/artifacts/dow_anchor.npz
+!model/artifacts/iv1d.parquet
+!model/artifacts/iv1d_trades.parquet
+!model/artifacts/rl_inputs.parquet
+!model/artifacts/iv1d_anchor.npz
 !model/artifacts/blend_ceiling.npz
 __pycache__/
 *.pyc

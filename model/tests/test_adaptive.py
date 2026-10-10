@@ -27,9 +27,9 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from serve.adaptive import (CLIP_HI, CLIP_LO, MIN_EPISODES, STRIDE_HOURS,  # noqa: E402
-                            _settled_anchors, apply_correction,
+                            WINDOW_DAYS, _settled_anchors, apply_correction,
                             volatility_correction)
-from serve.history import load_bundle                                      # noqa: E402
+from serve.history import BUNDLE_DAYS, MIN_HISTORY_HOURS, load_bundle      # noqa: E402
 from serve.runtime import load_model                                       # noqa: E402
 
 FAILS: list[str] = []
@@ -96,6 +96,19 @@ def main() -> int:
           CLIP_LO <= cal["factor"] <= CLIP_HI, str(cal["factor"]))
     check("enough settled episodes to estimate a median",
           cal["n_episodes"] >= MIN_EPISODES, str(cal["n_episodes"]))
+
+    # The window is 60 DAYS, not "whatever the bundle reaches". Every settled
+    # anchor in it needs its own 365-day lookback (reg_rv_vs_year). A 400-day
+    # bundle silently dropped the oldest ~26 days, so the served factor was a
+    # ~34-41 day median while every walk-forward result scored 60
+    # (P4-factor-window, found by the NOCTUA_DEBUG trace).
+    n_win = len(_settled_anchors(hours, row, H, WINDOW_DAYS, STRIDE_HOURS))
+    check("the correction uses its whole 60-day window",
+          cal["n_episodes"] >= 0.95 * n_win,
+          f"{cal['n_episodes']} of {n_win} settled anchors")
+    check("the bundle is sized for the window's lookback, not the anchor's alone",
+          BUNDLE_DAYS * 24 >= MIN_HISTORY_HOURS + WINDOW_DAYS * 24 + H,
+          f"{BUNDLE_DAYS}d bundle vs 365d + {WINDOW_DAYS}d + {H}h")
 
     # a short history must REFUSE to correct rather than guess from noise
     early = volatility_correction(model, hours, 24 * 31, H)

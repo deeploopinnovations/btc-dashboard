@@ -207,7 +207,7 @@ def detect(d: dict) -> list:
     for e in es:
         if e.get("superseded_by") or e["verdict"] == "WITHDRAWN":
             alerts.append(("STALE", e["id"],
-                           f"withdrawn/superseded: {e['result'][:70]}",
+                           f"withdrawn/superseded: {e.get('result', '')[:70]}",
                            "grep the repo for this number before citing it; "
                            f"successor: {', '.join(e.get('superseded_by', [])) or 'none'}"))
         # An OPEN entry is only an unclosed promise if it is BOTH unsuperseded

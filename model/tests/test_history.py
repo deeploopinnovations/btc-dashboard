@@ -132,6 +132,38 @@ def main() -> int:
     check("a gap in the hourly grid is detected",
           not ci["contiguous"], f"gaps={ci['gaps']}")
 
+    # The frozen forward holdouts (research/DATA_USE.md) score every night since
+    # their freeze THROUGH this bundle, each night needing 365 days of features
+    # and the 60-day factor window before it. A rolling 430-day bundle would
+    # first starve, then drop, their earliest nights -- and a 450-night holdout
+    # could never be scored (Codex review, PR #14). Rows from BUNDLE_PIN on are
+    # kept; only older rows roll off.
+    pin = getattr(H, "BUNDLE_PIN", None)
+    first_night = pd.Timestamp(getattr(H, "HOLDOUT_EARLIEST_FREEZE", "2026-09-27"), tz="UTC") + pd.Timedelta(hours=17)
+    need = int((first_night - pd.Timedelta(hours=19) - pd.Timedelta(days=60 + 365)).timestamp())
+    check("pin covers the earliest holdout night's full lookback",
+          pin is not None and pin <= need, f"pin {pin} vs needed {need}")
+    check("committed bundle starts at or before the pin",
+          pin is not None and int(bundle["hour_ts"].iloc[0]) <= pin)
+    if pin is not None:
+        import tempfile
+        span = np.arange(pin - 30 * 86400, pin + 800 * 86400, 3600, dtype=np.int64)
+        fake = pd.DataFrame({c: np.ones(len(span)) for c in H.HOURLY_COLS[1:]})
+        fake.insert(0, "hour_ts", span)
+        with tempfile.TemporaryDirectory() as td:
+            out = pd.read_parquet(H.save_bundle(fake, Path(td) / "b.parquet"))
+        check("a rewrite 800 days on keeps every row from the pin",
+              int(out.hour_ts.iloc[0]) == pin and int(out.hour_ts.iloc[-1]) == int(span[-1]),
+              f"first kept {int(out.hour_ts.iloc[0])}, rows {len(out)}")
+        span2 = np.arange(pin - 600 * 86400, pin + 100 * 86400, 3600, dtype=np.int64)
+        early = pd.DataFrame({c: np.ones(len(span2)) for c in H.HOURLY_COLS[1:]})
+        early.insert(0, "hour_ts", span2)                # the 430-day cutoff falls BEFORE the pin
+        with tempfile.TemporaryDirectory() as td:
+            out2 = pd.read_parquet(H.save_bundle(early, Path(td) / "b.parquet"))
+        check("before the pin matters, the rolling BUNDLE_DAYS rule still applies",
+              len(out2) == H.BUNDLE_DAYS * 24 and int(out2.hour_ts.iloc[0]) < pin,
+              f"rows {len(out2)}, first {int(out2.hour_ts.iloc[0])}")
+
     print()
     if FAILS:
         print(f"{len(FAILS)} FAILED: {', '.join(FAILS)}")

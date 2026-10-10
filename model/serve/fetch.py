@@ -177,13 +177,21 @@ def fetch_bars(tail_hours: int = DEFAULT_TAIL_HOURS,
 
     `symbol` defaults to btc, so the production call site is unchanged.
     """
+    from serve import debug as D
     errors = []
     for fn in (fetch_bitstamp, fetch_coinbase):
         try:
-            return validate_bars(fn(tail_hours=tail_hours, symbol=symbol), tail_hours)
+            bars = validate_bars(fn(tail_hours=tail_hours, symbol=symbol), tail_hours)
         except Exception as e:  # noqa: BLE001 - surface every source that failed
             detail = ""
             if isinstance(e, urllib.error.HTTPError):
                 detail = f" (HTTP {e.code})"
             errors.append(f"{fn.__name__}: {type(e).__name__}: {e}{detail}")
+            continue
+        # A primary that failed before the fallback served used to vanish here:
+        # the forecast ran on the fallback venue and nothing said why.
+        if errors:
+            D.trace("fetch.fallback", used=fn.__name__, failed=errors)
+        D.trace("fetch", used=fn.__name__, tail_hours=tail_hours, n_bars=len(bars))
+        return bars
     raise RuntimeError("all data sources failed -> " + " | ".join(errors))

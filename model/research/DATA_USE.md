@@ -220,4 +220,255 @@ Adoption, if it happens before the holdout is scored, rests on the
 walk-forward evidence and the serving gate, with that limitation stated -- the
 same position the dispersion correction is in.
 
+## Third candidate: the true-weekend anchor, frozen 2026-09-29
+
+Added 2026-09-29, the day the candidate was fixed (`P4-weekend-fix-result`,
+ADVANCE; artifact increment committed in `c4f8974`).
+
+    FREEZE DATE: 2026-09-29 (UTC)
+    Holdout = production nights (17:00 UTC anchor, H = 19) with anchor
+    timestamp strictly after the freeze.
+
+**What is frozen** -- two arrays in `model/serve/noctua_v2.npz`, written by
+`noctua/add_weekend_anchor.py` and never refitted, with the arithmetic in
+`noctua/calendar.py` and the rest of the artifact unchanged:
+
+    har_beta_weekend         sha256(bytes) 03ca1419345447ef...  [+0.03711, -0.13026]
+    har_beta_weekend_season  sha256(bytes) 4b59300962e77815...  [+0.03713, -0.13026]
+
+The coefficient is from the artifact's training split (through 2023) and is
+smaller than the walk-forward's recent folds (-0.26 to -0.29): the holdout
+tests the increment AS BUILT, not a refit on recent data.
+
+**Paired, one file.** `WEEKEND_ANCHOR` off is asserted bit-identical to the
+pre-candidate payload (`tests/test_weekend_anchor.py`), so every forward night
+is forecast both ways from the same artifact, `HOUR_ANCHOR` off (the served
+base at the freeze).
+
+**Primary, stated before any forward night exists:** per-episode paired Brier
+of the served barrier curves (shipped minus candidate), block bootstrap, one
+evaluation. Walk-forward effect +0.000301 per night. **Reported:** per-episode
+log score, far-barrier (+/-5%) Brier, QLIKE on sigma_mean (labelled
+underpowered, ~1,400 nights needed), and Brier on EX-ANTE weekday classes
+(Fri/Sat/Sun anchors; Mon-Thu). No outcome-selected subset.
+
+**How and when:** `python -m model.eval.forward_weekend_anchor`. **N_MIN = 450
+nights**, fixed now: at the walk-forward noise (95% half-width 0.000137 at
+2,046 nights, block 38) the interval narrows below the effect at about 425.
+Count only below N_MIN; one scoring at N_MIN into
+`research/forward_weekend_anchor_result.json`; refuses to rescore. Roughly
+fifteen months.
+
+**Overlap with the clock-aware holdout.** Both holdouts use the same forward
+nights. They answer different questions (each is scored against the shipped
+anchor with the OTHER flag off), and neither's result may be used to amend the
+other's design.
+
+**Switch status, 2026-09-29: OFF.** Adoption before the holdout is scored would
+rest on the walk-forward evidence and the audit, with that limitation stated.
+
+## Fourth candidate: the day-of-week anchor, frozen 2026-09-29
+
+Added 2026-09-29 (`P4-dow-anchor-result`, ADVANCE -- it replaces the weekend
+increment as the calendar candidate; the third candidate's freeze stands and
+is scored on its own terms).
+
+    FREEZE DATE: 2026-09-29 (UTC); production nights strictly after it.
+
+**What is frozen** -- two arrays in `model/serve/noctua_v2.npz`, written by
+`noctua/add_dow_anchor.py` and never refitted, with `noctua/calendar.py`:
+
+    har_beta_dow         sha256(bytes) a10cfe4816204035...  [intercept, Mon..Sat]
+    har_beta_dow_season  sha256(bytes) e1053f4c9aff7f38...
+
+Fitted on the artifact's split (through 2023). Frozen coefficients kept 0.82
+of a yearly refit's Brier gain over 2023-2026, 0.62 in the latest years
+(`eval/dow_staleness.py`): the holdout tests the increment AS BUILT.
+
+**Paired, one file**, `DOW_ANCHOR` off vs on, every other anchor flag off
+(`eval/forward_dow_anchor.py`, sharing `forward_weekend_anchor`'s scorer).
+**Primary:** per-episode Brier of the served barrier curves. Walk-forward
+effect +0.000444 per night. **Reported:** log score, far-barrier Brier, QLIKE,
+Brier by ex-ante weekday class. **N_MIN = 450**: the walk-forward noise alone
+needs ~200 nights, but at 0.67 of the effect (staleness) ~450.
+
+**Caveat, stated at the freeze:** the candidate was designed after
+`P4-weekend-calendar-perm` on the same walk-forward years. This holdout is
+the first evidence that did not shape it.
+
+**Switch status, 2026-09-29: OFF.** `DOW_ANCHOR` and `WEEKEND_ANCHOR` are
+alternatives (both on raises).
+
+## Fifth: the clock-aware + day-of-week combination, frozen 2026-09-29
+
+What would actually be served if both candidates were switched on:
+`HOUR_ANCHOR` and `DOW_ANCHOR` together (the day-of-week increment fitted on the
+clock-aware anchor's residual, `har_beta_dow_season`), against the shipped
+anchor with both off. Nothing new is frozen -- it is the same arrays as the
+second and fourth candidates. `eval/forward_clock_dow_anchor.py` (shared
+scorer), primary per-episode Brier, **N_MIN = 300**. Reason for a separate
+freeze: neither single-candidate holdout scores the combination, and the
+walk-forward evidence that they add is from the no-network law only.
+
+## Several holdouts on the same forward nights
+
+Five candidates are now frozen on overlapping forward nights (clock-aware,
+weekend, day-of-week, the combination; the dispersion candidate before them).
+Each is scored ONCE against the shipped anchor on its own primary. Reading
+them together is a family: when more than one is scored, the report states
+how many primaries were read and gives the Bonferroni-corrected interval
+beside the 95% one. No holdout's result may amend another's design.
+*(Corrected 2026-10-10, see the amendment below: the earlier holdout is E2c's,
+not a dispersion candidate's, and with the implied-vol anchor the family is
+six, K = 6, `eval/forward_family.py`.)*
+
+## Sixth candidate: the next-day implied-vol anchor, frozen 2026-09-29
+
+The walk-forward test (`P4-iv1d-anchor-result`) was REJECTED as registered; the
+evidence for this candidate is POST HOC (`P4-iv1d-posthoc`) plus three failed
+disproofs (`P4-iv1d-proxy-control`, `P4-iv1d-dvol-control`, audit J). This
+holdout is the first test it has not shaped.
+
+    FREEZE DATE: 2026-09-29 (UTC); production nights strictly after it.
+
+**What is frozen:** `har_beta_iv` in `model/serve/noctua_v2.npz`
+(sha256(bytes) 22ea1539900cff9b..., a = -0.1361, b = +0.6722), written by
+`noctua/add_iv_anchor.py`, and the feature arithmetic in `noctua/iv1d.py`.
+
+**How:** `python -m model.eval.forward_iv1d_anchor`. Each forward night's IV is
+rebuilt from Deribit's trade history with serving's own code; three arms
+through `serve/predict.forecast` (every other anchor flag off): shipped, the
+night's own IV, and a seeded permutation of the forward nights' IVs (the
+placebo). **PRIMARY: PASS iff per-episode Brier improves with its 95% interval
+above zero against BOTH the shipped forecast AND the placebo.** Reported: log
+score, far-barrier Brier, QLIKE, and the same contrasts on ex-ante classes
+x < 0 / x >= 0. **N_MIN = 200** (the Is-vs-Ip gap needs ~105 nights at the
+walk-forward noise). Count only below N_MIN; one scoring; lock; refuses if
+`har_beta_iv`'s hash changed.
+
+**Switch status, 2026-09-29: OFF.** It also needs a live Deribit fetch at the
+17:00 anchor, which serving performs only when the flag is on.
+
+## Amendment, 2026-09-30, before any holdout was scored: the served base's factor window
+
+Every holdout above scores its arms "through serving's own trailing factor".
+That factor was specified, and scored in every walk-forward result, as a
+60-day median (`serve/adaptive.WINDOW_DAYS`, `eval/hour_anchor.FAC_WINDOW_D`).
+Serving actually computed it over ~34–41 days: the 400-day history bundle could
+not give the window's oldest ~26 days their 365-day `reg_rv_vs_year` lookback,
+so those anchors were dropped (`P4-factor-window`, found by the NOCTUA_DEBUG
+trace). `P4-factor-window-result` restored 60 days (bundle 430 days).
+
+**What this changes for the holdouts:** the served BASE of every arm, in every
+holdout, identically — so every contrast stays paired, and each now tests its
+candidate under the factor its walk-forward evidence was scored with. **What it
+does not change:** any frozen array (the `FROZEN_SHA16` hashes are untouched),
+any primary, any N_MIN, any arm definition. **Why this is not a forked path:**
+it was made before any holdout was scored — the clock-aware holdout (frozen
+2026-09-27) had at most a few forward nights counted, and its scorer computes
+and prints nothing below N_MIN; the 2026-09-29 holdouts had none — and it was
+decided by a rule registered before its own measurement, on the walk-forward
+slice, not on any forward night.
+
+## Amendment, 2026-10-10, before any holdout was scored: what each scoring freezes, keeps and reports
+
+Four changes, from the Codex review of PR #14. None is a design choice made
+after seeing a forward result: no holdout has reached its N_MIN (the first, the
+implied-vol anchor's 200 nights, falls around 2027-04), and every scorer prints
+nothing but a count below it.
+
+**1. The family, corrected and made binding.** "Several holdouts on the same
+forward nights" above names "the dispersion candidate before them". That is a
+slip: no dispersion freeze exists (see "The freeze is CANDIDATE-SPECIFIC"); the
+holdout before them is E2c's, frozen 2026-08-28. With the implied-vol anchor
+the family is **six** — E2c (no scorer yet; counted, because it will be read
+and leaving it out would shrink K), clock-aware, weekend, day-of-week, the
+combination, implied-vol — so **K = 6 and each primary is also read at
+alpha = 0.05 / 6**, by the same estimator (`eval.ci.mean_ci`, the primary's own
+block length). The implied-vol PASS needs both of its contrasts (an
+intersection-union test), so each is read at 0.05 / 6 and no further split is
+due. Until now no code computed this. Each lock now also stores:
+
+- `per_night`: `anchor_ts` and every metric's per-night delta (shipped minus
+  candidate; positive favours the candidate), so the family reading, or any
+  later procedure that needs the nights, never requires rescoring a spent
+  holdout;
+- `family`: K, alpha / K, each primary's family interval, whether it clears,
+  and which members had already been scored.
+
+`python -m model.eval.forward_family` prints every member, scored or not, and
+rebuilds each family interval from its lock's deltas; the daily workflow runs
+it. **Each holdout's registered PASS rule is unchanged**; the family interval
+is reported beside it, as the section above already required.
+
+**2. The whole base is frozen, not only the increments.** `FROZEN_SHA16`
+hashed each candidate's own arrays, so a retrain, a base-array edit, or a
+change to the serving arithmetic would have moved both arms of every holdout
+unnoticed. `eval/forward_weekend_anchor.BASE_SHA16` adds two fingerprints:
+every non-increment array plus the metadata (`681efe8810cbc369`), and the
+flags-off served payload at three fixed 17:00 anchors on the committed bundle
+(`aae8af223b70e2f2`; re-frozen in amendment (b) below). Both are identical at
+every freeze commit (ef6e44b, c4f8974, 4efbda9, dea1b44). Scoring refuses on a mismatch; the daily workflow
+and every pull request check it. A deliberate change updates them with an
+amendment here, made before any holdout scores.
+
+**3. The history the holdouts score through is kept.** Every forward night is
+forecast through the committed bundle and needs its own 365 days of features
+plus the 60-day factor window. The 430-day bundle rolled, so it would first
+have starved and then dropped the earliest forward nights; a 450-night holdout
+could never have been scored. `serve/history.BUNDLE_PIN` (2025-07-25 15:00 UTC,
+what the earliest holdout night needs) keeps every row from the pin on; only
+rows before it roll off. The bundle grows ~0.7 MB a year until the last holdout
+locks (the 450-night ones, around 2027-12); the pin may then move forward, with
+an amendment here. The rows the forecasts read are unchanged.
+
+**4. An implied-vol fetch error is not a no-trade night.** The scorer caught
+every exception from the Deribit history fetch and scored that night as if no
+IV existed, the shipped forecast in both IV arms. On the one scoring day a
+timeout would have been locked in as data. A fetch error now aborts the
+scoring with no lock written, and the daily workflow retries; a night with
+genuinely no trades is still scored as before. The arm definitions are
+unchanged.
+
+## Amendment, 2026-10-10 (b), before any holdout was scored: the served base moved
+
+The same day, `main` merged PR #19 (another session's disproof audit,
+`runs/noctua-disproof-2026-10-10`, A0 B1/A2 and A5): `serve/adaptive.py` now
+estimates the live volatility factor on the anchor's **own hour of day**
+(24-hour stride over the 60-day window) instead of a median over all hours
+(6-hour stride). At 17:00 the served median RV/sigma_med was ~0.85 under the
+all-hour factor; the same-hour factor brings it to 0.99-1.01 at every hour.
+That PR also set the bundle to 460 days (kept here, with `BUNDLE_PIN`).
+
+**What moved:** the served base of every arm in every holdout, identically.
+The `forecast` fingerprint changed (aae8af223b70e2f2 -> 7b8c39c432db7cba);
+restoring `serve/adaptive.py` alone restores the old value exactly, and the
+`arrays` fingerprint and every `FROZEN_SHA16` hash are unchanged. Following
+the rule written in the amendment above, `BASE_SHA16` is re-frozen to the new
+base, with this record, before any holdout scored (the first, 200 nights, is
+due around 2027-04). Each holdout therefore tests its frozen candidate against
+**what is served**, as the 2026-09-30 amendment also did.
+
+**What it does to the holdouts, stated before any is read:**
+
+- **Clock-aware (and the combination, which contains it):** the candidate
+  corrects the 17:00 level through an hour-of-day profile; the new base already
+  removes most of that level bias. Its effect over the new base may be far
+  smaller than the walk-forward effect, which was measured against the
+  all-hour factor, and N_MIN = 300 was sized for that walk-forward effect. N_MIN
+  is **not** changed (R26): if the holdout is underpowered, it fails as
+  underpowered. Its secondary (the sign of the median log(RV / sigma_med) at
+  17:00) starts near zero under the new base.
+- **Weekend / day-of-week:** night-level increments on top of the anchor. The
+  same-hour factor is estimated over all weekdays, so it does not remove the
+  weekday pattern; overlap is expected to be small, not zero.
+- **Implied-vol:** its PASS already requires beating a placebo that carries
+  the same 17:00 shift, so the contrast that isolates the night's IV is
+  unaffected by where the base level sits.
+
+**Why not pin the scorers to the old factor instead:** it would score each
+candidate against a base nobody serves. That alternative remains open until
+the first holdout scores, by an amendment here; nothing has been read that
+could inform the choice.
+
 *Educational research only. Not financial advice.*

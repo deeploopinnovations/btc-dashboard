@@ -32,7 +32,8 @@ THE FIX
 -------
 Ship the long history as a committed hourly bundle and fetch only the tail.
 
-    data/noctua_history.parquet   ~460 days of hourly aggregates (~820 KB)
+    data/noctua_history.parquet   ~460 days of hourly aggregates, plus every hour
+                                  from BUNDLE_PIN on (~850 KB)
     live fetch                    the tail since the bundle ends (usually 1 call)
 
 The bundle carries the same hourly columns `noctua.features` consumes, built by
@@ -62,11 +63,27 @@ from noctua.episodes import build_hourly  # noqa: E402
 
 HOUR = 3600
 BARS_PER_HOUR = 12                     # 5-minute grid
-# 365 days of feature warm-up (reg_rv_vs_year) + the 60-day same-hour window of
-# serve/adaptive.py + margin. At 400 days only ~34 settled same-hour episodes had
-# complete features, so the live factor rested on about half its designed
-# sample (audit A5, runs/noctua-fixes-2026-10-10).
+# 365 days for the forecast anchor's own reg_rv_vs_year lookback is NOT enough:
+# serve/adaptive.volatility_correction forecasts every settled anchor of its
+# 60-day window, and each of those needs its own 365 days. At 400 the oldest
+# ~26 days of the window had a NaN feature and were silently dropped
+# (P4-factor-window, under the earlier 6-hour stride, set 430; audit A5,
+# runs/noctua-fixes-2026-10-10, found the same for the same-hour window and set
+# 460). 365 + 60 + 1 (the H = 19 settle) + margin.
+# tests/test_adaptive.py asserts the relation and that the window is whole.
 BUNDLE_DAYS = 460
+
+# The frozen forward holdouts (research/DATA_USE.md) score every night since
+# their freeze THROUGH this bundle, and each of those nights needs its own 365
+# days of features plus the 60-day factor window. A purely rolling bundle would
+# first starve, then drop, their earliest nights; a 450-night holdout could
+# never be scored (Codex review, PR #14). So rows from BUNDLE_PIN on are never
+# dropped; only rows before the pin roll off under BUNDLE_DAYS. The bundle
+# therefore grows by ~0.7 MB a year until the last holdout locks (the 450-night
+# ones, around 2027-12); then the pin may move forward, recorded in DATA_USE.md.
+# tests/test_history.py asserts the pin covers the earliest holdout's needs.
+HOLDOUT_EARLIEST_FREEZE = "2026-09-27"          # the clock-aware anchor's holdout
+BUNDLE_PIN = 1753455600                          # 2025-07-25 15:00 UTC: needed from 2025-07-28 22:00
 
 # How stale the committed bundle is allowed to get before it is rewritten.
 #
@@ -108,9 +125,12 @@ def load_bundle(path: Path | None = None) -> pd.DataFrame:
 
 
 def save_bundle(hours: pd.DataFrame, path: Path | None = None, days: int = BUNDLE_DAYS) -> Path:
+    """Keep the last `days` of hours AND every hour from BUNDLE_PIN on."""
     p = Path(path) if path else default_bundle_path()
     p.parent.mkdir(parents=True, exist_ok=True)
-    out = hours[HOURLY_COLS].tail(days * 24).reset_index(drop=True)
+    h = hours[HOURLY_COLS].sort_values("hour_ts", ignore_index=True)
+    rolling_start = int(h["hour_ts"].iloc[max(len(h) - days * 24, 0)]) if len(h) else BUNDLE_PIN
+    out = h[h["hour_ts"] >= min(rolling_start, BUNDLE_PIN)].reset_index(drop=True)
     out.to_parquet(p, index=False, compression="zstd")
     return p
 

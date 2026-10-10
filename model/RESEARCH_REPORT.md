@@ -372,7 +372,7 @@ timeline
 
 ## The experiment register
 
-219 pre-registered experiments. **ADOPT** 22 · **ADVANCE** 44 · **DIAGNOSTIC** 7 · **NULL** 23 · **OPEN** 6 · **OPEN (answered by a later entry)** 65 · **REJECT** 50 · **WITHDRAWN** 2
+235 pre-registered experiments. **ADOPT** 22 · **ADVANCE** 46 · **DIAGNOSTIC** 15 · **NULL** 23 · **OPEN** 6 · **OPEN (answered by a later entry)** 69 · **REJECT** 52 · **WITHDRAWN** 2
 
 The register is append-only, so a pre-registration keeps its OPEN verdict and its result arrives as a separate entry that supersedes it. **6** questions are genuinely unresolved; the rest of the OPEN rows have been answered.
 
@@ -599,6 +599,22 @@ Every row was registered with its decision rule **before** it ran. Failures are 
 | `P4-hour-anchor-exante-result` | phase4 | DIAGNOSTIC | Closing P4-hour-anchor-exante: on nights that look dangerous at the anchor, is the clock-aware anchor signific |
 | `P4-iv-served-pe` ⤳ | phase4 | OPEN | E2c -- the project's largest forecast effect, downgraded to NOT PROVEN because its fold-level interval could n |
 | `P4-iv-served-pe-result` | phase4 | REJECT | Closing P4-iv-served-pe: does E2c's implied-volatility correction improve the product per episode on the serve |
+| `P4-short-anchor` ⤳ | phase4 | OPEN | NOCTUA does not rank nights better than a simple model (P4-simple-vs-noctua-result). The most reactive informa |
+| `P4-short-anchor-result` | phase4 | REJECT | Closing P4-short-anchor: does a clock-aware reactive anchor (deseasonalised 1h/6h vol) rank nights better, on  |
+| `P4-short-anchor-audit` | phase4 | DIAGNOSTIC | Three adversarial agents tried to disprove P4-short-anchor-result's 6/6-fold DSC pattern, to decide whether th |
+| `P4-weekend-bug` | phase4 | DIAGNOSTIC | Does the anchor's weekend column (cal_weekend_frac, in log_har_cal and the network inputs) count the weekend? |
+| `P4-weekend-fix` ⤳ | phase4 | OPEN | Does giving the served anchor the TRUE weekend fraction (Sat+Sun UTC) improve the barrier product, and is it t |
+| `P4-weekend-fix-result` | phase4 | ADVANCE | Closing P4-weekend-fix: does the TRUE weekend fraction in the served anchor improve the barrier product, and i |
+| `P4-weekend-calendar-perm` | phase4 | DIAGNOSTIC | Audit of P4-weekend-fix-result: is the gain the CALENDAR, and is it the WEEKEND? Every weekday pair (21) and s |
+| `P4-dow-anchor` ⤳ | phase4 | OPEN | The weekend increment works by separating Friday from Saturday, and Monday carries a further effect (P4-weeken |
+| `P4-dow-anchor-result` | phase4 | ADVANCE | Closing P4-dow-anchor: does the FULL day-of-week calendar in the anchor beat the weekend-only increment on the |
+| `P4-dow-audit` | phase4 | DIAGNOSTIC | Adversarial audit of P4-dow-anchor-result (haiku agents F: statistics, G: overfitting) and my own checks: stal |
+| `P4-event-calendar-inspect` | phase4 | DIAGNOSTIC | Do scheduled events inside the 17:00->12:00 window -- FOMC statements (18:00/19:00 UTC) and Deribit monthly/qu |
+| `P4-iv1d-anchor` ⤳ | phase4 | OPEN | Does the market's own forecast for the product night -- the at-the-money implied vol of the Deribit option exp |
+| `P4-iv1d-anchor-result` | phase4 | REJECT | Closing P4-iv1d-anchor: does next-day ATM implied vol (pre-anchor trades) improve the served barrier product? |
+| `P4-iv1d-posthoc` | phase4 | DIAGNOSTIC | POST HOC, NOT REGISTERED: does the real next-day IV beat its own shuffled placebo (same intercept freedom) --  |
+| `P4-iv1d-proxy-control` | phase4 | DIAGNOSTIC | Attack on P4-iv1d-posthoc: is next-day implied vol just a fast estimate of recent realised vol, which the mode |
+| `P4-iv1d-dvol-control` | phase4 | DIAGNOSTIC | Audit K's attack on P4-iv1d-posthoc, re-run by me: is next-day implied vol just the 30-day DVOL index in disgu |
 
 ⤳ = superseded by a later entry; the original is kept rather than edited.
 

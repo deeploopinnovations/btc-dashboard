@@ -25,14 +25,14 @@ const UI = (() => {
   function updateKronosBadge(kronos) {
     const el = $('kronosBadge');
     if (!el) return;
-    if (!kronos) { el.className = 'pill-sm err'; el.textContent = 'Kronos: offline'; return; }
+    if (!kronos) { el.className = 'pill-sm err'; el.textContent = 'NOCTUA: offline'; return; }
     const cls = kronos.freshness === 'fresh'   ? 'ok'
               : kronos.freshness === 'recent'  ? 'ok'
               : kronos.freshness === 'stale'   ? 'warn'
               :                                   'err';
     const age = kronos.ageHrs == null ? '?' : kronos.ageHrs < 1 ? '<1h' : kronos.ageHrs.toFixed(0)+'h';
     el.className = 'pill-sm ' + cls;
-    el.textContent = `Kronos ${kronos.upside.toFixed(1)}% · ${age} ago`;
+    el.textContent = `${kronos.model || 'NOCTUA'} vol-amp ${kronos.volAmp.toFixed(1)}% · ${age} ago`;
   }
 
   // ── HERO DECISION CARD ───────────────────────────────────────────────
@@ -300,16 +300,16 @@ const UI = (() => {
   function updateKronosCard(kronos) {
     const body = $('kronosCardBody');
     if (!body) return;
-    if (!kronos) { body.innerHTML = '<div style="font-size:11px;color:var(--muted)">Kronos data unavailable.</div>'; return; }
+    if (!kronos) { body.innerHTML = '<div style="font-size:11px;color:var(--muted)">NOCTUA forecast offline: no snapshot whose 19-hour window is still open. No other model is substituted.</div>'; return; }
     const freshCls = kronos.freshness === 'fresh' || kronos.freshness === 'recent' ? 'fresh'
                   : kronos.freshness === 'stale' ? 'stale' : 'very-stale';
 
     body.innerHTML = `
       <div class="kc-head">
         <div>
-          <div class="kc-title">BTC/USDT · Next 24h</div>
+          <div class="kc-title">BTC/USD · ${kronos.model || 'NOCTUA'} · 19h window</div>
           <div style="font-size:10px;color:var(--muted);margin-top:2px">
-            Source ts: ${kronos.sourceTs || 'unknown'} ${kronos.ageHrs != null ? `(${kronos.ageHrs < 1 ? '<1' : kronos.ageHrs.toFixed(0)}h ago)` : ''}
+            Anchor (UTC): ${kronos.sourceTs || 'unknown'} ${kronos.ageHrs != null ? `(${kronos.ageHrs < 1 ? '<1' : kronos.ageHrs.toFixed(0)}h ago)` : ''}
           </div>
         </div>
         <span class="kc-fresh ${freshCls}">${kronos.freshness.toUpperCase()}</span>
@@ -327,7 +327,7 @@ const UI = (() => {
         </div>
       </div>
       <div style="font-size:10px;color:var(--muted);margin-top:10px;line-height:1.5">
-        Via ${kronos.proxy || 'proxy'}. Model: Kronos-mini (4M params) · Context: last 360h · N=30 Monte-Carlo paths.
+        ${kronos.model || 'NOCTUA'}, published by this repo's data cron. Upside is pinned to 50 on purpose: direction has no validated skill at this horizon; the model's raw P(up) is ${kronos.p_up_raw ?? '—'}%. Vol-amp is validated.
       </div>`;
   }
 

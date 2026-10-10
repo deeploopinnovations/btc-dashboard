@@ -445,3 +445,272 @@ fraction) ≈ 0 on H = 19 anchors, i.e. the two increments would add.
 
 Tally so far: of 13 attack items, 1 useful build requirement, 0 confirmed
 defects, 2 claims rejected on evidence.
+
+**Agent C — statistics (haiku). DOES NOT WEAKEN on 5 attacks; one fair critique ACCEPTED.**
+Leave-one-fold-out: rule met in 6/6 (my own independent run: 0/6 failures,
+all four metrics clearing each time). Block lengths 19/38/76/152/365: every
+barrier interval stays above zero. Family 40 and 80 (α 0.00125 / 0.000625):
+all four still clear (Brier [+0.000066, +0.000555] at family 80). Trimming the
+top/bottom 1 % of per-night deltas: rule still met. All six years positive on
+all four metrics (sign test p = 0.016, optimistic under expanding-window
+dependence — agreed). ACCEPTED: the four barrier metrics' per-night deltas
+correlate 0.73–0.93, so they are ONE effect measured four ways, not four
+confirmations; the rule's "2 of 4" is breadth, not independent evidence. The
+conclusion stands because Brier ALONE clears at family 80; the record now
+describes it as one effect. Not accepted as a weakness: per-night
+mean/sd ≈ 0.1 is ordinary for per-episode proper scores (it is why 2,046
+nights are needed).
+
+**Agent E — interaction with the clock-aware anchor (haiku, no-network law).
+ADDITIVE.** Overlap (GA + GW − GAW) ≈ 0 on all four metrics; season_fwd is a
+constant at any fixed (hour, H), so at the product anchor the two terms cannot
+interact; coefficients move < 0.4 % when fitted jointly. Consistent with my
+build-time measurements (corr 0.0000 on training rows; the increment is
+−0.13026 on either anchor; the gate moves the median by −0.069858 alone and
+−0.069851 on the clock-aware anchor). CAUTION KEPT: on the Gaussian law the
+weekend column's DSC is better in only 3/6 folds (NOCTUA: 6/6) — the ranking
+gain is model-dependent; the claim rests on the barrier metrics. E's
+"ship both" recommendation is advocacy outside its mandate and is not counted.
+
+**Decision so far (rule fixed above):** MET, no confirmed defect, 0/6
+leave-one-out failures → the increment is BUILT behind `WEEKEND_ANCHOR = False`
+(`c4f8974`, gate 16/16) and a forward holdout is FROZEN (DATA_USE.md, third
+candidate, N_MIN 450). Pending: agent B (calendar permutation) — the one
+remaining disqualifier ("a non-calendar control reproduces ≥ half the gain").
+
+**Agent B — "is it the calendar?" (haiku). REJECTED: did not run the attack.**
+Asked to fit each of the 21 day-pair columns INTO THE ANCHOR and score the
+barrier forecasts, it instead regressed Ws's per-night gain on day fractions —
+which says on which nights the existing fix helps, not whether another column
+would help as much — and its own tables contradict its verdict (Sat and Sun
+rank 1-2 as single days, Saturday nights gain +1.8%). Its "DISCONFIRMED" is not
+recorded as evidence.
+
+**The attack itself, run by me (`eval/weekend_calendar_perm.py`,
+`P4-weekend-calendar-perm`).** Sat+Sun ranks 2/21; Mon+Fri ranks 1 (144 % of
+Sat+Sun's Brier gain); Fri alone = Sat alone = +0.259 %; midweek-only pairs
+(incl. the registered placebo) ≈ 0. **The disqualifier ("a NON-calendar
+control reproduces ≥ half the gain") is not triggered** — every column that
+helps contains Mon, Fri or Sat. But the mechanism was mislabelled: the gain is
+separating high-vol Friday from low-vol Saturday (which the buggy column
+lumps), plus a Monday effect — not "the weekend". Decision unchanged: the
+increment stays built, OFF, holdout frozen. Mon+Fri is not adopted
+(post-hoc selection among 28). Next: the full day-of-week anchor, registered
+before its run.
+
+**Final tally for this audit:** agents A, C, D, E and my own check — 0
+confirmed defects; 4 agent claims rejected on evidence (A's leak, D's
+per-fold factor, B's whole analysis, E's recommendation as advocacy); 2 useful
+findings kept (D: serving needs its own true-weekend computation — built; C:
+the four metrics are one effect). The swarm's most useful output this round
+was the attack it FAILED to run: specifying it forced the permutation that
+corrected the mechanism.
+
+---
+
+# 2026-09-29 (c): the day-of-week successor — audit returns
+
+Same decision rule as (b). `P4-dow-anchor-result` MET (Ds beats Ws on all five).
+
+**Agent F — statistics (haiku).** Leave-one-fold-out 6/6 met; every block
+length and families up to 120 clear. ACCEPTED: Thursday nights get worse
+(QLIKE −1.88 %, separated); gains grow each year (a strengthening weekday
+pattern, which also makes coefficients go stale); vs Ws the DSC is 3/6 — no
+ranking claim over Ws. REJECTED: "bottom 95 % negative" as a disqualifier
+(heavy-tailed per-night deltas are normal; trimming keeps the rule).
+
+**Agent G — overfitting (haiku). Headline REJECTED, one attack USEFUL.** Its
+verdict ("freedom, not calendar") is contradicted by its own fake cycles and by
+my re-run: periods 6 and 8 give ≈ 0; every phase of the real week gives
++0.23 % to +0.57 %; a whole-day relabel is identical. Its coefficient-vs-vol
+argument compared anchor weekday with window weekday. But its SHIFTED-WEEK
+attack found something real: the best day boundary sits ~6–9 h after UTC
+midnight — recorded as a hypothesis (post-hoc among 8 phases), not adopted.
+
+**My checks.** Staleness: frozen coefficients keep 0.82 of a yearly refit's
+gain (0.62 in the latest years), positive every year → fitting on the
+artifact's split is acceptable; the five-column increment was a design error
+(Sat and Sun forced to share a level), fixed to Mon..Sat before building.
+
+**Decision:** no disqualifier → built OFF (`DOW_ANCHOR`, alternative to
+`WEEKEND_ANCHOR`), gate 13/13, forward holdout frozen (N_MIN 450). The calendar
+line now continues ONLY on forward data, as the supervisor note required.
+
+---
+
+# 2026-09-29 (d): next-day implied vol — audit returns
+
+`P4-iv1d-anchor-result` REJECT as registered (the shuffled-IV placebo also
+helped, via the 17:00 intercept both arms carry). Post hoc, labelled:
+`P4-iv1d-posthoc` (Is beats Ip on all five). My disproof attempt
+`P4-iv1d-proxy-control`: recent realised vol adds nothing beyond the 17:00
+level; implied vol adds +1.03 % Brier beyond it — NOT refuted.
+
+**Agent H — leakage / data integrity (haiku). 7 × NO DEFECT, two numbers
+wrong.** Every trade before its anchor; expiries parse to 08:00 UTC,
+next-day rows exactly 15 h; day mapping correct; placebo keeps each year's
+values; fit on train nights only. Its DVOL check merged at the wrong grain
+("228,291 days", ratio 12.65); redone by me daily at 16:00 UTC: corr 0.81,
+median ratio 0.85 over 1,981 days — parsing sound, overnight IV a little below
+30-day IV as the term structure implies.
+
+**Agent J — statistics of the post-hoc gap (haiku).** Leave-one-year-out 5/5,
+block 19–365 and families to 80: DOES NOT WEAKEN. ACCEPTED: 2022 is positive
+but not separated (separated in 4/5 years — my "every year" referred to point
+estimates and is corrected here); ~79 % of the Brier gain comes from the top
+5 % of nights, and survives trimming. VERIFIED AND RE-READ: the gain is
+concentrated where the market is CALMER than the anchor (x < 0, 33 % of
+nights: Is−Ip Brier +1.69 %, QLIKE +19 %), and smaller but separated at 95 %
+elsewhere (x ≥ 0: Brier +0.16 % [+0.00007, +0.00056]); J's "no separation"
+used 99.5 %. REJECTED: "regime-specific spurious pattern" — the split is ex
+ante, both sides are positive, and "the market says tonight is quieter than
+your trailing history" is exactly the information a Log-HAR anchor lacks.
+What J is right about: post hoc is post hoc — only a forward test can confirm.
+
+**Agent K — "is next-day IV just DVOL?" (haiku). DOES NOT DISCONFIRM —
+re-run by me and CONFIRMED** (`P4-iv1d-dvol-control`): DVOL adds about what
+the 17:00 intercept adds (+0.31 % Brier); IV beats DVOL by +0.94 % Brier and
+adds +0.72 % on top of it (99.5 %). K's own numbers point the same way. Not
+counted: K's closing phrase "the claim is confirmed at 99.5 %" — a failed
+disproof on a proxy law is not a confirmation.
+
+**Decision (d):** the registered test REJECTED; three disproof attempts
+(fast realised vol, DVOL, statistics) failed to kill the post-hoc gap; no
+leakage. → Built OFF behind `IV_ANCHOR` (gate 13/13) and a FORWARD holdout
+FROZEN (DATA_USE sixth candidate) whose primary includes the placebo contrast
+the walk-forward rule lacked. Adoption waits for it.
+
+---
+
+# 2026-09-30: attacks on the standing claims
+
+**Skew (`P4-skew-asym-result`, NULL):** screen formally met only because the
+shuffled placebo was harmful; the skew arm is worse than the symmetric base in
+point estimate. Licensed follow-up declined. New rule R90 (a placebo-controlled
+rule needs candidate > placebo AND candidate > base).
+
+**Agent L — "break the forward holdouts" (haiku). Reported NO DEFECT; one of
+its claims was FALSE and hid a real defect.** Verified correct: all seven
+frozen hashes match the artifact and DATA_USE.md; the IV rebuild uses
+[16:00, 17:00) only; night selection strictly after the freeze; the workflow
+never overwrites a lock and commits lock files only. FALSE: "every scorer
+forces the other anchor flags off". `forward_hour_anchor.py` (the oldest)
+toggled HOUR_ANCHOR alone, so any later default change of another flag would
+silently have changed BOTH arms of the clock-aware holdout. Fixed before any
+forward night was scored (the design is unchanged: same artifact, HOUR_ANCHOR
+off vs on); the new selftest check compares the off arm with a clean forecast
+and was shown to FAIL on the old code (R2). Not done by L: re-deriving an
+N_MIN (it restated the docstrings); mine were derived in
+`P4-weekend-fix`/`P4-dow` from the saved arrays.
+
+**Agent M — "day-of-week = a 17:00 level shift?" (haiku). Right verdict,
+INVALID evidence; files it wrote into the repo deleted.** Its intercept was
+added at every hour, so the median factor absorbed it (the G_C degeneracy of
+2026-09-28, pitfall `arm-not-degenerate`) and its control equalled the base.
+Re-run correctly (`P4-dow-level-control`, `eval/dow_vs_intercept.py`): the
+calendar adds +0.36 % Brier / +0.44 % log score beyond a real 17:00-only
+intercept. Claim stands.
+
+**Tally 2026-09-30:** two standing claims attacked (forward-holdout soundness,
+day-of-week mechanism) — both survive; one real defect found and fixed (the
+hour-anchor scorer's flags), found by checking an agent's FALSE "no defect"
+claim; one agent result valid only after I rebuilt it. Skew: NULL.
+
+## Round (e), 2026-09-30: disprove this cycle's own claims (5 haiku agents, every claim re-run)
+
+**A — NOCTUA_DEBUG never changes or breaks a forecast: SURVIVED (9 attacks).**
+Re-run: the v1 weights write a byte-identical noctua.json with the trace on (10
+records); an anchor 30 min off the hour is moved to the next bar and the trace
+now says `exact: false` (finding F6, visible as designed).
+
+**B — the bundle backfill is the same construction and loses nothing:
+SURVIVED (8 attacks).** Re-run, with one REFINEMENT: served features are not
+bit-identical at old anchors — `reg_vol_trend` (1.6e-14) and `reg_rv_vs_year`
+(1.8e-15) drift by float rounding (rolling sums now start 720 rows earlier),
+max relative 6.3e-14. "Nothing changed except the factor" holds to ~1e-13, not
+bit for bit; B found one of the two columns.
+
+**C — P4-factor-window-result: headline "REFUTED" rejected, its finding
+kept.** It reproduced the registered contrasts exactly. Its extra search (6
+windows x 2 metrics, re-run by me) shows factor quality MONOTONE in window
+length: 20 and 30 days significantly worse than 60, 90 days better on log
+score at 99.5 % (one of 12 post-hoc contrasts; fails a 12-way Bonferroni).
+The restore-to-60 decision is strengthened; 60 is not shown optimal. Recorded
+as `P4-factor-window-longer` (DIAGNOSTIC); a longer window needs its own
+registration and a DATA_USE amendment.
+
+**D — PIPELINE_TRACE.md facts: all checked claims RIGHT except one count.**
+"46/46 module selftests" was right at the sweep; `eval/factor_window.py` was
+added after it (47/47 now). Corrected. F4's numbers (16 runs, 2.6–8.5 h, ~15 %)
+recomputed independently.
+
+**E — the holdout amendment is legitimate: SURVIVED (6 attacks).** Re-run: no
+lock file anywhere in history, the clock holdout counts 2 nights and prints
+nothing else, frozen hashes match, the only eval change is the new script.
+
+**Operational:** A, C, D were cut off by an API rate limit mid-audit and
+resumed with their context; a CI re-run replays the ORIGINAL merge commit, so a
+data-freshness red cannot be cleared by re-running — only by a new push after
+main's cron refreshes (green at ed93841).
+
+**Tally:** 5 claims attacked, 0 defects in the code, 2 corrections to my own
+wording (feature drift ~1e-14, selftest count), 1 new post-hoc question
+(longer factor window).
+
+## Round (f), 2026-10-08: disprove the RL paper agent (2 haiku agents, cut off by a usage limit, resumed)
+
+**F — the replay: no look-ahead SURVIVED; the out-of-sample label was FALSE.**
+Re-run by me independently first: 200/200 returns and entry prices recomputed
+from raw bars; inputs byte-identical with 48 h of future bars present. F's
+correction stands: 2024-01-01 is not the shipped model's unseen period —
+Jan–Jun 2024 was its calibration slice (`noctua/splits.py`, DATA_USE.md) —
+and the annual returns were arithmetic. Re-run on the unseen window
+(2024-07-01 on), compounded: MV −10.1 %/yr, HOLD +1.6 %/yr (+3.4 % total), TS
+−65.6 %/yr; verdicts unchanged (MV not separated from HOLD, VT or placebo; TS
+worse). The "+27.6 %" for holding I reported overstated the benchmark.
+
+**G — the live loop: REFUTED, five real defects, all fixed before any live
+use.** Restore treated every download error as a first run (a 5xx would
+overwrite the learned state and log); a crash after settling duplicated a log
+record; a settled-up-to watermark stranded windows whose bars arrived late;
+baseline costs assumed settlement order; a clock far ahead of the feed minted
+a year of fake holds. Each reproduced as a failing check first (31 now), then
+fixed; G's own attack scripts rerun on the fix all resolve, and its randomised
+5-seed restart/gap stress run stays clean.
+
+**Tally:** two claims attacked, both partly refuted — one research claim
+corrected (window and return convention, verdict unchanged), five live-loop
+defects fixed. My own first test of out-of-order settlement could not fail
+(the hidden bar was shared by both windows); rebuilt to reproduce G's exact
+sequence.
+
+## Round (g), 2026-10-10: the Codex review of PR #14 (7 findings, external reviewer)
+
+Every finding was reproduced or confirmed against the code before it was
+fixed; none was dismissed. Each fix is test-first (a check that fails on the
+old code), and none changes a frozen array, a primary, an N_MIN or an arm.
+
+| # | finding (Codex id) | confirmed? | fix |
+|---|---|---|---|
+| A | rl/store: state and log were two Hub commits; a failure between them loses a settled record for good (4237626878) | yes: the state drops the decision from `pending`, the log never gets it | 4afab2f: one `create_commit` with both files; checked against a fake API |
+| B | rl/agent: hyperparameters were not in the state; a default change would apply old statistics under a new learner and utility (4237626896) | yes | a2e5d1a: `params` saved and restored; settled utilities use the agent's own cost and gamma, stored per record |
+| C | space/deploy `--warm-start` failed on a clean checkout: the replay inputs were not committed (4237626889) | yes | 962fa92: inputs committed (~200 KB); otherwise rebuilt, otherwise a stop with the remedy |
+| D | forward_iv1d: a Deribit fetch error was scored as a no-trade night and could be locked on the one scoring day (4237626888) | yes | 89dd55a: an error aborts, no lock written, the workflow retries; a genuine no-trade night is still scored |
+| E | serve/history: the rolling bundle would starve, then drop, the holdouts' earliest nights; a 450-night holdout could never score (4237626876) | yes | d938c6c: `BUNDLE_PIN` keeps every row from 2025-07-25 15:00 on |
+| F | the holdouts hashed only their increments; a base change would move both arms unnoticed (4237626883) | yes | bf4dbca: base arrays + metadata + served numbers at three anchors fingerprinted, identical at all four freeze commits; checked daily and (40f58a2) on every pull request |
+| G | no code computed the family-wise interval DATA_USE.md promises, and locks kept no per-night deltas (4237626892) | yes, and the family text itself had a slip ("dispersion candidate" for E2c's holdout) | 7f3185e: `eval/forward_family.py`, K = 6, alpha / 6, per-night deltas and the family block in every lock; the report rebuilds each interval from the lock |
+
+**Found while fixing, not by the reviewer:** the five scorer selftests, which
+are the only test of the one-shot scoring mechanics, ran in no CI job and not
+in precommit; `test_rl` ran in precommit but not CI. Both now run on every
+pull request. PR #14 had a merge conflict with main (the history bundle,
+rewritten by main's weekly cron on 2026-10-05 under the old 400-day rule), so
+GitHub ran no pull-request CI on the 2026-10-08 pushes; resolved as the union of both
+versions, bit-identical on all 9,429 shared hours (3195ea6).
+
+**DATA_USE.md amendment, 2026-10-10**, before any holdout scored: the family,
+the base fingerprints, the bundle pin and the fetch-error rule, with the
+reason each is not a forked path.
+
+**Tally:** 7 findings, 7 confirmed, 7 fixed; 2 further CI gaps closed; 0
+changes to what any holdout tests.

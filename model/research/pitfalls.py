@@ -525,6 +525,47 @@ def check_serving_gate_imports(source: str, name: str = "") -> Verdict:
                    "tests/test_hour_anchor.py importing eval/ (CI had no sklearn)")
 
 
+def check_process_pattern_not_self(pattern: str, invoking_command: str,
+                                   name: str = "") -> Verdict:
+    """A process found by PATTERN must not be the command doing the finding.
+
+    PROVENANCE: twice. (1) 2026-09-28, a waiter polled
+    `pgrep -f "model.eval.blend_ceiling"`, which matched the waiter's own
+    command line; the loop never exited and a registered test sat unstarted for
+    ~85 min. (2) 2026-09-29, `pkill -f "model.eval.harvest_iv1d"` inside a
+    shell command that contained the same string killed that shell (exit 144)
+    along with the harvester -- and a follow-up `grep "[h]arvest_iv1d"` listed
+    its own shell because the heredoc text contained the name. Wait on or kill
+    a PID, never a pattern that the invoking command itself contains.
+    """
+    tag = f"[{name}]" if name else ""
+    hit = bool(pattern) and pattern in invoking_command
+    return Verdict(not hit, f"process-pattern-not-self{tag}",
+                   "pattern absent from the invoking command" if not hit
+                   else f"pattern {pattern!r} occurs in the invoking command -- it will match itself",
+                   "pgrep -f waiter (2026-09-28) and pkill -f harvester (2026-09-29)")
+
+
+def check_calendar_against_independent_reference(values, anchor_ts, H, days,
+                                                 name: str = "") -> Verdict:
+    """A calendar feature must agree with an INDEPENDENT calendar (pandas).
+
+    PROVENANCE: P4-weekend-bug. cal_weekend_frac used ((ts // 86400) + 4) % 7
+    and counted Fri+Sat for its whole life; eval/vol_matrix "verified" it
+    against a re-implementation of the SAME formula, which could not fail.
+    """
+    import pandas as pd
+    vals = np.asarray(values, np.float64)
+    ref = np.array([np.isin(pd.to_datetime(int(t) + 3600 * np.arange(int(h)), unit="s",
+                                           utc=True).dayofweek, days).mean()
+                    for t, h in zip(anchor_ts, H)])
+    err = float(np.max(np.abs(vals - ref))) if len(vals) else 0.0
+    tag = f"[{name}]" if name else ""
+    return Verdict(err < 1e-12, f"calendar-independent-reference{tag}",
+                   f"max |feature - pandas| = {err:.3g}",
+                   "cal_weekend_frac counted Fri+Sat; its check re-used the formula")
+
+
 ALL_CHECKS = [check_skill_sign, check_relevance_not_absolute,
               check_beats_base_rate, check_arms_matched,
               check_not_a_coin_flip, check_correction_verified,
@@ -533,7 +574,8 @@ ALL_CHECKS = [check_skill_sign, check_relevance_not_absolute,
               check_ci_is_defined, check_corruption_bites,
               check_bootstrap_can_fail, check_subset_not_outcome_selected,
               check_arm_not_degenerate, check_placebo_not_sign_recoverable,
-              check_serving_gate_imports]
+              check_serving_gate_imports, check_process_pattern_not_self,
+              check_calendar_against_independent_reference]
 
 
 def self_test() -> int:
@@ -606,8 +648,22 @@ def self_test() -> int:
                                      "importing eval (historical FAIL)"))
     r.add(check_serving_gate_imports("from noctua import season\nimport ast\n",
                                      "serving imports only"))
+    # 2026-09-29: the self-matching process pattern, and the weekend column
+    r.add(check_process_pattern_not_self(
+        "model.eval.harvest_iv1d",
+        'pkill -f "model.eval.harvest_iv1d" ; python - <<EOF ...',
+        "pkill inside its own command (historical FAIL)"))
+    r.add(check_process_pattern_not_self("", "kill -0 12345", "wait on a PID"))
+    _t = np.array([1790355600, 1790442000, 1790528400, 1790614800])   # Fri..Mon 17:00 UTC
+    _H = np.array([19, 19, 19, 19])
+    _offs = np.arange(19)
+    _bug = np.array([np.isin((((t + _offs * 3600) // 86400) + 4) % 7, (5, 6)).mean() for t in _t])
+    _fix = np.array([np.isin((((t + _offs * 3600) // 86400) + 3) % 7, (5, 6)).mean() for t in _t])
+    r.add(check_calendar_against_independent_reference(_bug, _t, _H, (5, 6),
+                                                       "offset +4 (historical FAIL)"))
+    r.add(check_calendar_against_independent_reference(_fix, _t, _H, (5, 6), "offset +3"))
     print(r.render())
-    expect_fail = 17  # the historical cases, which MUST still be caught
+    expect_fail = 19  # the historical cases, which MUST still be caught
     got = len(r.failures)
     print(f"\nself-test: {got} failures, expected {expect_fail} "
           f"(the historical errors these checks exist to catch)")
