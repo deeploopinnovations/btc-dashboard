@@ -1,1 +1,16 @@
-[]
+[
+ {
+  "anchor_utc": "2026-10-10T17:00:00+00:00",
+  "anchor_ts": 1791651600,
+  "decided_utc": "2026-10-10T20:32:58+00:00",
+  "late": true,
+  "entry_price": 82935.81,
+  "position": 0.1783,
+  "noctua_sigma_19h": 0.00846,
+  "noctua_ann_vol": 0.1816,
+  "dvol": 36.85,
+  "stale_inputs": [],
+  "policy_sha256": "301635ff63a70ddf",
+  "forecaster_sha256": "9857566e04b73cf5"
+ }
+]
