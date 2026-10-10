@@ -19,3 +19,6 @@ model/artifacts/*
 !model/artifacts/blend_ceiling.npz
 __pycache__/
 *.pyc
+# NOCTUA-Trader: rebuildable dataset cache and per-experiment scratch runs
+model/policy/cache/
+model/policy/runs/
