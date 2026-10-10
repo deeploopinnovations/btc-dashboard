@@ -93,16 +93,21 @@ class PaperTrader:
 
     def _settle(self, d: dict, R: float, now: int) -> dict:
         a, wp = d["a"], d["w_prev"]
-        u = E.utility(a, R, wp)
-        u_all = [E.utility(b, R, wp) for b in E.ACTIONS]
+        # every utility in the record uses the AGENT's own cost and risk
+        # aversion, restored with its state, so a change to env defaults cannot
+        # switch the logged series' convention mid-run (Codex review, PR #14)
+        c, g = self.agent.cost, self.agent.gamma
+        u = E.utility(a, R, wp, c, g)
+        u_all = [E.utility(b, R, wp, c, g) for b in E.ACTIONS]
         if "base_w" in d:
-            u_base = {k: E.utility(d["base_w"][k], R, d["base_prev"][k]) for k in d["base_w"]}
+            u_base = {k: E.utility(d["base_w"][k], R, d["base_prev"][k], c, g) for k in d["base_w"]}
         else:                                             # decided before 2026-10-08
             targets = (E.baseline_weights(d["sigma"]) if d["sigma"] is not None
                        else dict(self.base_w))
-            u_base = {k: E.utility(targets[k], R, self.base_w[k]) for k in self.base_w}
+            u_base = {k: E.utility(targets[k], R, self.base_w[k], c, g) for k in self.base_w}
         rec = {"type": "settled", "E": d["E"], "agent": self.agent.kind, "a": a, "w_prev": wp,
                "R": R, "u": u, "u_all": u_all, "regret": max(u_all) - u, "u_baseline": u_base,
+               "cost": c, "gamma": g,
                "x": d["x"], "sigma": d["sigma"], "p_up": d.get("p_up"),
                "p_vol_amplify": d.get("p_vol_amplify"), "missed": d["missed"], "settled_at": now}
         if d["x"] is not None:

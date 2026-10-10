@@ -119,6 +119,25 @@ def main() -> int:
         d2 = [a2.act(x[i], s[i], 0.0, r2) for i in range(400, 450)]
         check(f"{kind}-state-round-trips", d1 == d2, f"{sum(p == q for p, q in zip(d1, d2))}/50 identical")
 
+    # hyperparameters travel with the state (Codex review, PR #14): restoring
+    # sufficient statistics into an agent built from DIFFERENT defaults would
+    # silently change the learner and the utility it is judged by
+    for kind, custom in (("MV", {"rho": 0.99, "prior_n": 20.0, "gamma": 5.0, "cost": 0.0025,
+                                 "z_conf": 0.5, "delta": 0.9}),
+                         ("TS", {"rho": 0.99, "lam": 3.0, "noise": 0.02, "gamma": 5.0, "cost": 0.0025})):
+        a1 = make_agent(kind, seed=7)
+        for k, v in custom.items():
+            setattr(a1, k, v)
+        run(a1, x[:300], s[:300], R[:300])
+        a2 = make_agent(kind, seed=7)                    # built from the CURRENT defaults
+        a2.load_state(json.loads(json.dumps(a1.state())))
+        same_params = all(getattr(a2, k) == v for k, v in custom.items())
+        r1, r2 = np.random.default_rng(13), np.random.default_rng(13)
+        d1 = [a1.act(x[i], s[i], 0.5, r1) for i in range(300, 350)]
+        d2 = [a2.act(x[i], s[i], 0.5, r2) for i in range(300, 350)]
+        check(f"{kind}-non-default-hyperparameters-round-trip", same_params and d1 == d2,
+              f"params restored {same_params}; {sum(p == q for p, q in zip(d1, d2))}/50 decisions identical")
+
     # ---- the loop, with a fake forecaster and a slice of real history ----
     from serve.history import load_bundle
     hours = load_bundle()

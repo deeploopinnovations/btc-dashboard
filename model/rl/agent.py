@@ -123,12 +123,20 @@ class MVAgent:
         self.n_eff = self.rho * self.n_eff + 1.0
         self.n_updates += 1
 
+    PARAMS = ("rho", "prior_n", "gamma", "cost", "z_conf", "delta")
+
     def state(self) -> dict:
-        return {"kind": self.kind, "z_conf": self.z_conf, "delta": self.delta, "A": self.A.tolist(),
+        return {"kind": self.kind, "params": {k: getattr(self, k) for k in self.PARAMS},
+                "z_conf": self.z_conf, "delta": self.delta, "A": self.A.tolist(),
                 "b": self.b.tolist(), "k_num": self.k_num, "k_den": self.k_den,
                 "n_eff": self.n_eff, "n_updates": self.n_updates}
 
     def load_state(self, st: dict) -> None:
+        # the STATE defines the learner: its hyperparameters win over today's
+        # defaults (Codex review, PR #14). States written before 2026-10-10
+        # carry z_conf and delta only; the rest were the defaults of the day.
+        for k, v in st.get("params", {}).items():
+            setattr(self, k, float(v))
         self.A, self.b = np.array(st["A"]), np.array(st["b"])
         self.k_num, self.k_den = float(st["k_num"]), float(st["k_den"])
         self.n_eff, self.z_conf = float(st["n_eff"]), float(st["z_conf"])
@@ -173,11 +181,16 @@ class TSAgent:
         self.b[i] += z * E.utility(a, R, w_prev, self.cost, self.gamma)
         self.n_updates += 1
 
+    PARAMS = ("rho", "lam", "noise", "gamma", "cost")
+
     def state(self) -> dict:
-        return {"kind": self.kind, "A": self.A.tolist(), "b": self.b.tolist(),
+        return {"kind": self.kind, "params": {k: getattr(self, k) for k in self.PARAMS},
+                "A": self.A.tolist(), "b": self.b.tolist(),
                 "rng": self.rng.bit_generator.state, "n_updates": self.n_updates}
 
     def load_state(self, st: dict) -> None:
+        for k, v in st.get("params", {}).items():          # the state defines the learner
+            setattr(self, k, float(v))
         self.A, self.b = np.array(st["A"]), np.array(st["b"])
         self.rng.bit_generator.state = st["rng"]
         self.n_updates = int(st["n_updates"])
