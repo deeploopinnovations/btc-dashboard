@@ -58,6 +58,11 @@ jobs:
       - name: Model self-test
         run: python model/tests/test_serving.py
 
+      # NOCTUA-Trader: the open weights must reproduce the positions the
+      # torch ensemble was scored on, stay in bounds, and read no future hour.
+      - name: Trading-policy runtime self-test
+        run: python model/tests/test_policy_runtime.py
+
       - name: History / live-path self-test
         run: python model/tests/test_history.py
 
