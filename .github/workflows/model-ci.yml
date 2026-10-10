@@ -146,6 +146,24 @@ jobs:
       - name: Self-improvement guard self-test
         run: python model/tests/test_selfimprove.py
 
+      # The forward holdouts measure each candidate against a FROZEN base. A
+      # pull request that changes any base array, the metadata, or the served
+      # numbers at three fixed anchors would silently move both arms of every
+      # pending holdout; it fails here, before it merges, rather than on the
+      # daily cron after (Codex review, PR #14). A deliberate change updates
+      # BASE_SHA16 with a DATA_USE.md amendment made before any holdout scores.
+      - name: Forward holdouts' frozen base intact
+        run: python -m model.eval.forward_weekend_anchor --check-base
+
+      # The paper-trading agent (P5-rl-paper): planted-edge and pure-noise
+      # learning, causality, idempotency, outages, out-of-order bars, voids,
+      # the atomic two-file Hub commit (against a fake API, no network), and
+      # the state round-trip of every hyperparameter.
+      - name: RL paper agent
+        run: |
+          pip install --quiet "huggingface_hub>=1.16"
+          python model/tests/test_rl.py
+
       # The research record is an artifact like any other, and it has been
       # corrupted twice by scripts appending to ledger.json directly instead
       # of through ledger.add() -- two entries with no `topic` (a reader
