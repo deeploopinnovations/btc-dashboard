@@ -40,6 +40,13 @@ jobs:
       - name: Install runtime (serving dependencies only)
         run: pip install --quiet -r model/serve/requirements-ci.txt
 
+      # Every day, not only on a scoring day: a change to the frozen base (any
+      # base array, or the served numbers at three fixed anchors) or to a
+      # candidate's arrays turns this job red the day it happens, rather than
+      # surfacing months later on the one evaluation day.
+      - name: Frozen artifact and serving arithmetic intact
+        run: python -m model.eval.forward_weekend_anchor --check-base
+
       - name: Run each holdout (count only until due; one scoring at N_MIN)
         run: |
           set -o pipefail

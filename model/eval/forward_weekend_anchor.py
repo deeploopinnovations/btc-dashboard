@@ -80,8 +80,77 @@ FROZEN_SHA16 = {
 }
 
 
+# THE BASE every holdout's arms share must be the frozen one too (Codex review,
+# PR #14): hashing only the increment arrays would let a change to the seed
+# weights, har_beta, blend_w or the serving arithmetic alter both arms, and the
+# measured effect, unnoticed. Two fingerprints:
+#   arrays    every artifact array except the increments, plus the metadata
+#             without the increment keys. Verified identical at EVERY freeze
+#             commit (ef6e44b, c4f8974, 4efbda9, dea1b44) and at HEAD.
+#   forecast  the flags-off served payload at three fixed 17:00 anchors on the
+#             committed bundle (its rows there never change: serve/history
+#             BUNDLE_PIN), minus `source`, `history_hours` and the increment
+#             description blocks. Any change to the served numbers changes it;
+#             identical for the artifacts of all four freeze commits. Set 2026-10-10, after the
+#             2026-09-30 factor-window amendment, before any holdout scored.
+# A deliberate change updates these with a DATA_USE.md amendment made BEFORE
+# the holdout scores -- never silently.
+INCREMENT_ARRAYS = {"season_profile", "har_beta_season", "har_beta_weekend",
+                    "har_beta_weekend_season", "har_beta_dow", "har_beta_dow_season",
+                    "har_beta_iv"}
+INCREMENT_META = ("hour_anchor", "weekend_anchor", "dow_anchor", "iv_anchor")
+FINGERPRINT_ANCHORS = ("2026-09-25 17:00", "2026-09-26 17:00", "2026-09-27 17:00")
+BASE_SHA16 = {"arrays": "681efe8810cbc369", "forecast": "aae8af223b70e2f2"}
+
+
+def base_fingerprint(model, hours=None) -> dict:
+    import contextlib
+    import hashlib
+    import io
+    w, meta = getattr(model, "w", {}), getattr(model, "meta", {})
+    h = hashlib.sha256()
+    for name in sorted(k for k in w if k not in INCREMENT_ARRAYS):
+        arr = np.asarray(w[name])
+        h.update(name.encode()); h.update(str(arr.dtype).encode())
+        h.update(str(arr.shape).encode()); h.update(arr.tobytes())
+    h.update(json.dumps({k: v for k, v in meta.items() if k not in INCREMENT_META},
+                        sort_keys=True, default=str).encode())
+    from serve import predict as P
+    from serve.history import load_bundle
+    hours = load_bundle() if hours is None else hours
+    saved = {f: getattr(P, f) for f in CAL_FLAGS}
+    pays = []
+    try:
+        for f in CAL_FLAGS:
+            setattr(P, f, False)
+        for t in FINGERPRINT_ANCHORS:
+            with contextlib.redirect_stdout(io.StringIO()):
+                pay = P.forecast(model, hours, H=PROD_H, fetch_iv=False,
+                                 anchor_ts=int(pd.Timestamp(t, tz="UTC").timestamp()))
+            # the increment blocks only DESCRIBE the artifact (available,
+            # coefficients) and differ between freeze artifacts with identical
+            # served numbers; the increment hashes above cover them
+            pays.append({k: v for k, v in pay.items()
+                         if k not in ("source", "history_hours", *INCREMENT_META)})
+    finally:
+        for f, v in saved.items():
+            setattr(P, f, v)
+    return {"arrays": h.hexdigest()[:16],
+            "forecast": hashlib.sha256(json.dumps(pays, sort_keys=True).encode()).hexdigest()[:16]}
+
+
+def check_base(model, hours=None) -> None:
+    got = base_fingerprint(model, hours)
+    for k, want in BASE_SHA16.items():
+        if got[k] != want:
+            raise SystemExit(f"REFUSING to score: the base {k} fingerprint is {got[k]}, frozen as "
+                             f"{want} (research/DATA_USE.md). Both arms would be measured on a "
+                             f"different base than the one frozen.")
+
+
 def check_frozen(model, flags) -> None:
     import hashlib
+    check_base(model)
     flags = (flags,) if isinstance(flags, str) else tuple(flags)
     w = getattr(model, "w", {})
     for fl in flags:
@@ -180,11 +249,17 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="forward holdout, true-weekend anchor")
     ap.add_argument("--offline", action="store_true")
     ap.add_argument("--selftest", action="store_true")
+    ap.add_argument("--check-base", action="store_true",
+                    help="verify every holdout's frozen base and increments, then exit")
     a = ap.parse_args(argv)
     if a.selftest:
         return selftest()
     from serve.history import get_hours, load_bundle
     from serve.runtime import load_model
+    if a.check_base:
+        check_frozen(load_model(), CAL_FLAGS)
+        print(f"frozen base and increments intact: {BASE_SHA16}")
+        return 0
     if a.offline:
         hours = load_bundle()
     else:
@@ -235,6 +310,28 @@ def selftest() -> int:
         except SystemExit:
             refused = True
         ok.append(("scoring refuses a tampered frozen array", refused))
+        # the BASE is frozen too (Codex review, PR #14): a 1e-9 change to a base
+        # array, or to the serving arithmetic, must refuse scoring
+        bad2 = copy.copy(model)
+        bad2.w = dict(model.w)
+        bad2.w["har_beta"] = model.w["har_beta"] + 1e-9
+        refused2 = False
+        try:
+            check_frozen(bad2, "WEEKEND_ANCHOR")
+        except SystemExit:
+            refused2 = True
+        ok.append(("scoring refuses a tampered BASE array", refused2))
+        from serve import predict as P0
+        keep = P0.DISP_LAMBDA
+        P0.DISP_LAMBDA = keep * 0.9
+        refused3 = False
+        try:
+            check_frozen(model, "WEEKEND_ANCHOR")
+        except SystemExit:
+            refused3 = True
+        finally:
+            P0.DISP_LAMBDA = keep
+        ok.append(("scoring refuses changed serving arithmetic", refused3))
         check_frozen(model, CAL_FLAGS)
         from serve import predict as P
         ok.append(("flags restored after scoring",
