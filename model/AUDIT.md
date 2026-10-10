@@ -20,7 +20,7 @@ is recorded rather than quietly dropped. Section 6 lists what they got wrong.
 
 | goal | status | evidence |
 |---|---|---|
-| **Volatility** | **achieved** | 4.04 % QLIKE better than a calibrated Log-HAR, p = 0.0002; beats persistence, climatology, scaled climatology and a shuffled control on the full adversarial benchmark |
+| **Volatility** | **achieved** | 4.04 % QLIKE better than a calibrated Log-HAR, p = 0.0002; beats persistence, climatology, scaled climatology and a shuffled control on the full adversarial benchmark. **2026-10-10:** every baseline here is calendar-blind; a HAR with weekday terms beats NOCTUA at 17:00 UTC on 2024-07+ ([VERDICT](../runs/noctua-disproof-2026-10-10/VERDICT.md)) |
 | **Barrier / excursion** | **achieved against the naive baselines; level with the strong one** | deep-tail calibration error 1.09 pp vs 3.33 pp for Gaussian first-passage at α = 1 %; leads persistence, climatology, scaled climatology and a shuffled control on pinball. The Gaussian is better in the body (α ≥ 10 %) |
 | **Volatility amplification** — *will it get wilder?* | **achieved, and the strongest skill in the model** | DSC/UNC **20.3 %**, beats climatology 6/6 folds, CI [+0.047, +0.103] nats. See `BENCHMARK.md` §6g |
 | **Direction** | **not achieved — and now measured properly** | §2 |

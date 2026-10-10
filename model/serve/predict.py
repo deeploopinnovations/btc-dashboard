@@ -156,6 +156,14 @@ def forecast(model, hours: pd.DataFrame, H: int = PROD_H,
     # it 66.4% of the time -- which pushes every quoted strike too far out and
     # costs premium. The correction is estimated only from episodes that have
     # already settled, so it carries no look-ahead. See serve/adaptive.py.
+    #
+    # Unlike the trailing QLIKE scalar discussed further down, this factor DOES
+    # move the predictive object: apply_correction rescales sigma_atoms, so the
+    # barrier curves and safe levels move with it. That is deliberate (its
+    # purpose is strikes quoted at the right distance) and is not contradicted
+    # by the "never reaches pred" rule below, which is about that other scalar
+    # (audit A0 M6, runs/noctua-disproof-2026-10-10). The factor is estimated
+    # on the anchor's own hour of day since 2026-10-10.
     cal = volatility_correction(model, hours, row, H)
     if cal["applied"]:
         pred = apply_correction(pred, cal["factor"])

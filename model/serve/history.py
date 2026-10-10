@@ -32,7 +32,7 @@ THE FIX
 -------
 Ship the long history as a committed hourly bundle and fetch only the tail.
 
-    data/noctua_history.parquet   ~400 days of hourly aggregates (~716 KB)
+    data/noctua_history.parquet   ~460 days of hourly aggregates (~820 KB)
     live fetch                    the tail since the bundle ends (usually 1 call)
 
 The bundle carries the same hourly columns `noctua.features` consumes, built by
@@ -62,7 +62,11 @@ from noctua.episodes import build_hourly  # noqa: E402
 
 HOUR = 3600
 BARS_PER_HOUR = 12                     # 5-minute grid
-BUNDLE_DAYS = 400
+# 365 days of feature warm-up (reg_rv_vs_year) + the 60-day same-hour window of
+# serve/adaptive.py + margin. At 400 days only ~34 settled same-hour episodes had
+# complete features, so the live factor rested on about half its designed
+# sample (audit A5, runs/noctua-fixes-2026-10-10).
+BUNDLE_DAYS = 460
 
 # How stale the committed bundle is allowed to get before it is rewritten.
 #

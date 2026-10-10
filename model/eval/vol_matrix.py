@@ -176,16 +176,19 @@ def qlike_vec(rv: np.ndarray, sig: np.ndarray) -> np.ndarray:
 # not written from the source -- it was DISCOVERED by `_verify_per_anchor`
 # refusing on the first run, and the seas_* entries are the ones that were
 # missed. Anything outside this set that varies with H still stops the run.
-H_DEPENDENT = ("cal_H", "cal_weekend_frac", "seas_1d", "seas_5d", "seas_22d")
+# cal_weekend_frac_ss (the corrected Sat+Sun column, 2026-10-10) is built by
+# the same features.py call, so it is H-dependent for the same reason.
+H_DEPENDENT = ("cal_H", "cal_weekend_frac", "cal_weekend_frac_ss",
+               "seas_1d", "seas_5d", "seas_22d")
 
 
-def _weekend_frac(anchor_ts: np.ndarray, H: np.ndarray) -> np.ndarray:
+def _weekend_frac(anchor_ts: np.ndarray, H: np.ndarray, offset: int = 4) -> np.ndarray:
     """Weekend share of the forward window. Transcribed from
     noctua/features.py; `_verify_per_anchor` checks it reproduces the shipped
     column on the episodes where the two tables overlap."""
     maxH = int(H.max())
     offs = np.arange(maxH)
-    fut_dow = (((anchor_ts[:, None] + offs[None, :] * HOUR) // 86400) + 4) % 7
+    fut_dow = (((anchor_ts[:, None] + offs[None, :] * HOUR) // 86400) + offset) % 7
     valid = offs[None, :] < H[:, None]
     is_we = ((fut_dow >= 5) & valid).sum(axis=1)
     return is_we / np.maximum(H, 1)
@@ -225,6 +228,10 @@ def _verify_per_anchor(feat: pd.DataFrame, ref: pd.DataFrame) -> list[str]:
     err_H = float(np.max(np.abs(got_H - feat["cal_H"].to_numpy(np.float64))))
     got_we = _weekend_frac(a, h.astype(np.int64))
     err_we = float(np.max(np.abs(got_we - feat["cal_weekend_frac"].to_numpy(np.float64))))
+    if "cal_weekend_frac_ss" in feat.columns:   # the corrected Sat+Sun column (+3)
+        got_ss = _weekend_frac(a, h.astype(np.int64), offset=3)
+        err_we = max(err_we, float(np.max(np.abs(
+            got_ss - feat["cal_weekend_frac_ss"].to_numpy(np.float64)))))
     if err_H > 1e-12 or err_we > 1e-12:
         raise SystemExit(
             f"REFUSING: the H-dependent columns were not reproduced "

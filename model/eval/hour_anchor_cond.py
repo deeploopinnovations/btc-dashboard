@@ -75,7 +75,9 @@ def main(argv=None) -> int:
     folds = S.walk_forward_folds(ep)
     ts_all = ep["anchor_ts"].to_numpy(np.int64)
     ah = ep["anchor_hour"].to_numpy()
-    wkd = X["cal_weekend_frac"].to_numpy(np.float64)
+    # true Sat+Sun share (P4-weekend-bug: the legacy column flags Fri+Sat, so
+    # results run before 2026-10-10 describe Thu/Fri/Sat nights as "weekend")
+    wkd = X["cal_weekend_frac_ss"].to_numpy(np.float64)
     at19 = (ep.H == PROD_H).to_numpy()
     fac_hours = {(PROD_A - PROD_H + FAC_STRIDE_H * k) % 24 for k in range(4)}
     fac_mask = at19 & np.isin(ah, sorted(fac_hours))

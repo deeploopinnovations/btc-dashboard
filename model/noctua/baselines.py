@@ -111,7 +111,7 @@ VOL_BASELINES: dict[str, list[str]] = {
     # PRIMARY BAR: Corsi's cascade, in logs
     "log_har": ["har_1d", "har_5d", "har_22d"],
     # + horizon and the dominant calendar effect, a fairer "well-specified" bar
-    "log_har_cal": ["har_1d", "har_5d", "har_22d", "cal_H", "cal_weekend_frac"],
+    "log_har_cal": ["har_1d", "har_5d", "har_22d", "cal_H", "cal_weekend_frac_ss"],
     "har_rs": ["har_1d", "har_5d", "har_22d", "semi_neg_1d", "semi_signed_jump_1d"],
     "harq": ["har_1d", "har_5d", "har_22d", "rq_noise_1d"],
     "har_short": ["har_1h", "har_6h", "har_1d", "har_5d", "har_22d"],
