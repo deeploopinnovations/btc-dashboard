@@ -1,6 +1,76 @@
 {
   "items": [
     {
+      "headline": "This Crypto Has the Easiest Path to 10X by 2030",
+      "url": "https://www.aol.com/articles/crypto-easiest-path-10x-2030-145614000.html",
+      "src": "aol.com",
+      "date": "20261015T153000Z",
+      "sent": "pos"
+    },
+    {
+      "headline": "AI Price Prediction : We Asked Grok AI Which Recovers First From the October Selloff : Bitcoin , Ethereum , XRP or Solana",
+      "url": "https://www.aol.com/articles/ai-price-prediction-asked-grok-141427000.html",
+      "src": "aol.com",
+      "date": "20261015T144500Z",
+      "sent": "neg"
+    },
+    {
+      "headline": "Why Is Crypto Down Today ? Nearly $1 Billion in Leveraged Positions Just Got Wiped Out . ",
+      "url": "https://247wallst.com/investing/cryptocurrency/2026/10/15/why-is-crypto-down-today-nearly-1-billion-in-leveraged-positions-just-got-wiped-out/",
+      "src": "247wallst.com",
+      "date": "20261015T141500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "AI Agents Can Already Pay in Crypto . Can a Website Tell Who Theyre Working For ? ",
+      "url": "https://247wallst.com/investing/cryptocurrency/2026/10/15/ai-agents-can-already-pay-in-crypto-can-a-website-tell-who-theyre-working-for/",
+      "src": "247wallst.com",
+      "date": "20261015T141500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "If You Put $1 , 000 Each Into Bitcoin , Ethereum , XRP and Solana Five Years Ago , Two Would Have Lost Money . ",
+      "url": "https://www.aol.com/articles/put-1-000-bitcoin-ethereum-133029000.html",
+      "src": "aol.com",
+      "date": "20261015T140000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Bitcoin , copper , stocks , yields all fall ; gold rises",
+      "url": "https://www.coindesk.com/daybook-us/2026/10/15/bitcoin-copper-stocks-yields-all-fall-gold-rises",
+      "src": "coindesk.com",
+      "date": "20261015T140000Z",
+      "sent": "neg"
+    },
+    {
+      "headline": "Introducing Ledger Atom - Everything You Value , Finally Secure",
+      "url": "https://www.finanznachrichten.de/nachrichten-2026-10/69848018-introducing-ledger-atom-everything-you-value-finally-secure-004.htm",
+      "src": "finanznachrichten.de",
+      "date": "20261015T131500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "15 - Minute Markets For Cryptocurrency Prices Are Surging in Popularity . It Easy to Predict What Happens Next . ",
+      "url": "https://www.aol.com/articles/15-minute-markets-cryptocurrency-prices-102000000.html",
+      "src": "aol.com",
+      "date": "20261015T114500Z",
+      "sent": "neg"
+    },
+    {
+      "headline": "Better Buy Right Now : Bitcoin vs . Shiba Inu",
+      "url": "https://www.aol.com/articles/better-buy-now-bitcoin-vs-093000000.html",
+      "src": "aol.com",
+      "date": "20261015T100000Z",
+      "sent": "pos"
+    },
+    {
+      "headline": "Citigroup Raises Its 12 - Month Price Target for Bitcoin to $113 , 000 . These Are the 3 Catalysts Investors Need to Watch . ",
+      "url": "https://www.aol.com/articles/citigroup-raises-12-month-price-093500000.html",
+      "src": "aol.com",
+      "date": "20261015T100000Z",
+      "sent": "neu"
+    },
+    {
       "headline": "Citi Raises Bitcoin Price Target to $113 , 000 on ETF Optimism",
       "url": "http://www.econotimes.com/Citi-Raises-Bitcoin-Price-Target-to-113000-on-ETF-Optimism-1753781",
       "src": "econotimes.com",
@@ -20,65 +90,9 @@
       "src": "coinspeaker.com",
       "date": "20261002T011500Z",
       "sent": "neu"
-    },
-    {
-      "headline": "Is It Too Late to Get Into Crypto in October 2026 ? What $3 . 55 Billion of Weekly Inflows and a 33 % Quarter Say",
-      "url": "https://247wallst.com/investing/cryptocurrency/2026/10/01/is-it-too-late-to-get-into-crypto-in-october-2026-what-3-55-billion-of-weekly-inflows-and-a-33-quarter-say/",
-      "src": "247wallst.com",
-      "date": "20261002T001500Z",
-      "sent": "pos"
-    },
-    {
-      "headline": "Strategy ( NASDAQ : MSTR ) Shifts 3 , 568 BTC Worth $300 Million In Hours , Raising Treasury Questions",
-      "url": "https://www.foreignpolicyjournal.com/2026/10/01/strategy-nasdaq-mstr-shifts-3568-btc-worth-300-million-in-hours-raising-treasury-questions/",
-      "src": "foreignpolicyjournal.com",
-      "date": "20261002T001500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "SEC Proposes New Rule for Investment Advisers to Hold Bitcoin for Clients : Which Coins Will See Over $100 Trillion in Managed Funds First ? ",
-      "url": "https://www.aol.com/articles/sec-proposes-rule-investment-advisers-214014000.html",
-      "src": "aol.com",
-      "date": "20261001T221500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Best Crypto to Buy in October 2026 : Bitcoin , Ethereum , XRP , Solana , and High - Potential Alternatives",
-      "url": "https://www.aol.com/articles/best-crypto-buy-october-2026-183015000.html",
-      "src": "aol.com",
-      "date": "20261001T194500Z",
-      "sent": "pos"
-    },
-    {
-      "headline": "XRP Surpasses Bitcoin in 90 - Day Gains But Remains Far Off Its All - Time High",
-      "url": "https://www.aol.com/articles/xrp-surpasses-bitcoin-90-day-190002000.html",
-      "src": "aol.com",
-      "date": "20261001T194500Z",
-      "sent": "pos"
-    },
-    {
-      "headline": "Ducat Protocol advances Bitcoin - native credit on Bitcoin L1",
-      "url": "https://www.mittelstandcafe.de/ducat-protocol-advances-bitcoin-native-credit-on-bitcoin-l1-2276429.html",
-      "src": "mittelstandcafe.de",
-      "date": "20261001T190000Z",
-      "sent": "neg"
-    },
-    {
-      "headline": "6 Best Crypto Exchanges of October 2026",
-      "url": "https://www.aol.com/articles/6-best-crypto-exchanges-october-175633000.html",
-      "src": "aol.com",
-      "date": "20261001T183000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": " / C O R R E C T I O N -- DeFi Technologies Inc ./ ",
-      "url": "http://www.prnewswire.com/news-releases/defi-technologies-provides-september-corporate-update-valour-reports-640-2-million-in-aum-up-61-2-from-q2-end-302896398.html",
-      "src": "prnewswire.com",
-      "date": "20261001T183000Z",
-      "sent": "neu"
     }
   ],
-  "ts": 1791908054682,
+  "ts": 1792081015709,
   "source": "GDELT",
-  "_updatedMs": 1791908054682
+  "_updatedMs": 1792081015709
 }
