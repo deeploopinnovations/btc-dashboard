@@ -1,6 +1,69 @@
 {
   "items": [
     {
+      "headline": "Morning Minute : OKX Raises at $25B From Circle , Ripple , and StanChart",
+      "url": "https://decrypt.co/380281/morning-minute-okx-raises-at-25b-from-circle-ripple-and-stanchart&t=Morning%20Minute:%20OKX%20Raises%20at%20$25B%20From%20Circle,%20Ripple,%20and%20StanChart&fnp_t=1792185574.8c66e59ed0ea8874",
+      "src": "decrypt.co",
+      "date": "20261016T214500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Upbit to Delist Zilliqa and Sophon in November 2026",
+      "url": "https://econotimes.com/Upbit-to-Delist-Zilliqa-and-Sophon-in-November-2026-1755622",
+      "src": "econotimes.com",
+      "date": "20261016T204500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Engineer Gets 32 Months for Bitcoin Extortion Plot Against His Own Employer",
+      "url": "https://decrypt.co/380284/engineer-gets-32-months-for-bitcoin-extortion-plot-against-his-own-employer&t=engineer%20gets%2032%20months%20for%20bitcoin%20extortion%20plot%20against%20his%20own%20employer&fnp_t=1792181860.f548e2105d112313",
+      "src": "decrypt.co",
+      "date": "20261016T204500Z",
+      "sent": "pos"
+    },
+    {
+      "headline": "Deutsche Bank to Launch Bitcoin and Ethereum Custody Service",
+      "url": "https://econotimes.com/Deutsche-Bank-to-Launch-Bitcoin-and-Ethereum-Custody-Service-1755616",
+      "src": "econotimes.com",
+      "date": "20261016T204500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "XRP Outpaces Bitcoin and Ethereum in South Korea Trading",
+      "url": "https://econotimes.com/XRP-Outpaces-Bitcoin-and-Ethereum-in-South-Korea-Trading-1755615",
+      "src": "econotimes.com",
+      "date": "20261016T204500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Podobnik Sees Deutsche Bank Crypto Custody Launch Within Weeks , Asia in 2027",
+      "url": "https://econotimes.com/Podobnik-Sees-Deutsche-Bank-Crypto-Custody-Launch-Within-Weeks-Asia-in-2027-1755625",
+      "src": "econotimes.com",
+      "date": "20261016T204500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Schwab Crypto Opens to All Retail Clients : Assets Bypass SIPC via Paxos Sub - Custody",
+      "url": "https://www.techtimes.com/articles/329120/20261016/schwab-crypto-opens-all-retail-clients-assets-bypass-sipc-via-paxos-sub-custody.htm",
+      "src": "techtimes.com",
+      "date": "20261016T200000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "What Happens to Bitcoin When Billions in Options Expire ? ",
+      "url": "https://www.aol.com/articles/happens-bitcoin-billions-options-expire-160041000.html",
+      "src": "aol.com",
+      "date": "20261016T164500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "AI Price Prediction : We Asked ChatGPT AI Which Could Double First : Ethereum , Cardano , Sui or Chainlink",
+      "url": "https://www.aol.com/articles/ai-price-prediction-asked-chatgpt-153037000.html",
+      "src": "aol.com",
+      "date": "20261016T160000Z",
+      "sent": "neg"
+    },
+    {
       "headline": "Judge Keeps Gemini $5 Million CFTC Consent Order in Force",
       "url": "https://econotimes.com/Judge-Keeps-Gemini-s-5-Million-CFTC-Consent-Order-in-Force-1755503",
       "src": "econotimes.com",
@@ -34,65 +97,9 @@
       "src": "miningne.ws",
       "date": "20261016T143000Z",
       "sent": "neu"
-    },
-    {
-      "headline": "Scammer who duped job seekers loses $4 . 9 million in bitcoin to Ledger spy - chip exploit",
-      "url": "https://www.coindesk.com/business/2026/10/16/scammer-gets-scammed-in-ledger-spy-chip-exploit-loses-almost-usd5-million-in-bitcoin",
-      "src": "coindesk.com",
-      "date": "20261016T140000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Ethereum Led Nearly $1 Billion in Crypto Liquidations . Its Traders Never Cut Back Before the Drop . ",
-      "url": "https://www.aol.com/articles/ethereum-led-nearly-1-billion-130049000.html",
-      "src": "aol.com",
-      "date": "20261016T134500Z",
-      "sent": "neg"
-    },
-    {
-      "headline": "Crypto News : Remittix Nears $33 Million Raised as Bullish Bitcoin and Ethereum Price Predictions Target $250 , 000 and $15 , 000",
-      "url": "https://www.manilatimes.net/2026/10/16/tmt-newswire/globenewswire/crypto-news-remittix-nears-33-million-raised-as-bullish-bitcoin-and-ethereum-price-predictions-target-250000-and-15000/2447533",
-      "src": "manilatimes.net",
-      "date": "20261016T133000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Not Bitcoin . Not Ethereum . These 4 Cryptocurrencies Could Be Worth Holding for the Next 5 Years . ",
-      "url": "https://www.fool.com/investing/2026/10/16/not-bitcoin-not-ethereum-these-4-cryptocurrencies/",
-      "src": "fool.com",
-      "date": "20261016T114500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Bitcoin rebounds to $82 , 000 after briefly falling below $80 , 000 as inflation fears trigger $950 million in liquidations",
-      "url": "https://economictimes.indiatimes.com/markets/cryptocurrency/crypto-news/bitcoin-rebounds-to-82000-after-briefly-falling-below-80000-as-inflation-fears-trigger-950-million-in-liquidations/articleshow/134991609.cms",
-      "src": "economictimes.indiatimes.com",
-      "date": "20261016T113000Z",
-      "sent": "neg"
-    },
-    {
-      "headline": "Capital B Reports $78M H1 Loss Driven by Bitcoin Impairment Charge",
-      "url": "https://cointelegraph.com/news/capital-b-78m-h1-loss-bitcoin-impairment",
-      "src": "cointelegraph.com",
-      "date": "20261016T110000Z",
-      "sent": "neg"
-    },
-    {
-      "headline": "Bitcoin 20 - Month Moving Average Stands Between Bulls And All - Time Highs",
-      "url": "https://cointelegraph.com/markets/bitcoin-seeks-20-month-trend-line-reclaim-before-new-record-highs-cryptoquant",
-      "src": "cointelegraph.com",
-      "date": "20261016T110000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "CME Is Launching Uniswap and Bitcoin Cash Futures . Do Futures Actually Move Prices ? ",
-      "url": "https://www.aol.com/articles/cme-launching-uniswap-bitcoin-cash-100030000.html",
-      "src": "aol.com",
-      "date": "20261016T110000Z",
-      "sent": "neu"
     }
   ],
-  "ts": 1792166582719,
+  "ts": 1792189772385,
   "source": "GDELT",
-  "_updatedMs": 1792166582719
+  "_updatedMs": 1792189772385
 }
