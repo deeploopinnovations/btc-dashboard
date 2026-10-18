@@ -1,105 +1,84 @@
 {
   "items": [
     {
-      "headline": "Morning Minute : OKX Raises at $25B From Circle , Ripple , and StanChart",
-      "url": "https://decrypt.co/380281/morning-minute-okx-raises-at-25b-from-circle-ripple-and-stanchart&t=Morning%20Minute:%20OKX%20Raises%20at%20$25B%20From%20Circle,%20Ripple,%20and%20StanChart&fnp_t=1792185574.8c66e59ed0ea8874",
-      "src": "decrypt.co",
-      "date": "20261016T214500Z",
+      "headline": "Strive Bitcoin Holdings Reach 35 , 595 BTC As Wall Street Raises Price Target 27 % ",
+      "url": "https://www.newsbtc.com/bitcoin-news/strive-bitcoin-holdings-reach-35-595-btc-as-wall-street-raises-price-t/",
+      "src": "newsbtc.com",
+      "date": "20261018T013000Z",
       "sent": "neu"
     },
     {
-      "headline": "Upbit to Delist Zilliqa and Sophon in November 2026",
-      "url": "https://econotimes.com/Upbit-to-Delist-Zilliqa-and-Sophon-in-November-2026-1755622",
+      "headline": "Solana ( SOL ) Leads Five Crypto Markets in Open Interest Decline at 6 . 59 % ",
+      "url": "https://econotimes.com/Solana-SOL-Leads-Five-Crypto-Markets-in-Open-Interest-Decline-at-6-59-1756061",
       "src": "econotimes.com",
-      "date": "20261016T204500Z",
+      "date": "20261018T004500Z",
+      "sent": "neg"
+    },
+    {
+      "headline": "Morning Minute : OKX Raises at $25B From Circle , Ripple , and StanChart",
+      "url": "https://decrypt.co/380281/morning-minute-okx-raises-at-25b-from-circle-ripple-and-stanchart&t=Morning%20Minute:%20OKX%20Raises%20at%20$25B%20From%20Circle,%20Ripple,%20and%20StanChart&fnp_t=1792279989.c6c4c20697544fb1",
+      "src": "decrypt.co",
+      "date": "20261018T000000Z",
       "sent": "neu"
     },
     {
-      "headline": "Engineer Gets 32 Months for Bitcoin Extortion Plot Against His Own Employer",
-      "url": "https://decrypt.co/380284/engineer-gets-32-months-for-bitcoin-extortion-plot-against-his-own-employer&t=engineer%20gets%2032%20months%20for%20bitcoin%20extortion%20plot%20against%20his%20own%20employer&fnp_t=1792181860.f548e2105d112313",
-      "src": "decrypt.co",
-      "date": "20261016T204500Z",
+      "headline": "Vitalik Buterin Reveals Bitcoin Mining Costs as AI Competition Intensifies",
+      "url": "https://econotimes.com/Vitalik-Buterin-Reveals-Bitcoin-Mining-Costs-as-AI-Competition-Intensifies-1756043",
+      "src": "econotimes.com",
+      "date": "20261017T210000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "TD Cowen Raises Strive ( $ASST ) Price Target 27 % To $56 On Faster Bitcoin ( BTC ) Accumulation",
+      "url": "https://www.crowdfundinsider.com/2026/10/319015-td-cowen-raises-strive-asst-price-target-27-to-56-on-faster-bitcoin-btc-accumulation/",
+      "src": "crowdfundinsider.com",
+      "date": "20261017T183000Z",
       "sent": "pos"
     },
     {
-      "headline": "Deutsche Bank to Launch Bitcoin and Ethereum Custody Service",
-      "url": "https://econotimes.com/Deutsche-Bank-to-Launch-Bitcoin-and-Ethereum-Custody-Service-1755616",
+      "headline": "How to Buy Bitcoin for Beginners in 2026 : 6 Steps",
+      "url": "https://memeburn.com/how-to-buy-bitcoin-for-beginners/",
+      "src": "memeburn.com",
+      "date": "20261017T180000Z",
+      "sent": "pos"
+    },
+    {
+      "headline": "Who Really Owns the Bitcoin Inside BlackRock ETF ? ",
+      "url": "https://www.aol.com/articles/really-owns-bitcoin-inside-blackrock-160038000.html",
+      "src": "aol.com",
+      "date": "20261017T174500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Deutsche Bank Is Weeks From Holding Bitcoin and Ethereum for Clients . Could Other Big Banks Follow ? ",
+      "url": "https://www.aol.com/articles/deutsche-bank-weeks-holding-bitcoin-143032000.html",
+      "src": "aol.com",
+      "date": "20261017T153000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "Wrapped Bitcoin ( WBTC ) Weighs Multiple Custodians for Its Reserves",
+      "url": "https://econotimes.com/Wrapped-Bitcoin-WBTC-Weighs-Multiple-Custodians-for-Its-Reserves-1755979",
       "src": "econotimes.com",
-      "date": "20261016T204500Z",
+      "date": "20261017T153000Z",
       "sent": "neu"
     },
     {
-      "headline": "XRP Outpaces Bitcoin and Ethereum in South Korea Trading",
-      "url": "https://econotimes.com/XRP-Outpaces-Bitcoin-and-Ethereum-in-South-Korea-Trading-1755615",
-      "src": "econotimes.com",
-      "date": "20261016T204500Z",
-      "sent": "neu"
+      "headline": "Dogecoin ( DOGE ) Is Nearing Its First Death Cross of 2026 . What Happened After the Last One ? ",
+      "url": "https://247wallst.com/investing/cryptocurrency/2026/10/17/dogecoin-doge-is-nearing-its-first-death-cross-of-2026-what-happened-after-the-last-one/",
+      "src": "247wallst.com",
+      "date": "20261017T153000Z",
+      "sent": "pos"
     },
     {
-      "headline": "Podobnik Sees Deutsche Bank Crypto Custody Launch Within Weeks , Asia in 2027",
-      "url": "https://econotimes.com/Podobnik-Sees-Deutsche-Bank-Crypto-Custody-Launch-Within-Weeks-Asia-in-2027-1755625",
-      "src": "econotimes.com",
-      "date": "20261016T204500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Schwab Crypto Opens to All Retail Clients : Assets Bypass SIPC via Paxos Sub - Custody",
-      "url": "https://www.techtimes.com/articles/329120/20261016/schwab-crypto-opens-all-retail-clients-assets-bypass-sipc-via-paxos-sub-custody.htm",
-      "src": "techtimes.com",
-      "date": "20261016T200000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "What Happens to Bitcoin When Billions in Options Expire ? ",
-      "url": "https://www.aol.com/articles/happens-bitcoin-billions-options-expire-160041000.html",
+      "headline": "Hyperliquid , Monero or Bitcoin : Which Could Hit a New All Time High First ? ",
+      "url": "https://www.aol.com/articles/hyperliquid-monero-bitcoin-could-hit-140042000.html",
       "src": "aol.com",
-      "date": "20261016T164500Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "AI Price Prediction : We Asked ChatGPT AI Which Could Double First : Ethereum , Cardano , Sui or Chainlink",
-      "url": "https://www.aol.com/articles/ai-price-prediction-asked-chatgpt-153037000.html",
-      "src": "aol.com",
-      "date": "20261016T160000Z",
-      "sent": "neg"
-    },
-    {
-      "headline": "Judge Keeps Gemini $5 Million CFTC Consent Order in Force",
-      "url": "https://econotimes.com/Judge-Keeps-Gemini-s-5-Million-CFTC-Consent-Order-in-Force-1755503",
-      "src": "econotimes.com",
-      "date": "20261016T153000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Strategy stock falls as Michael Saylor bitcoin giant faces index - level threat",
-      "url": "https://www.aol.com/articles/strategy-stock-falls-michael-saylors-144934000.html",
-      "src": "aol.com",
-      "date": "20261016T153000Z",
-      "sent": "neg"
-    },
-    {
-      "headline": "Strategy and Riot Fall 4 %, Cipher Digital Declines 3 % as MSCI Index Rules and Convertible Sale Weigh",
-      "url": "https://www.aol.com/articles/strategy-riot-fall-4-cipher-134350000.html",
-      "src": "aol.com",
-      "date": "20261016T143000Z",
-      "sent": "neg"
-    },
-    {
-      "headline": "Has Bitcoin Bottomed ? We Asked Claude AI After Its Dip Below $80 , 000",
-      "url": "https://www.aol.com/articles/bitcoin-bottomed-asked-claude-ai-133055000.html",
-      "src": "aol.com",
-      "date": "20261016T143000Z",
-      "sent": "neg"
-    },
-    {
-      "headline": "Home Bitcoin Mining in 2026 : Is It Still Worth the Investment",
-      "url": "https://miningne.ws/home-bitcoin-mining-2026/",
-      "src": "miningne.ws",
-      "date": "20261016T143000Z",
+      "date": "20261017T153000Z",
       "sent": "neu"
     }
   ],
-  "ts": 1792189772385,
+  "ts": 1792292267351,
   "source": "GDELT",
-  "_updatedMs": 1792189772385
+  "_updatedMs": 1792292267351
 }
