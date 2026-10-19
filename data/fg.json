@@ -1,8 +1,8 @@
 {
-  "value": 53,
-  "label": "Neutral",
-  "prev": 55,
-  "srcTs": 1792281600000,
-  "ts": 1792366069957,
-  "_updatedMs": 1792366069957
+  "value": 59,
+  "label": "Greed",
+  "prev": 53,
+  "srcTs": 1792368000000,
+  "ts": 1792373539673,
+  "_updatedMs": 1792373539673
 }
