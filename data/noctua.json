@@ -1,152 +1,152 @@
 {
-  "anchor_utc": "2026-11-03 10:00:00+00:00",
-  "settle_utc": "2026-11-04 05:00:00+00:00",
+  "anchor_utc": "2026-11-03 18:00:00+00:00",
+  "settle_utc": "2026-11-04 13:00:00+00:00",
   "H_hours": 19,
-  "spot": 76939.96,
-  "sigma_window_pct": 2.34,
-  "sigma_annualized_pct": 50.2,
-  "trailing_rv_pct": 1.674,
-  "p_up": 0.4986,
-  "p_vol_amplify": 0.5318,
+  "spot": 77557.4,
+  "sigma_window_pct": 1.735,
+  "sigma_annualized_pct": 37.3,
+  "trailing_rv_pct": 1.545,
+  "p_up": 0.5031,
+  "p_vol_amplify": 0.6007,
   "safe_levels": [
     {
       "alpha": 0.01,
-      "call_strike": 83366.11,
-      "put_strike": 70759.22,
-      "call_pct": 8.352,
-      "put_pct": -8.033
+      "call_strike": 82366.12,
+      "put_strike": 72928.17,
+      "call_pct": 6.2,
+      "put_pct": -5.969
     },
     {
       "alpha": 0.02,
-      "call_strike": 82115.41,
-      "put_strike": 71874.81,
-      "call_pct": 6.727,
-      "put_pct": -6.583
+      "call_strike": 81459.34,
+      "put_strike": 73750.36,
+      "call_pct": 5.031,
+      "put_pct": -4.909
     },
     {
       "alpha": 0.05,
-      "call_strike": 80693.0,
-      "put_strike": 73210.4,
-      "call_pct": 4.878,
-      "put_pct": -4.847
+      "call_strike": 80410.45,
+      "put_strike": 74742.15,
+      "call_pct": 3.679,
+      "put_pct": -3.63
     },
     {
       "alpha": 0.1,
-      "call_strike": 79916.07,
-      "put_strike": 73971.54,
-      "call_pct": 3.868,
-      "put_pct": -3.858
+      "call_strike": 79802.33,
+      "put_strike": 75321.66,
+      "call_pct": 2.895,
+      "put_pct": -2.883
     },
     {
       "alpha": 0.2,
-      "call_strike": 79034.94,
-      "put_strike": 74806.9,
-      "call_pct": 2.723,
-      "put_pct": -2.772
+      "call_strike": 79139.19,
+      "put_strike": 75950.84,
+      "call_pct": 2.04,
+      "put_pct": -2.071
     }
   ],
   "barrier_curves": {
     "up": [
       {
         "pct": 0.5,
-        "price": 77324.66,
-        "touch_prob": 0.8176
+        "price": 77945.19,
+        "touch_prob": 0.7599
       },
       {
         "pct": 1.0,
-        "price": 77709.36,
-        "touch_prob": 0.6454
+        "price": 78332.97,
+        "touch_prob": 0.5421
       },
       {
         "pct": 1.5,
-        "price": 78094.06,
-        "touch_prob": 0.4909
+        "price": 78720.76,
+        "touch_prob": 0.349
       },
       {
         "pct": 2.0,
-        "price": 78478.76,
-        "touch_prob": 0.3437
+        "price": 79108.55,
+        "touch_prob": 0.2096
       },
       {
         "pct": 3.0,
-        "price": 79248.16,
-        "touch_prob": 0.1757
+        "price": 79884.12,
+        "touch_prob": 0.0933
       },
       {
         "pct": 4.0,
-        "price": 80017.56,
-        "touch_prob": 0.0934
+        "price": 80659.7,
+        "touch_prob": 0.0428
       },
       {
         "pct": 5.0,
-        "price": 80786.96,
-        "touch_prob": 0.048
+        "price": 81435.27,
+        "touch_prob": 0.0207
       },
       {
         "pct": 7.5,
-        "price": 82710.46,
-        "touch_prob": 0.0152
+        "price": 83374.2,
+        "touch_prob": 0.0049
       },
       {
         "pct": 10.0,
-        "price": 84633.96,
-        "touch_prob": 0.0054
+        "price": 85313.14,
+        "touch_prob": 0.0017
       }
     ],
     "dn": [
       {
         "pct": -0.5,
-        "price": 76555.26,
-        "touch_prob": 0.8248
+        "price": 77169.61,
+        "touch_prob": 0.7661
       },
       {
         "pct": -1.0,
-        "price": 76170.56,
-        "touch_prob": 0.6588
+        "price": 76781.83,
+        "touch_prob": 0.5529
       },
       {
         "pct": -1.5,
-        "price": 75785.86,
-        "touch_prob": 0.5088
+        "price": 76394.04,
+        "touch_prob": 0.362
       },
       {
         "pct": -2.0,
-        "price": 75401.16,
-        "touch_prob": 0.3663
+        "price": 76006.25,
+        "touch_prob": 0.2255
       },
       {
         "pct": -3.0,
-        "price": 74631.76,
-        "touch_prob": 0.1871
+        "price": 75230.68,
+        "touch_prob": 0.098
       },
       {
         "pct": -4.0,
-        "price": 73862.36,
-        "touch_prob": 0.1011
+        "price": 74455.1,
+        "touch_prob": 0.045
       },
       {
         "pct": -5.0,
-        "price": 73092.96,
-        "touch_prob": 0.0543
+        "price": 73679.53,
+        "touch_prob": 0.0235
       },
       {
         "pct": -7.5,
-        "price": 71169.46,
-        "touch_prob": 0.0173
+        "price": 71740.6,
+        "touch_prob": 0.0056
       },
       {
         "pct": -10.0,
-        "price": 69245.96,
-        "touch_prob": 0.0066
+        "price": 69801.66,
+        "touch_prob": 0.0019
       }
     ]
   },
   "model": "NOCTUA-v2",
   "sigma_functional": {
     "reported": "mean",
-    "sigma_med_pct": 1.865,
-    "sigma_mean_pct": 2.34,
-    "mean_over_median": 1.2546,
+    "sigma_med_pct": 1.39,
+    "sigma_mean_pct": 1.735,
+    "mean_over_median": 1.2477,
     "why": "QLIKE is minimised by the conditional MEAN of variance; sigma_mean is that mean, from the same forward pass. See P3-functional-parity.",
     "applies_to": "sigma_window_pct and sigma_annualized_pct only; barrier_curves, safe_levels and p_up are built from pred['sigma_atoms'] and p_vol_amplify from pred['qa'], so none of them can see this choice (P3-barrier-channel)"
   },
@@ -165,19 +165,19 @@
     "applies_to": "the anchor, hence sigma_med, sigma_mean, sigma_atoms, every barrier curve, safe level and p_up, and the trailing vol_calibration factor (computed from the same anchor). Asserted in tests/test_hour_anchor.py."
   },
   "sigma_scale": {
-    "scale": 1.1323,
+    "scale": 0.9449,
     "applied": false,
     "n_settled_episodes": 60,
     "note": "NO LONGER APPLIED. Superseded by the exact conditional mean; reported for comparison only. trailing 60d QLIKE scalar over 60 settled episodes",
     "applies_to": "nothing -- retained as a field for continuity"
   },
   "vol_calibration": {
-    "factor": 1.0889,
+    "factor": 0.837,
     "applied": true,
     "n_settled_episodes": 60,
     "window_days": 60,
     "note": "trailing 60d median over 60 settled episodes"
   },
   "source": "bitstamp:btcusd",
-  "history_hours": 11048
+  "history_hours": 11056
 }
