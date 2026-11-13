@@ -1,6 +1,55 @@
 {
   "items": [
     {
+      "headline": "Bitcoin and Ether Open Interest Rise as Three Other Markets Retreat",
+      "url": "https://econotimes.com/Bitcoin-and-Ether-Open-Interest-Rise-as-Three-Other-Markets-Retreat-1776097",
+      "src": "econotimes.com",
+      "date": "20261113T004500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "David Schwartz Reveals Massive XRP Sell - Off Transparency or Warning ? ",
+      "url": "https://bravenewcoin.com/insights/david-schwartz-reveals-massive-xrp-sell-off-transparency-or-warning",
+      "src": "bravenewcoin.com",
+      "date": "20261112T070000Z",
+      "sent": "neg"
+    },
+    {
+      "headline": "Bitcoin ( BTC ) Short at Crypto Address Grows by About $3 . 32 Million",
+      "url": "https://econotimes.com/Bitcoin-BTC-Short-at-Crypto-Address-Grows-by-About-3-32-Million-1775695",
+      "src": "econotimes.com",
+      "date": "20261112T064500Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "U . S . Bitcoin ETFs Post $6 . 2 Billion in Third - Quarter Net Inflows",
+      "url": "https://econotimes.com/U-S-Bitcoin-ETFs-Post-6-2-Billion-in-Third-Quarter-Net-Inflows-1775608",
+      "src": "econotimes.com",
+      "date": "20261112T030000Z",
+      "sent": "pos"
+    },
+    {
+      "headline": "MARKETS LIVE : US stocks close higher as CoreWeave results revive AI optimism",
+      "url": "https://www.proactiveinvestors.com/companies/news/1101567/markets-live-us-stocks-close-higher-as-coreweave-results-revive-ai-optimism-1101567.html",
+      "src": "proactiveinvestors.com",
+      "date": "20261112T013000Z",
+      "sent": "pos"
+    },
+    {
+      "headline": "Fold ( FLD ) Q3 2026 Earnings Call Transcript",
+      "url": "https://www.aol.com/articles/fold-fld-q3-2026-earnings-031911000.html",
+      "src": "aol.com",
+      "date": "20261111T040000Z",
+      "sent": "neu"
+    },
+    {
+      "headline": "BTCusd Forecast : How Our Elliott Wave Analysis Anticipated Bitcoin Next Decline",
+      "url": "https://www.actionforex.com/contributors/technical-analysis/660491-btcusd-forecast-how-our-elliott-wave-analysis-anticipated-bitcoins-next-decline/",
+      "src": "actionforex.com",
+      "date": "20261111T023000Z",
+      "sent": "neg"
+    },
+    {
       "headline": "Arkham Applies Labels to About $3 Billion in Crypto Fund Assets",
       "url": "https://econotimes.com/Arkham-Applies-Labels-to-About-3-Billion-in-Crypto-Fund-Assets-1774215",
       "src": "econotimes.com",
@@ -55,58 +104,9 @@
       "src": "memeburn.com",
       "date": "20261109T060000Z",
       "sent": "neu"
-    },
-    {
-      "headline": "Black Friday Crypto Deals 2026 : 8 Exchange and Wallet Offers",
-      "url": "https://memeburn.com/black-friday-crypto-deals/",
-      "src": "memeburn.com",
-      "date": "20261109T010000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Binance Bitcoin ( BTC ) Perpetual Snapshot Shows $7 . 47 Million Ask Lead",
-      "url": "https://econotimes.com/Binance-Bitcoin-BTC-Perpetual-Snapshot-Shows-7-47-Million-Ask-Lead-1773420",
-      "src": "econotimes.com",
-      "date": "20261109T010000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "IREN Reports $200 Million in AI Cloud Revenue as Mining Income Slips",
-      "url": "https://econotimes.com/IREN-Reports-200-Million-in-AI-Cloud-Revenue-as-Mining-Income-Slips-1773418",
-      "src": "econotimes.com",
-      "date": "20261109T010000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Vitalik  Pivot ETH To Store Of Value , Crypto Suffers After US Election : Hodler Digest",
-      "url": "https://cointelegraph.com/magazine/vitaliks-pivots-to-eth-as-a-store-of-value-us-election-weighs-on-crypto-hodlers-digest",
-      "src": "cointelegraph.com",
-      "date": "20261109T010000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "Apeing Enters November Crypto Spotlight As Solana ",
-      "url": "https://www.openpr.com/news/4684933/apeing-enters-november-s-crypto-spotlight-as-solana-s",
-      "src": "openpr.com",
-      "date": "20261108T203000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "BTC Digital ( BTCT ) versus The Competition Head to Head Contrast",
-      "url": "https://www.dailypolitical.com/2026/11/08/btc-digital-btct-versus-the-competition-head-to-head-contrast.html",
-      "src": "dailypolitical.com",
-      "date": "20261108T130000Z",
-      "sent": "neu"
-    },
-    {
-      "headline": "AI Stocks Are Falling ; Bitcoin Is Holding Ground . Here What Could Come Next . ",
-      "url": "https://www.fool.com/investing/2026/11/07/ai-stocks-are-falling-bitcoin-is-holding-ground/",
-      "src": "fool.com",
-      "date": "20261107T190000Z",
-      "sent": "neg"
     }
   ],
-  "ts": 1794302978294,
+  "ts": 1794537975685,
   "source": "GDELT",
-  "_updatedMs": 1794302978294
+  "_updatedMs": 1794537975685
 }
