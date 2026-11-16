@@ -1,6 +1,13 @@
 {
   "items": [
     {
+      "headline": "Mormon Wives Star Jen Affleck Claims Missing 100K Before Divorce",
+      "url": "https://intouchweekly.com/mormon-wives-star-jen-affleck-makes-shocking-claim-about-missing-100k-before-divorce/",
+      "src": "intouchweekly.com",
+      "date": "20261114T210000Z",
+      "sent": "neu"
+    },
+    {
       "headline": "Bitcoin and Ether Open Interest Rise as Three Other Markets Retreat",
       "url": "https://econotimes.com/Bitcoin-and-Ether-Open-Interest-Rise-as-Three-Other-Markets-Retreat-1776097",
       "src": "econotimes.com",
@@ -97,16 +104,9 @@
       "src": "247wallst.com",
       "date": "20261110T003000Z",
       "sent": "pos"
-    },
-    {
-      "headline": "New Avenues for Bitcoin , Ethereum , and XRP Rewards : An Investment Guide to FTMining Generating Up to $6 , 888 in Daily Passive Income",
-      "url": "https://memeburn.com/ftmining-cloud-mining-bitcoin-ethereum-xrp-guide/",
-      "src": "memeburn.com",
-      "date": "20261109T060000Z",
-      "sent": "neu"
     }
   ],
-  "ts": 1794537975685,
+  "ts": 1794789846127,
   "source": "GDELT",
-  "_updatedMs": 1794537975685
+  "_updatedMs": 1794789846127
 }
