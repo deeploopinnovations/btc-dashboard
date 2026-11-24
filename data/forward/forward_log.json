@@ -960,6 +960,28 @@
   "dvol": 55.93,
   "stale_inputs": [],
   "policy_sha256": "301635ff63a70ddf",
+  "forecaster_sha256": "9857566e04b73cf5",
+  "exit_price": 62178.18,
+  "btc_return": 0.0165080308610277,
+  "funding": 9.318684827697612e-06,
+  "funding_complete": true,
+  "pnl": 0.0016540704449257203,
+  "pnl_buy_hold": 0.0164987121762,
+  "pnl_const": 0.0023098197046680004,
+  "settled_utc": "2026-11-24T00:16:20.075209+00:00"
+ },
+ {
+  "anchor_utc": "2026-11-23T17:00:00+00:00",
+  "anchor_ts": 1795453200,
+  "decided_utc": "2026-11-24T00:16:20+00:00",
+  "late": true,
+  "entry_price": 62178.18,
+  "position": 0.0909,
+  "noctua_sigma_19h": 0.03702,
+  "noctua_ann_vol": 0.7949,
+  "dvol": 48.39,
+  "stale_inputs": [],
+  "policy_sha256": "301635ff63a70ddf",
   "forecaster_sha256": "9857566e04b73cf5"
  }
 ]
